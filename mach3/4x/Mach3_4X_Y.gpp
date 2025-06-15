@@ -58,7 +58,7 @@ endp
 
 @start_program
     {nb, '( --- Initialisation --- )'}
-    {nb, 'G0 G53 X0 Y0 A0'} ; TODO REMOVE !!! ;eliminate "Z0" tool crash     
+    ; {nb, 'G0 G53 X0 Y0 A0'} ; TODO REMOVE !!! ;eliminate "Z0" tool crash     
     {nb, 'G0 G40 G49 G80'}
     if inch_system then
         {' G20'}
@@ -76,7 +76,7 @@ endp
 @end_program
     {nb, 'M9 M5'}
     {nb, 'G0 Z'tool_z_level}
-    {nb, 'G0 X0 Y0 A0'}
+    ; {nb, 'G0 X0 Y0 A0'}
     {nl, 'M30'}
 endp
 
@@ -182,6 +182,9 @@ endp
 
 @line
     gcode = 1
+    if feed > 0 then
+        {nb, 'G1', [' F'feed] }
+    endif
     {nb, ['G'gcode], [' X'xpos], [' Y'ypos], [' Z'zpos], [' F'feed] }
 endp
 ;-------------------
@@ -195,6 +198,9 @@ endp
 
 @line_4x
     gcode = 1
+    if feed > 0 then
+        {nb, 'G1', [' F'feed] }
+    endif
     {nb, ['G'gcode], [' X'xpos], [' Y'ypos], [' Z'zpos], [' A'cpos], [' F'feed] }
 endp
 
@@ -215,7 +221,7 @@ endp
 	    if original_feed > 0 then
             {nb, ['G'gcode], [' X'xpos], [' Y'ypos], [' Z'zpos], [' A'apos], [' F'original_feed] }
 	    else
-		    {nb, ['G'gcode], [' X'xpos], [' Y'ypos], [' Z'zpos], [' A'apos], [' F'feed] }
+		     {nb, ['G'gcode], [' X'xpos], [' Y'ypos], [' Z'zpos], [' A'apos], [' F'feed] }
 	    endif
     endif
 endp
@@ -272,7 +278,8 @@ endp
 ;-------------------
 
 @home_number
-    gcode = 53 + home_number
+    ; gcode = 53 + home_number
+    gcode = 54
     {nb, 'G'gcode}
 
     ;{' A'(-angle_4x_around_x):'5.3(p)'}
@@ -544,6 +551,9 @@ endp
     if is_rapid_move then
         {nb, 'G0', machine_coords, ' X'xpos, ' Y'ypos, ' Z'zpos, [' A'apos] }
     else
+        if feed_move then
+            {nb, 'G1', [' F'feed_move] }
+        endif
         {nb, 'G1', machine_coords, ' X'xpos, ' Y'ypos, ' Z'zpos, [' A'apos], [' F'feed_move] }
     endif
 endp
