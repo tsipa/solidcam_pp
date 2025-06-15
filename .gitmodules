@@ -1,0 +1,3 @@
+[submodule "mach3/4x"]
+	path = mach3/4x
+	url = https://github.com/tsipa/SolidCam-Mach3-Post
