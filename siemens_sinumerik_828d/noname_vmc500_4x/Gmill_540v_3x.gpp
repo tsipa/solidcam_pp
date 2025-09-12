@@ -1147,8 +1147,8 @@ endp
                     sHomestr = sHomestrrot
                     call @usr_prep_home_axis
                 endif
-                {nb, 'HVV'}
-                zpos_f = '5.4(*-1)'
+;                {nb, 'HVV'}
+                zpos_f = '5.4' ;'5.4(*-1)'
 ;                {nb, 'ROT X90. '}
                 bVertical = true
                 bFirstVert = false
@@ -2374,9 +2374,9 @@ endp
             newshift_b = -1 * newshift_b
             shift_b_sign = '-'
         endif
-        {nl,'$P_UIFR['(position + home_number + 2)']= CTRANS( X,'shift_x_sign,newshift_x:'5.3'}
-        {', Y,'shift_y_sign,shift_y:'5.3'}
-        {', Z,'shift_z_sign,newshift_z:'5.3'}
-        {', B,0',')',cCb,'G',(position + home_number + 502)}
+        ; {nl,'$P_UIFR['(position + home_number + 2)']= CTRANS( X,'shift_x_sign,newshift_x:'5.3'}
+        ; {', Y,'shift_y_sign,shift_y:'5.3'}
+        ; {', Z,'shift_z_sign,newshift_z:'5.3'}
+        ; {', B,0',')',cCb,'G',(position + home_number + 502)}
     endif
 endp
