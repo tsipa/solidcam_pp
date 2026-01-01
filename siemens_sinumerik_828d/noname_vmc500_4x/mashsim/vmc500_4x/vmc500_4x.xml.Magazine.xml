@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<machine_definition>
+    <machine_data name="tmp_MachSimToolKit" version="1.9" units="metric" controller="">
+        <view_transform initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000" />
+    </machine_data>
+    <magazine>
+        <head name="tool_item_cmp_Fixture--id--13">
+            <transform id="transform_cmp_kurt_dx6--id--14" initialvalue="0.00000000,0.00000000,-1.00000000,-237.00000000,-1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,-132.43499756,0.00000000,0.00000000,0.00000000,1.00000000">
+                <geometry name="geom_cmp_kurt_dx6--id--14" geo="stl_geom_cmp_1.stl" clrr="1.00000000" clrg="0.93333334" clrb="0.69019610" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="fixture" />
+                <transform id="transform_cmp_static_jaw--id--15" initialvalue="1.00000000,0.00000000,0.00000000,-138.79299927,0.00000000,1.00000000,0.00000000,35.99160004,0.00000000,0.00000000,1.00000000,-63.02000427,0.00000000,0.00000000,0.00000000,1.00000000">
+                    <geometry name="geom_cmp_static_jaw--id--15" geo="stl_geom_cmp_2.stl" clrr="1.00000000" clrg="0.93333334" clrb="0.69019610" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="fixture" />
+                </transform>
+                <axis id="Xx--id--1" type="translation" x="1.00000000" y="0.00000000" z="0.00000000" minvalue="-100000.000000" maxvalue="100000.000000" valuetype="cont" show_slider="false" initial_value="0.000000">
+                    <transform id="transform_cmp_moving_jaw--id--16" initialvalue="1.00000000,0.00000000,0.00000000,196.46447754,0.00000000,1.00000000,0.00000000,9.47459507,0.00000000,0.00000000,1.00000000,-134.04600525,0.00000000,0.00000000,0.00000000,1.00000000">
+                        <geometry name="geom_cmp_moving_jaw--id--16" geo="stl_geom_cmp_3.stl" clrr="1.00000000" clrg="0.93333334" clrb="0.69019610" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="fixture" />
+                    </transform>
+                </axis>
+            </transform>
+        </head>
+        <head name="tool_item_cmp_Tool--id--1">
+            <transform id="transform_cmp_BT40 ER 32x60--id--2" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
+                <geometry name="geom_cmp_BT40 ER 32x60--id--2" geo="geom_cmp_--id--2.stl" clrr="0.24313726" clrg="0.24313726" clrb="0.24313726" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
+                <transform id="transform_cmp_END MILL--id--3" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
+                    <geometry name="tool_cmp_END MILL--id--3" geo="tool.stl" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="tool" cuttr="1.00000000" cuttg="1.00000000" cuttb="0.00000000" noncuttr="0.58823532" noncuttg="0.58823532" noncuttb="0.58823532" arborr="0.58823532" arborg="0.58823532" arborb="0.58823532" holderr="0.24313726" holderg="0.24313726" holderb="0.24313726" />
+                </transform>
+            </transform>
+        </head>
+        <head name="tool_item_cmp_Tool--id--10">
+            <transform id="transform_cmp_BT40 ER 32x60--id--11" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
+                <geometry name="geom_cmp_BT40 ER 32x60--id--11" geo="geom_cmp_--id--11.stl" clrr="0.24313726" clrg="0.24313726" clrb="0.24313726" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
+                <transform id="transform_cmp_END MILL--id--12" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
+                    <geometry name="tool_cmp_END MILL--id--12" geo="tool.stl" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="tool" cuttr="1.00000000" cuttg="1.00000000" cuttb="0.00000000" noncuttr="0.58823532" noncuttg="0.58823532" noncuttb="0.58823532" arborr="0.58823532" arborg="0.58823532" arborb="0.58823532" holderr="0.24313726" holderg="0.24313726" holderb="0.24313726" />
+                </transform>
+            </transform>
+        </head>
+        <head name="tool_item_cmp_Tool--id--4">
+            <transform id="transform_cmp_BT40 ER 32x60--id--5" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
+                <geometry name="geom_cmp_BT40 ER 32x60--id--5" geo="geom_cmp_--id--5.stl" clrr="0.24313726" clrg="0.24313726" clrb="0.24313726" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
+                <transform id="transform_cmp_FACE MILL--id--6" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
+                    <geometry name="tool_cmp_FACE MILL--id--6" geo="tool.stl" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="tool" cuttr="1.00000000" cuttg="1.00000000" cuttb="0.00000000" noncuttr="0.58823532" noncuttg="0.58823532" noncuttb="0.58823532" arborr="0.58823532" arborg="0.58823532" arborb="0.58823532" holderr="0.24313726" holderg="0.24313726" holderb="0.24313726" />
+                </transform>
+            </transform>
+        </head>
+        <head name="tool_item_cmp_Tool--id--7">
+            <transform id="transform_cmp_BT40 ER 32x60--id--9" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
+                <geometry name="geom_cmp_BT40 ER 32x60--id--9" geo="geom_cmp_--id--9.stl" clrr="0.24313726" clrg="0.24313726" clrb="0.24313726" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
+                <transform id="transform_cmp_SPOT DRILL--id--8" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
+                    <geometry name="tool_cmp_SPOT DRILL--id--8" geo="tool.stl" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="tool" cuttr="1.00000000" cuttg="1.00000000" cuttb="0.00000000" noncuttr="0.58823532" noncuttg="0.58823532" noncuttb="0.58823532" arborr="0.58823532" arborg="0.58823532" arborb="0.58823532" holderr="0.24313726" holderg="0.24313726" holderb="0.24313726" />
+                </transform>
+            </transform>
+        </head>
+        <head name="tool_item_cmp_clamping fixture--id--17">
+            <transform id="transform_cmp_clamping fixture--id--18" initialvalue="1.00000000,0.00000000,0.00000000,-388.61450195,0.00000000,1.00000000,0.00000000,71.70003510,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
+                <geometry name="geom_cmp_clamping fixture--id--18" geo="stl_geom_cmp_4.stl" clrr="1.00000000" clrg="0.93333334" clrb="0.69019610" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="fixture" />
+            </transform>
+        </head>
+    </magazine>
+</machine_definition>

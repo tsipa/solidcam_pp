@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<machine_definition>
+    <machine_data name="vmc500_4x" version="1.9" units="metric" controller="">
+        <view_transform initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000" />
+    </machine_data>
+    <axis id="Y" type="translation" x="0.00000000" y="1.00000000" z="0.00000000" minvalue="-175.000000" maxvalue="175.000000" valuetype="cont" initial_value="0.000000">
+        <axis id="X" type="translation" x="1.00000000" y="0.00000000" z="0.00000000" minvalue="-8.000000" maxvalue="492.000000" valuetype="cont" initial_value="400.000000">
+            <axis id="A" type="rotation" x="1.00000000" y="0.00000000" z="0.00000000" minvalue="-1000.000000" maxvalue="1000.000000" valuetype="cont" initial_value="0.000000" rzx="0.00000000" rzy="0.00000000" rzz="0.00000000">
+                <geometry name="vmc500_4x - rotary_axis-2" geo="vmc500_4x - rotary_axis-2.stl" clrr="0.52941179" clrg="0.80784315" clrb="0.92156863" alpha="0.50" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
+                <revolving_set id="workpiece_spindle" reverse_workpiece_spindle_orientation="false" objtype="workpiece_spindle">
+                    <transform id="workpiece_transform" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
+                        <geometry name="fixture" geo="fixture.stl" clrr="0.50196081" clrg="0.50196081" clrb="0.50196081" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="fixture" />
+                        <geometry name="initialstock" geo="initialstock.stl" clrr="0.75294119" clrg="0.75294119" clrb="0.75294119" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="initialstock" />
+                        <geometry name="stock" geo="stock.stl" clrr="0.75294119" clrg="0.75294119" clrb="0.75294119" alpha="0.00" reflectivity="0.40" reflectivityBitmapFileName="" objtype="stock" />
+                        <geometry name="toolpath" geo="toolpath.asc" clrr="0.80000001" clrg="0.80000001" clrb="0.80000001" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="toolpath" />
+                        <geometry name="workpiece" geo="workpiece.stl" clrr="0.75294119" clrg="0.75294119" clrb="0.75294119" alpha="0.00" reflectivity="0.40" reflectivityBitmapFileName="" objtype="workpiece" />
+                    </transform>
+                </revolving_set>
+            </axis>
+            <geometry name="vmc500_4x - setter_cover-1" geo="vmc500_4x - setter_cover-1.STL" clrr="0.50196081" clrg="0.50196081" clrb="0.50196081" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
+            <geometry name="vmc500_4x - table-2" geo="vmc500_4x - table-2.stl" clrr="0.50196081" clrg="0.50196081" clrb="0.50196081" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
+        </axis>
+    </axis>
+    <axis id="Z" type="translation" x="0.00000000" y="0.00000000" z="1.00000000" minvalue="-25.000000" maxvalue="465.000000" valuetype="cont" initial_value="250.000000">
+        <revolving_set id="holder_spindle" reverse_tool_spindle_rotation="false" objtype="holder_spindle">
+            <transform id="holder_transform" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
+                <geometry name="tool" geo="tool.stl" alpha="0.00" reflectivity="0.10" reflectivityBitmapFileName="" objtype="tool" cuttr="0.82745099" cuttg="0.78039217" cuttb="0.67450982" noncuttr="0.50196081" noncuttg="0.50196081" noncuttb="0.50196081" arborr="0.39215687" arborg="0.39215687" arborb="0.39215687" holderr="0.36862746" holderg="0.57254905" holderb="0.69019610" />
+            </transform>
+        </revolving_set>
+        <geometry name="vmc500_4x - spindle-1" geo="vmc500_4x - spindle-1.stl" clrr="1.00000000" clrg="0.84313726" clrb="0.00000000" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
+    </axis>
+    <geometry name="vmc500_4x - atc-1" geo="vmc500_4x - atc-1.stl" clrr="1.00000000" clrg="0.93725491" clrb="0.83529413" alpha="0.88" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
+    <collcheck id="cc1" name="cc1" group1="workpiece,stock,fixture,vmc500_4x - rotary_axis-2,vmc500_4x - table-2,vmc500_4x - setter_cover-1" group2="tool" />
+    <collcheck id="cc2" name="cc2" group1="vmc500_4x - spindle-1" group2="vmc500_4x - rotary_axis-2,vmc500_4x - table-2,vmc500_4x - setter_cover-1,workpiece" />
+</machine_definition>
