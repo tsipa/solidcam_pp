@@ -8,6 +8,7 @@
             <axis id="A" type="rotation" x="1.00000000" y="0.00000000" z="0.00000000" minvalue="-1000.000000" maxvalue="1000.000000" valuetype="cont" initial_value="0.000000" rzx="0.00000000" rzy="0.00000000" rzz="0.00000000">
                 <geometry name="vmc500_4x - rotary_axis-2" geo="vmc500_4x - rotary_axis-2.stl" clrr="0.52941179" clrg="0.80784315" clrb="0.92156863" alpha="0.50" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
                 <revolving_set id="workpiece_spindle" reverse_workpiece_spindle_orientation="false" objtype="workpiece_spindle">
+                    <transform id="fixture_adaptor1" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000" objtype="mountadapter" />
                     <transform id="workpiece_transform" initialvalue="1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000,0.00000000,0.00000000,0.00000000,0.00000000,1.00000000">
                         <geometry name="fixture" geo="fixture.stl" clrr="0.50196081" clrg="0.50196081" clrb="0.50196081" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="fixture" />
                         <geometry name="initialstock" geo="initialstock.stl" clrr="0.75294119" clrg="0.75294119" clrb="0.75294119" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="initialstock" />
@@ -17,7 +18,8 @@
                     </transform>
                 </revolving_set>
             </axis>
-            <geometry name="vmc500_4x - setter_cover-1" geo="vmc500_4x - setter_cover-1.STL" clrr="0.50196081" clrg="0.50196081" clrb="0.50196081" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
+            <geometry name="vmc500_4x - rotary_axis_housing-1" geo="vmc500_4x - rotary_axis_housing-1.STL" clrr="0.50196081" clrg="0.50196081" clrb="0.50196081" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
+            <geometry name="vmc500_4x - setter_cover-1" geo="vmc500_4x - setter_cover-1.stl" clrr="0.50196081" clrg="0.50196081" clrb="0.50196081" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
             <geometry name="vmc500_4x - table-2" geo="vmc500_4x - table-2.stl" clrr="0.50196081" clrg="0.50196081" clrb="0.50196081" alpha="0.00" reflectivity="0.00" reflectivityBitmapFileName="" objtype="geometry" />
         </axis>
     </axis>
