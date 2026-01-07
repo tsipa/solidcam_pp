@@ -1,0 +1,1353 @@
+<?xml version="1.0"?>
+<VcProject Version="9.6" Unit="millimeter" ProductName="Vericut" UseLicenseMachSim="yes">
+  <Information>
+    <InfoUserName>Ts</InfoUserName>
+    <InfoDateTime>Mon Jan  5 05:27:10 2026</InfoDateTime>
+    <InfoVericutVersion>9.6</InfoVericutVersion>
+    <InfoBuildDate>September 10, 2025 </InfoBuildDate>
+    <InfoLibraryDate>06/23/25</InfoLibraryDate>
+  </Information>
+  <Log>vericut.log</Log>
+  <Display Resolution="auto"/>
+  <Export Process="polygon">
+    <Output Type="STEP_214" Format="binary" Color="green" Axes="stock" Unit="millimeter" ReduceTol2="0.1" OffsetSw="off" OffsetTol="0" ModelType="vericut_model"/>
+    <File></File>
+    <Stock>Stock</Stock>
+    <Slice Direction="X" Count="100" Angle="30" Tol="0.005"/>
+  </Export>
+  <STLOutput Type="STL" Format="binary" Axes="active" Unit="millimeter">
+    <File></File>
+    <Stock></Stock>
+  </STLOutput>
+  <Color Hues="85" Wrap="on" Method="next">
+    <Hue R="255" G="0" B="0">Red</Hue>
+    <Hue R="147" G="112" B="219">Medium Purple</Hue>
+    <Hue R="255" G="222" B="173">Navajo White</Hue>
+    <Hue R="160" G="82" B="45">Sienna</Hue>
+    <Hue R="105" G="105" B="105">Dim Gray</Hue>
+    <Hue R="255" G="215" B="0">Gold</Hue>
+    <Hue R="32" G="178" B="170">Light Sea Green</Hue>
+    <Hue R="70" G="70" B="70">Custom Gray</Hue>
+    <Hue R="255" G="255" B="255">White</Hue>
+    <Hue R="238" G="130" B="238">Violet</Hue>
+    <Hue R="208" G="32" B="144">Violet Red</Hue>
+    <Hue R="216" G="191" B="216">Thistle</Hue>
+    <Hue R="0" G="255" B="255">Cyan</Hue>
+    <Hue R="0" G="255" B="0">Green</Hue>
+    <Hue R="0" G="0" B="255">Blue</Hue>
+    <Hue R="184" G="134" B="11">Dark Goldenrod</Hue>
+    <Hue R="255" G="0" B="255">Magenta</Hue>
+    <Hue R="255" G="228" B="181">Moccasin</Hue>
+    <Hue R="218" G="165" B="32">Goldenrod</Hue>
+    <Hue R="127" G="255" B="212">Aquamarine</Hue>
+    <Hue R="240" G="230" B="140">Khaki</Hue>
+    <Hue R="0" G="255" B="127">Spring Green</Hue>
+    <Hue R="0" G="206" B="209">Dark Turquoise</Hue>
+    <Hue R="72" G="61" B="139">Dark Slate Blue</Hue>
+    <Hue R="124" G="252" B="0">Lawn Green</Hue>
+    <Hue R="0" G="250" B="154">Medium Spring Green</Hue>
+    <Hue R="255" G="160" B="122">Light Salmon</Hue>
+    <Hue R="30" G="144" B="255">Dodger Blue</Hue>
+    <Hue R="148" G="0" B="211">Dark Violet</Hue>
+    <Hue R="0" G="206" B="209">Dark Turquoise</Hue>
+    <Hue R="160" G="32" B="240">Purple</Hue>
+    <Hue R="173" G="255" B="47">Green Yellow</Hue>
+    <Hue R="0" G="0" B="205">Medium Blue</Hue>
+    <Hue R="218" G="165" B="32">Goldenrod</Hue>
+    <Hue R="255" G="99" B="71">Tomato</Hue>
+    <Hue R="138" G="43" B="226">Blue Violet</Hue>
+    <Hue R="210" G="105" B="30">Chocolate</Hue>
+    <Hue R="199" G="21" B="133">Medium Violet Red</Hue>
+    <Hue R="208" G="32" B="144">Violet Red</Hue>
+    <Hue R="184" G="134" B="11">Dark Goldenrod</Hue>
+    <Hue R="64" G="224" B="208">Turquoise</Hue>
+    <Hue R="65" G="105" B="225">Royal Blue</Hue>
+    <Hue R="154" G="205" B="50">Yellow Green</Hue>
+    <Hue R="50" G="205" B="50">Lime Green</Hue>
+    <Hue R="153" G="50" B="204">Dark Orchid</Hue>
+    <Hue R="255" G="105" B="180">Hot Pink</Hue>
+    <Hue R="244" G="164" B="96">Sandy Brown</Hue>
+    <Hue R="32" G="178" B="170">Light Sea Green</Hue>
+    <Hue R="178" G="34" B="34">Firebrick</Hue>
+    <Hue R="132" G="112" B="255">Light Slate Blue</Hue>
+    <Hue R="255" G="255" B="0">AutoDiff_G1</Hue>
+    <Hue R="255" G="205" B="0">AutoDiff_G2</Hue>
+    <Hue R="255" G="155" B="0">AutoDiff_G3</Hue>
+    <Hue R="205" G="105" B="0">AutoDiff_G4</Hue>
+    <Hue R="105" G="0" B="0">AutoDiff_G5</Hue>
+    <Hue R="0" G="255" B="0">AutoDiff_E1</Hue>
+    <Hue R="0" G="180" B="0">AutoDiff_E2</Hue>
+    <Hue R="0" G="130" B="100">AutoDiff_E3</Hue>
+    <Hue R="0" G="130" B="175">AutoDiff_E4</Hue>
+    <Hue R="0" G="25" B="175">AutoDiff_E5</Hue>
+    <Hue R="75" G="75" B="75">Machine_1</Hue>
+    <Hue R="150" G="150" B="150">Machine_2</Hue>
+    <Hue R="200" G="200" B="200">Machine_3</Hue>
+    <Hue R="0" G="0" B="100">Machine_4</Hue>
+    <Hue R="0" G="0" B="150">Machine_5</Hue>
+    <Hue R="0" G="0" B="200">Machine_6</Hue>
+    <Hue R="100" G="0" B="150">Machine_7</Hue>
+    <Hue R="100" G="0" B="175">Machine_8</Hue>
+    <Hue R="150" G="0" B="205">Machine_9</Hue>
+    <Hue R="150" G="0" B="155">Machine_10</Hue>
+    <Hue R="245" G="222" B="179">Machine_11</Hue>
+    <Hue R="222" G="184" B="135">Machine_12</Hue>
+    <Hue R="244" G="164" B="96">Machine_13</Hue>
+    <Hue R="189" G="183" B="107">Machine_14</Hue>
+    <Hue R="75" G="105" B="125">Machine_15</Hue>
+    <Hue R="25" G="55" B="75">Machine_16</Hue>
+    <Hue R="25" G="30" B="50">Machine_17</Hue>
+    <Hue R="255" G="165" B="0">Machine_18</Hue>
+    <Hue R="255" G="255" B="255">Machine_19</Hue>
+    <Hue R="0" G="0" B="0">Machine_20</Hue>
+    <Hue R="135" G="206" B="250">Machine_21</Hue>
+    <Hue R="0" G="81" B="129">Machine_22</Hue>
+    <Hue R="230" G="228" B="229">Machine_23</Hue>
+    <Hue R="254" G="110" B="26">Machine_24</Hue>
+    <Hue R="31" G="31" B="31">Machine_25</Hue>
+    <Hue R="255" G="228" B="181">Moccasin</Hue>
+    <Hue R="255" G="182" B="193">Light Pink</Hue>
+    <Hue R="255" G="218" B="185">Peach Puff</Hue>
+    <Hue R="210" G="180" B="140">Tan</Hue>
+    <Hue R="238" G="232" B="170">Pale Goldenrod</Hue>
+    <Hue R="245" G="222" B="179">Wheat</Hue>
+    <Hue R="95" G="158" B="160">Cadet Blue</Hue>
+    <Hue R="255" G="192" B="203">Pink</Hue>
+    <Hue R="175" G="238" B="238">Pale Turquoise</Hue>
+    <Hue R="85" G="107" B="47">Dark Olive Green</Hue>
+    <Hue R="255" G="228" B="196">Bisque</Hue>
+    <Hue R="173" G="216" B="230">Light Blue</Hue>
+    <Hue R="176" G="224" B="230">Powder Blue</Hue>
+    <Hue R="255" G="250" B="205">Lemon Chiffon</Hue>
+    <Hue R="255" G="235" B="205">Blanched Almond</Hue>
+    <Hue R="188" G="143" B="143">Rosy Brown</Hue>
+    <Hue R="143" G="188" B="143">Dark Sea Green</Hue>
+    <Hue R="255" G="239" B="213">Papaya Whip</Hue>
+    <Hue R="250" G="250" B="210">Light Goldenrod Yellow</Hue>
+    <Hue R="255" G="248" B="220">Cornsilk</Hue>
+    <Hue R="250" G="235" B="215">Antique White</Hue>
+    <Hue R="119" G="136" B="153">Light Slate Gray</Hue>
+    <Hue R="112" G="128" B="144">Slate Gray</Hue>
+    <Hue R="47" G="79" B="79">Dark Slate Gray</Hue>
+    <Hue R="255" G="255" B="224">Light Yellow</Hue>
+    <Hue R="224" G="255" B="255">Light Cyan</Hue>
+    <Hue R="216" G="191" B="216">Thistle</Hue>
+    <Hue R="253" G="245" B="230">Old Lace</Hue>
+    <Hue R="230" G="230" B="250">Lavender</Hue>
+    <Hue R="250" G="240" B="230">Linen</Hue>
+    <Hue R="255" G="245" B="238">Seashell</Hue>
+    <Hue R="255" G="240" B="245">Lavender Blush</Hue>
+    <Hue R="240" G="248" B="255">Alice Blue</Hue>
+    <Hue R="240" G="255" B="255">Azure</Hue>
+    <Hue R="240" G="255" B="240">Honeydew</Hue>
+    <Hue R="255" G="255" B="240">Ivory</Hue>
+    <Hue R="255" G="250" B="240">Floral White</Hue>
+    <Hue R="245" G="255" B="250">Mint Cream</Hue>
+    <Hue R="248" G="248" B="255">Ghost White</Hue>
+    <Hue R="211" G="211" B="211">Light Gray</Hue>
+    <Hue R="192" G="192" B="192">Gray</Hue>
+    <Hue R="220" G="220" B="220">Gainsboro</Hue>
+    <Hue R="0" G="0" B="192">Background Blue</Hue>
+    <Error Hue="0"/>
+    <Reset Hue="5"/>
+    <Background Color="13158600"  Color2="-10197916"/>
+    <CourseEdge XRGB="0x00000000"/>
+    <DrawingColor XRGB="0x00FF00FF"/>
+    <TowEdge XRGB="0x00C0C0C0"/>
+    <CenterpathNormal XRGB="0x00FF00FF"/>
+    <Cut Sequence="1" Hue="13"/>
+    <Cut Sequence="2" Hue="1"/>
+    <Cut Sequence="3" Hue="12"/>
+    <Cut Sequence="4" Hue="26"/>
+    <Cut Sequence="5" Hue="6"/>
+    <Cut Sequence="6" Hue="21"/>
+    <Cut Sequence="7" Hue="14"/>
+    <Cut Sequence="8" Hue="15"/>
+    <Cut Sequence="9" Hue="16"/>
+    <Cut Sequence="10" Hue="11"/>
+    <Cut Sequence="11" Hue="19"/>
+    <Cut Sequence="12" Hue="23"/>
+    <Cut Sequence="13" Hue="20"/>
+    <Cut Sequence="14" Hue="35"/>
+    <Cut Sequence="15" Hue="22"/>
+    <Feed Value="0" Hue="50"/>
+    <Feed Value="100" Hue="51"/>
+    <Feed Value="200" Hue="52"/>
+    <Feed Value="300" Hue="53"/>
+    <Feed Value="400" Hue="54"/>
+    <Feed Value="500" Hue="55"/>
+    <Feed Value="600" Hue="56"/>
+    <Feed Value="700" Hue="57"/>
+    <Feed Value="800" Hue="58"/>
+    <Feed Value="900" Hue="59"/>
+    <Feed Value="1000" Hue="50"/>
+    <Feed Value="1500" Hue="51"/>
+    <Feed Value="2000" Hue="52"/>
+    <Feed Value="2500" Hue="53"/>
+    <Feed Value="3000" Hue="54"/>
+    <Feed Value="3500" Hue="55"/>
+    <Feed Value="4000" Hue="56"/>
+    <Feed Value="4500" Hue="57"/>
+    <Feed Value="5000" Hue="58"/>
+    <Feed Value="5500" Hue="59"/>
+    <Feed Value="6000" Hue="50"/>
+    <Feed Value="6500" Hue="51"/>
+    <Feed Value="7000" Hue="52"/>
+    <Feed Value="7500" Hue="53"/>
+    <Feed Value="8000" Hue="54"/>
+    <Feed Value="8500" Hue="55"/>
+    <Feed Value="9000" Hue="56"/>
+    <Feed Value="9500" Hue="57"/>
+    <Feed Value="10000" Hue="58"/>
+    <Feed Value="10500" Hue="59"/>
+    <Back R="0" G="0" B="128">Navy</Back>
+    <Fore R="0" G="255" B="255">Cyan</Fore>
+  </Color>
+  <Report Auto="off" When="all" View="off" Format="html">
+    <File></File>
+  </Report>
+  <MetricsDelim Auto="off" Overwrite="off" Separator="comma">
+    <File>*_metrics.csv</File>
+  </MetricsDelim>
+  <Picture Format="JPEG" Style="palette" Shading="color"
+   Orientation="portrait" Result="on" Render="off">
+    <File>vericut</File>
+    <Script Margin="off" Left="0" Right="0" Top="0" Bottom="0"
+     Size="letter" Annotate="off"></Script>
+    <Render Size="off" Width="640" Height="480"
+     Shadow="on" Angle="15" Location="2" Override="false" Color="16777215"/>
+  </Picture>
+  <AutoSave>
+    <IP Change="off" Cuts="off" Count="1000" DoText="off" End="off" When="each" Error="off" Maximum="off" Value="1" Type="0" Start="off">
+      <Save>autosav.ip</Save>
+      <Oops>autoerr.ip</Oops>
+      <Text></Text>
+    </IP>
+    <VcSolid Change="off" Cuts="off" Count="0" DoText="off" End="off" When="each" Error="off" Maximum="off" Value="1" Type="0" Start="off">
+      <Save></Save>
+      <Oops></Oops>
+      <Text></Text>
+    </VcSolid>
+    <Picture Change="off" Cuts="off" Count="1000" DoText="off" End="off" When="each" Error="off" Maximum="off" Value="1" Type="0" Start="off">
+      <Save>autosav</Save>
+      <Oops>autoerr</Oops>
+      <Text></Text>
+    </Picture>
+    <Review Change="off" Cuts="off" Count="1000" DoText="off" End="off" When="all" Error="off" Maximum="off" Value="1" Type="0" Start="off">
+      <Save></Save>
+      <Oops></Oops>
+      <Text></Text>
+    </Review>
+  </AutoSave>
+  <Views CutStockQuality="best" AutoCutStockQuality="on" NonCutStockQuality="best" AutoNonCutStockQuality="on" RefineQuality="best">
+  </Views>
+  <Start Type="start" Line="1" Tool="" Index="0">
+    <File></File>
+    <Text></Text>
+  </Start>
+  <Breakpoints>
+    <Breakpoint Type="each setup" Enabled="1" Count="-1" Text="" Index="-1" Value="" />
+    <Breakpoint Type="errors" Enabled="0" Count="1" Text="" Index="-1" Value="" />
+    <Breakpoint Type="warnings" Enabled="0" Count="1" Text="" Index="-1" Value="" />
+  </Breakpoints>
+  <Cycles>
+    <Line></Line>
+    <Line>$$ ACL.</Line>
+    <Line></Line>
+    <Line>CYCLE/DRILL,#fedto,IPM,#fedupm,#rapto</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line>CYCLE/REAM,#fedto,IPM,#fedupm,#rapto</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line>CYCLE/FACE,#fedto,IPM,#fedupm,#rapto</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line>CYCLE/TAP,#fedto,IPM,#fedupm,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line>CYCLE/BORE,#fedto,IPM,#fedupm,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line>CYCLE/MILL,#fedto,IPM,#fedupm,#rapto</Line>
+    <Line>MODALS:retract_mode=none</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line>CYCLE/CSINK,#fedto,#,IPM,#fedupm,#rapto</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line>CYCLE/CSINK,#cskdia,IPM,#fedupm,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line>CYCLE/CSINK,#cskdia,RAPTO,#rapto,RTRCTO,#rtrcto,TLANGL,#tlangl, $</Line>
+    <Line>IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line>CYCLE/DEEP,#fedlist,IPM,#fedupm,#rapto,#steprap</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line>CYCLE/DEEP,#fedto,INCR,#step,IPM,#fedupm,#rapto,#steprap</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line>CYCLE/THRU,#fedlist,IPM,#fedupm,#rapto</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:ACL</Line>
+    <Line></Line>
+    <Line>$$ VERICUT, CADRA and CV (Generic).</Line>
+    <Line></Line>
+    <Line>CYCLE/DRILL,#fedto,#fedupm,IPM,#rapto</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/DRILL,RAPTO,#rapto,FEDTO,#fedto</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/DRILL,RAPTO,#rapto,FEDTO,#fedto,IPM,#fedupm</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/DRILL,RAPTO,#rapto,FEDTO,#fedto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/FACE,#fedto,#fedupm,IPM,#rapto</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/FACE,RAPTO,#rapto,FEDTO,#fedto</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/FACE,RAPTO,#rapto,FEDTO,#fedto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/TAP,#fedto,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/TAP,RAPTO,#rapto,FEDTO,#fedto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/TAP,RAPTO,#rapto,FEDTO,#fedto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/BORE,#fedto,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/BORE,RAPTO,#rapto,FEDTO,#fedto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/BORE,RAPTO,#rapto,FEDTO,#fedto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/BORE,DRAG,RAPTO,#rapto,FEDTO,#fedto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/BORE,DRAG,RAPTO,#rapto,FEDTO,#fedto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/BORE,ORIENT,RAPTO,#rapto,FEDTO,#fedto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/BORE,ORIENT,RAPTO,#rapto,FEDTO,#fedto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/MILL,#fedto,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:retract_mode=none</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/MILL,RAPTO,#rapto,FEDTO,#fedto</Line>
+    <Line>MODALS:retract_mode=none</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/MILL,RAPTO,#rapto,FEDTO,#fedto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=none</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/DEEP,#fedto,#fedupm,IPM,#rapto,#step</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#fedto</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#fedto,STEP,#step</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#fedto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#fedto,STEP,#step,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/THRU,RAPTO,#rapto,FEDTO,#fedto</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line>CYCLE/THRU,RAPTO,#rapto,FEDTO,#fedto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:VERICUT,CADRA,CV</Line>
+    <Line></Line>
+    <Line>$$ Pro/Manufacturing</Line>
+    <Line></Line>
+    <Line>CYCLE/DRILL,#fedto,#fedupm,IPM,#rapto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/DRILL,DEPTH,#fedto,IPM,#fedupm</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/DRILL,DEPTH,#fedto,IPM,#fedupm,CLEAR,#rapto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/DRILL,DEPTH,#fedto,IPM,#fedupm,CLEAR,#rapto,RETURN,#rtrcto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/DEEP,#fedto,#fedupm,IPM,#rapto,#step</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/DEEP,DEPTH,#fedlist,IPM,#fedupm</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/DEEP,DEPTH,#fedlist,IPM,#fedupm,CLEAR,#rapto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/DEEP,DEPTH,#fedlist,IPM,#fedupm,CLEAR,#rapto,RETURN,#rtrcto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/DEEP,DEPTH,#fedto,STEP,#step,IPM,#fedupm</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/DEEP,DEPTH,#fedto,STEP,#step,IPM,#fedupm,CLEAR,#rapto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/DEEP,DEPTH,#fedto,STEP,#step,IPM,#fedupm,CLEAR,#rapto, $</Line>
+    <Line>RETURN,#rtrcto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/BRKCHP,DEPTH,#fedlist,IPM,#fedupm</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/BRKCHP,DEPTH,#fedlist,IPM,#fedupm,CLEAR,#rapto</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/BRKCHP,DEPTH,#fedlist,IPM,#fedupm,CLEAR,#rapto, $</Line>
+    <Line>RETURN,#rtrcto</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/BRKCHP,DEPTH,#fedto,STEP,#step,IPM,#fedupm</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/BRKCHP,DEPTH,#fedto,STEP,#step,IPM,#fedupm,CLEAR,#rapto</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/BRKCHP,DEPTH,#fedto,STEP,#step,IPM,#fedupm,CLEAR,#rapto, $</Line>
+    <Line>RETURN,#rtrcto</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/THRU,DEPTH,#fedlist,IPM,#fedupm</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/THRU,DEPTH,#fedlist,IPM,#fedupm,CLEAR,#rapto</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/THRU,DEPTH,#fedlist,IPM,#fedupm,CLEAR,#rapto,RETURN,#rtrcto</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/FACE,DEPTH,#fedto,IPM,#fedupm</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/FACE,DEPTH,#fedto,IPM,#fedupm,CLEAR,#rapto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/FACE,DEPTH,#fedto,IPM,#fedupm,CLEAR,#rapto,RETURN,#rtrcto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/BORE,DEPTH,#fedto,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/BORE,DEPTH,#fedto,IPM,#fedupm,CLEAR,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/BORE,DEPTH,#fedto,IPM,#fedupm,CLEAR,#rapto,RETURN,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/CSINK,DIAMET,#cskdia,TLANGL,#tlangl,IPM,#fedupm</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/CSINK,DIAMET,#cskdia,TLANGL,#tlangl,IPM,#fedupm,CLEAR,#rapto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/CSINK,DIAMET,#cskdia,TLANGL,#tlangl,IPM,#fedupm,CLEAR,#rapto, $</Line>
+    <Line>RETURN,#rtrcto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/REAM,DEPTH,#fedto,IPM,#fedupm</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/REAM,DEPTH,#fedto,IPM,#fedupm,CLEAR,#rapto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/REAM,DEPTH,#fedto,IPM,#fedupm,CLEAR,#rapto,RETURN,#rtrcto</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/TAP,#fedto,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/TAP,DEPTH,#fedto,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/TAP,DEPTH,#fedto,IPM,#fedupm,CLEAR,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line>CYCLE/TAP,DEPTH,#fedto,IPM,#fedupm,CLEAR,#rapto,RETURN,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:PTC</Line>
+    <Line></Line>
+    <Line>$$ UniGraphics (CLS).</Line>
+    <Line></Line>
+    <Line>CYCLE/DRILL,RAPTO,#rapto,FEDTO,#-fedto,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,RAPTO,#rapto,FEDTO,#-fedto,A,A,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,A,A,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto, $</Line>
+    <Line>IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DWELL,REV,#,RAPTO,#rapto,FEDTO,#-fedto,A,#, $</Line>
+    <Line>RTRCTO,#rtrcto,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,CSINK,CSKDIA,#cskdia,TLANGL,#tlangl, $</Line>
+    <Line>A,#,RAPTO,#rapto,A,A</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,CSINK,CSKDIA,#cskdia,TLANGL,#tlangl, $</Line>
+    <Line>A,#,RAPTO,#rapto,A,A,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,CSINK,CSKDIA,#cskdia,TLANGL,#tlangl,HOLDIA,#holdia, $</Line>
+    <Line>A,#,RAPTO,#rapto,RTRCTO,#rtrcto,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,CSINK,CSKDIA,#cskdia,TLANGL,#tlangl,HOLDIA,#holdia, $</Line>
+    <Line>A,#,RAPTO,#rapto,RTRCTO,#rtrcto,IPM,#fedupm,A</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DEEP,STEP,#step,RAPTO,#rapto,FEDTO,#-fedto,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DEEP,STEP,#step,RAPTO,#rapto,FEDTO,#-fedto,IPM,#fedupm,A</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DEEP,STEP,#step,RAPTO,#rapto,FEDTO,#-fedto,A,A, $</Line>
+    <Line>IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DEEP,STEP,#step,#,RAPTO,#rapto,FEDTO,#-fedto, $</Line>
+    <Line>IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DEEP,STEP,#step,#,RAPTO,#rapto,FEDTO,#-fedto,A,A, $</Line>
+    <Line>IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DEEP,STEP,#step,#,#,RAPTO,#rapto,FEDTO,#-fedto,A,A</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DEEP,STEP,#step,#,#,RAPTO,#rapto,FEDTO,#-fedto,A,A, $</Line>
+    <Line>IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DEEP,STEP,#step,RAPTO,#rapto,FEDTO,#-fedto, $</Line>
+    <Line>RTRCTO,#rtrcto,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DEEP,STEP,#step,#,RAPTO,#rapto,FEDTO,#-fedto, $</Line>
+    <Line>RTRCTO,#rtrcto,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,DEEP,STEP,#step,A,RAPTO,#rapto,FEDTO,#-fedto,A,#, $</Line>
+    <Line>RTRCTO,#rtrcto,IPM,#fedupm,A</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,BRKCHP,STEP,#step,RAPTO,#rapto,FEDTO,#-fedto, $</Line>
+    <Line>A,A,IPM,#fedupm</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,BRKCHP,STEP,#step,A,#,RAPTO,#rapto,FEDTO,#-fedto, $</Line>
+    <Line>A,A,IPM,#fedupm</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/DRILL,BRKCHP,STEP,#step,A,#,RAPTO,#rapto,FEDTO,#-fedto,A,#, $</Line>
+    <Line>RTRCTO,#rtrcto,IPM,#fedupm,A</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/TAP,RAPTO,#rapto,FEDTO,#-fedto,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/TAP,RAPTO,#rapto,FEDTO,#-fedto,A,#,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/TAP,RAPTO,#rapto,FEDTO,#-fedto,A,#,A,A,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/TAP,RAPTO,#rapto,FEDTO,#-fedto,A,#,RTRCTO,#rtrcto,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/TAP,CCLW,RAPTO,#rapto,FEDTO,#-fedto,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/TAP,CCLW,RAPTO,#rapto,FEDTO,#-fedto,A,#,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/TAP,CCLW,RAPTO,#rapto,FEDTO,#-fedto,A,#,A,A,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/TAP,CCLW,RAPTO,#rapto,FEDTO,#-fedto,A,#,RTRCTO,#rtrcto, $</Line>
+    <Line>IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/TAP,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,A,#,RTRCTO,#rtrcto, $</Line>
+    <Line>IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/TAP,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,A,#,RTRCTO,#rtrcto, $</Line>
+    <Line>IPM,#fedupm,A</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,RAPTO,#rapto,FEDTO,#-fedto,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,RAPTO,#rapto,FEDTO,#-fedto,A,A,IPM,#fedupm</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,A,A,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto, $</Line>
+    <Line>IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,A,#,RTRCTO,#rtrcto, $</Line>
+    <Line>IPM,#fedupm,A</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,DRAG,RAPTO,#rapto,FEDTO,#-fedto,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,DRAG,RAPTO,#rapto,FEDTO,#-fedto,A,A,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,DRAG,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,A,A, $</Line>
+    <Line>IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,DRAG,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto, $</Line>
+    <Line>IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,NODRAG,RAPTO,#rapto,FEDTO,#-fedto,A,A,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,NODRAG,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto, $</Line>
+    <Line>RTRCTO,#rtrcto,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,NODRAG,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,A,#, $</Line>
+    <Line>RTRCTO,#rtrcto,IPM,#fedupm,A</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,BACK,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,A,#, $</Line>
+    <Line>RTRCTO,#rtrcto,IPM,#fedupm,A</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,MANUAL,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,IPM,#fedupm</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,MANUAL,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,A,#, $</Line>
+    <Line>IPM,#fedupm,A</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line>CYCLE/BORE,MANUAL,DWELL,#,RAPTO,#rapto,FEDTO,#-fedto,A,#, $</Line>
+    <Line>RTRCTO,#rtrcto,IPM,#fedupm,A</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:UG</Line>
+    <Line></Line>
+    <Line>$$ CATIA.</Line>
+    <Line></Line>
+    <Line>CYCLE/CSINK,#fedto,#rapto</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/CSINK,#fedto,#rapto,#,#,#rtrcto,#fedupm,#,A</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/DRILL,#fedto,#rapto</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/DRILL,#fedto,#rapto,#,#,#rtrcto,#fedupm,#,A</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/TAP,#fedto,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/TAP,#fedto,#rapto,#,#,#rtrcto,#fedupm,#,A</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/BORE,#fedto,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/BORE,#fedto,#rapto,#,#,#rtrcto,#fedupm,#,A</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/REAM,#fedto,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/REAM,#fedto,#rapto,#,#,#rtrcto,#fedupm,#,A</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/DEEPHL,#fedto,#rapto,#step,#,#</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/DEEPHL,#fedto,#rapto,#,#,#rtrcto,#fedupm,#,A,#step,#,#</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/BREAKCHP,#fedto,#rapto,#step,#,#</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line>CYCLE/BREAKCHP,#fedto,#rapto,#,#,#rtrcto,#fedupm,#,A,#step,#,#</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:CATIA</Line>
+    <Line></Line>
+    <Line>$$ NCL (PostWorks and GEN4AX).</Line>
+    <Line></Line>
+    <Line>CYCLE/AUTO,ON</Line>
+    <Line>MODALS:cycle_op=off</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/AUTO,OFF</Line>
+    <Line>MODALS:cycle_op=off</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/OPTION</Line>
+    <Line>MODALS:cycle_op=off</Line>
+    <Line>USEWITH:NCL,POSTWORKS,GEN4AX</Line>
+    <Line>CYCLE/BORE,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE7,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE7,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE7,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE7,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE7,FEDTO,#fedto,STEP,#step,#,A,#,#,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE8,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE8,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE8,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE8,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE8,FEDTO,#fedto,STEP,#step,#,A,#,#,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE9,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE9,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE9,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE9,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE9,FEDTO,#fedto,A,#,#,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DEEP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DEEP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DEEP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,STEP,#step</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DEEP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,STEP,#step,#</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DEEP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DEEP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,STEP,#step</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DEEP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,STEP,#step,#</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DEEP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DEEP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,STEP,#step, $</Line>
+    <Line>RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DEEP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,STEP,#step,#, $</Line>
+    <Line>RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DRILL,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DRILL,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DRILL,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DRILL,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DRILL,FEDTO,#cskdia,#tlangl,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/DRILL,FEDTO,#cskdia,#tlangl,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/FACE,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/FACE,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/FACE,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/FACE,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/FACE,FEDTO,#cskdia,#tlangl,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/FACE,FEDTO,#cskdia,#tlangl,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/MILL,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>MODALS:retract_mode=none</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/MILL,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>MODALS:retract_mode=none</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/REAM,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/REAM,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/REAM,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/REAM,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/SHIFT,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/SHIFT,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/SHIFT,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,#</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/SHIFT,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,A,#,#</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/SHIFT,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/SHIFT,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/SHIFT,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,#,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/TAP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/TAP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/TAP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/TAP,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/THRU,FEDTO,#fedto,IPM,#fedupm,STEP,#step</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/THRU,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/THRU,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/THRU,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,STEP,#step</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/THRU,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,STEP,#step,#</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/THRU,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/THRU,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,STEP,#step</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/THRU,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,STEP,#step,#</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/THRU,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,A,#,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/THRU,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,STEP,#step, $</Line>
+    <Line>RTRCTO,#rtrcto</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/THRU,FEDTO,#fedto,IPM,#fedupm,RAPTO,#rapto,STEP,#step,#, $</Line>
+    <Line>RTRCTO,#rtrcto</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,POSTWORKS</Line>
+    <Line>CYCLE/BORE,#fedto,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/BORE8,#fedto,#,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/BORE9,#fedto,#,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/CUTANG,#cskdia,#tlangl,#fedupm,IPM,#rapto</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/CUTANG,#cskdia,#tlangl,#,#fedupm,IPM,#rapto</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/DEEP,#fedto,#step,#fedupm,IPM,#rapto</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/DEEP,#fedto,#step,#,#fedupm,IPM,#rapto</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/DEEP,#fedto,#step,#,#,#fedupm,IPM,#rapto</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/DRILL,#fedto,#fedupm,IPM,#rapto</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/FACE,#fedto,#,#fedupm,IPM,#rapto</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/REAM,#fedto,#fedupm,IPM,#rapto</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/TAP,#fedto,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/THRU,#fedto,#step,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/THRU,#fedto,#step,#,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/THRU,#fedto,#step,A,#,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line>CYCLE/THRU,#fedto,#step,#,A,#,#fedupm,IPM,#rapto</Line>
+    <Line>MODALS:deep_retract=off,thru_mode=on</Line>
+    <Line>USEWITH:NCL,GEN4AX</Line>
+    <Line></Line>
+    <Line>$$ Converted APT (note that &quot;fedto&quot;s are negative).</Line>
+    <Line></Line>
+    <Line>CYCLE/DRILL,RAPTO,#rapto,FEDTO,#-fedto</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/DRILL,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/FACE,RAPTO,#rapto,FEDTO,#-fedto</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/FACE,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#-fedto</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#-fedto,STEP,#step</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#-fedto,STEP,#step,A</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#-fedto,STEP,#step,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#-fedto,STEP,#step,A,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#-fedto,STEP,#step,STEPRAP,#steprap</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/DEEP,RAPTO,#rapto,FEDTO,#-fedto,STEP,#step,STEPRAP,#steprap, $</Line>
+    <Line>RTRCTO,#rtrcto</Line>
+    <Line>MODALS:deep_retract=off</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/TAP,RAPTO,#rapto,FEDTO,#-fedto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/TAP,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/BORE,RAPTO,#rapto,FEDTO,#-fedto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/BORE,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/BORE,ORIENT,RAPTO,#rapto,FEDTO,#-fedto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/BORE,ORIENT,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/BORE,DRAG,RAPTO,#rapto,FEDTO,#-fedto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/BORE,DRAG,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=fedrat</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/MILL,RAPTO,#rapto,FEDTO,#-fedto</Line>
+    <Line>MODALS:retract_mode=none</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/MILL,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto</Line>
+    <Line>MODALS:retract_mode=none</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/THRU,RAPTO,#rapto,FEDTO,#-fedto</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line>CYCLE/THRU,RAPTO,#rapto,FEDTO,#-fedto,RTRCTO,#rtrcto</Line>
+    <Line>USEWITH:Converted</Line>
+    <Line></Line>
+  </Cycles>
+  <OffsetShowRotationFlag>0</OffsetShowRotationFlag>
+  <AutoDiff Method="solid" Type="both" Report="on" Uncut="off" Auto="none" TemporaryDesign="on" Image="off" File=""  AutoSave="off" Log="">
+    <Stock Name="Stock"/>
+    <Design Name="Design" Points="" Check="on" Keep="on"/>
+    <Solid>
+      <Gouge Tol="0.1" Hue="0"/>
+      <Excess Tol="0.1" Hue="14"/>
+    </Solid>
+    <Surface>
+      <Gouge Value="20" Hue="11"/>
+      <Gouge Value="1" Hue="0"/>
+      <Gouge Value="0.5" Hue="54"/>
+      <Gouge Value="0.4" Hue="53"/>
+      <Gouge Value="0.3" Hue="52"/>
+      <Gouge Value="0.2" Hue="51"/>
+      <Gouge Value="0.1" Hue="50"/>
+      <Gouge Value="0" Hue="6"/>
+      <Excess Value="5" Hue="11"/>
+      <Excess Value="1" Hue="16"/>
+      <Excess Value="0.5" Hue="59"/>
+      <Excess Value="0.4" Hue="58"/>
+      <Excess Value="0.3" Hue="57"/>
+      <Excess Value="0.2" Hue="56"/>
+      <Excess Value="0.1" Hue="55"/>
+      <Excess Value="0" Hue="6"/>
+      <Minimum Check="off" Tol="0" Hue="0"/>
+    </Surface>
+    <Point>
+      <Gouge Tol="0.1" Distance="0.5"/>
+      <Excess Tol="0.1" Distance="0.5"/>
+      <Normal X="0" Y="0" Z="1" Direction="out"/>
+    </Point>
+    <Profile>
+      <Gouge Tol="0.1" Hue="0"/>
+      <Excess Tol="0.1" Hue="4"/>
+    </Profile>
+    <Region Limits="off" Entire="off" Improve="off">
+      <Minimum X="0" Y="0" Z="0"/>
+      <Maximum X="25" Y="25" Z="25"/>
+    </Region>
+    <Visibility Error="on" Stock="off" Fixture="off" Design="on" Tool="off"/>
+    <Translucency AutoDiff="off" Stock="on" Fixture="on" Design="on"/>
+  </AutoDiff>
+  <ToolUseWindow Time="-1"/>
+  <GraphSettings OverrideGraphPreferences="on" ViewGraphsAtEnd="off" SaveGraphsAtEnd="off" SaveGraphsSplitByToolChange="off" SaveGraphsProjectUnits="on" SaveGraphsImperialUnits="off" RecordGraphToolPositions="off" RecordGraphToolPositions2="off"/>
+  <Setup Name="1" Active="on">
+    <Property Export="off" OptiSpunModels="off" StockCheck="off">
+      <Tolerance Model="0.1" NURBS="0.1" Volume="0"/>
+      <Cutting Base="stock" Tol="0.5"/>
+      <Review DoReview="off" DoMaterial="off" Skip="0" DoCutConditions="off"/>
+    </Property>
+    <Report>
+      <File></File>
+    </Report>
+    <Views ActiveViewID="1">
+      <FrontMatrix X1="1" X2="0" X3="0" Y1="0" Y2="1" Y3="0" Z1="0" Z2="0" Z3="1" />
+      <HomeMatrixMachine X1="1" X2="0" X3="0" Y1="0" Y2="1" Y3="0" Z1="0" Z2="0" Z3="1" />
+      <HomeMatrixWorkpiece X1="1" X2="0" X3="0" Y1="0" Y2="1" Y3="0" Z1="0" Z2="0" Z3="1" />
+      <ViewPrimary Name="View 1" ID="0" Type="workpiece">
+        <Options Scale="0.0428927540779" UseSpinCenter="off" Back="shaded" Inherit="true" Color="0" Color2="0" Draw="shaded edges" Translucency="50" SpunToolDisp="on" SpunPartDisp="on" UseAO="on"/>
+        <Position X="5.21084976196" Y="-4.86105108261" Z="0"/>
+        <Rotation I="-47.6545499846" J="28.0648765349" K="22.7444120618"/>
+        <SpinCenter X="0" Y="0" Z="0"/>
+        <Attach>Stock</Attach>
+        <Location X="0" Y="0" Width="50.0904159132" Height="100"
+         Front="0" Order="1" WindowState="normal"/>
+      </ViewPrimary>
+      <ViewPrimary Name="View 2" ID="1" Type="machine">
+        <Options Scale="0.901983201504" UseSpinCenter="off" Back="shaded" Inherit="true" Color="0" Color2="0" Draw="shaded edges" Translucency="46" SpunToolDisp="on" SpunPartDisp="on" UseAO="on"/>
+        <Position X="-8.45281219482" Y="-58.9454994202" Z="0"/>
+        <Rotation I="-93.0338941693" J="22.2927154805" K="-2.73006221209"/>
+        <SpinCenter X="5.22373723984" Y="83.449432373" Z="-86.1159439087"/>
+        <Attach>Base</Attach>
+        <Location X="50.0904159132" Y="0" Width="50.0904159132" Height="100"
+         Front="1" Order="0" WindowState="normal"/>
+      </ViewPrimary>
+    </Views>
+    <Section>
+    </Section>
+    <Build Loose="keep">
+      <Component Name="Fixture"
+       Subsystem="1"
+       Cut="no" Check="no" MaxDist="0"
+       Type="fixture" Visible="all" Enabled="on" Draw="shaded" Select="off" Source="project">
+        <Appearance Name="Steel" Ambient="0.2" Diffuse="0.7" Reflect="0.2" Specular="1" Shininess="6" Translucency="1" XRGB="0x00696969" SurfaceTextureOn="off" SurfaceTextureID="0" SurfaceTextureScale="1" SurfaceTextureRot="0" SurfaceTextureColor="material"/>
+        <Attach>Attach</Attach>
+        <Position X="0" Y="0" Z="0"/>
+        <Rotation I="0" J="0" K="0"/>
+      </Component>
+      <Component Name="Stock"
+       Subsystem="1"
+       Type="stock" Visible="all" Enabled="on" Draw="shaded" Select="off" Source="project">
+        <Appearance Name="Steel" Ambient="0.2" Diffuse="0.7" Reflect="0.2" Specular="1" Shininess="6" Translucency="1" XRGB="0x00FFD700" SurfaceTextureOn="off" SurfaceTextureID="0" SurfaceTextureScale="1" SurfaceTextureRot="0" SurfaceTextureColor="material"/>
+        <Attach>Fixture</Attach>
+        <Position X="0" Y="0" Z="0"/>
+        <Rotation I="0" J="0" K="0"/>
+      </Component>
+      <Component Name="Design"
+       Subsystem="1"
+       IgnoreCollision="yes" IgnoreProbing="yes"
+       Type="design" Visible="none" Enabled="on" Draw="shaded" Select="off" Source="project">
+        <Appearance Name="Steel" Ambient="0.2" Diffuse="0.7" Reflect="0.2" Specular="1" Shininess="6" Translucency="1" XRGB="0x00EE82EE" SurfaceTextureOn="off" SurfaceTextureID="0" SurfaceTextureScale="1" SurfaceTextureRot="0" SurfaceTextureColor="material"/>
+        <Attach>Stock</Attach>
+        <Position X="0" Y="0" Z="0"/>
+        <Rotation I="0" J="0" K="0"/>
+      </Component>
+      <MachineAttributes>
+        <Component Name="A" Visible="machine" Enabled="on" Count="1">
+          <Model Visible="on" Enabled="on"/>
+        </Component>
+        <Component Name="X" Visible="machine" Enabled="on" Count="3">
+          <Model Visible="on" Enabled="on"/>
+          <Model Visible="on" Enabled="on"/>
+          <Model Visible="on" Enabled="on"/>
+        </Component>
+        <Component Name="Y" Visible="machine" Enabled="on" Count="0">
+        </Component>
+        <Component Name="Tool" Visible="machine" Enabled="on" Count="0">
+        </Component>
+        <Component Name="Spindle" Visible="machine" Enabled="on" Count="0">
+        </Component>
+        <Component Name="Z" Visible="machine" Enabled="on" Count="1">
+          <Model Visible="on" Enabled="on"/>
+        </Component>
+        <Component Name="Base" Visible="machine" Enabled="on" Count="1">
+          <Model Visible="on" Enabled="on"/>
+        </Component>
+      </MachineAttributes>
+    </Build>
+    <NCPrograms Type="gcode">
+      <NCProgram Use="on" Filter="off">
+        <File>Z:\gcodes\Part2-2\iRough_iFinish_faces.mpf</File>
+        <Orient></Orient>
+        <Ident></Ident>
+      </NCProgram>
+      <Init Flag="off"></Init>
+      <Over Flag="off"></Over>
+    </NCPrograms>
+    <Filter Type="arc" Accel="off" Remove="off">
+      <File></File>
+      <Arc XY="on" YZ="on" XZ="on" Fit="0.01" Flat="0.0001"
+       Points="5" Small="0.1" Large="9999"/>
+      <NURBS Tol="0.01" Points="5" Order="4"/>
+    </Filter>
+    <ToolChange List="cutter_desc">
+    </ToolChange>
+    <Motion Fast="20000" Fast_FPR="0" Animation="off" Skip="0" SpinCheck="on" SpindleOn="off"
+     Cycle="full" MaxDist="100" MinMotionDist="1" MaxMotionDist="200" Removal="standard" LimitsCheck="off" CheckCoolant="off"
+     Angle="45" MinLimit="0.025" MaxLimit="0.025" Tol="0" AutoLoadRew="off" AutoLoad="off"/>
+    <Tool Change="tool_num" CutterVisible="all" HolderVisible="all" ShankVisible="all" Draw="translucent" Control="tip"
+     HolderStockCollisionOnOff="on" HolderFixtureCollisionOnOff="on" CutterFixtureCollision="on" ShankFixtureCollision="on" ShankStockCollision="on" ShankPlungeError="on"
+     HolderStockNearMiss="0" HolderFixtureNearMiss="0" CutterFixtureNearMiss="0" ShankFixtureNearMiss="0" ShankStockDist="0" ShankPlungeTolerance="0.0500000007451"
+     Gouge="off" Tol="0.10000000149" Excess="off" Minimum="1"
+     MinHeight="0" Clear="0" MinCalcKeep="off"/>
+    <GCode Prog="length_comp" Init="on" Comp="off" Type="scan_convert" Syntax="off" CheckTools="off"
+     Column="0" Accel="off" Feed="0.5" ScanSubs="on">
+      <Block Skip="/" Apply="immediate">
+        <Switch>on</Switch>
+        <Switch>on</Switch>
+        <Switch>on</Switch>
+        <Switch>on</Switch>
+        <Switch>on</Switch>
+        <Switch>on</Switch>
+        <Switch>on</Switch>
+        <Switch>on</Switch>
+        <Switch>on</Switch>
+        <Switch>on</Switch>
+      </Block>
+      <Wire XY="0" UV="25" Diameter="0.25"/>
+      <Recent Count="5"/>
+      <Output APT="off">
+        <APT></APT>
+        <Log></Log>
+      </Output>
+      <Modal Macro="mmDEBUG_OFFSETS" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_DELTA_INFO" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_RATE_CALCULATIONS" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_LOOP_LOGIC" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_MACRO_ARGS" Value="mmYES_TEXT"/>
+      <Modal Macro="mmDEBUG_INTERSECT_POINTS" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_CUTCOM_LOOK_AHEAD" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_CYCLE_VALUES" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_SUBSTITUTION" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_VARIABLES" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_TURNING" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_WIREDM" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_OPTIPATH" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_CONTROL_API" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_TIMING" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_ACTIVE_COMPONENTS" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_COMPOSITE" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_TOOLCHAIN" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_CONTROL_SUBS" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_TILTED_PLANE" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDEBUG_PROCESS_CUTCOM" Value="mmNO_TEXT"/>
+      <Modal Macro="mmSEND_ERROR" Value="mmTO_LOG_N_SCREEN"/>
+      <Modal Macro="mmSEND_WARN" Value="mmTO_LOG"/>
+      <Modal Macro="mmSEND_INFO" Value="mmTO_LOG"/>
+      <Modal Macro="mmSEND_DEBUG" Value="mmTO_LOG"/>
+      <Modal Macro="mmSEND_MACRO_MODAL" Value="mmTO_LOG"/>
+      <Modal Macro="mmSEND_INPUT" Value="mmTO_LOG"/>
+      <Modal Macro="mmSEND_OUTPUT" Value="mmTO_OUTPUT"/>
+      <Modal Macro="mmOUTPUT_FILENAME_FORMAT" Value="mmLOCAL_FILENAME"/>
+      <Modal Macro="mmOUTPUT_SEQUENCE_NUMBERS" Value="mmYES_TEXT"/>
+      <Modal Macro="mmDISPLAY_ERRORS_DURING_SCAN" Value="mmNO_TEXT"/>
+      <Modal Macro="mmDISPLAY_DUPLICATE_VAR_DEF_ERRORS" Value="mmNO_TEXT"/>
+    </GCode>
+    <APT Machine="mill" Unit="millimeter" Multax="on" Clear="100"
+     Rapid="linear" Major="warn">
+      <Angle Maximum="45" Reset="90"/>
+      <Circle Process="on" Reverse="off" Chords="off" FourAxis="off" Tolerance="0"/>
+      <Tool Reset="off"/>
+      <Matrix Process="off"/>
+      <Home Motion="from" Distance="25"/>
+      <Rotation Philosophy="table" Angle="relative" Direction="shortest"
+       Rotate="ignore" Rotabl="ignore" Rothed="ignore">
+        <Center X="0" Y="0" Z="0"/>
+      </Rotation>
+      <Turn>#zval, #xval</Turn>
+      <CycleSet>VERICUT</CycleSet>
+    </APT>
+    <CSystems Simulation="off">
+      <Machine></Machine>
+    </CSystems>
+    <IP_SvFiles Count="0" IP_Project="">
+    </IP_SvFiles>
+    <ToolMan>
+      <Library>I:\Solid\tools\ToolsAssemblies_1.tls</Library>
+      <ActiveStockMatRecords>
+      </ActiveStockMatRecords>
+      <InactiveStockMatRecords>
+      </InactiveStockMatRecords>
+      <InactiveDefaultStockMatRecords>
+      </InactiveDefaultStockMatRecords>
+    </ToolMan>
+    <AssemblyMan Library="">
+    </AssemblyMan>
+    <Control>
+      <File>${CGTECH_INSTALL}\library\sin840d.ctl</File>
+      <VNCext VNCexternal="off"/>
+      <TNCkinematics Index="0"/>
+      <TNCtoolnum Flag="off"/>
+      <TNCskipTransfer Flag="off"/>
+      <TNCBlk Flag="on"/>
+    </Control>
+    <Machine Up="Z+">
+      <File>C:\Users\Ts\Documents\vericut\qwe.mch</File>
+      <MachineLaminateCollisionDetection Detect="off"/>
+      <Collision Detect="off" Ignore="active" Color="1" Color2="2">
+      </Collision>
+      <Travel Beyond="off" LogError="on" Hue="0" RobotSumA4A6="off" OverTravelLogWarning="off" OverTravelHueWarning="1"/>
+    </Machine>
+    <Inspect>
+    </Inspect>
+    <DieSink Animation="off" Speed="100">
+      <Stock></Stock>
+      <Burned Display="off"/>
+    </DieSink>
+    <Optimization>
+      <Material>Default</Material>
+      <MachineAlias>Default</MachineAlias>
+      <MachineAliasExists>1</MachineAliasExists>
+      <CreateDefaultToolData>0</CreateDefaultToolData>
+      <Settings Over="100" AptDecimals="10" Air="-1" DefaultValueCheck="on" Breakup="off" Resolution="auto" Distance="0" Entry="0" Exit="0"/>
+      <OutputFile>*.opti</OutputFile>
+      <Learn Append="off" Update="off" Reset="off" PerToolUse="off" OptiMethod="FrChipThicknessForceVolume">
+        <ForceLearn FLPercentileOpts="1" FLPercentileValue="95"/>
+        <Library></Library>
+      </Learn>
+      <ForceMaterialDir>${CGTECH_INSTALL}\force_materials</ForceMaterialDir>
+      <ToolFeedrateSettings>
+        <Mill>
+        </Mill>
+        <Holemaking>
+        </Holemaking>
+        <Turning>
+        </Turning>
+      </ToolFeedrateSettings>
+    </Optimization>
+    <SetupPlans>
+    </SetupPlans>
+    <StatusBoxData>
+      <StatusSubSystem Name="1" UId="7461513631020042820">
+        <StatusGroups>
+          <ReservedStatusGroup Type="PROGRAM" UId="9024873818174489748" Visible="true">
+            <StatusField Type="SUBSYSTEM" UId="5470014836113064759" Visible="true"/>
+            <StatusField Type="TOOLPATH_FILENAME" UId="1542438936686364026" Visible="true"/>
+            <StatusField Type="TOOLPATH_LINENUMBER" UId="8038524964497644033" Visible="true"/>
+            <StatusField Type="TOOLPATH_RECORD" UId="888588803926195966" Visible="true"/>
+          </ReservedStatusGroup>
+          <ReservedStatusGroup Type="BASIC" UId="370191070709770860" Visible="true">
+            <StatusField Type="ERRORS" UId="1271682073023806497" Visible="true"/>
+            <StatusField Type="WARNINGS" UId="6422318402755026310" Visible="true"/>
+            <StatusField Type="SPINDLESPEED_0" UId="4897688357965916512" Visible="true"/>
+            <StatusField Type="FEEDRATE" UId="4214335197660747170" Visible="true"/>
+            <StatusField Type="COOLANT" UId="6107522358956567689" Visible="true"/>
+            <StatusField Type="MOTIONTYPE" UId="5727840060188513251" Visible="true"/>
+            <StatusField Type="ABSINC" UId="105978355120115657" Visible="true"/>
+            <StatusField Type="MOTIONPLANE" UId="8483277905985364423" Visible="true"/>
+            <StatusField Type="UNITS" UId="744355698059014298" Visible="true"/>
+            <StatusField Type="SPINDLEMODE" UId="6987708707791517746" Visible="true"/>
+            <StatusField Type="TOOLSPINDLESPEED" UId="93582200149637443" Visible="false"/>
+            <StatusField Type="WORK_OFFSET" UId="863772312402089240" Visible="true"/>
+            <StatusField Type="TOOL_OFFSET" UId="3289708771373469530" Visible="true"/>
+            <StatusField Type="WORK_OFFSET_VALUE" UId="3719609392217114194" Visible="true"/>
+            <StatusField Type="TOOL_OFFSET_VALUE" UId="4673301605133752812" Visible="true"/>
+          </ReservedStatusGroup>
+          <ReservedStatusGroup Type="CONNECTIVITY" UId="6001230867778638166" Visible="true">
+            <StatusField Type="CONN_SUBSYSTEM" UId="2241960256073300124" Visible="true"/>
+            <StatusField Type="CONN_TOOLPATH_FILENAME" UId="5680167287277055723" Visible="true"/>
+            <StatusField Type="CONN_TOOLPATH_LINENUMBER" UId="7823690684498023411" Visible="true"/>
+            <StatusField Type="CONN_TOOLPATH_RECORD" UId="3827472698523950017" Visible="true"/>
+            <StatusField Type="CONN_ACTIVE_ALARM" UId="5649457175750216112" Visible="true"/>
+            <StatusField Type="CONN_ESTOP_STATE" UId="2445542589910316304" Visible="true"/>
+            <StatusField Type="CONN_WORK_OFFSET" UId="6783402477316634807" Visible="true"/>
+            <StatusField Type="CONN_CYCLE_STATUS" UId="1661190879944196954" Visible="true"/>
+            <StatusField Type="CONN_TOOL_OFFSET" UId="5959664919394797782" Visible="true"/>
+            <StatusField Type="CONN_RUNNING_STATE" UId="4012532753006058301" Visible="true"/>
+            <StatusField Type="CONN_FEEDRATE_OVERRIDE" UId="8996208245135026269" Visible="true"/>
+            <StatusField Type="CONN_CONTROLLER_MODE" UId="3611398099021561809" Visible="true"/>
+            <StatusField Type="CONN_RAPID_OVERRIDE" UId="1635172486342236455" Visible="true"/>
+            <StatusField Type="CONN_SPINDLE_LOAD_0" UId="1998835272601838392" Visible="true"/>
+            <StatusField Type="CONN_SPINDLE_OVERRIDE_0" UId="5674437929242765510" Visible="true"/>
+          </ReservedStatusGroup>
+          <ReservedStatusGroup Type="LOCATIONS" UId="4247009124840537258" Visible="true">
+            <ReservedTableColumnIsToggled ColumnToggled1="true" ColumnToggled2="true" ColumnToggled3="true"/>
+            <StatusField Type="TOOLTIP_X" UId="1211836819367270740" Visible="true"/>
+            <StatusField Type="TOOLTIP_Y" UId="3678593804618807895" Visible="true"/>
+            <StatusField Type="TOOLTIP_Z" UId="6351575350524038225" Visible="true"/>
+            <StatusField Type="TOOLTIP_I" UId="5061154300800394021" Visible="true"/>
+            <StatusField Type="TOOLTIP_J" UId="1735295499348758823" Visible="true"/>
+            <StatusField Type="TOOLTIP_K" UId="9105769489975306007" Visible="true"/>
+          </ReservedStatusGroup>
+          <ReservedStatusGroup Type="TIME_AND_DISTANCE" UId="367316511260389619" Visible="true">
+            <StatusField Type="TIME" UId="8949259662777924021" Visible="true"/>
+            <StatusField Type="DISTANCE" UId="9195601521374118602" Visible="true"/>
+            <StatusField Type="TIME_PERCENT" UId="2345412019753988592" Visible="true"/>
+            <StatusField Type="AIRTIME_PERCENT" UId="5657356387550797687" Visible="true"/>
+            <StatusField Type="DISTANCE_PERCENT" UId="5310580181127171222" Visible="true"/>
+            <StatusField Type="AIRTIME" UId="6071907856054490732" Visible="true"/>
+          </ReservedStatusGroup>
+          <ReservedStatusGroup Type="TOOL" UId="8220403624303018107" Visible="true">
+            <StatusField Type="TOOL_SEQUENCE" UId="5353825457279466317" Visible="true"/>
+            <StatusField Type="TOOL_NUMBER" UId="3025438515036515983" Visible="true"/>
+            <StatusField Type="TOOL_GEOMETRY" UId="7926864299509206995" Visible="true"/>
+            <StatusField Type="TOOL_ID" UId="4922259598922912794" Visible="true"/>
+            <StatusField Type="TOOL_DESCRIPTION" UId="4923672615843448907" Visible="true"/>
+            <StatusField Type="TOOL_CHANGERECORD" UId="6323233853517832060" Visible="true"/>
+            <StatusField Type="TOOL_DIAMETER" UId="3076746474528140878" Visible="true"/>
+            <StatusField Type="TOOL_FLUTES_OR_TEETH" UId="2980382817174914841" Visible="true"/>
+            <StatusField Type="TOOL_CHANGERECORDNUMBER" UId="6938396017579429837" Visible="true"/>
+            <StatusField Type="TOOL_CUT_TIME" UId="6387949497661167368" Visible="true"/>
+            <StatusField Type="TOOL_CUT_DISTANCE" UId="133164318307074735" Visible="true"/>
+            <StatusField Type="TOOL_CUT_VOLUME" UId="2305828550915742520" Visible="true"/>
+          </ReservedStatusGroup>
+          <ReservedStatusGroup Type="CUTTING CONDITIONS" UId="4572012917189274961" Visible="true">
+            <StatusField Type="CUT_AXIALDEPTH" UId="4758982986245115286" Visible="true"/>
+            <StatusField Type="CUT_RADIALWIDTH" UId="4350230530099420635" Visible="true"/>
+            <StatusField Type="CUT_ANGULARCONTACT" UId="4694700430399449414" Visible="true"/>
+            <StatusField Type="CUT_CONTACTAREA" UId="8852458468319020282" Visible="true"/>
+            <StatusField Type="CUT_SURFACESPEED_D1" UId="2279747446255825723" Visible="true"/>
+            <StatusField Type="CUT_SURFACESPEED_D2" UId="3433688055623072433" Visible="true"/>
+            <StatusField Type="CUT_VOLUMEREMOVALRATE" UId="8705622852561298888" Visible="true"/>
+            <StatusField Type="CUT_CHIPTHICKNESS" UId="633581681409812343" Visible="true"/>
+          </ReservedStatusGroup>
+          <ReservedStatusGroup Type="OPTIMIZATION" UId="8810406076410685083" Visible="true">
+            <StatusField Type="OPTIMIZED_SPINDLESPEED_0" UId="8087266324885412029" Visible="true"/>
+            <StatusField Type="OPTIMIZED_FEEDRATE" UId="6609111503465574398" Visible="true"/>
+            <StatusField Type="OPTIMIZED_TIME" UId="4691033333397595067" Visible="true"/>
+            <StatusField Type="OPTIMIZED_VOLUMEREMOVALRATE" UId="5813848731031592817" Visible="true"/>
+            <StatusField Type="OPTIMIZED_CHIPTHICKNESS" UId="6316662511808481709" Visible="true"/>
+            <StatusField Type="OPTIMIZED_CUT_TIME" UId="781530830650138775" Visible="true"/>
+            <StatusField Type="OPTIMIZED_CUT_DISTANCE" UId="3544083875600252234" Visible="true"/>
+            <StatusField Type="OPTIMIZED_CUT_VOLUME" UId="7845326113231594299" Visible="true"/>
+            <StatusField Type="ACTIVE_STOCK_MATERIAL" UId="5042407047614037654" Visible="true"/>
+          </ReservedStatusGroup>
+          <ReservedStatusGroup Type="ADDITIVE_FUNCTIONS" UId="2574195645689371824" Visible="true">
+            <StatusField Type="ADDITIVE_MATERIALFEEDRATE" UId="1052013697529745400" Visible="true"/>
+            <StatusField Type="ADDITIVE_LASER" UId="8661247028053166207" Visible="true"/>
+            <StatusField Type="ADDITIVE_MATERIALGAS" UId="1346964729773480800" Visible="true"/>
+            <StatusField Type="ADDITIVE_SHIELDGAS" UId="7540535735905582795" Visible="true"/>
+            <StatusField Type="ADDITIVE_MATERIALVOLUME" UId="8528087253587792025" Visible="true"/>
+          </ReservedStatusGroup>
+          <ReservedStatusGroup Type="OTHERS" UId="8920342475907143353" Visible="true">
+            <StatusField Type="CUTTERCOMP_STATE" UId="5028103367320211322" Visible="true"/>
+            <StatusField Type="CYCLE" UId="7704844089134226322" Visible="true"/>
+            <StatusField Type="INTERPOLATION" UId="2653520190371070551" Visible="true"/>
+            <StatusField Type="CUTTERCOMP_ID" UId="7917692062023202934" Visible="true"/>
+            <StatusField Type="CUTTERCOMP_VALUE" UId="6018842003101466661" Visible="true"/>
+            <StatusField Type="POLARCOORDINATEMODE" UId="1404769833723945498" Visible="true"/>
+          </ReservedStatusGroup>
+        </StatusGroups>
+      </StatusSubSystem>
+    </StatusBoxData>
+    <WordDisplay Variables="on"/>
+    <HUD Translucency="-1" Current="255" Text="0" File="0" Program="13" Label="0" Value="255" Status="12">
+      <Program>
+      </Program>
+      <Status>
+      </Status>
+    </HUD>
+  </Setup>
+  <Layouts>
+  </Layouts>
+  <DeletedMaterial LowerBoundOn="0" UpperBoundOn="0" DefaultFlag="0" TabRemoval="0" LowerField="0.000000" UpperField="0.000000" />
+  <Preview Image="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"/>
+</VcProject>
