@@ -162,11 +162,11 @@ endp
     ; ---- 4x
     iR1dir                = -1         ;Rotary 1 direction 1=+CCW -1=+CW
     iR2dir                = 1         ;Rotary 2 direction 1=+CCW -1=+CW
-    cR1                   = 'A=DC'       ;Rotary 1 Axis
+    cR1                   = 'A'       ;Rotary 1 Axis
     cR2                   = 'B'       ;Rotary 2 Axis
     iR1posControl         = 1         ;Rotary Position Control (0=SolidCAM Direct, 1=Positive, 2=Negative, 3=Shortest Distance)
-    i4xIndexMode          = 1         ;4x-Indexing control (0=Simple Rotation, 1=New WorkOffset, 2=Trig Macro)
-    i4xIndexClearanceMode = 3         ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
+    i4xIndexMode          = 0         ;4x-Indexing control (0=Simple Rotation, 1=New WorkOffset, 2=Trig Macro)
+    i4xIndexClearanceMode = 0         ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
     i4xFeedMode           = 1         ;4x-Simultanious control (0=Programed feedRate, 1=Inverse Time FeedRate, 2=Deg. per Minute)
     ; ---- 4x
 
@@ -1149,7 +1149,7 @@ endp
                 endif
 ;                {nb, 'HVV'}
                 zpos_f = '5.4' ;'5.4(*-1)'
-;                {nb, 'ROT X90. '}
+                ;{nb, 'ROT X90. '}
                 bVertical = true
                 bFirstVert = false
             endif
@@ -1594,6 +1594,7 @@ endp
     else
         gcode = 0
         apos = angle -opposite_z_angle_const_y
+		call @usr_4x_index
     endif
 endp
 ;-------------------
@@ -2374,9 +2375,9 @@ endp
             newshift_b = -1 * newshift_b
             shift_b_sign = '-'
         endif
-        ; {nl,'$P_UIFR['(position + home_number + 2)']= CTRANS( X,'shift_x_sign,newshift_x:'5.3'}
-        ; {', Y,'shift_y_sign,shift_y:'5.3'}
-        ; {', Z,'shift_z_sign,newshift_z:'5.3'}
-        ; {', B,0',')',cCb,'G',(position + home_number + 502)}
+        ;{nl,'$P_UIFR['(position + home_number + 2)']= CTRANS( X,'shift_x_sign,newshift_x:'5.3'}
+        ;{', Y,'shift_y_sign,shift_y:'5.3'}
+        ;{', Z,'shift_z_sign,newshift_z:'5.3'}
+        ;{', B,0',')',cCb,'G',(position + home_number + 502)}
     endif
 endp
