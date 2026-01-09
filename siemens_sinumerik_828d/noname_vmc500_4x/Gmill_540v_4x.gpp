@@ -47,21 +47,21 @@
     clear_change_after_gen = 1
 
     ; GPPL variables
-    numeric_def_f   = '5.3'
+    numeric_def_f   = '8.5'
     integer_def_f   = '5.0(p)'
     gcode_f         = '2.0(p)'
     mcode_f         = '2.0(p)'
-    xpos_f          = '5.3'
-    ypos_f          = '5.3'
-    zpos_f          = '5.3'
+    xpos_f          = '8.5'
+    ypos_f          = '8.5'
+    zpos_f          = '8.5'
     nR1pos_f        = '<(>5.3<)>'
     apos_f          = '5.3'
     bpos_f          = '5.3'
     feed_f          = '4.4(P)'
     P_Dwell_f       = '4.4(P)'
-    newshift_z_f    = '+5.3'
-    newshift_y_f    = '+5.3'
-    newshift_x_f    = '+5.3'
+    newshift_z_f    = '+8.5'
+    newshift_y_f    = '+8.5'
+    newshift_x_f    = '+8.5'
     blknum_f        = '5.0(p)'
     blknum_gen      = true
     call @usr_ip_useroptions
@@ -1283,57 +1283,66 @@ endp
     ; SolidCAM call to YZ arc movement
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we have one arc formatting section
-    if bFeedoutput
-        change(feed) = true
-        bFeedoutput  = false
-    endif
-    if arc_direction eq CCW then
-        iMotionmode = 3
-    else
-        iMotionmode = 2
-    endif
-    if arc_plane eq XY
-        iMplane = 17
-    endif
-    if arc_plane eq ZX
-        iMplane = 18
-    endif
-    if arc_plane eq YZ
-        iMplane = 19
-    endif
-    {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-    {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
-    if arc_plane eq YZ then
-        if iArcmode eq 1 or (arc_size eq 360 and iArcmode eq 3)
-            {'J'ycenter ' ', 'K'zcenter ' '}
-        endif
-        if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
-            {'J'ycenter_rel ' ', 'K'zcenter_rel ' '}
-        endif
-        if (iArcmode eq 3 or iArcmode eq 4) and arc_size ne 360
-            if arc_size >= 180 then
-                radius = -radius
-            endif
-            {'R'radius' '}
-        endif
-    endif
-    {['F'feed ' ']}
-    change(nRapidfeed) = true
+    call @usr_arc
 endp
 
 @arc_zx
     ; SolidCAM call to ZX arc movement
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we have one arc formatting section
-    if bFeedoutput
-        change(feed) = true
-        bFeedoutput  = false
+    call @usr_arc
+endp
+
+@usr_arc_check(numeric dx, numeric dy, numeric dz)
+    ; expects:
+    ;   dx, dy, dz
+    ; aborts on mismatch
+    local numeric dummy_var tolerance
+	tolerance = 0.001
+
+    if dx gt tolerance or dy gt tolerance or dz gt tolerance then
+        dummy_var = 0
+        input '"POST ERROR: ARC end mismatch.'dummy_var
+        {"POST ERROR: ARC end mismatch. tolerance=", tolerance, " dX=", dx, " dY=", dy, " dZ=", dz}
+        abort
     endif
+endp
+
+
+@usr_arc_math
+    ; takes:
+    ;   xstart / ystart / zstart
+    ;   xcenter_rel / ycenter_rel / zcenter_rel
+    ;   arc_size                 ; degrees
+    ;   arc_direction            ; CCW / CW
+    ;   arc_plane                ; XY / ZX / YZ
+    ;
+    ; uses (reference only):
+    ;   xpos / ypos / zpos        ; CAD-provided end point (also used as orthogonal axis for 3D arcs)
+    ;
+    ; produces:
+    ;   xpos / ypos / zpos        ; mathematically consistent end point in arc plane
+    ;                             ; orthogonal axis kept "as-is" from CAD end point
+    ;   iMotionmode              ; 3 = G3 (CCW), 2 = G2 (CW)
+    ;   iMplane                  ; 17 / 18 / 19
+    ;   i_rel / j_rel / k_rel    ; center rel to start for I/J/K reuse
+    local numeric cx, cy, cz
+    local numeric vx, vy, vz
+    local numeric rx, ry, rz
+    local numeric angle_deg
+    local numeric c, s
+
+    local numeric calculated_xpos, calculated_ypos, calculated_zpos
+    local numeric tolerance, dx, dy, dz
+
+    ; --- motion mode ---
     if arc_direction eq CCW then
         iMotionmode = 3
     else
         iMotionmode = 2
     endif
+
+    ; --- plane ---
     if arc_plane eq XY
         iMplane = 17
     endif
@@ -1343,45 +1352,76 @@ endp
     if arc_plane eq YZ
         iMplane = 19
     endif
-    {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-    {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
-    if arc_plane eq ZX then
-        if iArcmode eq 1 or (arc_size eq 360 and iArcmode eq 3)
-            {'I'xcenter ' ', 'K'zcenter ' '}
-        endif
-        if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
-            {'I'xcenter_rel ' ', 'K'zcenter_rel ' '}
-        endif
-        if (iArcmode eq 3 or iArcmode eq 4) and arc_size ne 360
-            if arc_size >= 180 then
-                radius = -radius
-            endif
-            {'R'radius' '}
-        endif
+
+    ; --- absolute center ---
+    cx = xstart + xcenter_rel
+    cy = ystart + ycenter_rel
+    cz = zstart + zcenter_rel
+
+    ; --- vector from center to start ---
+    vx = xstart - cx
+    vy = ystart - cy
+    vz = zstart - cz
+
+    ; --- signed angle (degrees) ---
+    angle_deg = arc_size
+    if arc_direction eq CW then
+        angle_deg = -angle_deg
     endif
-    {['F'feed ' ']}
-    change(nRapidfeed) = true
+
+    c = cos(angle_deg)
+    s = sin(angle_deg)
+
+
+    ; --- XY plane: keep Z from CAD end ---
+    if iMplane eq 17 then
+        rx = vx * c - vy * s
+        ry = vx * s + vy * c
+
+        calculated_xpos = cx + rx
+        calculated_ypos = cy + ry
+        calculated_zpos = zpos
+    endif
+
+    ; --- ZX plane: keep Y from CAD end ---
+    if iMplane eq 18 then
+        rx = vx * c - vz * s
+        rz = vx * s + vz * c
+
+        calculated_xpos = cx + rx
+        calculated_ypos = ypos
+        calculated_zpos = cz + rz
+    endif
+
+    ; --- YZ plane: keep X from CAD end ---
+    if iMplane eq 19 then
+        ry = vy * c - vz * s
+        rz = vy * s + vz * c
+
+        calculated_xpos = xpos
+        calculated_ypos = cy + ry
+        calculated_zpos = cz + rz
+    endif
+    dx = abs(calculated_xpos - xpos)
+    dy = abs(calculated_ypos - ypos)
+    dz = abs(calculated_zpos - zpos)
+    call @usr_arc_check(dx, dy, dz)
+    ; --- commit end point ---
+    xpos = calculated_xpos
+    ypos = calculated_ypos
+    zpos = calculated_zpos
+
 endp
+
+
 
 @usr_arc
     ; Handle output for arc movement (G02/G03)
+	local string shit
+	call @usr_arc_math
     if bFeedoutput
         change(feed) = true
         bFeedoutput  = false
-    endif
-    if arc_direction eq CCW then
-        iMotionmode = 3
-    else
-        iMotionmode = 2
-    endif
-    if arc_plane eq XY
-        iMplane = 17
-    endif
-    if arc_plane eq ZX
-        iMplane = 18
-    endif
-    if arc_plane eq YZ
-        iMplane = 19
     endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
     {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
@@ -1401,10 +1441,10 @@ endp
     endif
     if arc_plane eq ZX then
         if iArcmode eq 1 or (arc_size eq 360 and iArcmode eq 3)
-            {'I'xcenter ' ', 'K'ycenter ' '}
+            {'I'xcenter ' ', 'K'zcenter ' '}
         endif
         if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
-            {'I'xcenter_rel ' ', 'K'(-ycenter_rel) ' '}
+            {'I'xcenter_rel ' ', 'K'(zcenter_rel) ' '}
         endif
         if (iArcmode eq 3 or iArcmode eq 4) and arc_size ne 360
             if arc_size >= 180 then
