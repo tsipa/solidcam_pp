@@ -2,7 +2,7 @@
 <VcControl Version="9.6" Unit="millimeter">
   <Information>
     <InfoUserName>Ts</InfoUserName>
-    <InfoDateTime>Tue Jan  6 18:31:05 2026</InfoDateTime>
+    <InfoDateTime>Mon Jun 29 23:49:56 2026</InfoDateTime>
     <InfoVericutVersion>9.6</InfoVericutVersion>
     <InfoBuildDate>September 10, 2025 </InfoBuildDate>
     <InfoLibraryDate>06/23/25</InfoLibraryDate>
@@ -1161,7 +1161,7 @@
     <Word Name="WRTPR" Type="begin_comment">
     </Word>
     <Word Name="X" Type="conditional">
-      <Value Type="numeric" InchType="decimal" InchFormat="4.4" MetricType="decimal" MetricFormat="5.3" Multiply="off" Multiplier="1"/>
+      <Value Type="numeric" InchType="decimal" InchFormat="4.4" MetricType="decimal" MetricFormat="5.5" Multiply="off" Multiplier="1"/>
       <Function Name="SiemensAXISCond3"/>
     </Word>
     <Word Name="XOR" Type="bitwise_xor">
@@ -1169,13 +1169,13 @@
     <Word Name="X_COLLET" Type="variable_name">
     </Word>
     <Word Name="Y" Type="conditional">
-      <Value Type="numeric" InchType="decimal" InchFormat="4.4" MetricType="decimal" MetricFormat="5.3" Multiply="off" Multiplier="1"/>
+      <Value Type="numeric" InchType="decimal" InchFormat="4.4" MetricType="decimal" MetricFormat="5.5" Multiply="off" Multiplier="1"/>
       <Function Name="SiemensAXISCond3"/>
     </Word>
     <Word Name="Y_COLLET" Type="variable_name">
     </Word>
     <Word Name="Z" Type="conditional">
-      <Value Type="numeric" InchType="decimal" InchFormat="4.4" MetricType="decimal" MetricFormat="5.3" Multiply="off" Multiplier="1"/>
+      <Value Type="numeric" InchType="decimal" InchFormat="4.4" MetricType="decimal" MetricFormat="5.5" Multiply="off" Multiplier="1"/>
       <Function Name="SiemensAXISCond3"/>
     </Word>
     <Word Name="Z_COLLET" Type="variable_name">
