@@ -2107,7 +2107,8 @@ endp
     ; Note: Angular Feed Formula fc = f*(180/(pi*r))
     ; Note: fc=deg/min, f=linear feed
     local numeric tmpypos tmpzpos
-    nR1postmatrix = (-y_angle_const_z - dev_angle_z) * iR1dir           ;Rotary from CoordSys (tmatrix)
+	nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
+    ; nR1postmatrix = (-y_angle_const_z - dev_angle_z) * iR1dir         ;Rotary from CoordSys (tmatrix)
     nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
     nR1poscpos = (-cpos) * iR1dir                                       ;Rotary from C-axis cutting
     nR1pos5x = (-bpos) * iR1dir                                         ;Rotary from 4/5x Simulatenous
@@ -2285,6 +2286,7 @@ endp
 endp
 
 @tmatrix
+    call @usr_4x_index
 endp
 
 @move_5x ; !@#$%
