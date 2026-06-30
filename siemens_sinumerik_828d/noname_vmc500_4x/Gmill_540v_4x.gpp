@@ -54,7 +54,7 @@
     xpos_f          = '8.5'
     ypos_f          = '8.5'
     zpos_f          = '8.5'
-    nR1pos_f        = '<(>5.3<)>'
+    nR1pos_f        = '7.3'
     apos_f          = '5.3'
     bpos_f          = '5.3'
     feed_f          = '4.4(P)'
@@ -176,7 +176,7 @@ endp
     ; Handle setting of options -- For Post Writers
     bSubs = false          ;True = Using sub routines, False = Not using sub routines
     ; ------Below are tracing functions-----
-    ; trace "all":5
+    ;trace "all":5
     ; trace "@tmatrix":5
     ; trace "@def_tool":5
     ; trace "@drill_point":5
@@ -324,12 +324,13 @@ endp
 
 @usr_init_gmstates
     ; Handle initializing G/M codes for correct modality from beginning of file
+	iMotionmode = 9999
     nLlabel         = 0
     iMplane         = 17
     iAbsincmode     = 90
     iWorkoffset     = 9999
 ;	iHeightcomp     = 9999
-    iMotionmode     = 0
+;   iMotionmode     = 0
     iDiametercomp   = 9999
 ;	iDiameteroffset = 9999
     iDrillmode      = 9999
