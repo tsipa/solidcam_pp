@@ -2188,7 +2188,7 @@ endp
     ; Handle 4x indexing (Rotary moves between operations)
     ;4x-Indexing control (0=Simple Rotation, 1=New WorkOffset, 2=Trig Macro)
     ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
-
+    call @usr_optionalstop
     call @usr_r1pos_calc
     if change(nR1pos)
         if i4xIndexMode eq 0 ;Simple Rotation
