@@ -2116,7 +2116,7 @@ endp
     ; tmatrix + 4th Transform + cpos + 5xapos
     ; Note: Angular Feed Formula fc = f*(180/(pi*r))
     ; Note: fc=deg/min, f=linear feed
-    local numeric tmpypos tmpzpos
+    local numeric tmpypos tmpzpos nR1delta nR1absdelta nR1tol dummy_var
 	nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
     ; nR1postmatrix = (-y_angle_const_z - dev_angle_z) * iR1dir         ;Rotary from CoordSys (tmatrix)
     nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
@@ -2157,6 +2157,24 @@ endp
         nR1pdir = 1
     endif
     nR1pos = (nR1postemp + nR1posadj) * nR1pdir
+
+    ; 828D A axis is modulo shortest-path. Exact 180deg moves are ambiguous on the control.
+    nR1tol = 0.0005
+    nR1delta = nR1pos - nPR1pos
+    while nR1delta > 180
+        nR1delta = nR1delta - 360
+    endw
+    while nR1delta < -180
+        nR1delta = nR1delta + 360
+    endw
+    nR1absdelta = abs(nR1delta)
+    if nR1absdelta > (180 - nR1tol) and nR1absdelta < (180 + nR1tol)
+        dummy_var = 0
+        input '"POST ERROR: ambiguous 180deg A-axis modulo move."'dummy_var
+        {"POST ERROR: ambiguous 180deg A-axis modulo move. prevA=", nPR1pos, " nextA=", nR1pos, " delta=", nR1delta}
+        abort
+    endif
+
     nR2postmatrix = (-x_angle_const_z) * iR2dir                        ;Rotary from CoordSys (tmatrix)
     nR2pos5x = (-bpos) * iR2dir                                       ;Rotary from 4/5x Simulatenous
     nR2pos = nR2postmatrix + nR2pos5x

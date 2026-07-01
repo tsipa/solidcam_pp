@@ -2,7 +2,7 @@
 <VcControl Version="9.6" Unit="millimeter">
   <Information>
     <InfoUserName>Ts</InfoUserName>
-    <InfoDateTime>Tue Jun 30 07:33:05 2026</InfoDateTime>
+    <InfoDateTime>Wed Jul  1 00:45:01 2026</InfoDateTime>
     <InfoVericutVersion>9.6</InfoVericutVersion>
     <InfoBuildDate>September 10, 2025 </InfoBuildDate>
     <InfoLibraryDate>06/23/25</InfoLibraryDate>
@@ -8811,7 +8811,7 @@
     <MacroModal Name="mmCYCLE_CANCEL_CAUSE_RAPID"  Value="mmNO_TEXT"/>
     <MacroModal Name="mmCYCLE_IGNORE_ROTARY"  Value="mmNO_TEXT"/>
     <MacroModal Name="mmCYCLE_EXECUTE"  Value="mmON_MOTION"/>
-    <MacroModal Name="mmA_AXIS_ROTARY_TYPE"  Value="mmLINEAR"/>
+    <MacroModal Name="mmA_AXIS_ROTARY_TYPE"  Value="mmABSOLUTE_360"/>
     <MacroModal Name="mmB_AXIS_ROTARY_TYPE"  Value="mmLINEAR"/>
     <MacroModal Name="mmC_AXIS_ROTARY_TYPE"  Value="mmLINEAR"/>
     <MacroModal Name="mmA2_AXIS_ROTARY_TYPE"  Value="mmLINEAR"/>
@@ -8820,7 +8820,7 @@
     <MacroModal Name="mmA3_AXIS_ROTARY_TYPE"  Value="mmLINEAR"/>
     <MacroModal Name="mmB3_AXIS_ROTARY_TYPE"  Value="mmLINEAR"/>
     <MacroModal Name="mmC3_AXIS_ROTARY_TYPE"  Value="mmLINEAR"/>
-    <MacroModal Name="mmABSOLUTE_ROTARY_DIRECTION"  Value="mmSHORTEST_DISTANCE"/>
+    <MacroModal Name="mmABSOLUTE_ROTARY_DIRECTION"  Value="mmSHORTEST_DISTANCE180CCW"/>
     <MacroModal Name="mmRTCP"  Value="mmNO_TEXT"/>
     <MacroModal Name="mmRTCP_CONTOUR"  Value="mmNO_TEXT"/>
     <MacroModal Name="mmRTCP_WITH_MOTION"  Value="mmYES_TEXT"/>
