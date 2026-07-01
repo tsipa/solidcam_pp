@@ -1184,6 +1184,9 @@ endp
             call @usr_prep_home_axis
         endif
     endif
+    if change(nR1pos) and !bTlchg and !bFirstRapid
+        {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],cR1,nR1pos ' '}
+    endif
     if bTlchg or bFirstRapid
         zpos = tool_start_plane
 ;		{nb, 'M11'}
@@ -2118,7 +2121,7 @@ endp
     ; nR1postmatrix = (-y_angle_const_z - dev_angle_z) * iR1dir         ;Rotary from CoordSys (tmatrix)
     nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
     nR1poscpos = (-cpos) * iR1dir                                       ;Rotary from C-axis cutting
-    nR1pos5x = (-bpos) * iR1dir                                         ;Rotary from 4/5x Simulatenous
+    nR1pos5x = (-apos) * iR1dir                                         ;Rotary from 4/5x Simulatenous
     nR1postemp = nR1postmatrix + nR1postransform + nR1poscpos + nR1pos5x
     if iR1posControl eq 0 ;SolidCAM Angles
         nR1posadj = 0
@@ -2155,7 +2158,7 @@ endp
     endif
     nR1pos = (nR1postemp + nR1posadj) * nR1pdir
     nR2postmatrix = (-x_angle_const_z) * iR2dir                        ;Rotary from CoordSys (tmatrix)
-    nR2pos5x = (-apos) * iR2dir                                       ;Rotary from 4/5x Simulatenous
+    nR2pos5x = (-bpos) * iR2dir                                       ;Rotary from 4/5x Simulatenous
     nR2pos = nR2postmatrix + nR2pos5x
 ;    if abs(nR2pos) gt 80
 ;        tmpypos = ypos
