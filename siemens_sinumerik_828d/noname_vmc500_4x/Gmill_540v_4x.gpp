@@ -16,7 +16,7 @@
     global logical bFromendprogram bFrombeginchangetool bFromendchangetool bFromendoffile bMultiplefixtures
     global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert
     global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
-    global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest
+    global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest bTmatrixIndexPending
     global integer iMplane iAbsincmode iWorkoffset iHeightcomp iStopmode iMotionmode iPworkoffset
     global integer iDiametercomp iDrillmode iTcnumber iNumpecks iSpindleDir
     global integer iSlength_g_file_name iSlength_full_g_file_name iSlengthcampartpath iDiameteroffset iArcmode
@@ -347,6 +347,7 @@ endp
     nG187_E_gpp     = 0
     ; ---- 4x
     nR1pos          = 9999
+    bTmatrixIndexPending = false
     nPR1pos			 = 0
     nPR1postemp     = 0
     change(cWo)		 = false
@@ -1025,6 +1026,12 @@ endp
     ; Handle what happens at start of operation(job)
     ; If using Subs we do not make tool change in @start_of_job
     call @home_number
+    if bTmatrixIndexPending
+        change(cWo) = true
+        change(iWorkoffset) = true
+        call @usr_4x_index
+        bTmatrixIndexPending = false
+    endif
     if rot_axis_coord eq 2
         Xpos = 0
         Xnext = 0
@@ -2189,9 +2196,9 @@ endp
     ; Handle 4x indexing (Rotary moves between operations)
     ;4x-Indexing control (0=Simple Rotation, 1=New WorkOffset, 2=Trig Macro)
     ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
-    call @usr_optionalstop
     call @usr_r1pos_calc
     if change(nR1pos)
+        call @usr_optionalstop
         if i4xIndexMode eq 0 ;Simple Rotation
             if i4xIndexClearanceMode eq 0
                 if sHomestrrot ne ''
@@ -2286,7 +2293,7 @@ endp
 endp
 
 @tmatrix
-    call @usr_4x_index
+    bTmatrixIndexPending = true
 endp
 
 @move_5x ; !@#$%
