@@ -14,11 +14,11 @@
     global logical bStartFile bTlchg bTraceUsrcall bSkipxyrapid bWorkoffsettc bFirstMove bFirstMovetlch bFirstRapid
     global logical bSubs bTlist bTlseperation bTcseperation bDateTimeOutput bStopM00difftool bToolPreselect bToolChangeAtEnd
     global logical bFromendprogram bFrombeginchangetool bFromendchangetool bFromendoffile bMultiplefixtures
-    global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert
+    global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a
     global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest bTmatrixIndexPending
     global integer iMplane iAbsincmode iWorkoffset iHeightcomp iStopmode iMotionmode iPworkoffset
-    global integer iDiametercomp iDrillmode iTcnumber iNumpecks iSpindleDir
+    global integer iDiametercomp iDrillmode iTcnumber iNumpecks iSpindleDir iR1dirMode
     global integer iSlength_g_file_name iSlength_full_g_file_name iSlengthcampartpath iDiameteroffset iArcmode
     global integer iHomingmode iWorkOffsetmode iProgendmode iG187_P_gpp iPal1 iPal2
     global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
@@ -176,7 +176,7 @@ endp
     ; Handle setting of options -- For Post Writers
     bSubs = false          ;True = Using sub routines, False = Not using sub routines
     ; ------Below are tracing functions-----
-    ;trace "all":5
+    trace "all":5
     ; trace "@tmatrix":5
     ; trace "@def_tool":5
     ; trace "@drill_point":5
@@ -1185,16 +1185,23 @@ endp
         endif
     endif
     if change(nR1pos) and !bTlchg and !bFirstRapid
-        {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],cR1,nR1pos ' '}
+        {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+        call @usr_r1_output
     endif
     if bTlchg or bFirstRapid
         zpos = tool_start_plane
 ;		{nb, 'M11'}
 ;		{nb, 'G04 K200'}
         if bVertical
-            {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' ','Y'ypos ' ',cR1,nR1pos ' '}
+            {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' ','Y'ypos ' '}
+            if change(nR1pos)
+                call @usr_r1_output
+            endif
         else
-            {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' ',cR1,nR1pos ' '}
+            {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' '}
+            if change(nR1pos)
+                call @usr_r1_output
+            endif
         endif
 ;		{nb, 'G04 K800'}
 ;		{nb, 'M10'}
@@ -1277,7 +1284,11 @@ endp
 ;        {nb,['G'iFeedType' ']}
 ;    endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-    {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' '],[cR1,nR1pos ' '],['F'feed ' ']}
+    {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
+    if change(nR1pos)
+        call @usr_r1_output
+    endif
+    {['F'feed ' ']}
     prevFeed = feed
     change(nRapidfeed) = true
 endp
@@ -2116,7 +2127,7 @@ endp
     ; tmatrix + 4th Transform + cpos + 5xapos
     ; Note: Angular Feed Formula fc = f*(180/(pi*r))
     ; Note: fc=deg/min, f=linear feed
-    local numeric tmpypos tmpzpos nR1delta nR1absdelta nR1tol dummy_var
+    local numeric tmpypos tmpzpos dummy_var
 	nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
     ; nR1postmatrix = (-y_angle_const_z - dev_angle_z) * iR1dir         ;Rotary from CoordSys (tmatrix)
     nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
@@ -2157,23 +2168,7 @@ endp
         nR1pdir = 1
     endif
     nR1pos = (nR1postemp + nR1posadj) * nR1pdir
-
-    ; 828D A axis is modulo shortest-path. Exact 180deg moves are ambiguous on the control.
-    nR1tol = 0.0005
-    nR1delta = nR1pos - nPR1pos
-    while nR1delta > 180
-        nR1delta = nR1delta - 360
-    endw
-    while nR1delta < -180
-        nR1delta = nR1delta + 360
-    endw
-    nR1absdelta = abs(nR1delta)
-    if nR1absdelta > (180 - nR1tol) and nR1absdelta < (180 + nR1tol)
-        dummy_var = 0
-        input '"POST ERROR: ambiguous 180deg A-axis modulo move."'dummy_var
-        {"POST ERROR: ambiguous 180deg A-axis modulo move. prevA=", nPR1pos, " nextA=", nR1pos, " delta=", nR1delta}
-        abort
-    endif
+    iR1dirMode = 0
 
     nR2postmatrix = (-x_angle_const_z) * iR2dir                        ;Rotary from CoordSys (tmatrix)
     nR2pos5x = (-bpos) * iR2dir                                       ;Rotary from 4/5x Simulatenous
@@ -2201,6 +2196,26 @@ endp
     if bLimit_3axis
         change(nR1pos) = false
         change(nR2pos) = false
+        iR1dirMode = 0
+    endif
+    if change(nR1pos)
+        if bR1useDir5a
+            if dir5a eq cw
+                iR1dirMode = 1
+            else
+                if dir5a eq ccw
+                    iR1dirMode = 2
+                endif
+            endif
+        else
+            if angle_4x_around_x_dir eq cw
+                iR1dirMode = 1
+            else
+                if angle_4x_around_x_dir eq ccw
+                    iR1dirMode = 2
+                endif
+            endif
+        endif
     endif
 ;	{nb, 'nR1postmatrix =' nR1postmatrix }
 ;	{nb, 'nR1postransform =' nR1postransform }
@@ -2211,6 +2226,24 @@ endp
     nPR1pos = nR1pos
     nPR2pos = nR2pos
 
+endp
+
+@usr_r1_output
+    local numeric dummy_var
+    if iR1dirMode eq 1
+        {cR1,'=ACN(' nR1pos ') '}
+        iR1dirMode = 0
+    else
+        if iR1dirMode eq 2
+            {cR1,'=ACP(' nR1pos ') '}
+            iR1dirMode = 0
+        else
+            dummy_var = 0
+            input '"POST ERROR: A-axis output direction mode is not ACP/ACN."'dummy_var
+            {"POST ERROR: A-axis output direction mode is not ACP/ACN. A=", nR1pos}
+            abort
+        endif
+    endif
 endp
 
 @usr_4x_index
@@ -2227,7 +2260,8 @@ endp
                     call @usr_prep_home_axis
                 endif
                 iMotionmode = 0
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],[cR1,nR1pos ' ']}
+                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+                call @usr_r1_output
             endif
             if i4xIndexClearanceMode eq 1
                 if tool_z_level < tool_start_plane
@@ -2236,13 +2270,15 @@ endp
                 endif
                 iMotionmode = 0
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'nPtool_z_level ' '}
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],[cR1,nR1pos ' ']}
+                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+                call @usr_r1_output
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_z_level ' '}
             endif
             if i4xIndexClearanceMode eq 2
                 iMotionmode = 0
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'nPtool_start_plane ' '}
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],[cR1,nR1pos ' ']}
+                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+                call @usr_r1_output
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_start_plane ' '}
             endif
         endif
@@ -2254,7 +2290,8 @@ endp
                 endif
                 iMotionmode = 0
                 iWorkoffset = iWorkoffset + (position-1)
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],[cR1,nR1pos ' ']}
+                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+                call @usr_r1_output
             endif
             if i4xIndexClearanceMode eq 1
                 if tool_z_level < tool_start_plane
@@ -2264,14 +2301,16 @@ endp
                 iMotionmode = 0
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'nPtool_z_level ' '}
                 iWorkoffset = iWorkoffset + (position-1)
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],[cR1,nR1pos ' ']}
+                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+                call @usr_r1_output
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_z_level ' '}
             endif
             if i4xIndexClearanceMode eq 2
                 iMotionmode = 0
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'nPtool_start_plane ' '}
                 iWorkoffset = iWorkoffset + (position-1)
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],[cR1,nR1pos ' ']}
+                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+                call @usr_r1_output
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_start_plane ' '}
             endif
         endif
@@ -2284,7 +2323,8 @@ endp
         call @usr_trig_macro_call
         iMotionmode = 0
         iWorkoffset = 112
-        {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],[cR1,nR1pos ' ']}
+        {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+        call @usr_r1_output
     endif
 endp
 
@@ -2296,7 +2336,9 @@ endp
     if change(xpos)
         xpos = 0
     endif
+    bR1useDir5a = true
     call @usr_rapid
+    bR1useDir5a = false
 endp
 
 @line_4x ; !@#$%
@@ -2304,7 +2346,9 @@ endp
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we may...
     ;   Sync with @line, @line_5x, @line_4x, @line4x_polar, @line4x_cartesian
+    bR1useDir5a = true
     call @usr_line
+    bR1useDir5a = false
 endp
 
 @chng_tool_cnext
@@ -2322,7 +2366,9 @@ endp
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we may...
     ;   Sync with @rapid_move, @move_5x, @move_4x, @move4x_polar, @move4x_cartesian
+    bR1useDir5a = true
     call @usr_rapid
+    bR1useDir5a = false
 endp
 
 @line_5x ; !@#$%
@@ -2330,7 +2376,9 @@ endp
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we may...
     ;   Sync with @line, @line_5x, @line_4x, @line4x_polar, @line4x_cartesian
+    bR1useDir5a = true
     call @usr_line
+    bR1useDir5a = false
 endp
 
 @tool_path_info
