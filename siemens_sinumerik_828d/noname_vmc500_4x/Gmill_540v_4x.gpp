@@ -14,7 +14,7 @@
     global logical bStartFile bTlchg bTraceUsrcall bSkipxyrapid bWorkoffsettc bFirstMove bFirstMovetlch bFirstRapid
     global logical bSubs bTlist bTlseperation bTcseperation bDateTimeOutput bStopM00difftool bToolPreselect bToolChangeAtEnd
     global logical bFromendprogram bFrombeginchangetool bFromendchangetool bFromendoffile bMultiplefixtures
-    global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a
+    global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a bR1forceOutput
     global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest bTmatrixIndexPending
     global integer iMplane iAbsincmode iWorkoffset iHeightcomp iStopmode iMotionmode iPworkoffset
@@ -40,6 +40,7 @@
     ; Non GPPL variables
 	last_spin = 0
 	spindle_accel = 500 ; rpm/s
+    bR1forceOutput = true
 	
     num_user_procs =    1
     remove_blanks = FALSE
@@ -1196,11 +1197,19 @@ endp
             {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' ','Y'ypos ' '}
             if change(nR1pos)
                 call @usr_r1_output
+            else
+                if bR1forceOutput
+                    call @usr_r1_output
+                endif
             endif
         else
             {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' '}
             if change(nR1pos)
                 call @usr_r1_output
+            else
+                if bR1forceOutput
+                    call @usr_r1_output
+                endif
             endif
         endif
 ;		{nb, 'G04 K800'}
@@ -2199,22 +2208,10 @@ endp
         iR1dirMode = 0
     endif
     if change(nR1pos)
-        if bR1useDir5a
-            if dir5a eq cw
-                iR1dirMode = 1
-            else
-                if dir5a eq ccw
-                    iR1dirMode = 2
-                endif
-            endif
-        else
-            if angle_4x_around_x_dir eq cw
-                iR1dirMode = 1
-            else
-                if angle_4x_around_x_dir eq ccw
-                    iR1dirMode = 2
-                endif
-            endif
+        call @usr_r1_select_dir
+    else
+        if bR1forceOutput
+            iR1dirMode = 3
         endif
     endif
 ;	{nb, 'nR1postmatrix =' nR1postmatrix }
@@ -2228,20 +2225,48 @@ endp
 
 endp
 
+@usr_r1_select_dir
+    if bR1useDir5a
+        if dir5a eq cw
+            iR1dirMode = 1
+        else
+            if dir5a eq ccw
+                iR1dirMode = 2
+            endif
+        endif
+    else
+        if angle_4x_around_x_dir eq cw
+            iR1dirMode = 1
+        else
+            if angle_4x_around_x_dir eq ccw
+                iR1dirMode = 2
+            endif
+        endif
+    endif
+endp
+
 @usr_r1_output
     local numeric dummy_var
     if iR1dirMode eq 1
         {cR1,'=ACN(' nR1pos ') '}
         iR1dirMode = 0
+        bR1forceOutput = false
     else
         if iR1dirMode eq 2
             {cR1,'=ACP(' nR1pos ') '}
             iR1dirMode = 0
+            bR1forceOutput = false
         else
-            dummy_var = 0
-            input '"POST ERROR: A-axis output direction mode is not ACP/ACN."'dummy_var
-            {"POST ERROR: A-axis output direction mode is not ACP/ACN. A=", nR1pos}
-            abort
+            if iR1dirMode eq 3
+                {cR1,'=DC(' nR1pos ') '}
+                iR1dirMode = 0
+                bR1forceOutput = false
+            else
+                dummy_var = 0
+                input '"POST ERROR: A-axis output direction mode is not ACP/ACN/DC."'dummy_var
+                {"POST ERROR: A-axis output direction mode is not ACP/ACN/DC. A=", nR1pos}
+                abort
+            endif
         endif
     endif
 endp
