@@ -2207,11 +2207,11 @@ endp
         change(nR2pos) = false
         iR1dirMode = 0
     endif
-    if change(nR1pos)
-        call @usr_r1_select_dir
+    if bR1forceOutput
+        iR1dirMode = 3
     else
-        if bR1forceOutput
-            iR1dirMode = 3
+        if change(nR1pos)
+            call @usr_r1_select_dir
         endif
     endif
 ;	{nb, 'nR1postmatrix =' nR1postmatrix }
