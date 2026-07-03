@@ -177,7 +177,7 @@ endp
     ; Handle setting of options -- For Post Writers
     bSubs = false          ;True = Using sub routines, False = Not using sub routines
     ; ------Below are tracing functions-----
-    trace "all":5
+    ; trace "all":5
     ; trace "@tmatrix":5
     ; trace "@def_tool":5
     ; trace "@drill_point":5
