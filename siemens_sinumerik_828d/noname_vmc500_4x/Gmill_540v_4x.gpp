@@ -1664,7 +1664,7 @@ endp
 ;    {nb,'G10 G90 L2 P1 B',angle}
     else
         gcode = 0
-        apos = angle -opposite_z_angle_const_y
+        apos = 0
 		call @usr_4x_index
     endif
 endp
