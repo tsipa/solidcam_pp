@@ -1715,7 +1715,7 @@ endp
 
     if drill_type eq G81 then ;---------------------
         if drill_upper_z > 0
-            {' (',rtp,',,'sdis,',',dp,',',rfp}
+            {' (',rtp,','rfp,','sdis,',',dp,','}
         else
             {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
         endif
@@ -1725,7 +1725,7 @@ endp
 
     if drill_type eq G82 then ;-------------------------
         if drill_upper_z > 0
-            {' (',rtp,',,'sdis,',',dp,',',rfp}
+            {' (',rtp,','rfp,','sdis,',',dp,','}
         else
             {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
         endif
@@ -1736,18 +1736,18 @@ endp
 
     if drill_type eq G83 then ;--------------------------
         if drill_upper_z > 0
-            {' (',rtp,',,'sdis,',',dp,',',rfp}
-            {',,',down_step,','down_step,',,,1,1)'}
+            {' (',rtp,','rfp,','sdis,',',dp,','}
+            {',,',down_step,','down_step,',,1.,1,1)'}
         else
             {' (',rtp,',',drill_upper_z',,',dp}
-            {',0.,,',down_step,','down_step,',,,1,1)'}
+            {',0.,,',down_step,','down_step,',,1.,1,1)'}
         endif
     endif
 
 
     if drill_type eq G84 then ;---------------------------
         if drill_upper_z > 0
-            {' (',rtp,',,'sdis,',',dp,',',rfp,',0.,3,,',''(FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
+            {' (',rtp,','rfp,','sdis,',',dp,',,0.,3,,',''(FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
         else
             {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
             {',0.,3,,',''(FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
@@ -1766,7 +1766,7 @@ endp
 
     if drill_type eq G86 then ;--------------------------
         if drill_upper_z > 0
-            {' (',rtp,',,'sdis,',',dp,',',rfp,',,3'}
+            {' (',rtp,','rfp,','sdis,',',dp,',,,3'}
         else
             {' (',rtp,','drill_upper_z,',,',dp,',','0.,,3'}
         endif
