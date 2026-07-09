@@ -690,6 +690,7 @@ endp
     ; Handle G/M code output to make tool change
     {nb, 'T',tool_number,cTCcodes}
     {nb, cTCcodep}
+    {nb, 'D1 '}
 ;    if tool_message == '' then
 ;        {' ' cCb'TOOL 'tool_number, ' - DIA '(tool_offset*2),cCe }
 ;    else
