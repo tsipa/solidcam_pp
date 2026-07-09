@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vericut Control"
+  short_description: "Work safely with VERICUT Siemens control files and CDC debug."
+  default_prompt: "Use this skill when editing or debugging VERICUT control files."
