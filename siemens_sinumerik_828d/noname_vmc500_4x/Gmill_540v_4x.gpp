@@ -1278,10 +1278,13 @@ endp
     ; ---- 4x
     ;   - Set Rotary Position
     call @usr_r1pos_calc
-    if next_command eq '@compensation' and iMotionmode ne 0
-        side = tool_side
-        call @compensation
-    endif
+;    Do not pre-apply upcoming compensation here.
+;    CAM emits @compensation before the move where it must become active.
+;    Applying next_command compensation from @usr_line corrupts lead-out/zigzag side changes.
+;    if next_command eq '@compensation' and iMotionmode ne 0
+;        side = tool_side
+;        call @compensation
+;    endif
     iMotionmode = 1
     ; ---- 4x
     if bFeedoutput
