@@ -17,7 +17,6 @@ description: Work safely with CGTech VERICUT Siemens control files, especially `
 
 - Treat SolidCAM PP cutter compensation output as trusted unless the user explicitly asks to change PP behavior. For cutter compensation simulation issues, investigate Vericut control behavior first.
 - When updating Vericut files, compare the working Vericut directory against the repo `vericut` directory and copy only changed/new intended project files.
-- If setup is not 1, Vericut work offset `G54` / offset 54 should map to CSYS 2. To inspect the reference mapping, run a Vericut simulation on the default setup.
 - Avoid keeping speculative CDC behavior changes unless the user confirms the tested behavior is correct. Do not leave behind experimental `CutterCompSuspend`, `CutterCompOnOffSwitches`, same-side `Already left/right compensation` no-op branches, or reordered direct `G40/G41/G42` groups after a failed test.
 
 ## Vericut Debug Safety
