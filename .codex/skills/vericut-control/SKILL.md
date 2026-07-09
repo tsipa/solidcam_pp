@@ -1,93 +1,68 @@
 ---
 name: vericut-control
-description: Work safely with CGTech VERICUT Siemens control files, especially `sin840d_special.ctl`, CDC/G41/G42 behavior, NC simulation debug, Vericut project syncing, and VMC PP Vericut assets. Use this skill whenever Codex edits, debugs, compares, syncs, or reasons about VERICUT control/project files or VERICUT simulation behavior.
+description: "Work safely with CGTech VERICUT project assets and control files: `.vcproject`, `.mch`, `.ctl`, `.spf`, `.ini`, tool libraries, project syncing, local/repo comparisons, and simulation/debug investigation. Use this skill whenever Codex edits, debugs, compares, syncs, or reasons about VERICUT files or VERICUT simulation behavior."
 ---
 
 # Vericut Control
 
 ## Core Paths
 
-- Use `%PP_REPO%` for the local checkout of this repository. If it is unset, infer it from the current working directory or ask only if it cannot be inferred.
-- Use `%VERICUT_WORKDIR%` for the active Vericut project/files directory. If it is unset, infer it from user context or ask only if it cannot be inferred.
+- Use `%PP_REPO%` for the local checkout of this repository. If it is unset, infer it from the current working directory.
+- Use `%VERICUT_WORKDIR%` for the active Vericut project/files directory. If it is unset, infer it from user context.
 - Repo Vericut destination relative to `%PP_REPO%`: `siemens_sinumerik_828d\noname_vmc500_4x\vericut`
-- Main Siemens control overlay currently under investigation: `sin840d_special.ctl`
-- Keep `%VERICUT_WORKDIR%\sin840d_special.ctl` and `%PP_REPO%\siemens_sinumerik_828d\noname_vmc500_4x\vericut\sin840d_special.ctl` identical after edits unless the user explicitly asks otherwise.
+- Keep working Vericut files and repo Vericut files synchronized when the same file is intentionally changed in both places.
 
-## Operating Rules
+## Workflow
 
-- Treat SolidCAM PP cutter compensation output as trusted unless the user explicitly asks to change PP behavior. For cutter compensation simulation issues, investigate Vericut control behavior first.
-- When updating Vericut files, compare the working Vericut directory against the repo `vericut` directory and copy only changed/new intended project files.
-- Avoid keeping speculative CDC behavior changes unless the user confirms the tested behavior is correct. Do not leave behind experimental `CutterCompSuspend`, `CutterCompOnOffSwitches`, same-side `Already left/right compensation` no-op branches, or reordered direct `G40/G41/G42` groups after a failed test.
+1. Identify the active Vericut file first: project (`.vcproject`), machine (`.mch`), control (`.ctl`), subprogram/cycle (`.spf`), config (`.ini`), or tooling data.
+2. Compare the working Vericut directory against the repo Vericut directory before editing when both copies exist.
+3. Make the smallest change that tests the current hypothesis.
+4. Keep unrelated Vericut experiments out of commits. If a test fails, remove that test change before moving to the next hypothesis.
+5. Before committing, show or inspect the exact diff and confirm only intended files are staged.
 
-## Vericut Debug Safety
+Useful PowerShell patterns:
 
-Vericut `ConditionMacro` branches can intercept normal handling. A debug-only branch can make Vericut log the line and skip the real motion or CDC macro.
+```powershell
+$repo = $env:PP_REPO
+$work = $env:VERICUT_WORKDIR
+$repoVericut = Join-Path $repo 'siemens_sinumerik_828d\noname_vmc500_4x\vericut'
+Compare-Object (Get-Content -LiteralPath (Join-Path $work 'file.name')) (Get-Content -LiteralPath (Join-Path $repoVericut 'file.name'))
+```
 
-Use this rule: if a debug condition matches an axis or CDC command, the same condition must also call the real macro that would have run without debug.
+```powershell
+Select-String -Path (Join-Path $work 'unnamed.vcproject') -Pattern 'Collision|Tolerance|NearMiss|ShankStockDist|GcodeSim|Work Offsets' -Context 2,2
+```
 
-Safe axis debug pattern:
+## Debugging Control Files
+
+Vericut `ConditionMacro` branches can intercept normal handling. A debug-only branch can log a match and prevent the real macro from running.
+
+When adding debug to an existing control path, preserve the original behavior in the same matching branch:
 
 ```xml
-<ConditionMacro Description="CDC debug X left">
+<ConditionMacro Description="debug X motion">
   <CondVariable Logical="and" Name="$P_GG[7]" Range="2"/>
   <Macro Name="LoggerMessage" Scan="no" AfterMotion="no">
-    <Override Type="text" Value="CDC DBG: going to run X{$}; left comp; corrector {#$P_TOOLR}mm"/>
+    <Override Type="text" Value="DBG: X{$}; state {#$P_GG[7]}"/>
   </Macro>
   <Macro Name="XAxisMotion" Scan="no" AfterMotion="no">
   </Macro>
 </ConditionMacro>
 ```
 
-Use the corresponding real macro for each axis:
+General rule: if the debug condition matches a command that normally moves, changes state, loads data, or calls a Vericut macro, the debug branch must also call the same real macro or explicitly document why it is intentionally suppressing it.
+
+Common real motion macros:
 
 - `X` -> `XAxisMotion`
 - `Y` -> `YAxisMotion`
 - `Z` -> `ZAxisMotion`
 
-Safe cutter compensation debug pattern:
+For non-axis commands, insert `LoggerMessage` next to the existing real macro when possible instead of creating a competing condition branch.
 
-```xml
-<Group Name="G" Type="word" Description="CUTTER COMPENSATION: Tool radius compensation left of contour" Range="41" Field="0">
-  <ConditionMacro Description="">
-    <Variable Name="$P_GG[7]" Scan="no" AfterMotion="no">
-      <Override Type="value" Value="2" Units="0"/>
-    </Variable>
-    <Macro Name="LoggerMessage" Scan="no" AfterMotion="no">
-      <Override Type="text" Value="CDC DBG: G41 left comp; corrector {#$P_TOOLR}mm"/>
-    </Macro>
-    <Macro Name="CutterCompLeft" Scan="no" AfterMotion="no">
-    </Macro>
-  </ConditionMacro>
-</Group>
-```
+## Validation
 
-For `G42`, use the same pattern immediately before `CutterCompRight`.
-
-## CDC Notes Learned
-
-- VERICUT library controls generally implement CDC directly as `G41 -> CutterCompLeft`, `G42 -> CutterCompRight`, `G40 -> CutterCompOff`.
-- Heidenhain library controls use `CutterCompSuspend` for an explicit suspend command such as `M98`; do not assume it is valid for normal `G41 <-> G42` transitions.
-- Moving direct `G40/G41/G42` groups before axis motion changes same-block behavior. Restore original ordering if the test fails.
-- `CutterCompOnOffSwitches` can change CDC turn-on/off behavior globally. Do not keep it after failed CDC tests.
-
-## Validation Checklist
-
-- Search for failed-test leftovers:
-
-```powershell
-Select-String -Path "$env:VERICUT_WORKDIR\sin840d_special.ctl" -Pattern 'Already|CutterCompOnOffSwitches|CutterCompSuspend|CDC DBG'
-```
-
-- Compare working and repo control files:
-
-```powershell
-$repoCtl = Join-Path $env:PP_REPO 'siemens_sinumerik_828d\noname_vmc500_4x\vericut\sin840d_special.ctl'
-$workCtl = Join-Path $env:VERICUT_WORKDIR 'sin840d_special.ctl'
-Compare-Object (Get-Content -LiteralPath $workCtl) (Get-Content -LiteralPath $repoCtl)
-```
-
-- Run repo diff check:
-
-```powershell
-git -C $env:PP_REPO diff --check -- siemens_sinumerik_828d/noname_vmc500_4x/vericut/sin840d_special.ctl
-```
+- Compare working and repo copies for files that should match.
+- Run `git diff --check` on changed repo files.
+- Use `git diff --cached --name-only` and `git diff --cached` before committing.
+- Prefer committing Vericut asset/config changes separately from postprocessor logic changes unless the user explicitly asks for one combined commit.
