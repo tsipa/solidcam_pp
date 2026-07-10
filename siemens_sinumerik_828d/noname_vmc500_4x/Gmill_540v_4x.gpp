@@ -485,10 +485,10 @@ endp
         bVertical = false
     endif
     if iProgendmode eq 1
-        {nb, 'M30 '}
+        {nb, 'M30'}
     endif
     if iProgendmode eq 2
-        {nb, 'M2 '}
+        {nb, 'M2'}
     endif
 
 endp
