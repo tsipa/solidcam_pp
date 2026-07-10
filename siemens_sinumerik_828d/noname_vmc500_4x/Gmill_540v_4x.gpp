@@ -394,7 +394,25 @@ endp
                 call @usr_optionalstop
             endif
             {nl, 'MSG(" Loading Zeropoints ")'}
+            call @usr_workpiece_stock
         endif
+    endif
+endp
+
+;-------------------
+
+@usr_workpiece_stock
+    local numeric nStockLength nStockWidth nStockHeight nStockMachining
+
+    nStockLength = stock_x
+    nStockWidth = stock_y
+    nStockHeight = stock_z
+    nStockMachining = -stock_x
+
+    if fourth_axis_used
+        {nl, 'WORKPIECE(,"A",,"RECTANGLE",0,0,' nStockLength:xpos_f ',' nStockMachining:xpos_f ',' nStockWidth:xpos_f ',' nStockHeight:xpos_f ')'}
+    else
+        {nl, 'WORKPIECE(,,,"RECTANGLE",0,0,' nStockLength:xpos_f ',' nStockMachining:xpos_f ',' nStockWidth:xpos_f ',' nStockHeight:xpos_f ')'}
     endif
 endp
 
