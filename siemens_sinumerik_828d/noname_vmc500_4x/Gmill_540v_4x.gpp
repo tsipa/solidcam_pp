@@ -486,9 +486,11 @@ endp
     endif
     if iProgendmode eq 1
         {nb, 'M30'}
+        {nl}
     endif
     if iProgendmode eq 2
         {nb, 'M2'}
+        {nl}
     endif
 
 endp
