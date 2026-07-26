@@ -1761,10 +1761,10 @@ endp
     if drill_type eq G83 then ;--------------------------
         if drill_upper_z > 0
             {' (',rtp,','rfp,','sdis,',',dp,','}
-            {',,',down_step,','down_step,',,1.,1,1)'}
+            {',,',down_step,','down_step,',,0.5,1,1)'}
         else
             {' (',rtp,',',drill_upper_z',,',dp}
-            {',0.,,',down_step,','down_step,',,1.,1,1)'}
+            {',0.,,',down_step,','down_step,',,0.5,1,1)'}
         endif
     endif
 
