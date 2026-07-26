@@ -402,17 +402,63 @@ endp
 ;-------------------
 
 @usr_workpiece_stock
+    ; Siemens SINUMERIK Operate blank definition:
+    ; https://support.industry.siemens.com/cs/mdm/109760802?c=87879191435&dl=nl&lc=en-US
+    ;
+    ; General syntax:
+    ; WORKPIECE("<WP>","<RefP>","<ZeroOffset>","<Type>",Par5,Par6,...,Par12)
+    ;
+    ; <WP> is optional. Empty <WP> lets the control use its default WORKP<n> name.
+    ; <RefP> is the clamping reference for milling machines:
+    ;   empty   = current/default table reference
+    ;   "Table" = fixed table clamping
+    ;   "A"     = blank clamped on rotary axis A
+    ;   "B"     = blank clamped on rotary axis B
+    ;   "C"     = blank clamped on rotary axis C
+    ; <ZeroOffset> is not programmable in the part program; an empty value means the
+    ; blank is related to the currently active work offset.
+    ;
+    ; Par5 is a bit parameter. With Par5 = 0 the following size parameters are
+    ; interpreted incrementally where Siemens allows inc/abs selection.
+    ;
+    ; "RECTANGLE" is Siemens' centered cuboid, not an arbitrary XY box:
+    ;   Par6  = Z0 reference point
+    ;   Par7  = Z1 length
+    ;   Par8  = ZB machining dimension
+    ;   Par9  = W width
+    ;   Par10 = L length
+    ;   Par11 = rotation about rotary axis
+    ;
+    ; "BOX" is Siemens' non-centered cuboid:
+    ;   Par6  = Z0 reference point
+    ;   Par7  = Z1 length
+    ;   Par8  = ZB machining dimension
+    ;   Par9  = X0
+    ;   Par10 = Y0
+    ;   Par11 = X1
+    ;   Par12 = Y1
+    ; With Par5 = 0, X1/Y1/Z1/ZB are incremental. Therefore for a SolidCAM stock
+    ; box we output X0/Y0 from stock_*_minus and X1/Y1 as stock_x/stock_y sizes.
+    ;
+    ; Keep 4x output as "RECTANGLE" clamped to "A": this matches the known-good
+    ; rotary-axis blank behavior on the control. For non-4x jobs use "BOX" so an
+    ; off-center stock is represented by its real X/Y/Z extents instead of being
+    ; recentered by SINUMERIK.
     local numeric nStockLength nStockWidth nStockHeight nStockMachining
+    local numeric nStockZ0 nStockZ1 nStockZB
 
     nStockLength = stock_x
     nStockWidth = stock_y
     nStockHeight = stock_z
     nStockMachining = -stock_x
+    nStockZ0 = stock_z_plus
+    nStockZ1 = stock_z_minus - stock_z_plus
+    nStockZB = target_z_minus - stock_z_plus
 
     if fourth_axis_used
         {nl, 'WORKPIECE(,"A",,"RECTANGLE",0,0,' nStockLength:xpos_f ',' nStockMachining:xpos_f ',' nStockWidth:xpos_f ',' nStockHeight:xpos_f ')'}
     else
-        {nl, 'WORKPIECE(,,,"RECTANGLE",0,0,' nStockLength:xpos_f ',' nStockMachining:xpos_f ',' nStockWidth:xpos_f ',' nStockHeight:xpos_f ')'}
+        {nl, 'WORKPIECE(,,,"BOX",0,' nStockZ0:xpos_f ',' nStockZ1:xpos_f ',' nStockZB:xpos_f ',' stock_x_minus:xpos_f ',' stock_y_minus:xpos_f ',' nStockLength:xpos_f ',' nStockWidth:xpos_f ')'}
     endif
 endp
 
