@@ -1759,6 +1759,9 @@ endp
 
 
     if drill_type eq G83 then ;--------------------------
+        ; CYCLE83(RTP,RFP,SDIS,DP,DPR,FDEP,FDPR,DAM,DTB,DTS,FRF,VARI)
+        ; DTB = dwell at final drilling depth, DTS = dwell at start point during swarf removal.
+        ; Current G83 output uses DTB empty/0, DTS 0.5 sec, FRF 1, VARI 1 (swarf removal).
         if drill_upper_z > 0
             {' (',rtp,','rfp,','sdis,',',dp,','}
             {',,',down_step,','down_step,',,0.5,1,1)'}
