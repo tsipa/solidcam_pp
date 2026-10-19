@@ -365,9 +365,9 @@ endp
     ; Use bTlchg to use different message for tool_change
     if bTlist
         if tool_message == '' then
-            {nl, cCb'TOOL 'tool_number, ' - DIA '(tool_offset*2),cCe }
+            {nl, cCb'TOOL 'tool_number, ' - DIA '(tool_offset*2),' | HOLDER: ',holder_name,' | STICKOUT: ',tool_length:'5.3',' mm',cCe }
         else
-            {nl,cCb'T'tool_number,'-' tool_message,cCe}
+            {nl,cCb'T'tool_number,'-' tool_message,' | HOLDER: ',holder_name,' | STICKOUT: ',tool_length:'5.3',' mm',cCe}
             if msg_mill_tool1 ne ''
                 {nl,cCb'---' msg_mill_tool1,cCe}
             endif
