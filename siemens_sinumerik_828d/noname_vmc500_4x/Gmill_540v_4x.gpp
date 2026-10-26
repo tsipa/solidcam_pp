@@ -1217,7 +1217,7 @@ endp
 
 @usr_rapid
     local logical bCamLinkRapid bRapidRotaryChanged
-    ; A CAM-tagged, straight Z retract can authorize one rotary move in a rapid link.
+    ; A CAM-tagged, straight Z retract authorizes its contiguous rapid link.
     bCamLinkRapid = false
     if X5_job and bR1useDir5a and bJobPositioned and bCamLinkRetract
         if !bIndexClearancePending and !bTlchg and !bFirstRapid
@@ -1358,11 +1358,11 @@ endp
     endif
     if bRapidRotaryChanged
         bIndexClearancePending = false
-    else
-        ; CAM may split the link into XYZ-only rapids before its rotary block.
-        if bCamLinkRapid
-            bCamLinkRetract = true
-        endif
+    endif
+    ; CAM may split one link into several XYZ and rotary rapid blocks.
+    ; Keep its confirmation until a feed move or an indexing boundary resets it.
+    if bCamLinkRapid
+        bCamLinkRetract = true
     endif
     bJobPositioned = true
     nLastPathZ = zpos
