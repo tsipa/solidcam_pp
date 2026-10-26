@@ -17,6 +17,8 @@
     global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a bR1forceOutput
     global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest bTmatrixIndexPending
+    global logical bIndexClearancePending bCamLinkRetract bJobPositioned
+    global numeric nLastPathZ nLastPathWorkoffset
     global integer iMplane iAbsincmode iWorkoffset iHeightcomp iStopmode iMotionmode iPworkoffset
     global integer iDiametercomp iDrillmode iTcnumber iNumpecks iSpindleDir iR1dirMode
     global integer iSlength_g_file_name iSlength_full_g_file_name iSlengthcampartpath iDiameteroffset iArcmode
@@ -349,6 +351,11 @@ endp
     ; ---- 4x
     nR1pos          = 9999
     bTmatrixIndexPending = false
+    bIndexClearancePending = true
+    bCamLinkRetract = false
+    bJobPositioned = false
+    nLastPathZ = 0
+    nLastPathWorkoffset = -9999
     nPR1pos			 = 0
     nPR1postemp     = 0
     change(cWo)		 = false
@@ -633,6 +640,9 @@ endp
 ;-------------------
 
 @change_tool
+    bIndexClearancePending = true
+    bCamLinkRetract = false
+    bJobPositioned = false
     ; Delayed Tool Change handling to @start_of_job to have access to Operation(Job) data
     nTcXnext = xnext
     nTcYnext = ynext
@@ -1091,6 +1101,9 @@ endp
 ;--------------------
 
 @start_of_job
+    bIndexClearancePending = true
+    bCamLinkRetract = false
+    bJobPositioned = false
     ; Handle what happens at start of operation(job)
     ; If using Subs we do not make tool change in @start_of_job
     call @home_number
@@ -1164,6 +1177,9 @@ endp
 ;--------------------
 
 @end_of_job
+    bIndexClearancePending = true
+    bCamLinkRetract = false
+    bJobPositioned = false
     ; Handle what happens at end of operation(job)
     ; If using Subs we do not make tool change in @start_of_job
     if bStopM00
@@ -1200,6 +1216,19 @@ endp
 endp
 
 @usr_rapid
+    local logical bCamLinkRapid bRapidRotaryChanged
+    ; A CAM-tagged, straight Z retract can authorize one rotary move in a rapid link.
+    bCamLinkRapid = false
+    if X5_job and bR1useDir5a and bJobPositioned and bCamLinkRetract
+        if !bIndexClearancePending and !bTlchg and !bFirstRapid
+            if prev_command eq '@line_5x' or prev_command eq '@line_4x' or prev_command eq '@move_5x' or prev_command eq '@move_4x'
+                if nLastPathWorkoffset eq iWorkoffset
+                    bCamLinkRapid = true
+                endif
+            endif
+        endif
+    endif
+    bCamLinkRetract = false
     ; Handle output for Rapid Move (G00)
     ; Note: XYZ not allowed together on a single line
     ; ---- 4x
@@ -1245,7 +1274,8 @@ endp
         endif
         bFirstRapid = false
     endif
-    if change(nr1pos)
+    bRapidRotaryChanged = change(nR1pos)
+    if change(nR1pos) and !bCamLinkRapid
         sHomestrrot = sHomestrroth
         if sHomestrrot ne ''
             sHomestr = sHomestrrot
@@ -1326,6 +1356,17 @@ endp
     if !bSyncdrapid
         bFeedoutput        = true
     endif
+    if bRapidRotaryChanged
+        bIndexClearancePending = false
+    else
+        ; CAM may split the link into XYZ-only rapids before its rotary block.
+        if bCamLinkRapid
+            bCamLinkRetract = true
+        endif
+    endif
+    bJobPositioned = true
+    nLastPathZ = zpos
+    nLastPathWorkoffset = iWorkoffset
     change(cWo) = false
     change(iWorkoffset) = false
 endp
@@ -1341,6 +1382,19 @@ endp
 endp
 
 @usr_line
+    ; Evaluate CAM input changes before output consumes their change flags.
+    bCamLinkRetract = false
+    if X5_job and bR1useDir5a and bJobPositioned and !bIndexClearancePending
+        if feed_type eq 'feed_link' and zpos gt nLastPathZ
+            if !change(xpos) and !change(ypos) and !change(apos) and !change(bpos)
+                if nLastPathWorkoffset eq iWorkoffset
+                    bCamLinkRetract = true
+                endif
+            endif
+        endif
+    endif
+    nLastPathZ = zpos
+    nLastPathWorkoffset = iWorkoffset
     ; Handle output for line movement (G01)
     ; ---- 4x
     ;   - Set Rotary Position
@@ -1722,6 +1776,8 @@ endp
 ;-------------------
 
 @fourth_axis
+    bIndexClearancePending = true
+    bCamLinkRetract = false
     if angle eq 0
         position = 1
     else
@@ -2456,6 +2512,9 @@ endp
 endp
 
 @tmatrix
+    ; Conservatively require clearance even when only the translation changed.
+    bIndexClearancePending = true
+    bCamLinkRetract = false
     bTmatrixIndexPending = true
 endp
 
