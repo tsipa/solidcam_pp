@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "description": "Synthetic regression inputs derived from reviewed commit diffs; expected values are explicit and independent of the interpreter.",
+  "cases": [
+    {
+      "name": "zigzag_compensation_changes_only_on_cam_event",
+      "kind": "compensation",
+      "commit": "2aa6df0bb2da7b754313a7fa41763e20da7957cd",
+      "reason": "Commit and source comment explicitly say lookahead pre-applied upcoming compensation to the current lead-out/zigzag move.",
+      "initial": {"iDiametercomp": 41, "side": "left", "tool_side": "right", "next_command": "@compensation"},
+      "expected_codes": [[41], [42], [40]],
+      "regression": {"find": ";    if next_command eq '@compensation' and iMotionmode ne 0\n;        side = tool_side\n;        call @compensation\n;    endif", "replace": "    if next_command eq '@compensation' and iMotionmode ne 0\n        side = tool_side\n        call @compensation\n    endif"}
+    },
+    {
+      "name": "fourth_axis_transform_angle_is_not_counted_twice",
+      "kind": "fourth_axis",
+      "commit": "719e94652dd1ac2c591b7770d785e0b369b8e784",
+      "reason": "Commit explicitly replaces apos=angle-opposite_z_angle_const_y with apos=0; angle already contributes through nR1postransform.",
+      "initial": {"angle": 90, "apos": 123, "opposite_z_angle_const_y": 0},
+      "expected_a": 90,
+      "expected_apos": 0,
+      "regression": {"find": "        apos = 0\n\t\tcall @usr_4x_index", "replace": "        apos = angle -opposite_z_angle_const_y\n\t\tcall @usr_4x_index"}
+    },
+    {
+      "name": "distinct_apos_and_bpos_map_to_separate_axes",
+      "kind": "axis_mapping",
+      "commit": "611b188bf85caa2802e8476c1a49f1421548cffc",
+      "reason": "Commit body explicitly maps apos to primary A and bpos to secondary rotary position.",
+      "initial": {"apos": 123, "bpos": 17},
+      "expected_a": 123,
+      "expected_secondary": -17,
+      "regression": {"find": "nR1pos5x = (-apos) * iR1dir", "replace": "nR1pos5x = (-bpos) * iR1dir"}
+    },
+    {
+      "name": "tool_change_selects_d1_before_preselection",
+      "kind": "tool_change",
+      "commit": "420c4ab447e85f69722ae39f881fb4d8d4736c77",
+      "reason": "Commit adds the D1 block immediately after the M06 block; the mechanical reason beyond initialization is not recorded.",
+      "initial": {"tool_number": 7, "next_tool_number": 8, "last_tool": false},
+      "expected_blocks": ["T7", "M06", "D1", "T8", "MSG(\"fixture_operation\")"],
+      "regression": {"find": "    {nb, 'D1 '}\n", "replace": ""}
+    },
+    {
+      "name": "cycle81_positive_reference_plane",
+      "kind": "cycle",
+      "commit": "bea8c623d6d1bae588c36b696aa3bc93340dc961",
+      "reason": "Diff moves RFP into the second argument and leaves DPR empty; old output omitted RFP and put it after DP.",
+      "initial": {"drill_type": "g81", "drill_upper_z": 12},
+      "expected_cycle": 81,
+      "expected_parameters": ["30", "10", "2", "-15", ""],
+      "regression": {"find": "{' (',rtp,','rfp,','sdis,',',dp,','}", "replace": "{' (',rtp,',,'sdis,',',dp,',',rfp}"}
+    },
+    {
+      "name": "cycle82_positive_reference_and_dwell",
+      "kind": "cycle",
+      "commit": "bea8c623d6d1bae588c36b696aa3bc93340dc961",
+      "reason": "Same repaired RFP/SDIS ordering; delay remains a separate argument after DPR.",
+      "initial": {"drill_type": "g82", "drill_upper_z": 12},
+      "expected_cycle": 82,
+      "expected_parameters": ["30", "10", "2", "-15", "", "0.25"],
+      "regression": {"find": "{' (',rtp,','rfp,','sdis,',',dp,','}", "replace": "{' (',rtp,',,'sdis,',',dp,',',rfp}"}
+    },
+    {
+      "name": "cycle83_positive_reference_and_upper_dwell",
+      "kind": "cycle",
+      "commit": "1710187d018f99c30085790a4b3d761db5f81496",
+      "related_commits": ["bea8c623d6d1bae588c36b696aa3bc93340dc961", "e4af180"],
+      "reason": "Commit reduces the upper dwell from 1 to 0.5; subsequent source comment identifies this as DTS, argument 10.",
+      "initial": {"drill_type": "g83", "drill_upper_z": 12},
+      "expected_cycle": 83,
+      "expected_parameters": ["30", "10", "2", "-15", "", "", "3", "3", "", "0.5", "1", "1"],
+      "regression": {"find": ",,0.5,1,1)", "replace": ",,1.,1,1)"}
+    },
+    {
+      "name": "cycle83_nonpositive_reference_keeps_relative_depth_zero",
+      "kind": "cycle",
+      "commit": "1710187d018f99c30085790a4b3d761db5f81496",
+      "related_commits": ["bea8c623d6d1bae588c36b696aa3bc93340dc961"],
+      "reason": "The same dwell change has a separate drill_upper_z<=0 branch, with RFP=-2, SDIS empty and DPR=0.",
+      "initial": {"drill_type": "g83", "drill_upper_z": -2},
+      "expected_cycle": 83,
+      "expected_parameters": ["30", "-2", "", "-15", "0.", "", "3", "3", "", "0.5", "1", "1"],
+      "regression": {"find": ",,0.5,1,1)", "replace": ",,1.,1,1)"}
+    },
+    {
+      "name": "cycle86_positive_reference_and_spindle_mode",
+      "kind": "cycle",
+      "commit": "bea8c623d6d1bae588c36b696aa3bc93340dc961",
+      "reason": "Diff repairs the first five arguments while retaining the final spindle-mode value 3.",
+      "initial": {"drill_type": "g86", "drill_upper_z": 12},
+      "expected_cycle": 86,
+      "expected_parameters": ["30", "10", "2", "-15", "", "", "3"],
+      "regression": {"find": "{' (',rtp,','rfp,','sdis,',',dp,',,,3'}", "replace": "{' (',rtp,',,'sdis,',',dp,',',rfp,',,3'}"}
+    },
+    {
+      "name": "off_center_stock_uses_box_and_incremental_extents",
+      "kind": "stock",
+      "commit": "55d9935ae191d7973dd2a854a68e349f46fdf3e7",
+      "reason": "Commit comment explicitly preserves real off-center stock extents rather than recentering with RECTANGLE.",
+      "initial": {"fourth_axis_used": false, "stock_x": 100, "stock_y": 30, "stock_z": 20, "stock_x_minus": 25, "stock_y_minus": -7, "stock_z_plus": 8, "stock_z_minus": -12, "target_z_minus": -10},
+      "expected_blocks": ["WORKPIECE(,,,\"BOX\",0,8,-20,-18,25,-7,100,30)"],
+      "regression": {"find": "{nl, 'WORKPIECE(,,,\"BOX\",0,' nStockZ0:xpos_f ',' nStockZ1:xpos_f ',' nStockZB:xpos_f ',' stock_x_minus:xpos_f ',' stock_y_minus:xpos_f ',' nStockLength:xpos_f ',' nStockWidth:xpos_f ')'}", "replace": "{nl, 'WORKPIECE(,,,\"RECTANGLE\",0,0,' nStockLength:xpos_f ',' nStockMachining:xpos_f ',' nStockWidth:xpos_f ',' nStockHeight:xpos_f ')'}"}
+    },
+    {
+      "name": "rotary_stock_preserves_known_good_a_clamped_rectangle",
+      "kind": "stock",
+      "commit": "55d9935ae191d7973dd2a854a68e349f46fdf3e7",
+      "reason": "Commit comment explicitly retains RECTANGLE clamped to A for rotary jobs; off-center BOX logic must not leak into this branch.",
+      "initial": {"fourth_axis_used": true, "stock_x": 100, "stock_y": 30, "stock_z": 20, "stock_x_minus": 25, "stock_y_minus": -7, "stock_z_plus": 8, "stock_z_minus": -12, "target_z_minus": -10},
+      "expected_blocks": ["WORKPIECE(,\"A\",,\"RECTANGLE\",0,0,100,-100,30,20)"]
+    }
+  ]
+}

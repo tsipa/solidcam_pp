@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "description": "Numeric-only excerpt of the supplied second Slide trace, around original lines 21277-21363. Old trace G75 output is the defect, not the oracle. Expected absence of homing follows the reviewed contiguous-link contract.",
+  "initial": {"xpos": 212.19444, "ypos": 4.01415, "zpos": 13.83333, "nLastPathZ": 13.83333, "apos": 0, "nPR1pos": 0},
+  "steps": [
+    {"call": "line_5x", "set": {"zpos": 15.83333,"feed": 636.620,"feed_type": "feed_link","dir5a": "cw"}, "changed": ["zpos","feed"], "a": null, "blocks": ["Z15.8333 F636.62"]},
+    {"call": "move_5x", "set": {"ypos": 8.453,"zpos": 22.44405,"prev_command": "@line_5x"}, "changed": ["ypos","zpos"], "a": null, "blocks": ["G0 Y8.453 Z22.4441"]},
+    {"call": "move_5x", "set": {"xpos": 192.14583,"ypos": 7.43732,"zpos": 22.74817,"apos": 3.035,"dir5a": "ccw","prev_command": "@move_5x"}, "changed": ["xpos","ypos","zpos","apos"], "a": "A=ACP(3.035)", "blocks": ["G0 A=ACP(3.035)", "X192.14583 Y7.43732 Z22.7482"]},
+    {"call": "move_5x", "set": {"xpos": 172.09722,"ypos": 6.41116,"zpos": 23.00531,"apos": 6.070,"prev_command": "@move_5x"}, "changed": ["xpos","ypos","zpos","apos"], "a": "A=ACP(6.07)", "blocks": ["G0 A=ACP(6.07)", "X172.09722 Y6.41116 Z23.0053"]},
+    {"call": "move_5x", "set": {"xpos": 152.04861,"ypos": 5.37674,"zpos": 23.21515,"apos": 9.105,"prev_command": "@move_5x"}, "changed": ["xpos","ypos","zpos","apos"], "a": "A=ACP(9.105)", "blocks": ["G0 A=ACP(9.105)", "X152.04861 Y5.37674 Z23.2152"]},
+    {"call": "move_5x", "set": {"xpos": 132,"ypos": 4.33628,"zpos": 23.37745,"apos": 12.140,"prev_command": "@move_5x"}, "changed": ["xpos","ypos","zpos","apos"], "a": "A=ACP(12.14)", "blocks": ["G0 A=ACP(12.14)", "X132 Y4.33628 Z23.3774"]}
+  ]
+}

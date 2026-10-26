@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "description": "Synthetic cross-procedure regression: an XY helix raises actual Z10 to Z30, then a straight feed_link descends to Z20. A descent must not establish retract authorization from stale pre-arc Z10. The current runtime accepts these events; reachability in a particular SolidCAM job must be checked separately.",
+  "arc": {
+    "call": "arc",
+    "set": {"xy": "xy", "arc_plane": "xy", "arc_direction": "ccw", "arc_size": 90, "xstart": 12, "ystart": 23, "zstart": 10, "xcenter": 2, "ycenter": 23, "zcenter": 10, "xcenter_rel": -10, "ycenter_rel": 0, "zcenter_rel": 0, "xpos": 2, "ypos": 33, "zpos": 30, "radius": 10},
+    "changed": ["xpos", "ypos", "zpos"]
+  },
+  "link": {"call": "line_5x", "set": {"zpos": 20, "feed_type": "feed_link"}, "changed": ["zpos"]},
+  "rotation": {"call": "move_5x", "set": {"apos": 10, "prev_command": "@line_5x"}, "changed": ["apos"]},
+  "expected_last_z_after_arc": 30,
+  "required_output_before_rotation": "G75 Z1=0."
+}

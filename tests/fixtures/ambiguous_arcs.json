@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "description": "Hand-authored planar vectors; run in XY, ZX and YZ, both IJK and R modes. u,v follow the current GPP formulas; these are regression expectations, not a controller plane-orientation certification.",
+  "cases": [
+    {"name": "minor_ccw", "size": 90, "direction": "ccw", "start": [10,0], "center": [0,0], "end": [0,10], "r": 10},
+    {"name": "major_cw_same_endpoint", "size": 270, "direction": "cw", "start": [10,0], "center": [0,0], "end": [0,10], "r": -10},
+    {"name": "minor_cw", "size": 90, "direction": "cw", "start": [10,0], "center": [0,0], "end": [0,-10], "r": 10},
+    {"name": "major_ccw_same_endpoint", "size": 270, "direction": "ccw", "start": [10,0], "center": [0,0], "end": [0,-10], "r": -10},
+    {"name": "semicircle_ccw", "size": 180, "direction": "ccw", "start": [10,0], "center": [0,0], "end": [-10,0], "r": -10},
+    {"name": "semicircle_cw_same_endpoint", "size": 180, "direction": "cw", "start": [10,0], "center": [0,0], "end": [-10,0], "r": -10},
+    {"name": "just_below_semicircle", "size": 179.999, "direction": "ccw", "start": [10,0], "center": [0,0], "end": [-9.999999998477,0.000174532925], "r": 10},
+    {"name": "just_above_semicircle", "size": 180.001, "direction": "ccw", "start": [10,0], "center": [0,0], "end": [-9.999999998477,-0.000174532925], "r": -10},
+    {"name": "almost_full_circle", "size": 359.999, "direction": "ccw", "start": [10,0], "center": [0,0], "end": [9.999999998477,-0.000174532925], "r": -10},
+    {"name": "full_circle_ccw", "size": 360, "direction": "ccw", "start": [10,0], "center": [0,0], "end": [10,0], "r": null},
+    {"name": "full_circle_cw", "size": 360, "direction": "cw", "start": [10,0], "center": [0,0], "end": [10,0], "r": null},
+    {"name": "nonzero_absolute_center", "size": 90, "direction": "ccw", "start": [13,4], "center": [3,4], "end": [3,14], "r": 10},
+    {"name": "cad_roundoff_is_corrected", "size": 90, "direction": "ccw", "start": [10,0], "center": [0,0], "end": [0,10], "cad_delta": [0.0009,-0.0009], "r": 10},
+    {"name": "cad_mismatch_u_aborts", "size": 90, "direction": "ccw", "start": [10,0], "center": [0,0], "end": [0,10], "cad_delta": [0.0011,0], "error": "ARC end mismatch"},
+    {"name": "cad_mismatch_v_aborts", "size": 90, "direction": "ccw", "start": [10,0], "center": [0,0], "end": [0,10], "cad_delta": [0,0.0011], "error": "ARC end mismatch"}
+  ],
+  "tolerance_cases": [
+    {"delta": 0.000999999, "abort": false},
+    {"delta": 0.001, "abort": false},
+    {"delta": 0.001000001, "abort": true}
+  ]
+}

@@ -1,0 +1,5791 @@
+{
+  "schema": 1,
+  "description": "Numeric motion inputs and A angles observed in SolidCAM trace; no paths or identities",
+  "initial_context": "Zero coordinate/transform angles before first corresponding event",
+  "cases": [
+    {
+      "event": 20,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 88.925,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 88.925
+    },
+    {
+      "event": 68,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 86.762,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 86.762
+    },
+    {
+      "event": 116,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 84.579,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 84.579
+    },
+    {
+      "event": 164,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 82.373,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 82.373
+    },
+    {
+      "event": 214,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 80.14,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 80.14
+    },
+    {
+      "event": 264,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 77.878,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 77.878
+    },
+    {
+      "event": 314,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 75.585,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 75.585
+    },
+    {
+      "event": 364,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 73.274,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 73.274
+    },
+    {
+      "event": 414,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 70.944,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 70.944
+    },
+    {
+      "event": 464,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 68.59,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 68.59
+    },
+    {
+      "event": 514,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 66.209,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 66.209
+    },
+    {
+      "event": 564,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 63.796,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 63.796
+    },
+    {
+      "event": 614,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 61.361,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 61.361
+    },
+    {
+      "event": 664,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 58.909,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 58.909
+    },
+    {
+      "event": 692,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 56.437,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 56.437
+    },
+    {
+      "event": 720,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 53.939,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 53.939
+    },
+    {
+      "event": 748,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 51.411,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 51.411
+    },
+    {
+      "event": 776,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 48.857,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 48.857
+    },
+    {
+      "event": 804,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 46.288,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 46.288
+    },
+    {
+      "event": 832,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 43.701,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 43.701
+    },
+    {
+      "event": 860,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 41.089,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 41.089
+    },
+    {
+      "event": 888,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 38.448,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 38.448
+    },
+    {
+      "event": 916,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 37.398,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 37.398
+    },
+    {
+      "event": 944,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 36.818,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 36.818
+    },
+    {
+      "event": 972,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 36.242,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 36.242
+    },
+    {
+      "event": 986,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 36.24,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 36.24
+    },
+    {
+      "event": 1000,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 35.671,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 35.671
+    },
+    {
+      "event": 1014,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 35.663,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 35.663
+    },
+    {
+      "event": 1028,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 35.103,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 35.103
+    },
+    {
+      "event": 1042,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 35.086,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 35.086
+    },
+    {
+      "event": 1056,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 34.538,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 34.538
+    },
+    {
+      "event": 1070,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 34.51,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 34.51
+    },
+    {
+      "event": 1085,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 33.974,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 33.974
+    },
+    {
+      "event": 1099,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 33.934,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 33.934
+    },
+    {
+      "event": 1114,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 33.412,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 33.412
+    },
+    {
+      "event": 1128,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 33.359,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 33.359
+    },
+    {
+      "event": 1143,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 32.852,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 32.852
+    },
+    {
+      "event": 1157,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 32.784,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 32.784
+    },
+    {
+      "event": 1158,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 32.783,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 32.783
+    },
+    {
+      "event": 1172,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 32.291,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 32.291
+    },
+    {
+      "event": 1186,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 32.211,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 32.211
+    },
+    {
+      "event": 1187,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 32.207,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 32.207
+    },
+    {
+      "event": 1201,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 31.73,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 31.73
+    },
+    {
+      "event": 1215,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 31.638,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 31.638
+    },
+    {
+      "event": 1216,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 31.63,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 31.63
+    },
+    {
+      "event": 1230,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 31.169,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 31.169
+    },
+    {
+      "event": 1244,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 31.067,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 31.067
+    },
+    {
+      "event": 1245,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 31.053,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 31.053
+    },
+    {
+      "event": 1259,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 30.607,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 30.607
+    },
+    {
+      "event": 1273,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 30.497,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 30.497
+    },
+    {
+      "event": 1274,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 30.474,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 30.474
+    },
+    {
+      "event": 1289,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 30.044,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 30.044
+    },
+    {
+      "event": 1303,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 29.928,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 29.928
+    },
+    {
+      "event": 1304,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 29.897,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 29.897
+    },
+    {
+      "event": 1305,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 29.895,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 29.895
+    },
+    {
+      "event": 1319,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 29.481,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 29.481
+    },
+    {
+      "event": 1333,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 29.386,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 29.386
+    },
+    {
+      "event": 1334,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 29.316,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 29.316
+    },
+    {
+      "event": 1335,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 29.315,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 29.315
+    },
+    {
+      "event": 1349,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 28.915,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 28.915
+    },
+    {
+      "event": 1363,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 28.791,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 28.791
+    },
+    {
+      "event": 1364,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 28.735,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 28.735
+    },
+    {
+      "event": 1365,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 28.734,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 28.734
+    },
+    {
+      "event": 1379,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 28.348,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 28.348
+    },
+    {
+      "event": 1393,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 28.195,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 28.195
+    },
+    {
+      "event": 1394,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 28.151,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 28.151
+    },
+    {
+      "event": 1409,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 27.78,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 27.78
+    },
+    {
+      "event": 1423,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 27.652,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 27.652
+    },
+    {
+      "event": 1424,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 27.57,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 27.57
+    },
+    {
+      "event": 1425,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 27.568,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 27.568
+    },
+    {
+      "event": 1439,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 27.211,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 27.211
+    },
+    {
+      "event": 1453,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 27.047,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 27.047
+    },
+    {
+      "event": 1454,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 26.993,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 26.993
+    },
+    {
+      "event": 1455,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 26.985,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 26.985
+    },
+    {
+      "event": 1472,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 26.641,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 26.641
+    },
+    {
+      "event": 1486,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 26.47,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 26.47
+    },
+    {
+      "event": 1487,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 26.412,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 26.412
+    },
+    {
+      "event": 1488,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 26.401,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 26.401
+    },
+    {
+      "event": 1505,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 26.069,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 26.069
+    },
+    {
+      "event": 1519,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 25.887,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 25.887
+    },
+    {
+      "event": 1520,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 25.843,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 25.843
+    },
+    {
+      "event": 1521,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 25.816,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 25.816
+    },
+    {
+      "event": 1539,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 25.496,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 25.496
+    },
+    {
+      "event": 1553,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 25.317,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 25.317
+    },
+    {
+      "event": 1554,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 25.238,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 25.238
+    },
+    {
+      "event": 1555,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 25.231,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 25.231
+    },
+    {
+      "event": 1572,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 24.922,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 24.922
+    },
+    {
+      "event": 1586,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 24.745,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 24.745
+    },
+    {
+      "event": 1587,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 24.661,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 24.661
+    },
+    {
+      "event": 1588,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 24.645,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 24.645
+    },
+    {
+      "event": 1605,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 24.345,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 24.345
+    },
+    {
+      "event": 1619,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 24.173,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 24.173
+    },
+    {
+      "event": 1620,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 24.084,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 24.084
+    },
+    {
+      "event": 1621,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 24.059,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 24.059
+    },
+    {
+      "event": 1638,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 23.767,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 23.767
+    },
+    {
+      "event": 1652,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 23.599,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 23.599
+    },
+    {
+      "event": 1653,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 23.508,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 23.508
+    },
+    {
+      "event": 1654,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 23.471,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 23.471
+    },
+    {
+      "event": 1671,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 23.188,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 23.188
+    },
+    {
+      "event": 1685,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 23.076,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 23.076
+    },
+    {
+      "event": 1686,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 22.933,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 22.933
+    },
+    {
+      "event": 1687,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 22.884,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 22.884
+    },
+    {
+      "event": 1704,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 22.606,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 22.606
+    },
+    {
+      "event": 1718,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 22.498,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 22.498
+    },
+    {
+      "event": 1719,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 22.356,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 22.356
+    },
+    {
+      "event": 1720,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 22.299,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 22.299
+    },
+    {
+      "event": 1721,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 22.293,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 22.293
+    },
+    {
+      "event": 1737,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 22.023,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 22.023
+    },
+    {
+      "event": 1751,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 21.821,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 21.821
+    },
+    {
+      "event": 1752,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 21.715,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 21.715
+    },
+    {
+      "event": 1753,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 21.703,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 21.703
+    },
+    {
+      "event": 1770,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 21.438,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 21.438
+    },
+    {
+      "event": 1784,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 21.24,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 21.24
+    },
+    {
+      "event": 1785,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 21.131,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 21.131
+    },
+    {
+      "event": 1786,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 21.111,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 21.111
+    },
+    {
+      "event": 1804,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 20.85,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 20.85
+    },
+    {
+      "event": 1818,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 20.656,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 20.656
+    },
+    {
+      "event": 1819,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 20.546,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 20.546
+    },
+    {
+      "event": 1820,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 20.526,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 20.526
+    },
+    {
+      "event": 1821,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 20.519,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 20.519
+    },
+    {
+      "event": 1838,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 20.26,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 20.26
+    },
+    {
+      "event": 1852,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 20.07,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 20.07
+    },
+    {
+      "event": 1853,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 19.937,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 19.937
+    },
+    {
+      "event": 1854,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 19.925,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 19.925
+    },
+    {
+      "event": 1871,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 19.669,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 19.669
+    },
+    {
+      "event": 1885,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 19.482,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 19.482
+    },
+    {
+      "event": 1886,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 19.347,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 19.347
+    },
+    {
+      "event": 1887,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 19.33,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 19.33
+    },
+    {
+      "event": 1904,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 19.075,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 19.075
+    },
+    {
+      "event": 1918,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 18.892,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 18.892
+    },
+    {
+      "event": 1919,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 18.757,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 18.757
+    },
+    {
+      "event": 1920,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 18.734,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 18.734
+    },
+    {
+      "event": 1938,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 18.478,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 18.478
+    },
+    {
+      "event": 1952,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 18.3,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 18.3
+    },
+    {
+      "event": 1953,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 18.165,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 18.165
+    },
+    {
+      "event": 1954,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 18.137,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 18.137
+    },
+    {
+      "event": 1971,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 17.881,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 17.881
+    },
+    {
+      "event": 1985,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 17.707,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 17.707
+    },
+    {
+      "event": 1986,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 17.574,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 17.574
+    },
+    {
+      "event": 1987,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 17.54,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 17.54
+    },
+    {
+      "event": 2004,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 17.282,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 17.282
+    },
+    {
+      "event": 2018,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 17.112,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 17.112
+    },
+    {
+      "event": 2019,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 16.981,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 16.981
+    },
+    {
+      "event": 2020,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 16.942,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 16.942
+    },
+    {
+      "event": 2037,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 16.682,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 16.682
+    },
+    {
+      "event": 2051,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 16.517,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 16.517
+    },
+    {
+      "event": 2052,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 16.388,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 16.388
+    },
+    {
+      "event": 2053,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 16.344,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 16.344
+    },
+    {
+      "event": 2070,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 16.08,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 16.08
+    },
+    {
+      "event": 2084,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 15.92,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 15.92
+    },
+    {
+      "event": 2085,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 15.794,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 15.794
+    },
+    {
+      "event": 2086,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 15.745,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 15.745
+    },
+    {
+      "event": 2103,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 15.477,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 15.477
+    },
+    {
+      "event": 2117,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 15.322,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 15.322
+    },
+    {
+      "event": 2118,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 15.199,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 15.199
+    },
+    {
+      "event": 2119,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 15.146,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 15.146
+    },
+    {
+      "event": 2136,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 14.873,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 14.873
+    },
+    {
+      "event": 2150,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 14.657,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 14.657
+    },
+    {
+      "event": 2151,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 14.573,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 14.573
+    },
+    {
+      "event": 2152,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 14.547,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 14.547
+    },
+    {
+      "event": 2169,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 14.266,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 14.266
+    },
+    {
+      "event": 2183,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 14.059,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 14.059
+    },
+    {
+      "event": 2184,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 13.976,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 13.976
+    },
+    {
+      "event": 2185,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 13.946,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 13.946
+    },
+    {
+      "event": 2202,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 13.659,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 13.659
+    },
+    {
+      "event": 2216,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 13.459,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 13.459
+    },
+    {
+      "event": 2217,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 13.356,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 13.356
+    },
+    {
+      "event": 2218,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 13.345,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 13.345
+    },
+    {
+      "event": 2235,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 13.05,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 13.05
+    },
+    {
+      "event": 2249,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 12.858,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 12.858
+    },
+    {
+      "event": 2250,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 12.757,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 12.757
+    },
+    {
+      "event": 2251,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 12.744,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 12.744
+    },
+    {
+      "event": 2268,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 12.439,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 12.439
+    },
+    {
+      "event": 2282,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 12.255,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 12.255
+    },
+    {
+      "event": 2283,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 12.156,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 12.156
+    },
+    {
+      "event": 2284,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 12.141,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 12.141
+    },
+    {
+      "event": 2301,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 11.827,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 11.827
+    },
+    {
+      "event": 2315,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 11.651,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 11.651
+    },
+    {
+      "event": 2316,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 11.555,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 11.555
+    },
+    {
+      "event": 2317,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 11.538,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 11.538
+    },
+    {
+      "event": 2334,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 11.212,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 11.212
+    },
+    {
+      "event": 2348,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 11.046,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 11.046
+    },
+    {
+      "event": 2349,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 10.953,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 10.953
+    },
+    {
+      "event": 2350,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 10.934,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 10.934
+    },
+    {
+      "event": 2367,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 10.597,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 10.597
+    },
+    {
+      "event": 2381,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 10.439,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 10.439
+    },
+    {
+      "event": 2382,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 10.349,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 10.349
+    },
+    {
+      "event": 2383,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 10.329,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 10.329
+    },
+    {
+      "event": 2400,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 9.98,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 9.98
+    },
+    {
+      "event": 2414,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 9.792,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 9.792
+    },
+    {
+      "event": 2415,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 9.724,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 9.724
+    },
+    {
+      "event": 2432,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 9.36,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 9.36
+    },
+    {
+      "event": 2446,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 9.184,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 9.184
+    },
+    {
+      "event": 2447,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 9.118,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 9.118
+    },
+    {
+      "event": 2464,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 8.74,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 8.74
+    },
+    {
+      "event": 2478,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 8.576,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 8.576
+    },
+    {
+      "event": 2479,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 8.511,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 8.511
+    },
+    {
+      "event": 2480,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 8.51,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 8.51
+    },
+    {
+      "event": 2496,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 8.12,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 8.12
+    },
+    {
+      "event": 2510,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 7.967,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 7.967
+    },
+    {
+      "event": 2511,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 7.905,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 7.905
+    },
+    {
+      "event": 2512,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 7.903,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 7.903
+    },
+    {
+      "event": 2528,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 7.499,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 7.499
+    },
+    {
+      "event": 2542,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 7.358,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 7.358
+    },
+    {
+      "event": 2543,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 7.299,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 7.299
+    },
+    {
+      "event": 2544,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 7.297,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 7.297
+    },
+    {
+      "event": 2560,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 6.877,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 6.877
+    },
+    {
+      "event": 2574,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 6.748,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 6.748
+    },
+    {
+      "event": 2575,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 6.693,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 6.693
+    },
+    {
+      "event": 2576,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 6.69,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 6.69
+    },
+    {
+      "event": 2592,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 6.255,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 6.255
+    },
+    {
+      "event": 2606,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 6.138,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 6.138
+    },
+    {
+      "event": 2607,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 6.086,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 6.086
+    },
+    {
+      "event": 2608,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 6.083,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 6.083
+    },
+    {
+      "event": 2624,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 5.632,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 5.632
+    },
+    {
+      "event": 2638,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 5.527,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 5.527
+    },
+    {
+      "event": 2639,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 5.479,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 5.479
+    },
+    {
+      "event": 2640,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 5.476,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 5.476
+    },
+    {
+      "event": 2656,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 5.009,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 5.009
+    },
+    {
+      "event": 2670,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 4.888,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 4.888
+    },
+    {
+      "event": 2671,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 4.869,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 4.869
+    },
+    {
+      "event": 2688,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 4.384,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 4.384
+    },
+    {
+      "event": 2702,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 4.279,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 4.279
+    },
+    {
+      "event": 2703,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 4.261,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 4.261
+    },
+    {
+      "event": 2720,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 3.76,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 3.76
+    },
+    {
+      "event": 2734,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 3.669,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 3.669
+    },
+    {
+      "event": 2735,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 3.654,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 3.654
+    },
+    {
+      "event": 2752,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 3.135,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 3.135
+    },
+    {
+      "event": 2766,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 3.077,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 3.077
+    },
+    {
+      "event": 2767,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 3.046,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 3.046
+    },
+    {
+      "event": 2784,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 2.509,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 2.509
+    },
+    {
+      "event": 2798,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 2.44,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 2.44
+    },
+    {
+      "event": 2799,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 2.437,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 2.437
+    },
+    {
+      "event": 2815,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 1.883,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 1.883
+    },
+    {
+      "event": 2829,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 1.831,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 1.831
+    },
+    {
+      "event": 2830,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 1.829,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 1.829
+    },
+    {
+      "event": 2846,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 1.256,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 1.256
+    },
+    {
+      "event": 2860,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 1.22,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 1.22
+    },
+    {
+      "event": 2877,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 0.628,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 0.628
+    },
+    {
+      "event": 2891,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 0.61,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 0.61
+    },
+    {
+      "event": 2908,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": 0.0,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 0.0
+    },
+    {
+      "event": 2938,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -0.628,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 359.372
+    },
+    {
+      "event": 2952,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -0.61,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 359.39
+    },
+    {
+      "event": 2969,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -1.256,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 358.744
+    },
+    {
+      "event": 2983,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -1.22,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 358.78
+    },
+    {
+      "event": 3000,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -1.883,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 358.117
+    },
+    {
+      "event": 3014,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -1.831,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 358.169
+    },
+    {
+      "event": 3015,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -1.829,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 358.171
+    },
+    {
+      "event": 3031,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -2.509,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 357.491
+    },
+    {
+      "event": 3045,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -2.44,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 357.56
+    },
+    {
+      "event": 3046,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -2.437,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 357.563
+    },
+    {
+      "event": 3062,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -3.135,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 356.865
+    },
+    {
+      "event": 3076,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -3.077,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 356.923
+    },
+    {
+      "event": 3077,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -3.046,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 356.954
+    },
+    {
+      "event": 3094,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -3.76,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 356.24
+    },
+    {
+      "event": 3108,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -3.669,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 356.331
+    },
+    {
+      "event": 3109,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -3.654,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 356.346
+    },
+    {
+      "event": 3126,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -4.385,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 355.615
+    },
+    {
+      "event": 3140,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -4.279,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 355.721
+    },
+    {
+      "event": 3141,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -4.261,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 355.739
+    },
+    {
+      "event": 3158,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -5.009,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 354.991
+    },
+    {
+      "event": 3172,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -4.888,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 355.112
+    },
+    {
+      "event": 3173,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -4.869,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 355.131
+    },
+    {
+      "event": 3190,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -5.632,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 354.368
+    },
+    {
+      "event": 3204,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -5.527,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 354.473
+    },
+    {
+      "event": 3205,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -5.48,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 354.52
+    },
+    {
+      "event": 3206,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -5.476,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 354.524
+    },
+    {
+      "event": 3222,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -6.255,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 353.745
+    },
+    {
+      "event": 3236,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -6.138,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 353.862
+    },
+    {
+      "event": 3237,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -6.086,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 353.914
+    },
+    {
+      "event": 3238,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -6.083,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 353.917
+    },
+    {
+      "event": 3254,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -6.877,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 353.123
+    },
+    {
+      "event": 3268,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -6.748,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 353.252
+    },
+    {
+      "event": 3269,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -6.693,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 353.307
+    },
+    {
+      "event": 3270,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -6.69,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 353.31
+    },
+    {
+      "event": 3286,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -7.499,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 352.501
+    },
+    {
+      "event": 3300,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -7.358,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 352.642
+    },
+    {
+      "event": 3301,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -7.299,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 352.701
+    },
+    {
+      "event": 3302,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -7.297,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 352.703
+    },
+    {
+      "event": 3318,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -8.12,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 351.88
+    },
+    {
+      "event": 3332,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -7.967,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 352.033
+    },
+    {
+      "event": 3333,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -7.905,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 352.095
+    },
+    {
+      "event": 3334,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -7.903,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 352.097
+    },
+    {
+      "event": 3350,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -8.74,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 351.26
+    },
+    {
+      "event": 3364,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -8.576,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 351.424
+    },
+    {
+      "event": 3365,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -8.512,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 351.488
+    },
+    {
+      "event": 3366,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -8.51,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 351.49
+    },
+    {
+      "event": 3382,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -9.361,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 350.639
+    },
+    {
+      "event": 3396,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -9.184,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 350.816
+    },
+    {
+      "event": 3397,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -9.118,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 350.882
+    },
+    {
+      "event": 3398,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -9.117,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 350.883
+    },
+    {
+      "event": 3414,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -9.979,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 350.021
+    },
+    {
+      "event": 3428,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -9.792,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 350.208
+    },
+    {
+      "event": 3429,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -9.724,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 350.276
+    },
+    {
+      "event": 3446,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -10.597,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 349.403
+    },
+    {
+      "event": 3460,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -10.439,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 349.561
+    },
+    {
+      "event": 3461,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -10.349,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 349.651
+    },
+    {
+      "event": 3462,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -10.329,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 349.671
+    },
+    {
+      "event": 3479,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -11.213,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 348.787
+    },
+    {
+      "event": 3493,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -11.046,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 348.954
+    },
+    {
+      "event": 3494,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -10.953,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 349.047
+    },
+    {
+      "event": 3495,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -10.934,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 349.066
+    },
+    {
+      "event": 3512,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -11.826,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 348.174
+    },
+    {
+      "event": 3526,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -11.651,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 348.349
+    },
+    {
+      "event": 3527,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -11.555,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 348.445
+    },
+    {
+      "event": 3528,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -11.538,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 348.462
+    },
+    {
+      "event": 3545,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -12.439,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 347.561
+    },
+    {
+      "event": 3559,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -12.255,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 347.745
+    },
+    {
+      "event": 3560,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -12.156,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 347.844
+    },
+    {
+      "event": 3561,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -12.141,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 347.859
+    },
+    {
+      "event": 3578,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -13.05,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 346.95
+    },
+    {
+      "event": 3592,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -12.858,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 347.142
+    },
+    {
+      "event": 3593,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -12.757,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 347.243
+    },
+    {
+      "event": 3594,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -12.744,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 347.256
+    },
+    {
+      "event": 3611,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -13.659,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 346.341
+    },
+    {
+      "event": 3625,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -13.459,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 346.541
+    },
+    {
+      "event": 3626,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -13.357,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 346.643
+    },
+    {
+      "event": 3627,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -13.346,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 346.654
+    },
+    {
+      "event": 3644,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -14.267,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 345.733
+    },
+    {
+      "event": 3658,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -14.059,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 345.941
+    },
+    {
+      "event": 3659,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -13.976,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 346.024
+    },
+    {
+      "event": 3660,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -13.946,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 346.054
+    },
+    {
+      "event": 3677,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -14.873,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 345.127
+    },
+    {
+      "event": 3691,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -14.657,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 345.343
+    },
+    {
+      "event": 3692,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -14.573,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 345.427
+    },
+    {
+      "event": 3693,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -14.547,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 345.453
+    },
+    {
+      "event": 3710,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -15.477,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 344.523
+    },
+    {
+      "event": 3724,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -15.322,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 344.678
+    },
+    {
+      "event": 3725,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -15.199,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 344.801
+    },
+    {
+      "event": 3726,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -15.146,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 344.854
+    },
+    {
+      "event": 3743,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -16.081,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 343.919
+    },
+    {
+      "event": 3757,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -15.92,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 344.08
+    },
+    {
+      "event": 3758,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -15.794,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 344.206
+    },
+    {
+      "event": 3759,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -15.746,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 344.254
+    },
+    {
+      "event": 3776,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -16.682,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 343.318
+    },
+    {
+      "event": 3790,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -16.517,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 343.483
+    },
+    {
+      "event": 3791,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -16.388,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 343.612
+    },
+    {
+      "event": 3792,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -16.344,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 343.656
+    },
+    {
+      "event": 3809,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -17.282,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 342.718
+    },
+    {
+      "event": 3823,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -17.112,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 342.888
+    },
+    {
+      "event": 3824,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -16.981,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 343.019
+    },
+    {
+      "event": 3825,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -16.942,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 343.058
+    },
+    {
+      "event": 3842,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -17.881,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 342.119
+    },
+    {
+      "event": 3856,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -17.707,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 342.293
+    },
+    {
+      "event": 3857,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -17.574,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 342.426
+    },
+    {
+      "event": 3858,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -17.54,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 342.46
+    },
+    {
+      "event": 3875,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -18.479,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 341.521
+    },
+    {
+      "event": 3889,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -18.3,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 341.7
+    },
+    {
+      "event": 3890,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -18.165,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 341.835
+    },
+    {
+      "event": 3891,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -18.137,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 341.863
+    },
+    {
+      "event": 3908,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -19.075,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 340.925
+    },
+    {
+      "event": 3922,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -18.892,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 341.108
+    },
+    {
+      "event": 3923,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -18.757,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 341.243
+    },
+    {
+      "event": 3924,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -18.734,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 341.266
+    },
+    {
+      "event": 3942,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -19.669,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 340.331
+    },
+    {
+      "event": 3956,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -19.482,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 340.518
+    },
+    {
+      "event": 3957,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -19.347,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 340.653
+    },
+    {
+      "event": 3958,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -19.33,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 340.67
+    },
+    {
+      "event": 3975,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -20.26,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 339.74
+    },
+    {
+      "event": 3989,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -20.07,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 339.93
+    },
+    {
+      "event": 3990,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -19.937,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 340.063
+    },
+    {
+      "event": 3991,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -19.925,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 340.075
+    },
+    {
+      "event": 4008,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -20.85,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 339.15
+    },
+    {
+      "event": 4022,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -20.656,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 339.344
+    },
+    {
+      "event": 4023,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -20.546,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 339.454
+    },
+    {
+      "event": 4024,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -20.526,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 339.474
+    },
+    {
+      "event": 4025,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -20.519,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 339.481
+    },
+    {
+      "event": 4042,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -21.438,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 338.562
+    },
+    {
+      "event": 4056,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -21.24,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 338.76
+    },
+    {
+      "event": 4057,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -21.131,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 338.869
+    },
+    {
+      "event": 4058,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -21.112,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 338.888
+    },
+    {
+      "event": 4076,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -22.023,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 337.977
+    },
+    {
+      "event": 4090,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -21.821,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 338.179
+    },
+    {
+      "event": 4091,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -21.715,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 338.285
+    },
+    {
+      "event": 4092,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -21.703,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 338.297
+    },
+    {
+      "event": 4109,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -22.607,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 337.393
+    },
+    {
+      "event": 4123,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -22.498,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 337.502
+    },
+    {
+      "event": 4124,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -22.356,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 337.644
+    },
+    {
+      "event": 4125,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -22.299,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 337.701
+    },
+    {
+      "event": 4126,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -22.293,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 337.707
+    },
+    {
+      "event": 4142,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -23.188,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 336.812
+    },
+    {
+      "event": 4156,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -23.076,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 336.924
+    },
+    {
+      "event": 4157,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -22.933,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 337.067
+    },
+    {
+      "event": 4158,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -22.884,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 337.116
+    },
+    {
+      "event": 4175,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -23.768,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 336.232
+    },
+    {
+      "event": 4189,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -23.599,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 336.401
+    },
+    {
+      "event": 4190,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -23.509,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 336.491
+    },
+    {
+      "event": 4191,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -23.471,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 336.529
+    },
+    {
+      "event": 4208,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -24.345,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 335.655
+    },
+    {
+      "event": 4222,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -24.173,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 335.827
+    },
+    {
+      "event": 4223,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -24.084,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 335.916
+    },
+    {
+      "event": 4224,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -24.059,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 335.941
+    },
+    {
+      "event": 4241,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -24.921,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 335.079
+    },
+    {
+      "event": 4255,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -24.745,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 335.255
+    },
+    {
+      "event": 4256,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -24.661,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 335.339
+    },
+    {
+      "event": 4257,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -24.646,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 335.354
+    },
+    {
+      "event": 4274,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -25.496,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 334.504
+    },
+    {
+      "event": 4288,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -25.317,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 334.683
+    },
+    {
+      "event": 4289,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -25.238,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 334.762
+    },
+    {
+      "event": 4290,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -25.231,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 334.769
+    },
+    {
+      "event": 4307,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -26.069,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 333.931
+    },
+    {
+      "event": 4321,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -25.888,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 334.112
+    },
+    {
+      "event": 4322,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -25.843,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 334.157
+    },
+    {
+      "event": 4323,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -25.817,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 334.183
+    },
+    {
+      "event": 4341,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -26.641,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 333.359
+    },
+    {
+      "event": 4355,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -26.47,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 333.53
+    },
+    {
+      "event": 4356,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -26.412,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 333.588
+    },
+    {
+      "event": 4357,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -26.401,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 333.599
+    },
+    {
+      "event": 4374,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -27.211,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 332.789
+    },
+    {
+      "event": 4388,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -27.047,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 332.953
+    },
+    {
+      "event": 4389,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -26.993,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 333.007
+    },
+    {
+      "event": 4390,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -26.985,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 333.015
+    },
+    {
+      "event": 4407,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -27.78,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 332.22
+    },
+    {
+      "event": 4421,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -27.652,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 332.348
+    },
+    {
+      "event": 4422,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -27.571,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 332.429
+    },
+    {
+      "event": 4423,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -27.568,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 332.432
+    },
+    {
+      "event": 4437,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -28.348,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 331.652
+    },
+    {
+      "event": 4451,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -28.195,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 331.805
+    },
+    {
+      "event": 4452,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -28.152,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 331.848
+    },
+    {
+      "event": 4467,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -28.915,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 331.085
+    },
+    {
+      "event": 4481,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -28.791,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 331.209
+    },
+    {
+      "event": 4482,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -28.735,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 331.265
+    },
+    {
+      "event": 4483,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -28.734,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 331.266
+    },
+    {
+      "event": 4497,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -29.48,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 330.52
+    },
+    {
+      "event": 4511,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -29.386,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 330.614
+    },
+    {
+      "event": 4512,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -29.317,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 330.683
+    },
+    {
+      "event": 4513,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -29.315,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 330.685
+    },
+    {
+      "event": 4527,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -30.044,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 329.956
+    },
+    {
+      "event": 4541,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -29.928,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 330.072
+    },
+    {
+      "event": 4542,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -29.897,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 330.103
+    },
+    {
+      "event": 4543,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -29.895,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 330.105
+    },
+    {
+      "event": 4557,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -30.607,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 329.393
+    },
+    {
+      "event": 4571,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -30.497,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 329.503
+    },
+    {
+      "event": 4572,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -30.475,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 329.525
+    },
+    {
+      "event": 4587,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -31.169,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 328.831
+    },
+    {
+      "event": 4601,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -31.067,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 328.933
+    },
+    {
+      "event": 4602,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -31.053,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 328.947
+    },
+    {
+      "event": 4616,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -31.73,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 328.27
+    },
+    {
+      "event": 4630,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -31.638,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 328.362
+    },
+    {
+      "event": 4631,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -31.63,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 328.37
+    },
+    {
+      "event": 4645,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -32.291,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 327.709
+    },
+    {
+      "event": 4659,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -32.211,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 327.789
+    },
+    {
+      "event": 4660,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -32.207,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 327.793
+    },
+    {
+      "event": 4674,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -32.852,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 327.148
+    },
+    {
+      "event": 4688,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -32.784,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 327.216
+    },
+    {
+      "event": 4689,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -32.783,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 327.217
+    },
+    {
+      "event": 4703,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -33.412,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 326.588
+    },
+    {
+      "event": 4717,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -33.359,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 326.641
+    },
+    {
+      "event": 4732,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -33.974,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 326.026
+    },
+    {
+      "event": 4746,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -33.935,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 326.065
+    },
+    {
+      "event": 4761,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -34.538,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 325.462
+    },
+    {
+      "event": 4775,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -34.51,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 325.49
+    },
+    {
+      "event": 4790,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -35.103,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 324.897
+    },
+    {
+      "event": 4804,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -35.086,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 324.914
+    },
+    {
+      "event": 4818,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -35.671,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 324.329
+    },
+    {
+      "event": 4832,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -35.663,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 324.337
+    },
+    {
+      "event": 4846,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -36.242,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 323.758
+    },
+    {
+      "event": 4860,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -36.24,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 323.76
+    },
+    {
+      "event": 4874,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -36.818,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 323.182
+    },
+    {
+      "event": 4902,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -37.398,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 322.602
+    },
+    {
+      "event": 4930,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -38.449,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 321.551
+    },
+    {
+      "event": 4958,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -41.09,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 318.91
+    },
+    {
+      "event": 4986,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -43.701,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 316.299
+    },
+    {
+      "event": 5014,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -46.289,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 313.711
+    },
+    {
+      "event": 5042,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -48.858,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 311.142
+    },
+    {
+      "event": 5070,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -51.412,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 308.588
+    },
+    {
+      "event": 5098,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -53.939,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 306.061
+    },
+    {
+      "event": 5126,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -56.437,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 303.563
+    },
+    {
+      "event": 5154,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -58.91,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 301.09
+    },
+    {
+      "event": 5182,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -61.361,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 298.639
+    },
+    {
+      "event": 5232,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -63.797,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 296.203
+    },
+    {
+      "event": 5282,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -66.209,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 293.791
+    },
+    {
+      "event": 5332,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -68.591,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 291.409
+    },
+    {
+      "event": 5382,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -70.944,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 289.056
+    },
+    {
+      "event": 5432,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -73.275,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 286.725
+    },
+    {
+      "event": 5482,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -75.585,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 284.415
+    },
+    {
+      "event": 5532,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -77.878,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 282.122
+    },
+    {
+      "event": 5582,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -80.141,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 279.859
+    },
+    {
+      "event": 5632,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -82.374,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 277.626
+    },
+    {
+      "event": 5682,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -84.58,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 275.42
+    },
+    {
+      "event": 5730,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -86.763,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 273.237
+    },
+    {
+      "event": 5778,
+      "state": {
+        "angle_4x_around_x": 0.0,
+        "angle": 0,
+        "cpos": 0,
+        "apos": -88.926,
+        "bpos": 0.0,
+        "x_angle_const_z": 0.0
+      },
+      "expected_a": 271.074
+    }
+  ]
+}

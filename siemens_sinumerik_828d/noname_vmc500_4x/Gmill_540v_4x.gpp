@@ -1574,6 +1574,10 @@ endp
     ; Handle output for arc movement (G02/G03)
 	local string shit
 	call @usr_arc_math
+    ; A completed arc starts a new link context at its actual endpoint.
+    bCamLinkRetract = false
+    nLastPathZ = zpos
+    nLastPathWorkoffset = iWorkoffset
     if bFeedoutput
         change(feed) = true
         bFeedoutput  = false

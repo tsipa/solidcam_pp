@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "description": "Synthetic GPPL event sequences. Home strings and user options are loaded from the actual PP; explicit runtime state is supplied by the test harness.",
+  "scenarios": [
+    {
+      "name": "first_move_retracts_rotates_then_xy_then_separate_z",
+      "initial": {"bFirstMove": true, "bFirstRapid": true, "bJobPositioned": false, "bIndexClearancePending": true, "bR1forceOutput": true},
+      "steps": [{"call": "move_5x", "set": {"apos": 90, "xpos": 12, "ypos": 23, "zpos": 34}, "changed": ["apos","xpos","ypos","zpos"], "blocks": ["G75 Z1=0.","G75 Y1=0 X1=0","G0 A=DC(90)","X12 Y23","Z34"], "order": ["G75 Z1=0", "G75 Y1=0 X1=0", "A=DC(90)", "X12 Y23", "\nZ34"], "state": {"bFirstMove": false,"bFirstRapid": false,"bJobPositioned": true,"bIndexClearancePending": false}}]
+    },
+    {
+      "name": "first_toolchange_forces_dc_even_at_zero_angle",
+      "initial": {"bTlchg": true, "bFirstMove": true, "bJobPositioned": false, "bIndexClearancePending": true, "bR1forceOutput": true},
+      "steps": [{"call": "move_5x", "set": {"apos": 0, "zpos": 12}, "changed": ["zpos"], "contains": ["A=DC(0)"], "state": {"bTlchg": false,"bR1forceOutput": false,"zpos": 35}}]
+    },
+    {
+      "name": "index_between_jobs_and_repeated_same_angle",
+      "initial": {"bR1forceOutput": true},
+      "steps": [
+        {"call": "end_of_job", "state": {"bIndexClearancePending": true,"bJobPositioned": false}},
+        {"call": "tmatrix", "set": {"angle_4x_around_x": 90}, "state": {"bTmatrixIndexPending": true}},
+        {"call": "start_of_job", "order": ["M1", "G75 Z1=0", "A=DC(90)"], "state": {"nR1pos": 90, "bTmatrixIndexPending": false, "bFirstMove": true}},
+        {"call": "usr_4x_index", "absent": ["A=","G75","M1"]},
+        {"call": "move_5x", "set": {"xpos": 15, "zpos": 20}, "changed": ["xpos","zpos"], "absent": ["A=","G75"], "state": {"bFirstMove": false,"bJobPositioned": true}}
+      ]
+    },
+    {
+      "name": "cutting_rotates_in_same_job_without_homing",
+      "steps": [
+        {"call": "line_5x", "set": {"apos": 10,"dir5a": "cw"}, "changed": ["apos"], "contains": ["A=ACN(10)"], "absent": ["G75"]},
+        {"call": "line_5x", "set": {"apos": 20,"dir5a": "ccw"}, "changed": ["apos"], "contains": ["A=ACP(20)"], "absent": ["G75"]},
+        {"call": "line_5x", "set": {"xpos": 15}, "changed": ["xpos"], "contains": ["X15"], "absent": ["A=","G75"]}
+      ]
+    },
+    {
+      "name": "confirmed_cam_retract_authorizes_contiguous_rapid_link_until_feed",
+      "steps": [
+        {"call": "line_5x", "set": {"feed_type": "feed_link","zpos": 20}, "changed": ["zpos"], "state": {"bCamLinkRetract": true}},
+        {"call": "move_5x", "set": {"apos": 10,"prev_command": "@line_5x"}, "changed": ["apos"], "contains": ["A=ACN(10)"], "absent": ["G75"], "state": {"bCamLinkRetract": true}},
+        {"call": "move_5x", "set": {"apos": 20,"prev_command": "@move_5x"}, "changed": ["apos"], "contains": ["A=ACN(20)"], "absent": ["G75"], "state": {"bCamLinkRetract": true}},
+        {"call": "line_5x", "set": {"feed_type": "feed_cut", "xpos": 16}, "changed": ["xpos"], "state": {"bCamLinkRetract": false}},
+        {"call": "move_5x", "set": {"apos": 30,"prev_command": "@line_5x"}, "changed": ["apos"], "order": ["G75 Z1=0","A=ACN(30)"]}
+      ]
+    },
+    {
+      "name": "xyz_only_rapid_preserves_cam_authorization_until_rotary",
+      "steps": [
+        {"call": "line_5x", "set": {"feed_type": "feed_link","zpos": 20}, "changed": ["zpos"]},
+        {"call": "move_5x", "set": {"xpos": 15,"prev_command": "@line_5x"}, "changed": ["xpos"], "state": {"bCamLinkRetract": true}},
+        {"call": "move_5x", "set": {"apos": 10,"prev_command": "@move_5x"}, "changed": ["apos"], "contains": ["A=ACN(10)"], "absent": ["G75"], "state": {"bCamLinkRetract": true}}
+      ]
+    },
+    {
+      "name": "diagonal_link_does_not_authorize_rotation",
+      "steps": [
+        {"call": "line_5x", "set": {"feed_type": "feed_link","zpos": 20,"xpos": 15}, "changed": ["zpos","xpos"], "state": {"bCamLinkRetract": false}},
+        {"call": "move_5x", "set": {"apos": 10,"prev_command": "@line_5x"}, "changed": ["apos"], "order": ["G75 Z1=0","A=ACN(10)"]}
+      ]
+    },
+    {
+      "name": "cutting_retract_is_not_cam_link",
+      "steps": [
+        {"call": "line_5x", "set": {"feed_type": "feed_cut","zpos": 20}, "changed": ["zpos"], "state": {"bCamLinkRetract": false}},
+        {"call": "move_5x", "set": {"apos": 10,"prev_command": "@line_5x"}, "changed": ["apos"], "contains": ["G75 Z1=0"]}
+      ]
+    },
+    {
+      "name": "offset_change_invalidates_cam_authorization",
+      "steps": [
+        {"call": "line_5x", "set": {"feed_type": "feed_link","zpos": 20}, "changed": ["zpos"]},
+        {"call": "move_5x", "set": {"apos": 10,"iWorkoffset": 55,"prev_command": "@line_5x"}, "changed": ["apos","iWorkoffset"], "contains": ["G75 Z1=0"]}
+      ]
+    },
+    {
+      "name": "job_end_invalidates_confirmed_rapid_link",
+      "steps": [
+        {"call": "line_5x", "set": {"feed_type": "feed_link","zpos": 20}, "changed": ["zpos"], "state": {"bCamLinkRetract": true}},
+        {"call": "end_of_job", "state": {"bCamLinkRetract": false,"bIndexClearancePending": true,"bJobPositioned": false}},
+        {"call": "move_5x", "set": {"apos": 10,"prev_command": "@line_5x"}, "changed": ["apos"], "order": ["G75 Z1=0","A=ACN(10)"]}
+      ]
+    },
+    {
+      "name": "tmatrix_invalidates_cam_authorization",
+      "steps": [
+        {"call": "line_5x", "set": {"feed_type": "feed_link","zpos": 20}, "changed": ["zpos"]},
+        {"call": "tmatrix", "state": {"bCamLinkRetract": false,"bIndexClearancePending": true}},
+        {"call": "move_5x", "set": {"apos": 10,"prev_command": "@line_5x"}, "changed": ["apos"], "contains": ["G75 Z1=0"]}
+      ]
+    }
+  ]
+}
