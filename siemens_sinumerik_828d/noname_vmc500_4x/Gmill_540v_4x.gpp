@@ -2587,13 +2587,6 @@ endp
             wrapped = nR1postemp + nR1posadj
         endw
     endif
-    if iR1posControl eq 3 ;Positive Angles only: Works up to 360deg
-        if nR1postemp < 0 and nR1postemp > -360
-            nR1posadj = 360
-        else
-            nR1posadj = 0
-        endif
-    endif
     if iR1posControl eq 2 ;Negative Angles only: Works up to 360deg
         if nR1postemp > 0 and nR1postemp < 360
             nR1posadj = -360
