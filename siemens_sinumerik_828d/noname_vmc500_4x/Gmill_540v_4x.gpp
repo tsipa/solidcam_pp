@@ -19,7 +19,7 @@
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest bTmatrixIndexPending
     global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid bFeedPrevValid
     global integer iFeedMode
-    global numeric nInvFeed nMaxInverseFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA
+    global numeric nInvFeed nMaxInverseFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA nFeedPrevR1
     global string nInvFeed_f
     global numeric nLastPathZ nLastPathWorkoffset
     global integer iMplane iAbsincmode iWorkoffset iHeightcomp iStopmode iMotionmode iPworkoffset
@@ -368,6 +368,7 @@ endp
     nFeedPrevY = 0
     nFeedPrevZ = 0
     nFeedPrevA = 0
+    nFeedPrevR1 = 0
     nLastPathZ = 0
     nLastPathWorkoffset = -9999
     nPR1pos			 = 0
@@ -1408,6 +1409,7 @@ endp
         nFeedPrevY = ypos
         nFeedPrevZ = zpos
         nFeedPrevA = -nR1postemp * iR1dir
+        nFeedPrevR1 = nR1pos
         bFeedPrevValid = true
     endif
     if !bSyncdrapid
@@ -1511,6 +1513,7 @@ endp
     nFeedPrevY = ypos
     nFeedPrevZ = zpos
     nFeedPrevA = -nR1postemp * iR1dir
+    nFeedPrevR1 = nR1pos
     bFeedPrevValid = true
 endp
 
@@ -1520,9 +1523,36 @@ endp
     ; rotary angle into the part frame (part = Rx(-A) * machine: in this frame a recorded SolidCAM
     ; rotary link is a straight line), and the block is split into steps of at most 1 degree so the
     ; arc travelled by the cutting point is followed.
-    local numeric i steps a0 da u xa ya za aa yp zp xq yq zq length
+    local numeric stepno steps a0 da dm u xa ya za aa yp zp xq yq zq length dist
     a0 = nFeedPrevA
-    da = (-nR1postemp * iR1dir) - a0
+    ; The rotation is the travel of the modulo axis as the control moves it (ACP positive, ACN negative,
+    ; DC shortest), in the CAM angle sense. The CAM angle difference can be off by turns of 360 degrees.
+    dm = nR1pos - nFeedPrevR1
+    if iR1dirMode eq 2
+        while dm < 0
+            dm = dm + 360
+        endw
+        while dm >= 360
+            dm = dm - 360
+        endw
+    endif
+    if iR1dirMode eq 1
+        while dm > 0
+            dm = dm - 360
+        endw
+        while dm <= -360
+            dm = dm + 360
+        endw
+    endif
+    if iR1dirMode eq 3
+        while dm > 180
+            dm = dm - 360
+        endw
+        while dm <= -180
+            dm = dm + 360
+        endw
+    endif
+    da = -dm * iR1dir
     steps = 1
     while steps < abs(da) and steps < 360
         steps = steps + 1
@@ -1531,21 +1561,22 @@ endp
     xq = nFeedPrevX
     yq = nFeedPrevY * cos(a0) + nFeedPrevZ * sin(a0)
     zq = -nFeedPrevY * sin(a0) + nFeedPrevZ * cos(a0)
-    i = 1
-    while i <= steps
-        u = i / steps
+    stepno = 1
+    while stepno <= steps
+        u = stepno / steps
         xa = nFeedPrevX + (xpos - nFeedPrevX) * u
         ya = nFeedPrevY + (ypos - nFeedPrevY) * u
         za = nFeedPrevZ + (zpos - nFeedPrevZ) * u
         aa = a0 + da * u
         yp = ya * cos(aa) + za * sin(aa)
         zp = -ya * sin(aa) + za * cos(aa)
-        call @usr_sqrt((xa - xq) * (xa - xq) + (yp - yq) * (yp - yq) + (zp - zq) * (zp - zq))
+        dist = (xa - xq) * (xa - xq) + (yp - yq) * (yp - yq) + (zp - zq) * (zp - zq)
+        call @usr_sqrt(dist)
         length = length + nSqrt
         xq = xa
         yq = yp
         zq = zp
-        i = i + 1
+        stepno = stepno + 1
     endw
     if length * nMaxInverseFeed > feed
         nInvFeed = feed / length
@@ -1574,13 +1605,15 @@ endp
 
 @usr_feedmode_94
     ; Leave G93 before a move that is not a rotating G1 (feed-emulated rapid, arc, drill cycle) and at
-    ; the end of a job, so F is read as mm/min again.
+    ; the end of a job, so F is read as mm/min again. Sinumerik needs F reprogrammed after G93 -> G94:
+    ; without it the next move runs at the last inverse-time value read as mm/min.
     if iFeedMode eq 93
         iFeedMode = 94
         change(iFeedMode) = false
         skipline = true
-        {nb,'G94'}
+        {nb,'G94 F'feed}
         change(feed) = true
+        bFeedoutput = true
     endif
 endp
 
