@@ -17,6 +17,8 @@
     global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a bR1forceOutput
     global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTmatrixIndexPending
+    ; bPostHomed: the post homed the axes after the last positioning move (usr_home_axis); the next
+    ; move reprograms X/Y/Z. usr_rapid_xyz keeps it set to its end as the homed-return marker.
     global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid bFeedPrevValid
     ; Per-rapid decisions of usr_rapid, shared by its stages (set before they are read).
     global logical bCamLinkRapid bRapidRotaryChanged
@@ -36,19 +38,19 @@
     global numeric nR1pos nR1pos5x nR1postmatrix nR1postransform nR1poscpos iR1dir nPR1pos nR1posadj nR1postemp nPR1postemp nR1pdir
     global numeric nR2pos nR2pos5x nR2postmatrix iR2dir nPR2pos
     global numeric nPtool_start_plane nLlabel nPtool_z_level
-    global string  cR1 cR2 sHomestrrot sHomestrrotv sHomestrroth nR1pos_f bpos_f ;apos_f
+    global string  cR1 cR2 sHomestrrot sHomestrrotv sHomestrroth nR1pos_f bpos_f
     global integer iR1posControl i4xIndexMode i4xIndexClearanceMode i4xFeedMode
     global integer iGear1 iGear2 iGear3 iGear4
     global integer var1 var2 var3 var4 var5 var6 macnum ORGXYZ
     global numeric newshift_z newshift_y  newshift_x newshift_b
     global string shift_x_sign shift_y_sign shift_z_sign shift_b_sign newshift_z_f newshift_y_f  newshift_x_f P_Dwell_f
-	global numeric last_spin spindle_accel
+    global numeric last_spin spindle_accel
 
     ; Non GPPL variables
-	last_spin = 0
-	spindle_accel = 500 ; rpm/s
+    last_spin = 0
+    spindle_accel = 500 ; rpm/s
     bR1forceOutput = true
-	
+
     num_user_procs =    1
     remove_blanks = FALSE
     line_labels    = FALSE     ; Jump to N...
@@ -87,6 +89,8 @@ endp
     bUseprognum           = false               ;True = Outputs Program Number
     bUseprogname          = TRUE                ;True = Outputs Program Name
     iArcmode              = 2                   ;Sets Arc Output Mode (1=AbsIJK, 2=IncIJK, 3=R 360AbsIJK, 4=R 360IncIJK)
+    ; Only iArcmode 2 is Sinumerik syntax: 1/3/4 print Fanuc words (absolute centre as plain I/J/K,
+    ; R instead of CR=), known defect PP-022.
     cTCcodep              = 'M06 '             ;Sets the Prefix Code(s) used for Tool Change (i.e. 'M06')
     cTCcodes              = ''                  ;Sets the Suffix Code(s) used for Tool Change (i.e. 'M06')
     cWo                   = 'G'                 ;Sets the Character(s) used for Work Offset (i.e. G,E,G54.1 P)
@@ -98,6 +102,7 @@ endp
     cCe                   = ''                  ;Sets the ending Character(s) for comments
     cOMb                   = 'MSG("'            ;Sets the begginning Character(s) for operator message
     cOMe                   = '")'               ;Sets the ending Character(s) for operator message
+    ; cDr, cG84, cG84p, bG84spin, fG84spin and cCycs are Fanuc template options: not read by this post.
     cDr                   = ''                  ;Sets the Character(s) used at the begging of a drill cycle (i.e. G98,G98,or nothing '')
     cG84                  = ''                  ;Sets the Drill Cycle Character(s) used tapping (i.e. G84, G84.1)
     cG84p                 = ''                  ;Sets the Preperation Line used for G84 Tapping (i.e. G84.2)**FADAL setting
@@ -106,7 +111,7 @@ endp
     cCycs                 = 'L0 '               ;Sets the Suppression Code to ignore Drill Cycles (i.e. LO)
 
     ;Coolant & Spindle Control
-	flood_coolant               = 1
+    flood_coolant               = 1
     bCoolExist					= true          ;True = Outputs Coolant codes (Coolant,Air,Mist,etc)
     bCoolofftc					= true          ;True = Outputs Coolant off between Tool Changes
     bSpinofftc					= true          ;True = Outputs Spindle off between Tool Changes
@@ -114,6 +119,7 @@ endp
     bCooloffend					= true          ;True = Outputs Coolant off at end of program
     bSpinoffend					= true          ;True = Outputs Spindle off at end of program
     bCoolspinaftertc			= false         ;True = Outputs Coolant&Spindle directly after Tool Change
+    ; iGear1-4 and iPal1/iPal2 are not read by this post.
     iGear1						= 41            ;Code: M code for low spindle gear
     iGear2						= 42            ;Code: M code for low spindle gear
     iGear3						= 43            ;Code: M code for low spindle gear
@@ -161,6 +167,7 @@ endp
     ;Note: You can define up to 49 "Homing Lines" seperated by ";"
     ;Note: Only use ";" if using more then 1 "Homing Line"
     ;Note: Define string as empty '' to ignore Specific Homing Definition
+    ;Note: Only mode 8 (the line as given, here Sinumerik G75) suits this control; 1-7 are Fanuc forms.
     sHomestrbegin         = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'                           ; Program Begin Homing Definition
     sHomestrtc            = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'                           ; Tool Change Homing Definition
     sHomestrend           = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'                     ; Program End Homing Definition
@@ -175,7 +182,9 @@ endp
     cR1                   = 'A'       ;Rotary 1 Axis
     cR2                   = 'B'       ;Rotary 2 Axis
     iR1posControl         = 1         ;Rotary Position Control (0=SolidCAM Direct, 1=Positive, 2=Negative, 3=Shortest Distance)
+    ; iR1posControl 1 is the modulo range 0 <= A < 360 of this machine; 3 is not implemented (usr_r1_range).
     i4xIndexMode          = 0         ;4x-Indexing control (0=Simple Rotation, 1=New WorkOffset, 2=Trig Macro)
+    ; i4xIndexMode 2 is a Fanuc G65 macro (O777): not for this control.
     i4xIndexClearanceMode = 0         ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
     i4xFeedMode           = 1         ;4x-Simultanious control (0=Programed feedRate, 1=Inverse Time FeedRate, 2=Deg. per Minute)
     nMaxInverseFeed       = 59999.99  ;G93 F limit, 1/min (VMID MaxInverseFeed)
@@ -195,8 +204,7 @@ endp
 ;-------------------
 
 @start_of_file
-    ; Handle what is output at the start of the file
-    ; This is the first procedure called (lie...@init_post is actually first)
+    ; Start of the NC file (first event after @init_post): file name, path, date, the part messages.
     if iNumber_of_Fixtures > 1
         bMultiplefixtures = true
         blknum_exist    = false
@@ -331,7 +339,7 @@ endp
 
 @usr_init_gmstates
     ; Handle initializing G/M codes for correct modality from beginning of file
-	iMotionmode = 9999
+    iMotionmode     = 9999
     nLlabel         = 0
     iMplane         = 17
     iAbsincmode     = 90
@@ -569,9 +577,7 @@ endp
 ;-------------------
 
 @machine_plane
-    ; Handle setting of MachinePlane Gcode
-    ; We not use this procedure to output code
-    ; We create our own procedure for this so that we may Sync with arc_zx_yz
+    ; SolidCAM event: the job's machining plane (iMplane); the motion blocks print it.
     if machine_plane eq XY
         iMplane = 17
     endif
@@ -600,8 +606,7 @@ endp
 endp
 
 @usr_mp_output
-    ; Handle output of MachinePlane Gcode
-    ; Use bStartFile variable to ignore this output at beginning of file
+    ; G17/G18/G19 when iMplane changed (optional word).
     {['G'iMplane' ']}
 endp
 
@@ -785,30 +790,32 @@ endp
 endp
 
 @usr_ct_msg_lines
-    ; The operation message (msg) as comment lines, one per line of the message.
-    local integer i poz1 l1b pr1
-    local string msg1 msg1b
+    ; The operation message (msg) as comment lines, one per line of the message. The lines end with
+    ; CR LF: a line is the text before the CR (iLf - 2). Needs '\n' to be one LF character
+    ; (unverified in SolidCAM). At most 49 lines (i = 51 ends the loop after the last one).
+    local integer i iLf iRestLen iStart
+    local string sLine sRest
     if msg ne ''
         i = 1
         while i < 50
             i = i + 1
-            poz1=instr(msg,'\n')
-            if poz1 eq 0
-                poz1=strlen(msg)
-                msg1=msg
+            iLf=instr(msg,'\n')
+            if iLf eq 0
+                iLf=strlen(msg)
+                sLine=msg
             else
-                poz1 = poz1-2
-                msg1=left(msg,poz1)
+                iLf = iLf-2
+                sLine=left(msg,iLf)
             endif
-            {nb, cCb,msg1,cCe}
-            poz1=instr(msg,'\n')
-            if poz1 eq 0
+            {nb, cCb,sLine,cCe}
+            iLf=instr(msg,'\n')
+            if iLf eq 0
                 i = 51
             else
-                l1b=strlen(msg)-strlen(msg1)
-                pr1=poz1+1
-                msg1b=substr(msg,pr1,l1b)
-                msg=msg1b
+                iRestLen=strlen(msg)-strlen(sLine)
+                iStart=iLf+1
+                sRest=substr(msg,iStart,iRestLen)
+                msg=sRest
             endif
         endw
     endif
@@ -824,7 +831,10 @@ endp
 endp
 
 @usr_tc_init_gmstates
-    ; Handle initializing G/M codes for correct modality after tool change
+    ; Modal states for the new tool. Runs twice per tool change: from usr_ct (full reset) and from
+    ; usr_ct_safety_block with bSafetyprep set (plane, abs/inc and compensation flags only).
+    ; Known defect PP-027: the first-tool branch never clears bSafetyprep, so the usr_ct call of the
+    ; second tool takes the bSafetyprep branch and skips the full reset.
     if first_tool
         iMotionmode = 9999
         iDiametercomp = 40
@@ -863,8 +873,8 @@ endp
 
 @usr_coolant
     ; Coolant M codes from the operation's coolant fields (1 = on, 0 or 2 = off; other values keep the
-    ; last code). bskipline, set by the last field read (on = false), makes usr_coolant_output join
-    ; the next block to the coolant line.
+    ; last code). bskipline (the last field read wins; on = false) makes usr_coolant_output put the
+    ; codes of this call on one line; the block after them starts a new line.
     if flood_coolant eq 1
         iCoolantM1 = iCoolantM1ON
         bskipline = false
@@ -992,8 +1002,8 @@ endp
         {nb,['M'iCoolantM8:mcode_f' ']}
         skipline = bskipline
     endif
-    ; With clear_change_after_gen on, this is always true: every changed code was output above, which
-    ; cleared its flag.
+    ; Always true (every changed code was output above, which cleared its flag): the next block starts
+    ; a new line unless the caller sets skipline = false again (usr_ct_after).
     if  !change(iCoolantM1) or  !change(iCoolantM2) or !change(iCoolantM3) or  !change(iCoolantM4) or !change(iCoolantM5) or  !change(iCoolantM6) or !change(iCoolantM7) or !change(iCoolantM8)
         skipline = TRUE
     endif
@@ -1022,7 +1032,8 @@ endp
 endp
 
 @usr_HSM_mode
-    ; Handle output of HSM code
+    ; Fanuc/Haas G187 smoothing (P level, E tolerance) from the job's iG187_P / nG187_E: not a
+    ; Sinumerik code. Printed only when a value changes; a default program prints none.
     if iG187_P eq 0
         iG187_P = 2 ;Default = 2
     endif
@@ -1075,14 +1086,17 @@ endp
             call @usr_ct
             bTlchg = false
         else
+            ; Same tool: the job comment and, when the work offset changes (not with the VMID 3-axis
+            ; limit bLimit_3axis), one G0 block with the new offset and A.
             bFirstRapid = true
             {nb, cOMb,job_name,cOMe}
-            if iPworkoffset ne iWorkoffset and !bLimit_3axis   ; Cannot use multiple MAC offsets with 4x
+            if iPworkoffset ne iWorkoffset and !bLimit_3axis
                 call @usr_tc_init_gmstates
                 if iDiametercomp ne iCompActive
                     ; Compensation left on by the last job is still active on the control: cancel it.
                     change(iDiametercomp) = true
                 endif
+                ; bTlchg makes this rapid the positioning block (usr_rapid_tc_block, which clears it).
                 bTlchg = true
                 call @rapid_move
             endif
@@ -1097,6 +1111,8 @@ endp
         bPrintloop = false
     endif
     call @usr_HSM_mode
+    ; The job's Z approach is still to come: the first rapid that moves Z splits it from X/Y
+    ; (usr_rapid_xy_then_z / usr_rapid_climb_then_xy) and clears bFirstMove; feed moves keep it.
     bFirstMove = true
 endp
 
@@ -1138,8 +1154,7 @@ endp
     bIndexClearancePending = true
     bCamLinkRetract = false
     bJobPositioned = false
-    ; Handle what happens at end of operation(job)
-    ; If using Subs we do not make tool change in @start_of_job
+    ; End of a job: back to G94, the M00 stop (bStopM00), the job's work offset and Z levels for the next.
     if bStopM00
         if tool_number eq next_job_tool_number
             call @usr_StopM00_sametool
@@ -1156,10 +1171,7 @@ endp
 ;-------------------
 
 @rapid_move
-    ; Handle GPP direct call to Rapid Move (G00)
-    ; We not use this procedure to output code
-    ; We create our own procedure for this so that we may...
-    ;   Sync with @rapid_move, @move_5x, @move_4x
+    ; SolidCAM event: rapid move. All rapids go through usr_rapid.
     call @usr_rapid
 endp
 
@@ -1167,7 +1179,7 @@ endp
     ; Rapid positioning: G0, or G1 F<nRapidfeed> on '3-d model' jobs when bSyncdrapid is false.
     ; Machine order: homing where needed, A in a block of its own, then X/Y/Z. The rapid after a tool
     ; change or a work-offset change at job start (bTlchg) is one positioning block instead
-    ; (usr_rapid_tc_block: work offset and A; no X or Z word).
+    ; (usr_rapid_tc_block: work offset and A, plus Y with a vertical head; no X or Z).
     ; The homings run here and not in the helpers: that keeps the procedure nesting of the original
     ; post (start_of_job -> usr_ct -> usr_ct_after -> usr_rapid -> usr_prep_home_axis -> usr_home_axis
     ; -> usr_abs_inc_output = 7 levels); the GPPL nesting limit is not known.
@@ -1192,7 +1204,8 @@ endp
         call @usr_rapid_tc_block
     else
         if change(nR1pos)
-            ; A turns in its own block, before X/Y/Z move (DESIGN-004).
+            ; A turns in its own block before X/Y/Z move, also when Z rises in the same event (known
+            ; issue DESIGN-004). Known defect PP-023: as a feed-emulated rapid (G1) it has no F.
             {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
             call @usr_r1_output
         endif
@@ -1262,6 +1275,7 @@ endp
     ; The rapid of a tool change (usr_ct_after) or of a work offset change at job start (start_of_job):
     ; G0 with the work offset and the A position. The first A word of a program is DC
     ; (bR1forceOutput). X/Y stay pending for the first move of the job; Z counts as the tool start plane.
+    ; Known defect PP-023: as a feed-emulated rapid (G1) this block has no F.
     zpos = tool_start_plane
     if bVertical
         {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' ','Y'ypos ' '}
@@ -1316,6 +1330,7 @@ endp
     ; Feed-emulated rapids: F is modal and printed once after a feed move. A split rapid printed it on
     ; its first block; otherwise it goes on the last block here.
     call @usr_emulated_rapid_feed
+    ; The homed return is done.
     if bPostHomed
         bPostHomed = false
     endif
@@ -1363,7 +1378,8 @@ endp
     if change(zpos)
         if bFirstMove or bPostHomed
             if !bFirstMove
-                ; The XY block of the homed return carries the rapid feed (PP-023: not the first move).
+                ; The XY block of the homed return carries the rapid feed. Known defect PP-023: the
+                ; XY block of a job's first move gets none.
                 call @usr_emulated_rapid_feed
             endif
             skipline = true
@@ -1423,10 +1439,7 @@ endp
 ;-------------------
 
 @line
-    ; Handle GPP direct call to Line Movement (G01)
-    ; We not use this procedure to output code
-    ; We create our own procedure for this so that we may...
-    ;   Sync with @line, @line_5x, @line_4x
+    ; SolidCAM event: feed move. All feed moves go through usr_line.
     call @usr_line
 endp
 
@@ -1439,7 +1452,6 @@ endp
     nLastPathZ = zpos
     nLastPathWorkoffset = iWorkoffset
     bClimbZValid = true
-    ; Handle output for line movement (G01)
     call @usr_r1pos_calc
     if iR1posControl eq 1 and !bLimit_3axis and feed_type ne 'feed_link' and abs(nR1posstep) >= 359.9995
         ; The CAM A axis is unlimited; on the modulo axis ACP/ACN turn less than one revolution per block,
@@ -1627,32 +1639,24 @@ endp
 
 ; -----------
 @arc
-    ; SolidCAM call to normal arc movement
-    ; We do not use this procedure to output code
-    ; We create our own procedure for this so that we have one arc formatting section
+    ; SolidCAM event: XY arc. All arcs go through usr_arc.
     call @usr_arc
 endp
 
 @arc_yz
-    ; SolidCAM call to YZ arc movement
-    ; We not use this procedure to output code
-    ; We create our own procedure for this so that we have one arc formatting section
+    ; SolidCAM event: YZ arc (usr_arc).
     call @usr_arc
 endp
 
 @arc_zx
-    ; SolidCAM call to ZX arc movement
-    ; We not use this procedure to output code
-    ; We create our own procedure for this so that we have one arc formatting section
+    ; SolidCAM event: ZX arc (usr_arc).
     call @usr_arc
 endp
 
 @usr_arc_check(numeric dx, numeric dy, numeric dz)
-    ; expects:
-    ;   dx, dy, dz
-    ; aborts on mismatch
+    ; POST ERROR when the computed arc end point misses the CAM end point by more than 0.001 in an axis.
     local numeric dummy_var tolerance
-	tolerance = 0.001
+    tolerance = 0.001
 
     if dx gt tolerance or dy gt tolerance or dz gt tolerance then
         dummy_var = 0
@@ -1796,7 +1800,7 @@ endp
         endif
     endif
     call @usr_feedmode_94
-	call @usr_arc_math
+    call @usr_arc_math
     ; A completed arc starts a new link context at its actual endpoint.
     bCamLinkRetract = false
     nLastPathZ = zpos
@@ -1860,10 +1864,7 @@ endp
 ;-------------------
 
 @compensation
-    ; Handle setting of Diameter Compensation Gcode
-    ; We not use this procedure to output code
-    ; We create our own procedure for this so that we..
-    ;   have can control placement during @line,@arc
+    ; SolidCAM event: cutter compensation side (iDiametercomp); the next G0/G1 block prints G40/G41/G42.
     if side eq COMP_LEFT then
         iDiametercomp = 41
         change(iDiameteroffset) = true
@@ -1959,7 +1960,7 @@ endp
 ;-------------------
 
 @change_ref_point
-    ; @change_ref_point Not Supported in this template
+    ; Fanuc G10 L2 work-offset write: invalid on Sinumerik. Not expected for this machine (unverified).
     gcode = 91
     {nb, 'G'gcode}
     gcode = 10
@@ -2155,7 +2156,7 @@ endp
 endp
 
 @start_tool
-    ; Handle setting and output for spindle start
+    ; Spindle start (M3/M4 and S). Tapping prints only an empty block: CYCLE84 runs the spindle (SST).
     if tool_direction eq CW then
         iSpindleDir = 3
     else
@@ -2170,17 +2171,18 @@ endp
 endp
 
 @usr_spindle_output
-    ; Handle output for spindle
+    ; S word, then a G04 dwell while the spindle reaches the new speed when the speed changes by more
+    ; than spindle_accel (rpm/s): 0.3 s plus 1 s per 500 rpm of change.
     {nb,'S'spin:integer_def_f ' '}
-	; Keep the integer sdiff and the literal 500: spindle_accel or a numeric would change the dwell if
-	; GPPL divides integers as integers (unverified).
-	local integer sdiff
-	sdiff = abs(last_spin-spin)
-	if sdiff > spindle_accel
-	    {nb, 'G04 F', (0.3+(sdiff/500))}
-		{nb}
-	endif
-	last_spin = spin
+    ; Keep the integer sdiff and the literal 500: spindle_accel or a numeric would change the dwell if
+    ; GPPL divides integers as integers (unverified).
+    local integer sdiff
+    sdiff = abs(last_spin-spin)
+    if sdiff > spindle_accel
+        {nb, 'G04 F', (0.3+(sdiff/500))}
+        {nb}
+    endif
+    last_spin = spin
 endp
 
 @usr_spindle_stop
@@ -2191,10 +2193,10 @@ endp
 endp
 
 @usr_spindle_mcode_output
-    ; Handle output for spindle
-	if iSpindleDir ne 3 and iSpindleDir ne 4
-	    last_spin = 0
-	endif
+    ; M3/M4/M5. After a stop the next S counts as a start from 0 rpm (dwell in usr_spindle_output).
+    if iSpindleDir ne 3 and iSpindleDir ne 4
+        last_spin = 0
+    endif
     {'M'iSpindleDir:mcode_f ' '}
 endp
 
@@ -2278,12 +2280,13 @@ endp
 endp
 
 @loop
-    ; Loops Not Supported in this template
+    ; Fanuc macro loop (#var / WHILE / END, header in start_of_job): invalid on Sinumerik. The VMID has
+    ; LoopExist="0", so SolidCAM should not call @loop / @end_loop (unverified).
     bPrintloop = true
 endp
 
 @end_loop
-    ; Loops Not Supported in this template
+    ; Fanuc macro loop end (see @loop).
     local integer var_num
 
     var_num = loop_level + 20
@@ -2505,7 +2508,6 @@ endp
     if bLimit_3axis
         change(nR1pos) = false
         change(nR2pos) = false
-        iR1dirMode = 0
     endif
     ; Direction word: DC for a forced A word (program start: the A position is unknown), else the
     ; CAM direction.
@@ -2526,7 +2528,7 @@ endp
 @usr_r1_cam_angle
     ; The unwrapped CAM angle of A in the machine direction (nR1postemp). The difference of two
     ; successive values is the CAM step of a move (nR1posstep in usr_r1pos_calc).
-	nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
+    nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
     nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
     nR1poscpos = (-cpos) * iR1dir                                       ;Rotary from C-axis cutting
     nR1pos5x = (-apos) * iR1dir                                         ;Rotary from 4/5x Simulatenous
@@ -2559,15 +2561,16 @@ endp
             nR1posadj = 0
         endif
     endif
-    if iR1posControl eq 3 ;Shortest Distance (option 3) is not implemented: A in (-360, 0) gets +360,
-        ; and nR1pdir negates A while it decreases above 0.
+    ; Shortest Distance (option 3) is not implemented: A in (-360, 0) gets +360, and nR1pdir negates A
+    ; while it decreases above 0.
+    if iR1posControl eq 3
         if nR1postemp < 0 and nR1postemp > -360
             nR1posadj = 360
         else
             nR1posadj = 0
         endif
         if nPR1postemp ne nR1postemp
-            if nPR1postemp gt nR1postemp and nR1postemp gt 0 ;and nPR1pos le 180
+            if nPR1postemp gt nR1postemp and nR1postemp gt 0
                 nR1pdir = -1
             else
                 nR1pdir = 1
@@ -2586,6 +2589,8 @@ endp
 endp
 
 @usr_r1_select_dir
+    ; ACN (1) or ACP (2) from the CAM rotation direction: dir5a for 4x/5x moves (bR1useDir5a), else the
+    ; 4x transform direction. Any other value leaves iR1dirMode as it is.
     if bR1useDir5a
         if dir5a eq cw
             iR1dirMode = 1
@@ -2608,7 +2613,11 @@ endp
 @usr_r1_output
     ; The A word of a block, as usr_r1pos_calc chose it: A=ACN(..) / A=ACP(..) turn the modulo axis in a
     ; given direction (iR1dirMode 1 / 2), A=DC(..) the shortest way (3). The only place an A word is
-    ; printed (except the Fanuc subprogram call in @call_proc), for G0, G1 and index blocks alike.
+    ; printed (except the Fanuc subprogram call in @call_proc). Callers and their condition:
+    ;   usr_rapid A block: change(nR1pos); usr_rapid_tc_block: change(nR1pos) or bR1forceOutput;
+    ;   usr_line: change(nR1pos); usr_4x_index_rotate: change(nR1pos) tested in usr_4x_index;
+    ;   usr_4x_index trig macro (index mode 2): always.
+    ; No 'last printed A' is kept: usr_r1pos_calc updates nPR1pos on every call, printed or not.
     local numeric dummy_var
     if iR1dirMode ne 1 and iR1dirMode ne 2 and iR1dirMode ne 3
         dummy_var = 0
@@ -2634,8 +2643,8 @@ endp
     ;   i4xIndexMode: 0 = turn A in the current work offset, 1 = also step the work offset by
     ;   position-1 (G54, G55, ...), 2 = Fanuc trig macro (G65 P777; not for this control).
     ;   i4xIndexClearanceMode: 0 = home first (sHomestrrot, the homing string of the last rapid or tool
-    ;   change; '' before the first one), 1 = tool Z level, 2 = tool start plane (the previous job's
-    ;   before the rotation, this job's after it).
+    ;   change; '' before the first one), 1 = tool Z level, 2 = tool start plane. Modes 1/2: the
+    ;   previous job's level before the turn, this job's after it.
     call @usr_r1pos_calc
     if change(nR1pos)
         ; Turning A does not move Z. A homing clears bClimbZValid itself; a clearance move sets nLastPathZ.
@@ -2699,10 +2708,7 @@ endp
 endp
 
 @move_4x
-    ; Handle GPP direct call to Rapid Move (G00)
-    ; We not use this procedure to output code
-    ; We create our own procedure for this so that we may...
-    ;   Sync with @rapid_move, @move_5x, @move_4x
+    ; SolidCAM event: 4x rapid (usr_rapid; the A direction comes from dir5a, bR1useDir5a).
     ; A rotates around X on this machine: X is the axial coordinate and is posted as given.
     bR1useDir5a = true
     call @usr_rapid
@@ -2710,10 +2716,7 @@ endp
 endp
 
 @line_4x
-    ; Handle GPP direct call to Line Movement (G01)
-    ; We not use this procedure to output code
-    ; We create our own procedure for this so that we may...
-    ;   Sync with @line, @line_5x, @line_4x
+    ; SolidCAM event: 4x feed move (usr_line; the A direction comes from dir5a, bR1useDir5a).
     bR1useDir5a = true
     call @usr_line
     bR1useDir5a = false
@@ -2733,20 +2736,14 @@ endp
 endp
 
 @move_5x
-    ; Handle GPP direct call to Rapid Move (G00)
-    ; We not use this procedure to output code
-    ; We create our own procedure for this so that we may...
-    ;   Sync with @rapid_move, @move_5x, @move_4x
+    ; SolidCAM event: 5x rapid (usr_rapid; the A direction comes from dir5a, bR1useDir5a).
     bR1useDir5a = true
     call @usr_rapid
     bR1useDir5a = false
 endp
 
 @line_5x
-    ; Handle GPP direct call to Line Movement (G01)
-    ; We not use this procedure to output code
-    ; We create our own procedure for this so that we may...
-    ;   Sync with @line, @line_5x, @line_4x
+    ; SolidCAM event: 5x feed move (usr_line; the A direction comes from dir5a, bR1useDir5a).
     bR1useDir5a = true
     call @usr_line
     bR1useDir5a = false

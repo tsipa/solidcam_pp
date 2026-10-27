@@ -570,7 +570,7 @@ class RealisticSessionTests(unittest.TestCase):
         """INDEPENDENT: historical reversions and safety mutations fail the two-job invariant."""
         cases = {
             'c03e1b4 reverted (no G0 on the first index)':
-                (mutate('of file\n\tiMotionmode = 9999', 'of file\n\tiMotionmode = 0'), 'without effective G0'),
+                (mutate('of file\n    iMotionmode     = 9999', 'of file\n    iMotionmode     = 0'), 'without effective G0'),
             '961facc reverted (no final line feed)': (mutate(END_ANCHOR_M30, "        {nb, 'M30'}\n"), 'line feed'),
             'no spindle start after the tool change': (mutate(
                 '            skipline = false\n            call @start_tool\n        endif\n    endif\nendp\n',

@@ -206,7 +206,7 @@ class PostHomingSkiplineTests(unittest.TestCase):
     def test_skipline_false_before_z_would_join_the_lines(self):
         require_nc_stream()
         source = PP.read_text(encoding='utf-8-sig')
-        pattern = re.compile(r"(if bFirstMove or bPostHomed\n\s*if !bFirstMove\n(?:\s*;[^\n]*\n)?"
+        pattern = re.compile(r"(if bFirstMove or bPostHomed\n\s*if !bFirstMove\n(?:\s*;[^\n]*\n)*"
                              r"\s*call @usr_emulated_rapid_feed\n\s*endif\n\s*skipline = )true")
         self.assertEqual(len(pattern.findall(source)), 1, 'post-homing split changed; review this test')
         broken = pattern.sub(r"\1false", source, count=1)

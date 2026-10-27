@@ -701,15 +701,15 @@ MUTATIONS = (
     ('tapping_tool_starts_spindle', 'spindle_start',
      '    if d_drill_type ne D_Tapping\n', "    if d_drill_type ne 'never'\n", 1),
     ('start_tool_direction_swapped', 'spindle_start',
-     '@start_tool\n    ; Handle setting and output for spindle start\n    if tool_direction eq CW then\n'
+     '(SST).\n    if tool_direction eq CW then\n'
      '        iSpindleDir = 3\n    else\n        iSpindleDir = 4',
-     '@start_tool\n    ; Handle setting and output for spindle start\n    if tool_direction eq CW then\n'
+     '(SST).\n    if tool_direction eq CW then\n'
      '        iSpindleDir = 4\n    else\n        iSpindleDir = 3', 1),
     ('m_feed_spin_direction_swapped', 'spindle_start',
      '@m_feed_spin\n    ; Handle output for spindle change\n    if tool_direction eq CW then\n        iSpindleDir = 3',
      '@m_feed_spin\n    ; Handle output for spindle change\n    if tool_direction eq CW then\n        iSpindleDir = 4', 1),
     ('spindle_dwell_threshold_inverted', 'spindle_acceleration_dwell',
-     '\tif sdiff > spindle_accel\n', '\tif sdiff < spindle_accel\n', 1),
+     '    if sdiff > spindle_accel\n', '    if sdiff < spindle_accel\n', 1),
 )
 
 

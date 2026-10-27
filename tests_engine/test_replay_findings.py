@@ -114,7 +114,7 @@ class ReplayFindings(unittest.TestCase):
         self.assertIn('ZX arc direction is unverified', str(report.errors))
 
     def test_message_split_needs_c_escapes_and_crlf(self):
-        """usr_ct_after splits msg at instr(msg,'\\n') and uses poz1-2 / poz1+1: correct
+        """usr_ct_msg_lines splits msg at instr(msg,'\\n') and uses iLf-2 / iLf+1: correct
         only if '\\n' is one LF character and SolidCAM separates lines with CR LF."""
         def first_tool_comments(policy, message):
             session = Session.from_paths(PP, vmid=VMID, policies=policy)
