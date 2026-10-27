@@ -270,6 +270,15 @@ endp
     abort
 endp
 
+@usr_unsupported_transform
+    ; Stop on a SolidCAM transformation (@rotate / @mirror) instead of posting the copy untransformed.
+    local numeric dummy_var
+    dummy_var = 0
+    input '"POST ERROR: SolidCAM rotate/mirror transformations are not supported by this post."'dummy_var
+    {nb,"POST ERROR: SolidCAM rotate/mirror transformations are not supported by this post."}
+    abort
+endp
+
 @usr_sof_progname
     ; The program name after cPb (';%_N_<part>_MPF') and the workpiece directory line. Sinumerik
     ; names allow letters, digits and '_': every '-' of the part name becomes '_'.
@@ -970,9 +979,9 @@ endp
 
 @usr_check_smoothing
     ; The job parameters iG187_P / nG187_E (VMID) are the Fanuc/Haas G187 smoothing of the template;
-    ; the 828D has no G187 (it uses CYCLE832). 0 (and P 2, the template default) means not set.
+    ; the 828D has no G187 (it uses CYCLE832). 0 (the VMID default) means not set; any other value stops.
     local numeric dummy_var
-    if (iG187_P ne 0 and iG187_P ne 2) or nG187_E ne 0
+    if iG187_P ne 0 or nG187_E ne 0
         dummy_var = 0
         input '"POST ERROR: G187 smoothing (job parameters iG187_P, nG187_E) is not supported. Set both to 0."'dummy_var
         {nb,"POST ERROR: G187 smoothing (job parameters iG187_P, nG187_E) is not supported. Set both to 0."}
@@ -985,6 +994,7 @@ endp
 @start_of_job
     ; Start of an operation: work offset and job plane, a pending index, then the tool change
     ; (usr_ct) or, for the same tool, the job comment and a work-offset change.
+    local numeric dummy_var
     call @usr_link_boundary
     call @home_number
     ; Arcs in YZ/ZX leave iMplane at 19/18; restore the job's machining plane for its first motion block.
@@ -996,9 +1006,11 @@ endp
         bTmatrixIndexPending = false
     endif
     if rot_axis_coord eq 2
-        Xpos = 0
-        Xnext = 0
-        nTcXnext = 0
+        ; The template zeroed X here (first move to X0) with no known reason; the owner chose a stop.
+        dummy_var = 0
+        input '"POST ERROR: rot_axis_coord 2 is not supported by this post."'dummy_var
+        {nb,"POST ERROR: rot_axis_coord 2 is not supported by this post."}
+        abort
     endif
     if bTlchg
         call @usr_ct
@@ -1798,15 +1810,15 @@ endp
 ;-------------------
 
 @rotate
-    ; Not supported: prints nothing. Known defect PP-047: with SoftwareTransform="0" SolidCAM may expect
-    ; the post to apply the transformation (unverified).
+    ; With SoftwareTransform="0" SolidCAM may leave the transformation to the post (PP-047); not supported.
+    call @usr_unsupported_transform
 endp
 
 ;-------------------
 
 @mirror
-    ; Not supported: prints nothing. Known defect PP-047: with SoftwareTransform="0" SolidCAM may expect
-    ; the post to apply the transformation (unverified).
+    ; With SoftwareTransform="0" SolidCAM may leave the transformation to the post (PP-047); not supported.
+    call @usr_unsupported_transform
 endp
 
 ;-------------------

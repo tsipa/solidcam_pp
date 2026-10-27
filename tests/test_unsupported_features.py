@@ -94,6 +94,15 @@ class UnsupportedOptionTests(unittest.TestCase):
         nc = stopped_with(self, program, 'start_of_file', **HEADER_DEFAULTS)
         self.assertEqual(nc[-1], 'POST ERROR: iR1dir must be -1 (the A direction checked against SolidCAM).')
 
+    def test_rot_axis_coord_2_stops_the_post(self):
+        # Owner rule 2026-10-28: the template zeroed X for rot_axis_coord 2 (no known reason); stop instead.
+        program = self.program(rot_axis_coord=2)
+        with self.assertRaises(post_abort_error()):
+            program.start()
+        nc = program.nc()
+        self.assertEqual(nc[-1], 'POST ERROR: rot_axis_coord 2 is not supported by this post.')
+        self.assertFalse([line for line in nc if line.startswith(('G0', 'G1'))], nc)
+
     def test_index_clearance_modes_0_1_2_post(self):
         for mode in (0, 1, 2):
             with self.subTest(i4xIndexClearanceMode=mode):

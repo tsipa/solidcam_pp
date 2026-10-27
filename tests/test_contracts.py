@@ -18,7 +18,7 @@ import unittest
 from pp_tests.engine import UnsupportedGPPL
 from pp_tests.trace import parse_trace, sanitize
 
-from support import Session, fresh_engine, known_defect, parse_blocks, pp_source, vmid_user_parameters
+from support import Session, covers, fresh_engine, known_defect, parse_blocks, pp_source, vmid_user_parameters
 from support.engines import declared_globals
 from support.paths import FIXTURES, VMID, read_text, require_file
 from support.session import SOLIDCAM_EVENTS
@@ -205,14 +205,14 @@ class TransformEventTests(unittest.TestCase):
                 return None
             raise
 
-    @known_defect('PP-047', facet='rotate')
+    @covers('PP-047')
     def test_rotate_event_changes_the_frame_or_stops(self):
         """INDEPENDENT: a delegated transformation must change the controller
         frame (Sinumerik ROT/AROT with the 90 degree angle) or stop the post so
         the user knows the job cannot be posted; an empty @rotate machines the
         rotated copy at the original position. UNVERIFIED: that SolidCAM calls
         @rotate with an untransformed toolpath under this VMID (PP-047
-        uncertain)."""
+        uncertain). Regression guard of PP-047 (the post stops)."""
         blocks = self.frame_blocks_or_stop('rotate', rotate_cancel=False, angle=90)
         if blocks is None:
             return
@@ -220,12 +220,12 @@ class TransformEventTests(unittest.TestCase):
                   if (block.has('ROT') or block.has('AROT')) and any(word.value == 90 for word in block.words)]
         self.assertTrue(frames, f'@rotate emitted {[block.raw for block in blocks]!r}')
 
-    @known_defect('PP-047', facet='mirror')
+    @covers('PP-047')
     def test_mirror_event_changes_the_frame_or_stops(self):
         """INDEPENDENT: a delegated mirror must program MIRROR/AMIRROR or stop
         the post; an empty @mirror posts the mirrored copy unmirrored.
         UNVERIFIED: SolidCAM event delivery under SoftwareTransform="0"
-        (PP-047 uncertain)."""
+        (PP-047 uncertain). Regression guard of PP-047 (the post stops)."""
         blocks = self.frame_blocks_or_stop('mirror', mirror_type='mirror_x')
         if blocks is None:
             return

@@ -718,19 +718,21 @@ class ToolChangeDefectTests(unittest.TestCase):
         """INDEPENDENT: the 828D G-function set of vericut/sin840d_special.ctl has no G187
         (the 828D smooths with CYCLE832). A job with the VMID smoothing parameters set
         (iG187_P=1, nG187_E=0.05) must stop the post with a POST ERROR and write no G187;
-        the default values (0, and P 2 with E 0) post. Regression guard of PP-012."""
+        only the VMID default values (both 0) post: P 2, the template default, stops too
+        (owner rule 2026-10-28). Regression guard of PP-012."""
         require_nc_stream()
-        for values in (dict(iG187_P=1, nG187_E=0.05), dict(iG187_P=0, nG187_E=0.01), dict(iG187_P=3, nG187_E=0)):
+        for values in (dict(iG187_P=1, nG187_E=0.05), dict(iG187_P=0, nG187_E=0.01), dict(iG187_P=3, nG187_E=0),
+                       dict(iG187_P=2, nG187_E=0)):
             program = Program(cam=values, policies=scripted_input_policies())
             with self.assertRaises(post_abort_error(), msg=str(values)):
                 program.start()
             nc = program.nc()
             self.assertEqual(nc[-1], HSM_STOP, values)
             self.assertFalse([line for line in nc[:-1] if 'G187' in line], nc)
-        for values in (dict(iG187_P=0, nG187_E=0), dict(iG187_P=2, nG187_E=0)):
-            program = Program(cam=values, policies=scripted_input_policies())
-            program.start()
-            self.assertFalse([line for line in program.nc() if 'G187' in line or 'POST ERROR' in line], values)
+        values = dict(iG187_P=0, nG187_E=0)
+        program = Program(cam=values, policies=scripted_input_policies())
+        program.start()
+        self.assertFalse([line for line in program.nc() if 'G187' in line or 'POST ERROR' in line], values)
 
     @covers('PP-008')
     def test_through_coolant_pressure_codes_pin(self):

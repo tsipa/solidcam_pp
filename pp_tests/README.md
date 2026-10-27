@@ -75,10 +75,10 @@ in `tests_engine/fixtures/`), and `python -m pp_tests.gppl validate <post.gpp> -
 
 ### Running and reading the result
 
-The default run has 509 tests, takes about 25 s and must end `OK`. Its 49 skips
+The default run has 510 tests, takes about 25 s and must end `OK`. Its 47 skips
 have two causes:
 
-- `known defect PP-xxx reproduced: ...` (47 tests). Each open suspected defect has
+- `known defect PP-xxx reproduced: ...` (45 tests). Each open suspected defect has
   one canonical test per facet that asserts the correct behaviour; while the defect
   exists the test is reported as a skip. If the behaviour changes so that the test
   passes, the default run FAILS with `PP-xxx no longer reproduces: update the registry
@@ -87,9 +87,9 @@ have two causes:
   initialised. Set `MACH3_PP_SOURCE` to the 6efcad8 Mach3 post (`git show
   6efcad8:mach3/4x/Mach3_4X_Y.gpp > mach3.gpp`) to run them.
 
-With `GPPL_ENGINE=legacy` the run takes about 1.5 minutes and has 104 skips: 54 known
+With `GPPL_ENGINE=legacy` the run takes about 1.5 minutes and has 103 skips: 52 known
 defects (seven ENGINE facets reproduce only on the legacy engine, ENGINE-021 only on
-the default engine), 45 tests that need the default engine, 3 that need `tostr` with a
+the default engine), 46 tests that need the default engine, 3 that need `tostr` with a
 format and the 2 Mach3 tests.
 
 Strict mode runs every open known-defect test as a plain test, so they fail red
@@ -104,7 +104,7 @@ PP_STRICT_KNOWN_DEFECTS=1 python3 -m unittest discover -s tests
 $env:PP_STRICT_KNOWN_DEFECTS = '1'; py -m unittest discover -s tests
 ```
 
-The expected strict result is exactly 47 failures on the default engine and 54 on
+The expected strict result is exactly 45 failures on the default engine and 52 on
 the legacy engine, all AssertionError, no errors (one more with `MACH3_PP_SOURCE`
 set: PP-058). A known-defect test whose entry does not reproduce on the running
 engine (an ENGINE gap of the other engine) runs as a plain passing test. Select
