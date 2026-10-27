@@ -640,7 +640,8 @@ _ENTRIES = [
     _d('PP-053', 'First index of a program in default Z-homing mode has no G75 (sHomestrrot assigned lazily)',
        'low',
        'Default i4xIndexClearanceMode=0, first job indexed before any rapid; safe in practice because '
-       'start_program already homed.',
+       'start_program already homed. With bHomebegin false (or sHomestrbegin empty) that index turns A '
+       'with no clearance at all.',
        'confirmed',
        'None needed; owner decides whether the index must home explicitly.',
        ['history-indexing-link-13'], 'C'),
@@ -854,7 +855,9 @@ _ENTRIES = [
        ['efc-13', 'tc-12', 'pp-weird-hunter-15'], 'C'),
     _d('DESIGN-004', 'In confirmed CAM links the rotary block always precedes the XYZ block, even when Z rises in '
        'the same event', 'low',
-       'Default config; pinned by tests/fixtures/shit2_contiguous_link.json.',
+       'Default config; pinned by tests/fixtures/shit2_contiguous_link.json. With bHomeroth false (or '
+       'sHomestrroth empty) the same order applies to every A-turn rapid outside a CAM link, where CAM '
+       'planned no clearance.',
        'confirmed',
        'Owner policy (rise first vs rotate first within a confirmed link).',
        ['pp3-rising-link-rotary-order'], 'C'),

@@ -458,10 +458,9 @@ class CompensationPlaneAxisTests(unittest.TestCase):
     """The TRC word lands on a G0/G1 block that programs an axis of the working plane in every
     rapid path: climb, first-move split, drill positioning, rapids without a plane axis."""
 
-    def yz_climb(self, source=None):
+    def yz_climb(self, source=None, **options):
         require_nc_stream()
-        # Without the M1 between the jobs (bOptstpjob) the climb follows the MSG block directly.
-        program = same_tool_second_job('yz', source, bOptstpjob=False)
+        program = same_tool_second_job('yz', source, **options)
         program.ev('compensation', side='left')
         program.ev('move_5x', xpos=10, ypos=10, zpos=40)
         yz_arc(program, (0, 30), (10, 40), (10, 30), feed=200)
@@ -515,7 +514,8 @@ class CompensationPlaneAxisTests(unittest.TestCase):
                          '    if iMplane eq 19 and !change(ypos) and (!change(zpos) or bFirstMove)\n'
                          '        change(ypos) = true\n'
                          '    endif\n')
-        self.assertEqual(self.yz_climb(source)[:2], ['MSG("op2")', 'G0 Z40'])
+        # Without the M1 between the jobs (bOptstpjob) the climb follows the MSG block directly.
+        self.assertEqual(self.yz_climb(source, bOptstpjob=False)[:2], ['MSG("op2")', 'G0 Z40'])
 
     def null_rapid_after_compensated_cut(self, source=None):
         require_nc_stream()
@@ -535,19 +535,21 @@ class CompensationPlaneAxisTests(unittest.TestCase):
 
     def test_job_start_rapid_without_motion_is_not_joined_to_the_msg_line(self):
         require_nc_stream()
-        # Without the M1 between the jobs (bOptstpjob) the rapid follows the MSG block directly.
-        program = Program(options=dict(bOptstpjob=False))
-        program.start()
-        program.ev('move_5x', xpos=10, ypos=10, zpos=5)
-        program.ev('line_5x', zpos=-1, feed=200)
-        program.ev('compensation', side='left')
-        program.ev('line_5x', xpos=40, feed=200)
-        program.ev('line_5x', zpos=40, feed=200)        # below the clearance plane: end_of_job keeps G41
-        program.ev('compensation', side='off')
-        program.ev('end_of_job')
-        program.ev('start_of_job', job_name='op2')
-        program.ev('move_5x', xpos=40, ypos=10, zpos=40)
-        self.assertEqual(program.nc()[-2:], ['MSG("op2")', 'G0 G40 X40 Y10'])
+        # bOptstpjob (default on) puts an M1 between the MSG block and the rapid; off, they meet.
+        for stop, tail in ((False, ['MSG("op2")', 'G0 G40 X40 Y10']), (True, ['MSG("op2")', 'M1', 'G0 G40 X40 Y10'])):
+            with self.subTest(bOptstpjob=stop):
+                program = Program(options=dict(bOptstpjob=stop))
+                program.start()
+                program.ev('move_5x', xpos=10, ypos=10, zpos=5)
+                program.ev('line_5x', zpos=-1, feed=200)
+                program.ev('compensation', side='left')
+                program.ev('line_5x', xpos=40, feed=200)
+                program.ev('line_5x', zpos=40, feed=200)        # below the clearance plane: end_of_job keeps G41
+                program.ev('compensation', side='off')
+                program.ev('end_of_job')
+                program.ev('start_of_job', job_name='op2')
+                program.ev('move_5x', xpos=40, ypos=10, zpos=40)
+                self.assertEqual(program.nc()[-len(tail):], tail)
 
     def test_deselecting_rapid_that_does_not_climb_stays_one_block(self):
         program = Program()

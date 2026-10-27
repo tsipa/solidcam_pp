@@ -508,7 +508,7 @@ Canonical `@known_defect` tests: 53. `@covers` references: 95.
 
 - Severity: low
 - Confidence: confirmed
-- Reachability: Default i4xIndexClearanceMode=0, first job indexed before any rapid; safe in practice because start_program already homed.
+- Reachability: Default i4xIndexClearanceMode=0, first job indexed before any rapid; safe in practice because start_program already homed. With bHomebegin false (or sHomestrbegin empty) that index turns A with no clearance at all.
 - Location: GPP @usr_4x_index_rotate (sHomestr = sHomestrrot; '' = no homing in @usr_prep_home_axis); sHomestrrot assigned only in @usr_rapid and @usr_head_home_select (first rapid / tool change)
 - Evidence that would settle it: None needed; owner decides whether the index must home explicitly.
 - Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
@@ -942,7 +942,7 @@ Canonical `@known_defect` tests: 53. `@covers` references: 95.
 
 - Severity: low
 - Confidence: confirmed
-- Reachability: Default config; pinned by tests/fixtures/shit2_contiguous_link.json.
+- Reachability: Default config; pinned by tests/fixtures/shit2_contiguous_link.json. With bHomeroth false (or sHomestrroth empty) the same order applies to every A-turn rapid outside a CAM link, where CAM planned no clearance.
 - Location: GPP @usr_rapid (A block first, then @usr_rapid_xyz)
 - Evidence that would settle it: Owner policy (rise first vs rotate first within a confirmed link).
 - Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)

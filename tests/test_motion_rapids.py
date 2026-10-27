@@ -375,6 +375,8 @@ class RapidWithoutMotionTests(unittest.TestCase):
             self.assertLessEqual(len(feeds), 1, f'two feed words in one block: {line!r}')
             if line.startswith('MSG('):
                 self.assertTrue(line.endswith(')'), f'MSG block carries more: {line!r}')
+            if words and words[0] in ('M0', 'M1'):
+                self.assertEqual(line, words[0], f'stop block carries more: {line!r}')
 
     def check_after_cut(self, source=None, emulated=False):
         program = self.program(source, emulated)
@@ -385,9 +387,9 @@ class RapidWithoutMotionTests(unittest.TestCase):
         self.check_lines(program.nc())
         self.assertIn(cut[-1].strip(), [raw.strip() for raw in program.nc()])
 
-    def check_after_job_comment(self, source=None):
-        # Without the M1 between the jobs (bOptstpjob) the rapid follows the MSG block directly.
-        program = self.program(source, bOptstpjob=False)
+    def check_after_job_comment(self, source=None, **options):
+        # bOptstpjob (default on) puts an M1 between the MSG block and the rapid; off, they meet.
+        program = self.program(source, **options)
         program.ev('move_5x', xpos=10, ypos=10, zpos=5)
         program.ev('line_5x', zpos=-1, feed=200, feed_type='feed_cut')
         program.ev('line_5x', zpos=5, feed=200, feed_type='feed_cut')
@@ -408,8 +410,10 @@ class RapidWithoutMotionTests(unittest.TestCase):
 
     @covers('PP-059')
     def test_rapid_without_motion_leaves_the_job_comment_alone(self):
-        """INDEPENDENT: Sinumerik MSG("...") stands alone in its block."""
-        self.check_after_job_comment()
+        """INDEPENDENT: Sinumerik MSG("...") stands alone in its block; so does the M1 after it."""
+        for stop in (True, False):
+            with self.subTest(bOptstpjob=stop):
+                self.check_after_job_comment(bOptstpjob=stop)
 
     def test_joining_the_rapid_to_the_current_line_is_detected(self):
         """INDEPENDENT: mutation self-check; the old join (skipline = false) fails each check."""
@@ -417,7 +421,9 @@ class RapidWithoutMotionTests(unittest.TestCase):
         assert_detected(self, self.check_after_cut, mutant, 'G0 joined to the cut', match='two motion')
         assert_detected(self, lambda source: self.check_after_cut(source, emulated=True), mutant,
                         'F650 joined to the cut', match='two feed')
-        assert_detected(self, self.check_after_job_comment, mutant, 'G0 joined to MSG', match='MSG block')
+        assert_detected(self, lambda source: self.check_after_job_comment(source, bOptstpjob=False), mutant,
+                        'G0 joined to MSG', match='MSG block')
+        assert_detected(self, self.check_after_job_comment, mutant, 'G0 joined to the job M1', match='stop block')
 
 
 class FeedEmulatedRapidTests(unittest.TestCase):

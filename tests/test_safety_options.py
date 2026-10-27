@@ -8,9 +8,10 @@ operations of the same tool (bOptstpjob) is not repeated where the boundary alre
 
 The tests read the blocks each event returns (no skipline joining), so they run on both engines.
 """
+import difflib
 import unittest
 
-from program_session import Program
+from program_session import Program, require_nc_stream
 from support import assert_detected, mutate
 
 HOMING = ['G75 Z1=0.', 'G75 Y1=0 X1=0']
@@ -30,6 +31,14 @@ def first_job(source=None, cam=None, **options):
     blocks += p.ev('line', zpos=-2, feed=200)
     blocks += p.ev('rapid_move', zpos=50)
     return p, blocks
+
+
+def second_tool_change(**options):
+    """first_job, then T2 and its job op2; returns the blocks of that start_of_job."""
+    p, _ = first_job(**options)
+    p.ev('end_of_job', next_job_tool_number=2)
+    p.ev('change_tool', tool_number=2, next_tool_number=1, first_tool=False, last_tool=True, xnext=0, ynext=0)
+    return p.ev('start_of_job', job_name='op2', next_job_tool_number=0)
 
 
 def homings(blocks):
@@ -60,17 +69,11 @@ class HomingOptionTests(unittest.TestCase):
         self.assertEqual(self.end_blocks(), ['M9', 'M5', *HOMING, 'M30'])
         self.assertEqual(self.end_blocks(bHomeend=False), ['M9', 'M5', 'M30'])
 
-    def second_tool_change(self, **options):
-        p, _ = first_job(**options)
-        p.ev('end_of_job', next_job_tool_number=2)
-        p.ev('change_tool', tool_number=2, next_tool_number=1, first_tool=False, last_tool=True, xnext=0, ynext=0)
-        return p.ev('start_of_job', job_name='op2', next_job_tool_number=0)
-
     def test_tool_change_homing(self):
         """INDEPENDENT: bHometc = sHomestrtc after M5, before M1 and T; off keeps M5, M1 and the change."""
-        on = self.second_tool_change()
+        on = second_tool_change()
         self.assertEqual(on[:6], ['M9', 'M5', *HOMING, 'M1', ';'])
-        off = self.second_tool_change(bHometc=False)
+        off = second_tool_change(bHometc=False)
         self.assertEqual(off[:4], ['M9', 'M5', 'M1', ';'])
         self.assertEqual(homings(off), [])
         self.assertIn('T2', off)
@@ -169,18 +172,130 @@ class OptionalStopOptionTests(unittest.TestCase):
 
     def test_tool_change_keeps_its_own_single_stop(self):
         """INDEPENDENT: a tool change stops once (bOptstptc, before T); no job M1 after its message."""
+        start = second_tool_change()
+        self.assertEqual(start.count('M1'), 1, start)
+        self.assertLess(start.index('M1'), start.index('T2'))
+
+    def test_tool_change_stop_option(self):
+        """INDEPENDENT: bOptstptc off removes the M1 before T and adds no job M1 instead."""
+        off = second_tool_change(bOptstptc=False)
+        self.assertEqual(off[:5], ['M9', 'M5', *HOMING, ';'])
+        self.assertNotIn('M1', off)
+
+    def test_no_job_stop_at_the_first_tool(self):
+        """INDEPENDENT: the job M1 belongs to same-tool boundaries; the first tool's start has none."""
+        self.assertNotIn('M1', program().start(tool=1, next_tool=2))
+
+    def test_job_stop_returns_after_an_earlier_boundary_stop(self):
+        """INDEPENDENT: a stop at one boundary (tool change M1, index M1) does not hide the job M1 of a
+        later same-tool boundary (bBoundaryStop is cleared at end_of_job)."""
         p, _ = first_job()
         p.ev('end_of_job', next_job_tool_number=2)
         p.ev('change_tool', tool_number=2, next_tool_number=1, first_tool=False, last_tool=True, xnext=0, ynext=0)
-        start = p.ev('start_of_job', job_name='op2', next_job_tool_number=0)
-        self.assertEqual(start.count('M1'), 1, start)
-        self.assertLess(start.index('M1'), start.index('T2'))
-        self.assertEqual(program(bOptstptc=False).ev('start_program').count('M1'), 0)
+        p.ev('start_of_job', job_name='op2', next_job_tool_number=2)
+        p.ev('rapid_move', xpos=20, ypos=10, zpos=50)
+        p.ev('line', zpos=-2, feed=200)
+        p.ev('rapid_move', zpos=50)
+        p.ev('end_of_job', next_job_tool_number=2)
+        p.ev('fourth_axis', angle=45, angle_4x_around_x_dir='ccw')
+        self.assertNotIn('M1', p.ev('start_of_job', job_name='op3', next_job_tool_number=2))
+        p.ev('rapid_move', xpos=30, ypos=10, zpos=50)
+        p.ev('line', zpos=-2, feed=200)
+        p.ev('rapid_move', zpos=50)
+        p.ev('end_of_job', next_job_tool_number=2)
+        self.assertEqual(p.ev('start_of_job', job_name='op4', next_job_tool_number=0), ['MSG("op4")', 'M1'])
 
     def test_repeating_the_stop_after_an_m0_is_detected(self):
         """INDEPENDENT: mutation self-check; a job M1 that ignores the boundary stop fails the guard."""
         mutant = mutate('        if bOptstpjob and !bBoundaryStop\n', '        if bOptstpjob\n')
         assert_detected(self, self.check_no_m1_after_m0, mutant, 'M1 after M0', match='second stop')
+
+
+def representative(source=None, **options):
+    """Tool 1: op1, same-tool op2, CoordSys index op3, @fourth_axis index op4; tool 2: op5 with a 5x
+    A turn outside a CAM link and a G93 cut, same-tool op6; program end. Returns the NC lines."""
+    p = Program(options=options, source=source)
+    p.start(tool=1, next_tool=2, next_job_tool_number=1)
+
+    def cut(x):
+        p.ev('rapid_move', xpos=x, ypos=10, zpos=50)
+        p.ev('line', zpos=-2, feed=200)
+        p.ev('rapid_move', zpos=50)
+
+    cut(10)
+    p.ev('end_of_job', next_job_tool_number=1)
+    p.ev('start_of_job', job_name='op2', next_job_tool_number=1)
+    cut(20)
+    p.ev('end_of_job', next_job_tool_number=1)
+    p.ev('tmatrix', angle_4x_around_x=90, angle_4x_around_x_dir='ccw')
+    p.ev('start_of_job', job_name='op3', next_job_tool_number=1)
+    cut(30)
+    p.ev('end_of_job', next_job_tool_number=1)
+    p.ev('fourth_axis', angle=45, angle_4x_around_x_dir='ccw')
+    p.ev('start_of_job', job_name='op4', next_job_tool_number=2)
+    cut(40)
+    p.ev('end_of_job', next_job_tool_number=2)
+    p.ev('change_tool', tool_number=2, next_tool_number=1, first_tool=False, last_tool=True, xnext=0, ynext=0)
+    p.ev('start_of_job', job_name='op5', next_job_tool_number=2)
+    p.ev('move_5x', xpos=10, ypos=0, zpos=40, apos=0, dir5a='ccw')
+    p.ev('move_5x', apos=90, dir5a='ccw', prev_command='@move_5x')
+    p.ev('move_5x', zpos=25)
+    p.ev('line_5x', xpos=20, apos=120, feed=300, dir5a='ccw', feed_type='feed_cut')
+    p.ev('move_5x', zpos=50)
+    p.ev('end_of_job', next_job_tool_number=2)
+    p.ev('start_of_job', job_name='op6', next_job_tool_number=0)
+    cut(50)
+    p.ev('end_of_job', next_job_tool_number=0)
+    p.ev('end_program')
+    return p.nc()
+
+
+# The pre-option post (cd52658) printed exactly this without the two job M1 lines (after MSG("op2")
+# and MSG("op6")); compared old vs new on 2026-10-27.
+DEFAULT_NC = [
+    'G75 Z1=0.', 'G75 Y1=0 X1=0', ';', 'G17 G40 G64 G90', 'T1', 'M06', 'D1', 'T2', 'MSG("op1")',
+    'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G0 G17 G90 G54 A=DC(0) M8 M3 S3000', 'G04 F6.3', 'X10 Y10', 'Z50',
+    'G1 Z-2 F200', 'G0 Z50', 'MSG("op2")', 'M1', 'X20', 'G1 Z-2', 'G0 Z50',
+    'M1', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G54 A=ACP(90)', 'MSG("op3")', 'X30 Y10', 'Z50', 'G1 Z-2', 'G0 Z50',
+    'M1', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'A=ACP(135)', 'MSG("op4")', 'X40 Y10', 'Z50', 'G1 Z-2', 'G0 Z50',
+    'M9', 'M5', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'M1', ';', 'G17 G40 G64 G90', 'T2', 'M06', 'D1', 'MSG("op5")',
+    'G0 G17 G90 G54 M8 M3 S3000', 'G04 F6.3', 'X10 Y0', 'Z40', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G0 A=ACP(225)',
+    'X10 Y0', 'Z40', 'Z25', 'G1 G93 X20 A=ACP(255) F18.212', 'G0 Z50', 'G94 F300',
+    'MSG("op6")', 'M1', 'X50 Y10', 'G1 Z-2 F200', 'G0 Z50', 'M9', 'M5', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'M30',
+]
+
+# Each option switched off, as edits of DEFAULT_NC (difflib opcodes: tag, i1, i2, inserted lines).
+OPTION_OFF_EDITS = {
+    'bHomebegin': [('delete', 0, 2, [])],
+    'bHometc': [('delete', 42, 44, [])],
+    'bHomeend': [('delete', 71, 73, [])],
+    'bHomerotv': [('delete', 9, 11, [])],
+    # No homing before the A turn: no X/Y/Z reprogramming after it either.
+    'bHomeroth': [('delete', 55, 57, []), ('delete', 58, 60, [])],
+    'bOptstptc': [('delete', 44, 45, [])],
+    'bOptstpjob': [('delete', 18, 19, []), ('delete', 65, 66, [])],
+    # Without the index M1 the boundary has no stop yet: the job M1 follows the next MSG.
+    'bOptstpindex': [('delete', 22, 23, []), ('insert', 27, 27, ['M1']),
+                     ('delete', 31, 32, []), ('insert', 36, 36, ['M1'])],
+}
+
+
+class RepresentativeProgramTests(unittest.TestCase):
+    def test_default_output(self):
+        """CHARACTERIZATION: the default output is the pre-option output plus the job M1 lines."""
+        require_nc_stream()
+        self.assertEqual(representative(), DEFAULT_NC)
+
+    def test_each_option_removes_only_its_own_blocks(self):
+        """INDEPENDENT: switching one option off changes only the blocks of that point."""
+        require_nc_stream()
+        for name, edits in OPTION_OFF_EDITS.items():
+            with self.subTest(option=name):
+                actual = representative(**{name: False})
+                opcodes = [(tag, i1, i2, actual[j1:j2]) for tag, i1, i2, j1, j2
+                           in difflib.SequenceMatcher(a=DEFAULT_NC, b=actual, autojunk=False).get_opcodes()
+                           if tag != 'equal']
+                self.assertEqual(opcodes, edits)
 
 
 if __name__ == '__main__':

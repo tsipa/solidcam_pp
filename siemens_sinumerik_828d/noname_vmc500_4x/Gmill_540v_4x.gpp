@@ -159,14 +159,19 @@ endp
     sHomestrrotv          = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0' ; First rapid of the program, head orientation change
     sHomestrroth          = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0' ; Before an A turn outside a CAM link
     ;Homing on/off per point (the strings above stay as they are). The homings are the clearance
-    ;for these moves: switched off, the tool moves on from where CAM left it. The A index clearance
-    ;is i4xIndexClearanceMode (0 = home with the last head or A-turn homing string).
-    bHomebegin            = true               ; True = sHomestrbegin at the program start
-    bHometc               = true               ; True = sHomestrtc (sHomestrrotv for a vertical head) before each tool change after the first
+    ;for these moves: switched off, the next move starts wherever the tool stands (CAM's last
+    ;position, or where M06 left it) and the post programs only the axes CAM changes. The A index
+    ;clearance is i4xIndexClearanceMode (0 = home with the last head or A-turn homing string).
+    bHomebegin            = true               ; True = sHomestrbegin at the program start. False: an A index before the
+                                               ; first rapid of the program turns with no clearance (PP-053)
+    bHometc               = true               ; True = sHomestrtc (sHomestrrotv for a vertical head) before each tool change
+                                               ; after the first. False: the new tool's first X/Y move runs at the height M06
+                                               ; leaves it; compensation still on is deselected only by the safety block G40
     bHomeend              = true               ; True = sHomestrend at the program end
     bHomerotv             = true               ; True = sHomestrrotv at the first rapid of the program and at a head orientation change
     bHomeroth             = true               ; True = sHomestrroth before an A turn outside a CAM link. False: A turns at the current
-                                               ; height, in its own block before X/Y/Z of the same rapid (DESIGN-004)
+                                               ; height, in its own block before X/Y/Z of the same rapid (DESIGN-004), and
+                                               ; a turn ACP/ACN would run another way than CAM stops the post (PP-060)
 
     iR1dir                = -1                 ; A direction: 1 = +CCW, -1 = +CW
     iR2dir                = 1                  ; Second rotary axis of the template (none on this machine)
@@ -667,7 +672,7 @@ endp
 @usr_ct_before_notfirsttool
     ; Before a tool change after the first: coolant and spindle off, home (bHometc), optional stop, safety block.
     ; bStopM00difftool is always false here (PP-056: end_of_job clears it in the same event), so the
-    ; G75 retract before M06 always runs.
+    ; G75 retract before M06 runs whenever bHometc is set.
     if !bStopM00difftool
         if bCooloffend and bCoolExist
             call @usr_coolant_prep_all_off
@@ -1015,7 +1020,7 @@ endp
 
 @start_of_job
     ; Start of an operation: work offset and job plane, a pending index, then the tool change
-    ; (usr_ct) or, for the same tool, the job comment and a work-offset change.
+    ; (usr_ct) or, for the same tool, the job comment, the M1 (bOptstpjob) and a work-offset change.
     local numeric dummy_var
     call @usr_link_boundary
     call @home_number

@@ -109,18 +109,24 @@ class RotaryDirectionGuardTests(unittest.TestCase):
 
     @covers('PP-060')
     def test_wrong_way_rapid_without_rotation_homing_stops_the_post(self):
-        """INDEPENDENT: owner rule. With the rotation homing switched off (sHomestrroth '') the turn runs at the current Z."""
-        program = started(options=dict(sHomestrroth=''))
-        program.ev('move_5x', zpos=60)
-        self.assert_wrong_way_stop(lambda: program.ev('move_5x', apos=10, dir5a='ccw'))
+        """INDEPENDENT: owner rule. With the rotation homing switched off (sHomestrroth '' or
+        bHomeroth false) the turn runs at the current Z."""
+        for options in (dict(sHomestrroth=''), dict(bHomeroth=False)):
+            with self.subTest(**options):
+                program = started(options=options)
+                program.ev('move_5x', zpos=60)
+                self.assert_wrong_way_stop(lambda: program.ev('move_5x', apos=10, dir5a='ccw'))
 
     @covers('PP-060')
     def test_wrong_way_three_axis_rapid_without_rotation_homing_stops_the_post(self):
         """INDEPENDENT: owner rule. A @rapid_move takes its word from angle_4x_around_x_dir; with the
         rotation homing switched off it turns A at the current height, here +350 for CAM's -10."""
-        program = started(options=dict(sHomestrroth=''))
-        program.ev('line_5x', zpos=30, feed=200, feed_type='feed_cut')
-        self.assert_wrong_way_stop(lambda: program.ev('rapid_move', xpos=20, apos=10, angle_4x_around_x_dir='ccw'))
+        for options in (dict(sHomestrroth=''), dict(bHomeroth=False)):
+            with self.subTest(**options):
+                program = started(options=options)
+                program.ev('line_5x', zpos=30, feed=200, feed_type='feed_cut')
+                self.assert_wrong_way_stop(lambda: program.ev('rapid_move', xpos=20, apos=10,
+                                                              angle_4x_around_x_dir='ccw'))
 
     @covers('PP-060')
     def test_wrong_way_rapid_with_a_rotation_homing_without_z_stops_the_post(self):
