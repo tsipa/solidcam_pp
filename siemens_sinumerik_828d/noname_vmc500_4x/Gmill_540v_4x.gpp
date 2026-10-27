@@ -1158,6 +1158,8 @@ endp
         bSkipxyrapid = false
         spin = spin_rate
         change(spin) = false
+        ; X/Y are programmed here and Z after the spindle start below: no extra reposition.
+        bPostHomed = false
         call @rapid_move
         call @start_tool
         if bCoolExist
@@ -1376,7 +1378,7 @@ endp
             if change(iDiametercomp)
                 iCompActive = iDiametercomp
             endif
-            if bFirstMove and change(zpos) and bClimbZValid and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
+            if bFirstMove and change(zpos) and bClimbZValid and !bHomedReposition and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
                 ; Job starts above the current Z (no homing since the last move): climb first, then traverse XY.
                 bFirstMovetlch = false
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],'Z'zpos ' '}
@@ -1517,9 +1519,13 @@ endp
 ;        {nb,['G'iFeedType' ']}
 ;    endif
     if bPostHomed
-        ; A feed move directly after a post-inserted homing must not start from the homing position.
-        change(xpos) = true
-        change(ypos) = true
+        ; A feed move directly after a post-inserted homing: return over the target at the homed Z in
+        ; rapid, then feed down in Z, instead of one diagonal feed move from the homing position.
+        iMotionmode = 0
+        {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'X'xpos ' ','Y'ypos ' '}
+        iMotionmode = 1
+        change(xpos) = false
+        change(ypos) = false
         change(zpos) = true
         bPostHomed = false
     endif
@@ -1929,6 +1935,7 @@ endp
 
 @usr_StopM00_sametool
     ; Handle output for forced stopM00 between operations using the same tool
+    local logical bHomedBeforeReturn
     if bCoolExist
         iCoolantM1 = iCoolantM1OFF
         iCoolantM2 = iCoolantM2OFF
@@ -1966,7 +1973,12 @@ endp
     change(xpos) = true
     change(ypos) = true
     change(zpos) = false
+    ; This return is XY only, at the homed Z: a pending post homing stays pending, so the next move
+    ; still programs Z.
+    bHomedBeforeReturn = bPostHomed
+    bPostHomed = false
     call @rapid_move
+    bPostHomed = bHomedBeforeReturn
 ;	call @usr_heightcomp_on
 endp
 

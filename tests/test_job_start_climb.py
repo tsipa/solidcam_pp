@@ -50,7 +50,7 @@ class JobStartClimbTests(unittest.TestCase):
 
     def test_removing_the_climb_branch_is_detected(self):
         source = PP.read_text(encoding='utf-8-sig')
-        condition = re.compile(r'if bFirstMove and change\(zpos\) and bClimbZValid and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ')
+        condition = re.compile(r'if bFirstMove and change\(zpos\) and bClimbZValid and !bHomedReposition and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ')
         self.assertEqual(len(condition.findall(source)), 1, 'climb condition changed; review this test')
         broken = condition.sub('if false', source, count=1)
         output = same_tool_next_job(5, (['xpos', 'ypos', 'zpos'], dict(xpos=100, ypos=100, zpos=50)), broken)

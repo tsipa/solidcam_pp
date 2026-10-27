@@ -8,6 +8,7 @@ import re
 import unittest
 
 from pp_tests.engine import Engine
+from program_session import Program
 from test_motion import motion_engine
 from test_offline import PP
 
@@ -61,13 +62,16 @@ class PostHomingRepositionTests(unittest.TestCase):
         return rotation, approach
 
     def assert_xy_restored_before_descent(self, rotation, approach):
+        """X/Y are programmed in an earlier block than the first Z that leaves the homed height."""
         self.assertIn(HOME_XY, rotation)
-        programmed = axes_after_homing(rotation) + [
-            (axis, float(value)) for block in approach for axis, value in words(block).items()]
-        first_descent = next(i for i, (axis, value) in enumerate(programmed) if axis == 'Z' and value < 50)
-        before = dict(programmed[:first_descent])
-        self.assertEqual((before.get('X'), before.get('Y')), (12.0, 23.0),
-                         f'X/Y not reprogrammed after homing before descending: {rotation + approach}')
+        after = rotation[rotation.index(HOME_XY) + 1:] + approach
+        descent = [i for i, block in enumerate(after) if 'Z' in words(block)]
+        self.assertTrue(descent, f'Z never programmed after homing: {after}')
+        before = {}
+        for block in after[:descent[0]]:
+            before.update(words(block))
+        self.assertEqual((before.get('X'), before.get('Y')), ('12', '23'),
+                         f'X/Y not reprogrammed in a block before the descent: {after}')
 
     def test_rotation_homing_reprograms_unchanged_xy(self):
         rotation, approach = self.rotate_only_scenario()
@@ -99,6 +103,79 @@ class PostHomingRepositionTests(unittest.TestCase):
         rotation, approach = self.rotate_only_scenario(source.replace(anchor, '', 1))
         with self.assertRaises(AssertionError):
             self.assert_xy_restored_before_descent(rotation, approach)
+
+
+class PostHomingProgramTests(unittest.TestCase):
+    """Whole programs: tool-change homing, M00, subprograms, a feed move right after homing."""
+
+    def two_tools(self, source=None, **options):
+        program = Program(options=options, source=source)
+        program.start()
+        program.ev('move_5x', xpos=10, ypos=20, zpos=50)
+        program.ev('line_5x', zpos=-1, feed=200)
+        program.ev('move_5x', zpos=50)
+        program.ev('end_of_job')
+        program.ev('change_tool', tool_number=2, next_tool_number=3, first_tool=False, tool_start_plane=60)
+        program.ev('start_of_job', job_name='op2')
+        return program
+
+    def test_first_rapid_after_tool_change_reprograms_unchanged_xy(self):
+        # The next tool starts over the same XY: SolidCAM flags only Z, the axes stand at G75.
+        program = self.two_tools()
+        self.assertEqual(program.ev('move_5x', xpos=10, ypos=20, zpos=60), ['X10 Y20', 'Z60'])
+
+    def test_reposition_is_forced_only_once(self):
+        program = self.two_tools()
+        program.ev('move_5x', xpos=10, ypos=20, zpos=60)
+        self.assertEqual(program.ev('move_5x', zpos=40), ['Z40'])
+        self.assertEqual(program.ev('move_5x', xpos=120, ypos=90, zpos=50), ['X120 Y90 Z50'])
+
+    def test_feed_move_after_index_homing_returns_in_rapid_then_feeds_in_z(self):
+        program = Program()
+        program.start()
+        program.ev('move_5x', xpos=30, ypos=10, zpos=5)
+        program.ev('line_5x', zpos=-2, feed=200)
+        program.ev('end_of_job')
+        program.ev('tmatrix', angle_4x_around_x=90)
+        program.engine.state['btmatrixindexpending'] = True
+        self.assertIn(HOME_XY, program.ev('start_of_job', job_name='op2'))
+        self.assertEqual(program.ev('line_5x', xpos=40, ypos=15, zpos=-1, feed=200), ['G0 X40 Y15', 'G1 Z-1'])
+        self.assertEqual(program.ev('line_5x', xpos=50), ['X50'])
+
+    def test_m00_return_keeps_z_at_home_and_next_job_programs_it(self):
+        # M00 with homing (non-default sHomestrstpsame): the return is XY only; the next job comes down.
+        program = Program(options=dict(sHomestrstpsame='8::G75 Z1=0. ;8::G75 Y1=0 X1=0'),
+                          cam=dict(bStopM00=True, next_job_tool_number=1))
+        program.start()
+        program.ev('move_5x', xpos=30, ypos=10, zpos=5)
+        program.ev('line_5x', zpos=-2, feed=200)
+        stop = program.ev('end_of_job')
+        self.assertEqual(stop[-3:], ['M0', 'M3', 'G0 X30 Y10'], stop)
+        program.ev('start_of_job', job_name='op2')
+        self.assertEqual(program.ev('move_5x', xpos=60, ypos=20, zpos=40), ['X60 Y20', 'Z40'])
+
+    def test_subprogram_job_start_keeps_its_own_order(self):
+        # bSubs (non-default): X/Y, spindle, then Z once, exactly as before the homing fix.
+        program = Program(options=dict(bSubs=True))
+        program.ev('start_program')
+        program.engine.state['btlchg'] = False
+        program.ev('call_proc', label=1, xnext=12, ynext=23)
+        program.ev('proc', label=1)
+        output = program.ev('start_of_job', job_name='op1', xnext=12, ynext=23, zpos=35, force=dict(zpos=True))
+        self.assertEqual(output, ['MSG("op1")', 'G0 G90 X12 Y23 M3', 'S3000', 'G04 F6.3', 'M8', 'Z35'])
+
+    def test_file_start_clears_a_stale_homing_mark(self):
+        program = Program()
+        program.engine.state['bposthomed'] = True
+        program.engine.call('usr_init_gmstates')
+        self.assertIs(program.engine.state['bposthomed'], False)
+
+    def test_tool_change_branch_must_not_consume_the_reposition(self):
+        source = PP.read_text(encoding='utf-8-sig')
+        anchor = '        bTlchg = false\n        bFirstRapid = false\n        bClimbZValid = false\n'
+        self.assertEqual(source.count(anchor), 1, 'tool-change rapid branch changed; review this test')
+        program = self.two_tools(source.replace(anchor, anchor + '        bPostHomed = false\n', 1))
+        self.assertEqual(program.ev('move_5x', xpos=10, ypos=20, zpos=60), ['Z60'])
 
 
 class PostHomingApproachOrderTests(unittest.TestCase):
