@@ -342,7 +342,7 @@ Canonical `@known_defect` tests: 78. `@covers` references: 55.
 
 - Severity: low
 - Confidence: confirmed
-- Reachability: Non-default bSyncdrapid=false (feed-emulated rapids). The tool-change positioning G1 block (A=DC(0)) and the first XY block of a split first move have no F under both flag policies; the first-job split Z block without F depends on ENGINE-001 (it prints F650 under the persisting policy). Since 3e0c345 the XY block of the split return after a post-inserted homing has no F either (the diagonal block it replaced carried F650).
+- Reachability: Non-default bSyncdrapid=false (feed-emulated rapids). The tool-change positioning G1 block (A=DC(0)) and the first XY block of a split first move have no F under both flag policies; the first-job split Z block without F depends on ENGINE-001 (it prints F650 under the persisting policy). The rotary G1 block after a post-inserted homing has no F either.
 - Location: GPP @usr_rapid L1286 (rotary G1), L1303 (tool-change block), L1323 (split XY block); F only at L1337
 - Evidence that would settle it: None needed for the behaviour; owner decides the intended F on every emulated block.
 - Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)

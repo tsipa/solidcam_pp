@@ -206,7 +206,7 @@ class PostHomingSkiplineTests(unittest.TestCase):
     def test_skipline_false_before_z_would_join_the_lines(self):
         require_nc_stream()
         source = PP.read_text(encoding='utf-8-sig')
-        pattern = re.compile(r"(if bHomedReposition\n(?:\s*;[^\n]*\n)?\s*skipline = )true")
+        pattern = re.compile(r"(if bHomedReposition\n(?:\s*;[^\n]*\n)?\s*call @usr_emulated_rapid_feed\n\s*skipline = )true")
         self.assertEqual(len(pattern.findall(source)), 1, 'post-homing split changed; review this test')
         broken = pattern.sub(r"\1false", source, count=1)
         self.assertIn('X50 Y60 Z3', self.rotation_after_cutting(broken))
@@ -236,7 +236,7 @@ class PostHomingApproachOrderTests(unittest.TestCase):
 
     def test_removing_the_split_is_detected(self):
         source = PP.read_text(encoding='utf-8-sig')
-        pattern = re.compile(r"if bHomedReposition\n(\s*;[^\n]*\n)?\s*skipline = true\n\s*\{nb,'Z'zpos ' ' \}\n\s*skipline = true\n")
+        pattern = re.compile(r"if bHomedReposition\n(\s*;[^\n]*\n)?\s*call @usr_emulated_rapid_feed\n\s*skipline = true\n\s*\{nb,'Z'zpos ' ' \}\n\s*skipline = true\n")
         self.assertEqual(len(pattern.findall(source)), 1, 'post-homing split changed; review this test')
         broken = pattern.sub("if bHomedReposition\n{'Z'zpos ' ' }\n", source, count=1)
         session = Session(broken)
@@ -244,6 +244,50 @@ class PostHomingApproachOrderTests(unittest.TestCase):
         output = session.step('move_5x', ['apos', 'xpos', 'ypos', 'zpos'], apos=30, xpos=50, ypos=60, zpos=3,
                               prev_command='@line_5x')
         self.assertIn('X50 Y60 Z3', output)
+
+
+EMULATED_RAPIDS = dict(options=dict(bSyncdrapid=False), cam=dict(job_type='3-d model'))
+
+
+def without_emulated_feed_calls(source):
+    pattern = re.compile(r'\n[ \t]*call @usr_emulated_rapid_feed(?=\n)')
+    if len(pattern.findall(source)) != 2:
+        raise AssertionError('emulated rapid feed calls changed; review this test')
+    return pattern.sub('', source)
+
+
+class PostHomingEmulatedRapidFeedTests(unittest.TestCase):
+    """Oracle (INDEPENDENT): with feed-emulated rapids (bSyncdrapid=false, '3-d model' job) the post
+    writes G1 for a rapid and must give it nRapidfeed (F650); F is modal, so the first block of the
+    split return carries F650 and the Z block after it inherits it. Before 3e0c345 the return was one
+    diagonal block 'X50 Y60 Z3 F650'."""
+
+    def return_after_rotation(self, source=None):
+        require_nc_stream()
+        program = Program(source=source, **EMULATED_RAPIDS)
+        program.start()
+        program.ev('move_5x', xpos=10, ypos=20, zpos=50)
+        program.ev('line_5x', xpos=15, feed=200)
+        program.ev('move_5x', apos=30, xpos=50, ypos=60, zpos=3, prev_command='@line_5x')
+        nc = program.nc()
+        last_homing = len(nc) - 1 - nc[::-1].index(HOME_XY)
+        return nc[last_homing + 2:]
+
+    def test_xy_return_after_homing_moves_at_rapid_feed(self):
+        self.assertEqual(self.return_after_rotation(), ['X50 Y60 F650', 'Z3'])
+
+    def test_missing_feed_on_the_xy_return_is_detected(self):
+        broken = without_emulated_feed_calls(PP.read_text(encoding='utf-8-sig'))
+        self.assertEqual(self.return_after_rotation(broken), ['X50 Y60', 'Z3 F650'])
+
+    def test_synchronised_rapids_get_no_feed(self):
+        require_nc_stream()
+        program = Program()
+        program.start()
+        program.ev('move_5x', xpos=10, ypos=20, zpos=50)
+        program.ev('line_5x', xpos=15, feed=200)
+        program.ev('move_5x', apos=30, xpos=50, ypos=60, zpos=3, prev_command='@line_5x')
+        self.assertEqual(program.nc()[-2:], ['X50 Y60', 'Z3'])
 
 
 if __name__ == '__main__':

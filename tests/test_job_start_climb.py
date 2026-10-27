@@ -10,7 +10,7 @@ import unittest
 
 from program_session import Program, require_nc_stream
 from test_offline import PP
-from test_post_homing_reposition import Session
+from test_post_homing_reposition import EMULATED_RAPIDS, Session, without_emulated_feed_calls
 
 
 def same_tool_next_job(last_z, first_move, source=None):
@@ -188,6 +188,29 @@ class JobStartClimbTests(unittest.TestCase):
         broken = condition.sub('if false', source, count=1)
         output = same_tool_next_job(5, (['xpos', 'ypos', 'zpos'], dict(xpos=100, ypos=100, zpos=50)), broken)
         self.assertEqual(output, ['G0 X100 Y100', 'Z50'])
+
+
+class ClimbEmulatedRapidFeedTests(unittest.TestCase):
+    """Oracle (INDEPENDENT): with feed-emulated rapids the climb is a G1 block and must move at
+    nRapidfeed (F650); F is modal, so the XY block after it inherits the feed."""
+
+    def climb(self, source=None):
+        require_nc_stream()
+        program = Program(source=source, **EMULATED_RAPIDS)
+        program.start()
+        program.ev('move_5x', xpos=10, ypos=10, zpos=5)
+        program.ev('line_5x', zpos=-1, feed=100)
+        program.ev('end_of_job')
+        program.ev('start_of_job', job_name='op2')
+        program.ev('move_5x', xpos=100, ypos=100, zpos=50)
+        return program.nc()[-2:]
+
+    def test_climb_moves_at_rapid_feed(self):
+        self.assertEqual(self.climb(), ['Z50 F650', 'X100 Y100'])
+
+    def test_missing_feed_on_the_climb_is_detected(self):
+        broken = without_emulated_feed_calls(PP.read_text(encoding='utf-8-sig'))
+        self.assertEqual(self.climb(broken), ['Z50', 'X100 Y100 F650'])
 
 
 if __name__ == '__main__':

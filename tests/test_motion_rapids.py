@@ -253,6 +253,7 @@ class HomingRestoreTests(unittest.TestCase):
 # @usr_rapid: 3e0c345 put Z in its own block when the rapid returns from post-inserted homing.
 HOMED_RETURN_SPLIT = """                        if bHomedReposition
                             ; Coming from the homing position: traverse XY at the homed Z, then plunge in Z.
+                            call @usr_emulated_rapid_feed
                             skipline = true
                             {nb,'Z'zpos ' ' }
                             skipline = true
@@ -391,8 +392,8 @@ class FeedEmulatedRapidTests(unittest.TestCase):
         motion blocks here (fixed-point approach at rapid). Checked for every rapid of a
         program: the tool-change positioning, the job's first move and a non-link rotary
         rapid after a cutting retract. Policy note: 'G1 G17 G90 G54 A=DC(0)', the first-move
-        'X10 Y23', the rotary 'G1 A=ACN(10)' and (since 3e0c345 splits the return after the
-        homing) its 'X50 Y60' fail under both Session flag policies; the first-move 'Z50'
+        'X10 Y23' and the rotary 'G1 A=ACN(10)' fail under both Session flag policies (the
+        split return after the homing carries F650 on 'X50 Y60'); the first-move 'Z50'
         lacks F only under flags='clear' (with 'persist' the pending init_post
         change(nRapidfeed) prints 'Z50 F650'), so that item depends on ENGINE-001 and is not
         needed for the failure."""

@@ -1398,6 +1398,7 @@ endp
                 ; Job starts above the current Z (no homing since the last move): climb first, then traverse XY.
                 bFirstMovetlch = false
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],'Z'zpos ' '}
+                call @usr_emulated_rapid_feed
                 if change(xpos) or change(ypos)
                     skipline = true
                     {nb,['G'iDiametercomp' '],['X'xpos ' '],['Y'ypos ' ']}
@@ -1416,6 +1417,7 @@ endp
                     else
                         if bHomedReposition
                             ; Coming from the homing position: traverse XY at the homed Z, then plunge in Z.
+                            call @usr_emulated_rapid_feed
                             skipline = true
                             {nb,'Z'zpos ' ' }
                             skipline = true
@@ -1469,6 +1471,16 @@ endp
     nLastPathWorkoffset = iWorkoffset
     change(cWo) = false
     change(iWorkoffset) = false
+endp
+
+@usr_emulated_rapid_feed
+    ; Feed-emulated rapids (G1 for '3-d model' jobs when bSyncdrapid is false): the first block of a
+    ; rapid that the post splits carries the rapid feed, so the other block does not run at cutting feed.
+    if !bSyncdrapid
+        if job_type eq '3-d model'
+            {['F'nRapidfeed' ']}
+        endif
+    endif
 endp
 
 ;-------------------

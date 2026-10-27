@@ -412,9 +412,8 @@ _ENTRIES = [
        '"feedrate not programmed")', 'low',
        'Non-default bSyncdrapid=false (feed-emulated rapids). The tool-change positioning G1 block (A=DC(0)) '
        'and the first XY block of a split first move have no F under both flag policies; the first-job split Z '
-       'block without F depends on ENGINE-001 (it prints F650 under the persisting policy). Since 3e0c345 the XY '
-       'block of the split return after a post-inserted homing has no F either (the diagonal block it replaced '
-       'carried F650).',
+       'block without F depends on ENGINE-001 (it prints F650 under the persisting policy). The rotary G1 '
+       'block after a post-inserted homing has no F either.',
        'confirmed',
        'None needed for the behaviour; owner decides the intended F on every emulated block.',
        ['pp3-emulated-rapid-no-feed'], 'D'),
