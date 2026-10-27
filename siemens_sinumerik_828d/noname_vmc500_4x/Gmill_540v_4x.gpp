@@ -2471,8 +2471,60 @@ endp
     ; A position (nR1pos) of the current CAM state: the CAM angle nR1postemp (tmatrix + 4x transform +
     ; C-axis cutting + 4/5x apos, in the machine direction iR1dir) wrapped per iR1posControl. Also sets
     ; change(nR1pos) (A moves), iR1dirMode (the A word's ACN/ACP/DC) and the CAM step nR1posstep.
-    local numeric wrapped
     call @usr_r1_cam_angle
+    call @usr_r1_range
+    iR1dirMode = 0
+    ; Second rotary axis of the swivel-head template; this machine has none, only a CoordSys turned
+    ; about Z or a CAM bpos makes nR2pos non-zero (usr_rapid_head_check).
+    nR2postmatrix = (-x_angle_const_z) * iR2dir                        ;Rotary from CoordSys (tmatrix)
+    nR2pos5x = (-bpos) * iR2dir                                       ;Rotary from 4/5x Simulatenous
+    nR2pos = nR2postmatrix + nR2pos5x
+    ; A moves when its position changes; a 3-axis job (bLimit_3axis) never turns A.
+    if nPR1pos ne nR1pos
+        change(nR1pos) = TRUE
+    else
+        change(nR1pos) = false
+    endif
+    if nPR2pos ne nR2pos
+        change(nR2pos) = TRUE
+    else
+        change(nR2pos) = false
+    endif
+    if bLimit_3axis
+        change(nR1pos) = false
+        change(nR2pos) = false
+        iR1dirMode = 0
+    endif
+    ; Direction word: DC for a forced A word (program start: the A position is unknown), else the
+    ; CAM direction.
+    if bR1forceOutput
+        iR1dirMode = 3
+    else
+        if change(nR1pos)
+            call @usr_r1_select_dir
+        endif
+    endif
+    ; The CAM step of this move (usr_line full-turn check), then the references for the next one.
+    nR1posstep = nR1postemp - nPR1postemp
+    nPR1postemp = nR1postemp
+    nPR1pos = nR1pos
+    nPR2pos = nR2pos
+endp
+
+@usr_r1_cam_angle
+    ; The unwrapped CAM angle of A in the machine direction (nR1postemp). The difference of two
+    ; successive values is the CAM step of a move (nR1posstep in usr_r1pos_calc).
+	nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
+    nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
+    nR1poscpos = (-cpos) * iR1dir                                       ;Rotary from C-axis cutting
+    nR1pos5x = (-apos) * iR1dir                                         ;Rotary from 4/5x Simulatenous
+    nR1postemp = nR1postmatrix + nR1postransform + nR1poscpos + nR1pos5x
+endp
+
+@usr_r1_range
+    ; nR1pos: the CAM angle nR1postemp placed in the A range that iR1posControl selects (1 = the
+    ; modulo range 0 <= A < 360 of this machine).
+    local numeric wrapped
     if iR1posControl eq 0 ;SolidCAM Angles
         nR1posadj = 0
     endif
@@ -2519,49 +2571,6 @@ endp
             nR1pos = 0
         endif
     endif
-    iR1dirMode = 0
-
-    nR2postmatrix = (-x_angle_const_z) * iR2dir                        ;Rotary from CoordSys (tmatrix)
-    nR2pos5x = (-bpos) * iR2dir                                       ;Rotary from 4/5x Simulatenous
-    nR2pos = nR2postmatrix + nR2pos5x
-    if nPR1pos ne nR1pos
-        change(nR1pos) = TRUE
-    else
-        change(nR1pos) = false
-    endif
-    if nPR2pos ne nR2pos
-        change(nR2pos) = TRUE
-    else
-        change(nR2pos) = false
-    endif
-    if bLimit_3axis
-        change(nR1pos) = false
-        change(nR2pos) = false
-        iR1dirMode = 0
-    endif
-    if bR1forceOutput
-        iR1dirMode = 3
-    else
-        if change(nR1pos)
-            call @usr_r1_select_dir
-        endif
-    endif
-    ; The CAM step of this move (usr_line full-turn check), then the references for the next one.
-    nR1posstep = nR1postemp - nPR1postemp
-    nPR1postemp = nR1postemp
-    nPR1pos = nR1pos
-    nPR2pos = nR2pos
-
-endp
-
-@usr_r1_cam_angle
-    ; The unwrapped CAM angle of A in the machine direction (nR1postemp). The difference of two
-    ; successive values is the CAM step of a move (nR1posstep in usr_r1pos_calc).
-	nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
-    nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
-    nR1poscpos = (-cpos) * iR1dir                                       ;Rotary from C-axis cutting
-    nR1pos5x = (-apos) * iR1dir                                         ;Rotary from 4/5x Simulatenous
-    nR1postemp = nR1postmatrix + nR1postransform + nR1poscpos + nR1pos5x
 endp
 
 @usr_r1_select_dir
