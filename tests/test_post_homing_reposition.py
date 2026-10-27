@@ -94,9 +94,9 @@ class PostHomingRepositionTests(unittest.TestCase):
 
     def test_removing_the_homing_marker_is_detected(self):
         source = PP.read_text(encoding='utf-8-sig')
-        anchor = '    bPostHomed = true\nendp'
+        anchor = '    bPostHomed = true\n'
         self.assertEqual(source.count(anchor), 1, 'homing marker moved; review this test')
-        rotation, approach = self.rotate_only_scenario(source.replace(anchor, 'endp', 1))
+        rotation, approach = self.rotate_only_scenario(source.replace(anchor, '', 1))
         with self.assertRaises(AssertionError):
             self.assert_xy_restored_before_descent(rotation, approach)
 
@@ -125,9 +125,9 @@ class PostHomingApproachOrderTests(unittest.TestCase):
 
     def test_removing_the_split_is_detected(self):
         source = PP.read_text(encoding='utf-8-sig')
-        anchor = "                        skipline = true\n                        {nb,'Z'zpos ' ' }\n                        skipline = true\n                    else"
-        self.assertEqual(source.count(anchor), 1, 'post-homing split changed; review this test')
-        broken = source.replace(anchor, "                        {'Z'zpos ' ' }\n                    else", 1)
+        pattern = re.compile(r"if bHomedReposition\n(\s*;[^\n]*\n)?\s*skipline = true\n\s*\{nb,'Z'zpos ' ' \}\n\s*skipline = true\n")
+        self.assertEqual(len(pattern.findall(source)), 1, 'post-homing split changed; review this test')
+        broken = pattern.sub("if bHomedReposition\n{'Z'zpos ' ' }\n", source, count=1)
         session = Session(broken)
         session.step('line_5x', ['xpos'], xpos=15, feed_type='feed_cut')
         output = session.step('move_5x', ['apos', 'xpos', 'ypos', 'zpos'], apos=30, xpos=50, ypos=60, zpos=3,

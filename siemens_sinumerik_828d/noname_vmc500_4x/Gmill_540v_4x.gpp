@@ -17,7 +17,7 @@
     global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a bR1forceOutput
     global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest bTmatrixIndexPending
-    global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed
+    global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid
     global numeric nLastPathZ nLastPathWorkoffset
     global integer iMplane iAbsincmode iWorkoffset iHeightcomp iStopmode iMotionmode iPworkoffset
     global integer iDiametercomp iDrillmode iTcnumber iNumpecks iSpindleDir iR1dirMode
@@ -355,6 +355,7 @@ endp
     bCamLinkRetract = false
     bJobPositioned = false
     bPostHomed = false
+    bClimbZValid = false
     nLastPathZ = 0
     nLastPathWorkoffset = -9999
     nPR1pos			 = 0
@@ -1315,6 +1316,7 @@ endp
 ;		{nb, 'M10'}
         bTlchg = false
         bFirstRapid = false
+        bClimbZValid = false
 ;        bSkipxyrapid = true
     else
         if bPostHomed
@@ -1331,22 +1333,34 @@ endp
         endif
         ; ---- 4x
         if !bSkipxyrapid
-            {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],['X'xpos ' '],['Y'ypos ' ']}
-            if change(zpos)
-                if bFirstMove  ;!@#$% clear change
-                    bFirstMovetlch = false
+            if bFirstMove and change(zpos) and bClimbZValid and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
+                ; Job starts above the current Z (no homing since the last move): climb first, then traverse XY.
+                bFirstMovetlch = false
+                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],'Z'zpos ' '}
+                if change(xpos) or change(ypos)
                     skipline = true
-                    {nb,'Z'zpos ' ' }
-                    bFirstMove = false
-                    skipline = true
-                else
-                    if bHomedReposition
-                        ; Coming from the homing position: traverse XY at the homed Z, then plunge in Z.
+                    {nb,['X'xpos ' '],['Y'ypos ' ']}
+                endif
+                bFirstMove = false
+                skipline = true
+            else
+                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],['X'xpos ' '],['Y'ypos ' ']}
+                if change(zpos)
+                    if bFirstMove  ;!@#$% clear change
+                        bFirstMovetlch = false
                         skipline = true
                         {nb,'Z'zpos ' ' }
+                        bFirstMove = false
                         skipline = true
                     else
-                        {'Z'zpos ' ' }
+                        if bHomedReposition
+                            ; Coming from the homing position: traverse XY at the homed Z, then plunge in Z.
+                            skipline = true
+                            {nb,'Z'zpos ' ' }
+                            skipline = true
+                        else
+                            {'Z'zpos ' ' }
+                        endif
                     endif
                 endif
             endif
@@ -1370,6 +1384,7 @@ endp
             endif
             bSkipxyrapid = false
         endif
+        bClimbZValid = true
     endif
     if !bSyncdrapid
         bFeedoutput        = true
@@ -1413,6 +1428,7 @@ endp
     endif
     nLastPathZ = zpos
     nLastPathWorkoffset = iWorkoffset
+    bClimbZValid = true
     ; Handle output for line movement (G01)
     ; ---- 4x
     ;   - Set Rotary Position
@@ -1603,6 +1619,7 @@ endp
     bCamLinkRetract = false
     nLastPathZ = zpos
     nLastPathWorkoffset = iWorkoffset
+    bClimbZValid = true
     if bFeedoutput
         change(feed) = true
         bFeedoutput  = false
@@ -2213,6 +2230,7 @@ endp
     ; The axes now stand at the homing position: the next positioning move must reprogram X, Y and Z
     ; even when the CAM values did not change.
     bPostHomed = true
+    bClimbZValid = false
 endp
 
 ;-------------------
@@ -2438,6 +2456,7 @@ endp
     ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
     call @usr_r1pos_calc
     if change(nR1pos)
+        bClimbZValid = false
         call @usr_optionalstop
         if i4xIndexMode eq 0 ;Simple Rotation
             if i4xIndexClearanceMode eq 0
