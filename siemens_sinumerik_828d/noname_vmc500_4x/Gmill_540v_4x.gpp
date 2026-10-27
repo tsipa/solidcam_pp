@@ -756,8 +756,46 @@ endp
 endp
 
 @usr_ct_after
-    ; Handle output after tool change
-    ; *Note: Coolant & job Options need handling
+    ; After the T / M6 / D1 blocks: the operation message, the trig-macro index (index mode 2), then
+    ; the spindle start, the coolant and the first positioning rapid (usr_rapid_tc_block) in the order
+    ; bCoolspinaftertc selects.
+    call @usr_ct_msg_lines
+    if i4xIndexMode eq 2 and !bLimit_3axis ;Trig Macro
+        call @usr_r1pos_calc
+        call @usr_trig_macro_call
+        iWorkoffset = 112
+        nR1pos = 9999
+    endif
+    if bCoolspinaftertc
+        ; Spindle and coolant first, each in its own block, then the positioning rapid.
+        skipline = true
+        call @start_tool
+        if bCoolExist and !bSubs
+            skipline = true
+            call @usr_coolant
+        endif
+        if !bSubs
+            call @usr_ct_target
+            call @usr_rapid
+        endif
+    else
+        ; The positioning rapid first; the coolant and the spindle start join its line.
+        if !bSubs
+            call @usr_ct_target
+            skipline = true
+            call @usr_rapid
+            if bCoolExist
+                skipline = false
+                call @usr_coolant
+            endif
+            skipline = false
+            call @start_tool
+        endif
+    endif
+endp
+
+@usr_ct_msg_lines
+    ; The operation message (msg) as comment lines, one per line of the message.
     local integer i poz1 l1b pr1
     local string msg1 msg1b
     if msg ne ''
@@ -783,36 +821,6 @@ endp
                 msg=msg1b
             endif
         endw
-    endif
-    if i4xIndexMode eq 2 and !bLimit_3axis ;Trig Macro
-        call @usr_r1pos_calc
-        call @usr_trig_macro_call
-        iWorkoffset = 112
-        nR1pos = 9999
-    endif
-    if bCoolspinaftertc
-        skipline = true
-        call @start_tool
-        if bCoolExist and !bSubs
-            skipline = true
-            call @usr_coolant
-        endif
-        if !bSubs
-            call @usr_ct_target
-            call @usr_rapid
-        endif
-    else
-        if !bSubs
-            call @usr_ct_target
-            skipline = true
-            call @usr_rapid
-            if bCoolExist
-                skipline = false
-                call @usr_coolant
-            endif
-            skipline = false
-            call @start_tool
-        endif
     endif
 endp
 
