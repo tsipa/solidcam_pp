@@ -4,9 +4,12 @@ Oracle (INDEPENDENT): G17/G18/G19 are modal on Sinumerik. Cutter compensation an
 work in the active plane (CYCLE81 drills along the plane's applicate axis), so an XY job after a
 G19 arc must re-select G17 before it moves.
 """
+import os
 import re
 import unittest
+from unittest import mock
 
+from program_session import require_nc_stream
 from test_offline import PP
 from test_post_homing_reposition import Session
 
@@ -85,6 +88,24 @@ class JobPlaneRestoreTests(unittest.TestCase):
         session.step('compensation', side='off')
         output = session.step('line_5x', ['xpos'], xpos=50, feed_type='feed_cut')
         self.assertEqual(planes(output), [], output)
+
+    def test_side_change_inside_a_compensated_segment_keeps_the_plane(self):
+        # Changing G17/G18/G19 while TRC is active is not allowed: only a selection from G40 restores it.
+        session = Session()
+        session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off', iDiametercomp=41, iCompActive=41)
+        yz_arc(session)
+        session.step('compensation', side='right')
+        output = session.step('line_5x', ['ypos'], ypos=40, feed_type='feed_cut')
+        self.assertEqual(planes(output), [], output)
+        self.assertIn('G42', ' '.join(output))
+
+    def test_restore_does_not_depend_on_equal_assignment_flags(self):
+        # Unverified GPPL rule: an equal-value assignment may clear a change flag (policy clear_user).
+        require_nc_stream()
+        with mock.patch.dict(os.environ, GPPL_POLICY='change_on_equal_assign=clear_user'):
+            session, _ = job_after_yz_arc()
+            first = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=30, ypos=40, zpos=5)
+        self.assertEqual(first, ['G0 G17 X30 Y40', 'Z5'])
 
     def test_no_plane_word_when_plane_did_not_change(self):
         session = Session()

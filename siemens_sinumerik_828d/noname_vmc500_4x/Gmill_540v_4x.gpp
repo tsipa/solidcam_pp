@@ -616,8 +616,12 @@ endp
 
 @usr_job_plane
     ; Select the job's machining plane (G17 when SolidCAM leaves machine_plane empty or unknown).
-    iMplane = 17
-    call @machine_plane
+    ; One assignment only: an equal-value second assignment could clear the change flag.
+    if machine_plane eq XY or machine_plane eq ZX or machine_plane eq YZ
+        call @machine_plane
+    else
+        iMplane = 17
+    endif
 endp
 
 @usr_mp_output
@@ -1255,7 +1259,7 @@ endp
 endp
 
 @usr_rapid
-    local logical bCamLinkRapid bRapidRotaryChanged bHomedReposition bCompHeld
+    local logical bCamLinkRapid bRapidRotaryChanged bHomedReposition
     ; A CAM-tagged, straight Z retract authorizes its contiguous rapid link.
     bCamLinkRapid = false
     bHomedReposition = false
@@ -1374,19 +1378,18 @@ endp
         endif
         ; ---- 4x
         if !bSkipxyrapid
-            ; Sinumerik switches cutter compensation only in a G0/G1 block that moves an axis of the
-            ; working plane: a rapid without X or Y leaves the change pending for the next block.
-            bCompHeld = false
-            if change(iDiametercomp) and !change(xpos) and !change(ypos)
-                change(iDiametercomp) = false
-                bCompHeld = true
-            endif
             if change(iDiametercomp)
-                iCompActive = iDiametercomp
-                if iDiametercomp ne 40
+                if iDiametercomp ne 40 and iCompActive eq 40
                     ; TRC works in the active plane: a YZ/ZX arc earlier in the job must not leave it there.
                     call @usr_job_plane
                 endif
+                ; Sinumerik switches cutter compensation only in a G0/G1 block that programs an axis of
+                ; the working plane: a G17 rapid without X or Y gets them at the current position.
+                if iMplane eq 17 and !change(xpos) and !change(ypos)
+                    change(xpos) = true
+                    change(ypos) = true
+                endif
+                iCompActive = iDiametercomp
             endif
             if bFirstMove and change(zpos) and bClimbZValid and !bHomedReposition and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
                 ; Job starts above the current Z (no homing since the last move): climb first, then traverse XY.
@@ -1423,9 +1426,6 @@ endp
                 if job_type eq '3-d model'
                     {['F'nRapidfeed' ']}
                 endif
-            endif
-            if bCompHeld
-                change(iDiametercomp) = true
             endif
             bSkipxyrapid = false
         else
@@ -1528,23 +1528,24 @@ endp
 ;        change(iMotionmode) = true
 ;        {nb,['G'iFeedType' ']}
 ;    endif
+    if change(iDiametercomp)
+        if iDiametercomp ne 40 and iCompActive eq 40
+            ; TRC works in the active plane: a YZ/ZX arc earlier in the job must not leave it there.
+            call @usr_job_plane
+        endif
+        iCompActive = iDiametercomp
+    endif
     if bPostHomed
         ; A feed move directly after a post-inserted homing: return over the target at the homed Z in
-        ; rapid, then feed down in Z, instead of one diagonal feed move from the homing position.
+        ; rapid (carrying a TRC change, it has X and Y), then feed down in Z, instead of one diagonal
+        ; feed move from the homing position.
         iMotionmode = 0
-        {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'X'xpos ' ','Y'ypos ' '}
+        {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'X'xpos ' ','Y'ypos ' '}
         iMotionmode = 1
         change(xpos) = false
         change(ypos) = false
         change(zpos) = true
         bPostHomed = false
-    endif
-    if change(iDiametercomp)
-        iCompActive = iDiametercomp
-        if iDiametercomp ne 40
-            ; TRC works in the active plane: a YZ/ZX arc earlier in the job must not leave it there.
-            call @usr_job_plane
-        endif
     endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iFeedMode' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
     {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
