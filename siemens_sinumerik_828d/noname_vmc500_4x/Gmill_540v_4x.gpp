@@ -1530,6 +1530,7 @@ endp
 
     local numeric calculated_xpos, calculated_ypos, calculated_zpos
     local numeric tolerance, dx, dy, dz
+    local numeric dummy_var
 
     ; --- motion mode ---
     if arc_direction eq CCW then
@@ -1547,6 +1548,17 @@ endp
     endif
     if arc_plane eq YZ
         iMplane = 19
+    endif
+
+    ; --- ZX plane: direction convention not verified ---
+    ; Sinumerik G18 G3 turns Z->X (viewed from +Y), while the end-point math below turns X->Z for CCW.
+    ; Depending on SolidCAM's arc_direction convention for ZX this either aborts on the end-point check
+    ; or posts the complementary arc. Stop until the convention is verified (e.g. one ZX arc in Vericut).
+    if iMplane eq 18 then
+        dummy_var = 0
+        input '"POST ERROR: ZX (G18) arc direction is unverified in this post. Check @usr_arc_math."'dummy_var
+        {"POST ERROR: ZX (G18) arc direction is unverified in this post. Check @usr_arc_math."}
+        abort
     endif
 
     ; --- absolute center ---

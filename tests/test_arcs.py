@@ -29,6 +29,11 @@ class ArcTests(unittest.TestCase):
                                   u+'pos': case['end'][0]+delta[0], v+'pos': case['end'][1]+delta[1], w+'pos': -7}
                         engine.set(**values)
                         engine.changed.update({key: True for key in ('imotionmode','implane','idiametercomp','cwo','iworkoffset','iabsincmode','xpos','ypos','zpos','feed')})
+                        if plane == 'zx':
+                            # G18 direction convention is unverified: the post must stop on every ZX arc.
+                            with self.assertRaisesRegex(UnsupportedGPPL, r'ZX \(G18\) arc direction is unverified'):
+                                engine.call('arc_zx')
+                            continue
                         if 'error' in case:
                             with self.assertRaisesRegex(UnsupportedGPPL, case['error']):
                                 engine.call({'xy':'arc','zx':'arc_zx','yz':'arc_yz'}[plane])
