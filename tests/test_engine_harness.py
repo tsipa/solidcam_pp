@@ -601,13 +601,13 @@ class GpplCompatEngineTests(unittest.TestCase):
                  "'07' + tostr(3:'5.0(n)')": '073'}
         self.assertEqual({expression: engine.expression(expression) for expression in cases}, cases)
 
-    @known_defect('ENGINE-021')
+    @covers('ENGINE-021')
     def test_right_count_beyond_the_string_returns_the_whole_string(self):
         """INDEPENDENT: GPPL right(s, n) returns the last n characters of s, so a
         count larger than the string is the whole string (LegacyCompatEngine
-        clamps). The GPPL engine's right() slices s[len(s) - n:], which for
-        n > len(s) is a negative Python index: right('abc', 5) is 'bc'. No GPP
-        call reaches it today (@usr_sof_progname passes at most strlen - 1)."""
+        clamps). The GPPL engine's right() sliced s[len(s) - n:], a negative Python
+        index for n > len(s) ('bc' for right('abc', 5)); fixed, this guards it. No
+        GPP call reaches it (@usr_sof_progname passes at most strlen - 1)."""
         engine = GpplCompatEngine('')
         self.assertEqual(engine.expression("right('abc', 5)"), 'abc')
 

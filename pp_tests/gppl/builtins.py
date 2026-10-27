@@ -54,7 +54,7 @@ def f_right(rt, text, count):
         if rt.pol.string_index == 'error':
             _bad_index(rt, 'right', f'negative count {count}')
         return ''                                # 'python' (text[len+|n|:]) and 'clamp' agree
-    return text[len(text) - count:] if count else ''
+    return text[max(len(text) - count, 0):] if count else ''     # a count beyond the length gives the whole text
 
 
 def f_substr(rt, text, start, count):

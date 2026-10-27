@@ -46,7 +46,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 79. `@covers` references: 54.
+Canonical `@known_defect` tests: 78. `@covers` references: 55.
 
 ## Index of open entries
 
@@ -120,7 +120,7 @@ Canonical `@known_defect` tests: 79. `@covers` references: 54.
 | [ENGINE-018](#engine-018) | low | confirmed | F | Historical-revision constructs are unsupported: active trace statements and numeric formats '<(>5.3<)>', '(*k)', '+8.5', '(n)' | `test_historical_formats_and_trace_statements_are_accepted` |
 | [ENGINE-019](#engine-019) | low | confirmed | F | Text outside procedures is silently ignored by the parser | `test_code_outside_procedures_is_reported` |
 | [ENGINE-020](#engine-020) | low | uncertain | F | Identifiers inside '(expr)' output tokens get their change flags cleared | `test_expression_output_token_keeps_operand_change_flags` |
-| [ENGINE-021](#engine-021) | very-low | confirmed | F | GPPL engine right(s, n) with n > strlen(s) returns a Python slice ('bc' for right('abc', 5)) instead of the whole string | `test_right_count_beyond_the_string_returns_the_whole_string` |
+| [ENGINE-021](#engine-021) | very-low | confirmed | F | GPPL engine right(s, n) with n > strlen(s) returns a Python slice ('bc' for right('abc', 5)) instead of the whole string | pinned only (@covers) |
 | [DESIGN-001](#design-001) | low | uncertain | C | CAM-link trust: a rapid that descends inside a confirmed link keeps the authorization, and any positive Z step (0.001 mm) authorizes an unhomed rotation | pinned only (@covers) |
 | [DESIGN-003](#design-003) | low | confirmed | C | A deferred tmatrix index runs before the tool change (old tool, spindle and coolant on, double M1) | pinned only (@covers) |
 | [DESIGN-004](#design-004) | low | confirmed | C | In confirmed CAM links the rotary block always precedes the XYZ block, even when Z rises in the same event | pinned only (@covers) |
@@ -1185,7 +1185,8 @@ Canonical `@known_defect` tests: 79. `@covers` references: 54.
 - Source findings: integration-review
 - Engine scope: every facet reproduces only on gppl (gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)
 - GPPL engine: GPPL engine only (pp_tests/gppl/builtins.py f_right); the legacy engine has no right() (ENGINE-007) and LegacyCompatEngine clamps.
-- Reproduced by:
+- Reproduced by: none (an unverified engine rule; pinned by the CHARACTERIZATION tests below)
+- Pinned or exercised by (`@covers`):
   - `tests/test_engine_harness.py::GpplCompatEngineTests::test_right_count_beyond_the_string_returns_the_whole_string`
 
 ## Design questions for the owner (DESIGN-xxx)
