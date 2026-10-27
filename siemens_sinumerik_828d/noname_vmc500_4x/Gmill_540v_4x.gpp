@@ -1808,18 +1808,14 @@ endp
     endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
     {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
+    ; Centre words of the arc plane: absolute (iArcmode 1, and 3 for a full circle) or incremental
+    ; (iArcmode 2, and 4 for a full circle).
     if arc_plane eq XY then
         if iArcmode eq 1 or (arc_size eq 360 and iArcmode eq 3)
             {'I'xcenter ' ', 'J'ycenter ' '}
         endif
         if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
             {'I'xcenter_rel ' ', 'J'ycenter_rel ' '}
-        endif
-        if (iArcmode eq 3 or iArcmode eq 4) and arc_size ne 360
-            if arc_size >= 180 then
-                radius = -radius
-            endif
-            {'R'radius' '}
         endif
     endif
     if arc_plane eq ZX then
@@ -1829,12 +1825,6 @@ endp
         if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
             {'I'xcenter_rel ' ', 'K'(zcenter_rel) ' '}
         endif
-        if (iArcmode eq 3 or iArcmode eq 4) and arc_size ne 360
-            if arc_size >= 180 then
-                radius = -radius
-            endif
-            {'R'radius' '}
-        endif
     endif
     if arc_plane eq YZ then
         if iArcmode eq 1 or (arc_size eq 360 and iArcmode eq 3)
@@ -1843,6 +1833,10 @@ endp
         if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
             {'J'ycenter_rel ' ', 'K'zcenter_rel ' '}
         endif
+    endif
+    ; iArcmode 3/4, not a full circle: the radius word, negative from 180 degrees. Known defect PP-022:
+    ; R is the Fanuc word (Sinumerik: CR=), and plain I/J/K above is not an absolute centre (I=AC()).
+    if arc_plane eq XY or arc_plane eq ZX or arc_plane eq YZ
         if (iArcmode eq 3 or iArcmode eq 4) and arc_size ne 360
             if arc_size >= 180 then
                 radius = -radius
@@ -2040,22 +2034,19 @@ endp
     {nb,' F'feed }
     {nb,'MCALL CYCLE',gcode}
 
-    if drill_type eq G81 then
+    if drill_type eq G81 or drill_type eq G82 then
+        ; CYCLE81(RTP,RFP,SDIS,DP,DPR) and CYCLE82(RTP,RFP,SDIS,DP,DPR,DTB): DTB = dwell at the bottom.
         if drill_upper_z > 0
             {' (',rtp,','rfp,','sdis,',',dp,','}
         else
             {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
         endif
-        {')'}
-    endif
-
-    if drill_type eq G82 then
-        if drill_upper_z > 0
-            {' (',rtp,','rfp,','sdis,',',dp,','}
-        else
-            {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
+        if drill_type eq G81 then
+            {')'}
         endif
-        {','delay,')'}
+        if drill_type eq G82 then
+            {','delay,')'}
+        endif
     endif
 
     if drill_type eq G83 then

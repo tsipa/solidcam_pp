@@ -48,7 +48,7 @@
       "initial": {"drill_type": "g81", "drill_upper_z": 12, "tool_direction": "cw", "spin": 1000},
       "expected_cycle": 81,
       "expected_parameters": ["30", "10", "2", "-15", ""],
-      "regression": {"find": "{' (',rtp,','rfp,','sdis,',',dp,','}", "replace": "{' (',rtp,',,'sdis,',',dp,',',rfp}", "count": 3}
+      "regression": {"find": "{' (',rtp,','rfp,','sdis,',',dp,','}", "replace": "{' (',rtp,',,'sdis,',',dp,',',rfp}", "count": 2}
     },
     {
       "name": "cycle82_positive_reference_and_dwell",
@@ -58,7 +58,7 @@
       "initial": {"drill_type": "g82", "drill_upper_z": 12, "tool_direction": "cw", "spin": 1000},
       "expected_cycle": 82,
       "expected_parameters": ["30", "10", "2", "-15", "", "0.25"],
-      "regression": {"find": "{' (',rtp,','rfp,','sdis,',',dp,','}", "replace": "{' (',rtp,',,'sdis,',',dp,',',rfp}", "count": 3}
+      "regression": {"find": "{' (',rtp,','rfp,','sdis,',',dp,','}", "replace": "{' (',rtp,',,'sdis,',',dp,',',rfp}", "count": 2}
     },
     {
       "name": "cycle83_positive_reference_and_upper_dwell",
