@@ -205,6 +205,8 @@ RESOLUTIONS = {
     'PP-045': ('fixed', 'f5c74cd @change_ref_point stops the post with a POST ERROR instead of writing G10 L2.'),
     'DESIGN-002': ('fixed', '3e0c345 Split XY and Z when returning from post-inserted homing (owner decision; '
                             'follow-up ed07c3f).'),
+    'ENGINE-004': ('fixed', "d5bd225 The CYCLE84 line writes ',0,' instead of the doubled-quote literal, so every "
+                            'reading of GPPL quoting gives the same quote-free argument list.'),
     'ENGINE-021': ('fixed', '0eb3cef Clamp right() to the whole string when the count exceeds its length.'),
 }
 

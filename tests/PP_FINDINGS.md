@@ -41,7 +41,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
 | pp | 35 | 22 | 1 | 2 |
-| engine | 20 | 1 | 0 | 0 |
+| engine | 19 | 2 | 0 | 0 |
 | design | 6 | 1 | 0 | 0 |
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
@@ -90,7 +90,6 @@ Canonical `@known_defect` tests: 57. `@covers` references: 72.
 | [ENGINE-001](#engine-001) | medium | uncertain | F | Change-flag rule for equal-value assignment is unverified (engine: only a value change raises a flag, nothing clears it) | pinned only (@covers) |
 | [ENGINE-002](#engine-002) | low-medium | confirmed | F | skipline block joining is not emulated (nb/nl always start a new block) | `test_skipline_false_joins_the_next_block` |
 | [ENGINE-003](#engine-003) | low-medium | confirmed | F | numeric_def_f / integer_def_f are ignored: unformatted numbers use 3 decimals instead of '8.5' | `test_numeric_def_f_formats_unformatted_numeric_variables` |
-| [ENGINE-004](#engine-004) | low-medium | likely-engine-artifact | E | The engine's doubled-quote ('') escape renders a stray apostrophe in the CYCLE84 argument list (',0,''') | pinned only (@covers) |
 | [ENGINE-005](#engine-005) | medium | confirmed | F | Declared globals get no change flag (locals get False); change(<global>) raises KeyError | `test_declared_global_has_change_flag` |
 | [ENGINE-006](#engine-006) | low | confirmed | F | Leading-zero integer literal 07 raises (Python parser) | `test_leading_zero_integer_literal` |
 | [ENGINE-007](#engine-007) | low | confirmed | F | right() and tostr(value:'fmt') built-ins are missing | `test_right_and_tostr_builtins` |
@@ -678,24 +677,6 @@ Canonical `@known_defect` tests: 57. `@covers` references: 72.
 - Pinned or exercised by (`@covers`):
   - `tests/test_engine_harness.py::GpplCompatEngineTests::test_opt_in_emulations`
 
-### ENGINE-004
-
-**The engine's doubled-quote ('') escape renders a stray apostrophe in the CYCLE84 argument list (',0,''')**
-
-- Severity: low-medium
-- Confidence: likely-engine-artifact
-- Reachability: Every G84 job (@drill L1883/L1886); bea8c62 edited the line without touching the quote, so a real PP defect is unlikely.
-- Location: pp_tests/gppl/legacy.py uncomment()/_render literal regex '(?:[^']|'')*'; GPP @drill L1883/L1886
-- Evidence that would settle it: One SolidCAM G84 run (posted CYCLE84 line) or a GPPL manual statement on literal quoting.
-- Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
-- Source findings: engine-impl-critic-06, history-misc-06, pp-region-4-cycles-rotary-24, pp-weird-hunter-10
-- GPPL engine: Same default (policy quote_escape=double; alternative none).
-- Reproduced by: none (an unverified engine rule; pinned by the CHARACTERIZATION tests below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_cycles_spindle.py::RigidTappingTests::test_cycle84_arguments_are_numeric_and_ordered`
-  - `tests/test_cycles_spindle.py::RigidTappingTests::test_cycle84_rigid_tapping_fields`
-  - `tests/test_offline.py::HarnessTests::test_string_case_and_escaped_quotes`
-
 ### ENGINE-005
 
 **Declared globals get no change flag (locals get False); change(<global>) raises KeyError**
@@ -1094,6 +1075,7 @@ now a regression guard marked `@covers`.
 | [PP-049](#pp-049) | 9f48a3a | `test_rotary_feed_moves_use_the_documented_inverse_time_mode` | `tests/test_inverse_time_feed.py` |
 | [PP-054 [g187-default]](#pp-054) | c06b190 | `test_no_fanuc_g187_in_a_default_program` |  |
 | [PP-057](#pp-057) | f5c74cd | `test_fanuc_only_output_is_pinned_to_legacy_procedures`, `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` |  |
+| [ENGINE-004](#engine-004) | d5bd225 | `test_cycle84_arguments_are_numeric_and_ordered`, `test_cycle84_rigid_tapping_fields`, `test_string_case_and_escaped_quotes` |  |
 | [ENGINE-021](#engine-021) | 0eb3cef | `test_right_count_beyond_the_string_returns_the_whole_string` |  |
 | [DESIGN-002](#design-002) | 3e0c345 | `test_homed_rotary_rapid_returns_xy_then_z` | `tests/test_post_homing_reposition.py` |
 
@@ -1478,6 +1460,25 @@ now a regression guard marked `@covers`.
   - `tests/test_gpp_static.py::GppStructureTests::test_fanuc_only_output_is_pinned_to_legacy_procedures`
   - `tests/test_machine_definition.py::ConfigurationGuards::test_vmid_keeps_subroutines_and_loops_disabled`
   - `tests/test_unsupported_features.py::UnsupportedEventTests::test_subprogram_loop_and_reference_point_events_stop_the_post`
+
+### ENGINE-004
+
+**The engine's doubled-quote ('') escape renders a stray apostrophe in the CYCLE84 argument list (',0,''')**
+
+- Severity: low-medium
+- Confidence: likely-engine-artifact
+- Reachability: Every G84 job (@drill L1883/L1886); bea8c62 edited the line without touching the quote, so a real PP defect is unlikely.
+- Location: pp_tests/gppl/legacy.py uncomment()/_render literal regex '(?:[^']|'')*'; GPP @drill L1883/L1886
+- Evidence that would settle it: One SolidCAM G84 run (posted CYCLE84 line) or a GPPL manual statement on literal quoting.
+- Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
+- Source findings: engine-impl-critic-06, history-misc-06, pp-region-4-cycles-rotary-24, pp-weird-hunter-10
+- Status: fixed: d5bd225 The CYCLE84 line writes ',0,' instead of the doubled-quote literal, so every reading of GPPL quoting gives the same quote-free argument list.
+- GPPL engine: Same default (policy quote_escape=double; alternative none).
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_cycles_spindle.py::RigidTappingTests::test_cycle84_arguments_are_numeric_and_ordered`
+  - `tests/test_cycles_spindle.py::RigidTappingTests::test_cycle84_rigid_tapping_fields`
+  - `tests/test_offline.py::HarnessTests::test_string_case_and_escaped_quotes`
 
 ### ENGINE-021
 
