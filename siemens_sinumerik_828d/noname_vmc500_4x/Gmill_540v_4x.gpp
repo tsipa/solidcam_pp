@@ -10,34 +10,34 @@
 @init_post
 
     global string sUS_date sUS_time sUsrmsg sHomestr sHomestrbegin sHomestrtc sHomestrend sHomestrstpdiff sHomestrstpsame sHomeline sHomestrendsub
-    global string sCamfilepath sSubspath cWo cPb cPe cG84 cG84p cCycs cHomep cTCcodep cTCcodes fG84spin cDr cCb cCe cOMb cOMe sWorkoffset
-    global logical bStartFile bTlchg bTraceUsrcall bSkipxyrapid bWorkoffsettc bFirstMove bFirstMovetlch bFirstRapid
+    global string sCamfilepath sSubspath cWo cPb cPe cG84 cG84p cCycs cHomep cTCcodep cTCcodes fG84spin cDr cCb cCe cOMb cOMe
+    global logical bStartFile bTlchg bSkipxyrapid bWorkoffsettc bFirstMove bFirstMovetlch bFirstRapid
     global logical bSubs bTlist bTlseperation bTcseperation bDateTimeOutput bStopM00difftool bToolPreselect bToolChangeAtEnd
     global logical bFromendprogram bFrombeginchangetool bFromendchangetool bFromendoffile bMultiplefixtures
     global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a bR1forceOutput
     global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
-    global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest bTmatrixIndexPending
+    global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTmatrixIndexPending
     global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid bFeedPrevValid
     global integer iFeedMode iCompActive
     global numeric nInvFeed nMaxInverseFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA nFeedPrevR1 nR1posstep
     global string nInvFeed_f
     global numeric nLastPathZ nLastPathWorkoffset
     global integer iMplane iAbsincmode iWorkoffset iHeightcomp iStopmode iMotionmode iPworkoffset
-    global integer iDiametercomp iDrillmode iTcnumber iNumpecks iSpindleDir iR1dirMode
+    global integer iDiametercomp iDrillmode iTcnumber iSpindleDir iR1dirMode
     global integer iSlength_g_file_name iSlength_full_g_file_name iSlengthcampartpath iDiameteroffset iArcmode
     global integer iHomingmode iWorkOffsetmode iProgendmode iG187_P_gpp iPal1 iPal2
     global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
     global integer iCoolantM1ON iCoolantM2ON iCoolantM3ON iCoolantM4ON iCoolantM5ON iCoolantM6ON iCoolantM7ON iCoolantM8ON
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
-    global numeric nTcXnext nTcYnext nTcZnext nTcCnext nCorrectedpeck nRapidfeed nG187_E_gpp nR_value
+    global numeric nTcXnext nTcYnext nTcZnext nTcCnext nRapidfeed nG187_E_gpp
 
     global numeric nR1pos nR1pos5x nR1postmatrix nR1postransform nR1poscpos iR1dir nPR1pos nR1posadj nR1postemp nPR1postemp nR1pdir
-    global numeric nR2pos nR2pos5x nR2postmatrix nR2postransform nR2poscpos iR2dir nPR2pos nR2posadj nR2postemp
-    global numeric nPtool_start_plane prevFeed nLlabel nPtool_z_level
-    global string  cR1 cR2 sHomestrrot sHomestrrotv sHomestrroth nR1pos_f nR2pos_f bpos_f ;apos_f
-    global integer iFeedType iR1posControl i4xIndexMode i4xIndexClearanceMode i4xFeedMode
-    global integer iGear1 iGear2 iGear3 iGear4 iGear iFirst_tool
-    global integer var1 var2 var3 var4 var5 var6 macnum ORGXYZ P_Offset
+    global numeric nR2pos nR2pos5x nR2postmatrix iR2dir nPR2pos
+    global numeric nPtool_start_plane nLlabel nPtool_z_level
+    global string  cR1 cR2 sHomestrrot sHomestrrotv sHomestrroth nR1pos_f bpos_f ;apos_f
+    global integer iR1posControl i4xIndexMode i4xIndexClearanceMode i4xFeedMode
+    global integer iGear1 iGear2 iGear3 iGear4
+    global integer var1 var2 var3 var4 var5 var6 macnum ORGXYZ
     global numeric newshift_z newshift_y  newshift_x newshift_b
     global string shift_x_sign shift_y_sign shift_z_sign shift_b_sign newshift_z_f newshift_y_f  newshift_x_f P_Dwell_f
 	global numeric last_spin spindle_accel
@@ -697,7 +697,6 @@ endp
             call @usr_ct_before_notfirsttool
         endif
         if first_tool
-            iFirst_tool = tool_number
             call @usr_ct_before_firsttool
         endif
     endif
@@ -1565,7 +1564,6 @@ endp
     else
         {['F'feed ' ']}
     endif
-    prevFeed = feed
     change(nRapidfeed) = true
     nFeedPrevX = xpos
     nFeedPrevY = ypos
