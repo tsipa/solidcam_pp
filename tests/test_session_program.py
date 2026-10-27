@@ -135,8 +135,8 @@ class ProgramEndTests(unittest.TestCase):
                                          "sHomestrend           = '8::G75 Y1=0 X1=0;8::G75 Z1=0. '"), 30),
             'no end homing': (mutate("    sHomestr = sHomestrend\n    call @usr_prep_home_axis\n",
                                      "    sHomestr = sHomestrend\n"), 30),
-            'spindle not stopped': (mutate('bSpinoffend\t\t\t\t\t= true', 'bSpinoffend\t\t\t\t\t= false'), 30),
-            'coolant not stopped': (mutate('bCooloffend\t\t\t\t\t= true', 'bCooloffend\t\t\t\t\t= false'), 30),
+            'spindle not stopped': (mutate('bSpinoffend           = true', 'bSpinoffend           = false'), 30),
+            'coolant not stopped': (mutate('bCooloffend           = true', 'bCooloffend           = false'), 30),
         }
         for label, (source, code) in sources.items():
             with self.subTest(mutant=label):
@@ -399,7 +399,7 @@ class ProgramHeaderTests(unittest.TestCase):
         """INDEPENDENT: mutated name, path, date and clock conversions fail the header guards."""
         cases = {
             'program name keeps "-"': (self.assert_header, mutate(
-                "    name2 = instr(part_name,'-')\n    while", "    name2 = 0\n    while")),
+                "    iDash = instr(part_name,'-')\n    while", "    iDash = 0\n    while")),
             'no _MPF suffix': (self.assert_header, mutate("{part_name'_MPF' }", "{part_name'.MPF' }")),
             'European date order': (self.assert_header, mutate(
                 "sUS_date = substr(date,(iInt1+1),3) + '-' + substr(date,1,(iInt1-1)) + '-' + right(date,4)",
@@ -407,8 +407,8 @@ class ProgramHeaderTests(unittest.TestCase):
             'workpiece directory dropped': (self.assert_workpiece_directory, mutate(
                 "'$PATH=/_N_WKS_DIR/_N_'sWorkpcDir '_WPD'", "'$PATH=/_N_WKS_DIR/_N_WPD'")),
             'midnight hour 0': (self.assert_clock, mutate(
-                "        if iHr_Mil_int < 1\n            iHour = 12", "        if iHr_Mil_int < 1\n            iHour = 0")),
-            'noon is AM': (self.assert_clock, mutate('    if iHr_Mil_int < 12\n', '    if iHr_Mil_int < 13\n')),
+                "    if iHour24 < 1\n        iHour = 12", "    if iHour24 < 1\n        iHour = 0")),
+            'noon is AM': (self.assert_clock, mutate('    if iHour24 < 12\n', '    if iHour24 < 13\n')),
         }
         for label, (check, source) in cases.items():
             with self.subTest(mutant=label):
@@ -435,7 +435,7 @@ class OptionGuardTests(unittest.TestCase):
         change and past M30.
         """
         self.assert_shared_off_code()
-        assert_detected(self, self.assert_shared_off_code, mutate('iCoolantM5OFF\t\t\t\t= 9', 'iCoolantM5OFF\t\t\t\t= 79'),
+        assert_detected(self, self.assert_shared_off_code, mutate('iCoolantM5OFF         = 9 ', 'iCoolantM5OFF         = 79'),
                'distinct through-coolant OFF code')
 
 
@@ -573,7 +573,7 @@ class RealisticSessionTests(unittest.TestCase):
         """INDEPENDENT: historical reversions and safety mutations fail the two-job invariant."""
         cases = {
             'c03e1b4 reverted (no G0 on the first index)':
-                (mutate('of file\n    iMotionmode     = 9999', 'of file\n    iMotionmode     = 0'), 'without effective G0'),
+                (mutate('first block.\n    iMotionmode     = 9999', 'first block.\n    iMotionmode     = 0'), 'without effective G0'),
             '961facc reverted (no final line feed)': (mutate(END_ANCHOR_M30, "        {nb, 'M30'}\n"), 'line feed'),
             'no spindle start after the tool change': (mutate(
                 '        skipline = false\n        call @start_tool\n    endif\nendp\n',

@@ -904,7 +904,7 @@ class CompatAdditivityTests(unittest.TestCase):
         declared_global_flags and default_formats options) must find every name
         a `global <type>` statement of the GPP declares, with its type."""
         declared = declared_globals(pp_source())
-        self.assertEqual((declared['imotionmode'], declared['bstartfile'], declared['cwo'], declared['nlastpathz']),
+        self.assertEqual((declared['imotionmode'], declared['btlchg'], declared['cwo'], declared['nlastpathz']),
                          ('integer', 'logical', 'string', 'numeric'))
         engine = fresh_engine()
         engine.call('init_post')

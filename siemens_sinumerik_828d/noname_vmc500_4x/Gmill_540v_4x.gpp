@@ -1,48 +1,52 @@
-; General Post Processor
-; Machine           :
-; Type              :
-; SubRoutines       :
-; Comp Type         : 
-; Customer          : 
-; Rev 1.0 :10.23.2012 : Configured post for evaluation version software.
-; ---Things to do-----
+; SolidCAM GPPL post Gmill_540v_4x: Sinumerik 828D, 4-axis vertical machining centre (machine
+; vmc500_4x). The A axis turns about X and is a modulo axis (positions 0 <= A < 360, ACP/ACN/DC).
+; Settings and events this post does not support stop it with a POST ERROR.
 ;
 @init_post
-
-    global string sUS_date sUS_time sUsrmsg sHomestr sHomestrbegin sHomestrtc sHomestrend sHomestrstpdiff sHomestrstpsame sHomeline
-    global string cWo cPb cPe cHomep cTCcodep cTCcodes cCb cCe cOMb cOMe
-    global logical bStartFile bTlchg bWorkoffsettc bFirstMove bFirstRapid
-    global logical bTlist bTlseperation bTcseperation bDateTimeOutput bStopM00difftool bToolPreselect bToolChangeAtEnd
-    global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a bR1forceOutput
-    global logical bOptstpbegin bOptstptc bOptstpend bUseprogname bCoolspinaftertc
-    global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bTmatrixIndexPending
-    ; bPostHomed: the post homed the axes after the last positioning move (usr_home_axis); the next
-    ; move reprograms X/Y/Z. usr_rapid_xyz keeps it set to its end as the homed-return marker.
-    global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid bFeedPrevValid
-    ; Per-rapid decisions of usr_rapid, shared by its stages (set before they are read).
-    global logical bCamLinkRapid bRapidRotaryChanged
-    global logical bWorkpieceBuffered bWorkpieceUsesA
-    global string sWorkpieceBodyPath sWorkpieceArgs
-    global integer iFeedMode iCompActive
-    global numeric nInvFeed nMaxInverseFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA nFeedPrevR1 nR1posstep
-    global string nInvFeed_f
-    global numeric nLastPathZ nLastPathWorkoffset
-    global integer iMplane iAbsincmode iWorkoffset iStopmode iMotionmode iPworkoffset
-    global integer iDiametercomp iDrillmode iTcnumber iSpindleDir iR1dirMode
-    global integer iDiameteroffset
-    global integer iHomingmode iProgendmode
-    global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
+    ; Globals by purpose. Keep each type: integer and numeric print and divide differently.
+    ; User options (usr_ip_useroptions, usr_ip_postwriteroptions, the rotary block at its end)
+    global logical bToolPreselect bSyncdrapid bUseprogname bTlist bTlseperation bTcseperation bDateTimeOutput
+    global logical bToolChangeAtEnd bOptstpbegin bOptstptc bOptstpend bWorkoffsettc bNnumtc bCoolspinaftertc
+    global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend
+    global string cTCcodep cTCcodes cWo cPb cPe cCb cCe cOMb cOMe cR1 cR2
+    global string sHomestrbegin sHomestrtc sHomestrend sHomestrstpsame sHomestrstpdiff sHomestrrotv sHomestrroth
+    global integer iProgendmode i4xIndexMode i4xIndexClearanceMode i4xFeedMode
     global integer iCoolantM1ON iCoolantM2ON iCoolantM3ON iCoolantM4ON iCoolantM5ON iCoolantM6ON iCoolantM7ON iCoolantM8ON
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
-    global numeric nTcXnext nTcYnext nTcCnext nRapidfeed
-
-    global numeric nR1pos nR1pos5x nR1postmatrix nR1postransform nR1poscpos iR1dir nPR1pos nR1postemp nPR1postemp
-    global numeric nR2pos nR2pos5x nR2postmatrix iR2dir nPR2pos
-    global numeric nPtool_start_plane nPtool_z_level
-    global string  cR1 cR2 sHomestrrot sHomestrrotv sHomestrroth nR1pos_f bpos_f
-    global integer i4xIndexMode i4xIndexClearanceMode i4xFeedMode
-    global string P_Dwell_f
-    global numeric last_spin spindle_accel
+    global numeric nRapidfeed nMaxInverseFeed iR1dir iR2dir spindle_accel
+    global string nR1pos_f nInvFeed_f
+    ; Modal state of the NC program (what the control has active)
+    global integer iMotionmode iMplane iAbsincmode iWorkoffset iPworkoffset iDiametercomp iCompActive iDiameteroffset
+    global integer iDrillmode iFeedMode iStopmode iSpindleDir
+    global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
+    global numeric last_spin
+    ; Tool change and job start
+    global logical bTlchg bSafetyprep bStopM00difftool bskipline bFirstMove bFirstRapid
+    global integer iTcnumber
+    global numeric nTcXnext nTcYnext nTcCnext nPtool_start_plane nPtool_z_level
+    global string sUS_date sUS_time sUsrmsg
+    ; Homing (usr_prep_home_axis / usr_home_axis)
+    global string sHomestr sHomestrrot sHomeline cHomep
+    global integer iHomingmode
+    ; A axis (usr_r1pos_calc, usr_r1_output) and the template's second rotary axis
+    global numeric nR1pos nR1pos5x nR1postmatrix nR1postransform nR1poscpos nPR1pos nR1postemp nPR1postemp nR1posstep
+    global numeric nR2pos nR2pos5x nR2postmatrix nPR2pos
+    global integer iR1dirMode
+    global logical bR1useDir5a bR1forceOutput bVertical bFirstVert
+    ; Position tracking for indexing, CAM links and the first-rapid climb
+    global logical bTmatrixIndexPending bIndexClearancePending bCamLinkRetract bJobPositioned bClimbZValid
+    global numeric nLastPathZ nLastPathWorkoffset
+    ; Feed: G93 inverse time (usr_inverse_feed) and the feed reprogramming flag
+    global logical bFeedPrevValid bFeedoutput
+    global numeric nInvFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA nFeedPrevR1
+    ; bPostHomed: the post homed the axes after the last positioning move (usr_home_axis); the next
+    ; move reprograms X/Y/Z. usr_rapid_xyz keeps it set to its end as the homed-return marker.
+    ; bCamLinkRapid / bRapidRotaryChanged: per-rapid decisions of usr_rapid, shared by its stages.
+    global logical bPostHomed bCamLinkRapid bRapidRotaryChanged
+    ; WORKPIECE header: the program body is buffered in a file until the end of the file, so the blank
+    ; is clamped on A only when an A word was printed (usr_workpiece_begin / usr_workpiece_flush).
+    global logical bWorkpieceBuffered bWorkpieceUsesA
+    global string sWorkpieceBodyPath sWorkpieceArgs
 
     ; Non GPPL variables
     last_spin = 0
@@ -65,10 +69,8 @@
     zpos_f          = '8.5'
     nR1pos_f        = '7.3'
     apos_f          = '5.3'
-    bpos_f          = '5.3'
     feed_f          = '4.4(P)'
     nInvFeed_f      = '5.3'
-    P_Dwell_f       = '4.4(P)'
     blknum_f        = '5.0(p)'
     blknum_gen      = true
     call @usr_ip_useroptions
@@ -76,7 +78,7 @@
 endp
 
 @usr_ip_useroptions
-    ; Handle setting of options -- For users
+    ; User options: machine, coolant and spindle codes, NC layout, homing strings, rotary axis.
     ;Machine Definition
     bToolPreselect        = TRUE                ;True = Next tool is Preselected after tool change
     bSyncdrapid           = TRUE                ;True = Machine Sync's Rapid Motion (Non-Box Move)
@@ -95,45 +97,45 @@ endp
 
     ;Coolant & Spindle Control
     flood_coolant               = 1
-    bCoolExist					= true          ;True = Outputs Coolant codes (Coolant,Air,Mist,etc)
-    bCoolofftc					= true          ;True = Outputs Coolant off between Tool Changes
-    bSpinofftc					= true          ;True = Outputs Spindle off between Tool Changes
+    bCoolExist            = true          ;True = Outputs Coolant codes (Coolant,Air,Mist,etc)
+    bCoolofftc            = true          ;True = Outputs Coolant off between Tool Changes
+    bSpinofftc            = true          ;True = Outputs Spindle off between Tool Changes
     ; bCoolofftc and bSpinofftc are not read: tool changes use bCooloffend and bSpinoffend.
-    bCooloffend					= true          ;True = Outputs Coolant off at end of program
-    bSpinoffend					= true          ;True = Outputs Spindle off at end of program
-    bCoolspinaftertc			= false         ;True = Outputs Coolant&Spindle directly after Tool Change
-    iCoolantM1ON				= 8             ;Code: Flood Coolant ON
-    iCoolantM1OFF				= 9             ;Code: Flood Coolant OFF
-    iCoolantM2ON				= 7             ;Code: Mist Coolant ON
-    iCoolantM2OFF				= 9             ;Code: Mist Coolant OFF
-    iCoolantM3ON				= 130           ;Code: HP-Flood Coolant ON
-    iCoolantM3OFF				= 9             ;Code: HP-Flood Coolant OFF
-    iCoolantM4ON				= 8             ;Code: LP-Flood Coolant ON
-    iCoolantM4OFF				= 9             ;Code: LP-Flood Coolant OFF
-    iCoolantM5ON				= 77           ;Code: High Pressure Coolant Through Tool ON
-    iCoolantM5OFF				= 9             ;Code: High Pressure Coolant Through Tool OFF
-    iCoolantM6ON				= 51            ;Code: Low Pressure Coolant Through Tool ON
-    iCoolantM6OFF				= 9             ;Code: Low Pressure Coolant Through Tool OFF
-    iCoolantM7ON				= 50            ;Code: Air Blast ON
-    iCoolantM7OFF				= 9             ;Code: Air Blast OFF
-    iCoolantM8ON				= 92            ;Code: Air Through Tool ON
-    iCoolantM8OFF				= 9             ;Code: Air Through Tool OFF
+    bCooloffend           = true          ;True = Outputs Coolant off at end of program
+    bSpinoffend           = true          ;True = Outputs Spindle off at end of program
+    bCoolspinaftertc      = false         ;True = Outputs Coolant&Spindle directly after Tool Change
+    iCoolantM1ON          = 8             ;Code: Flood Coolant ON
+    iCoolantM1OFF         = 9             ;Code: Flood Coolant OFF
+    iCoolantM2ON          = 7             ;Code: Mist Coolant ON
+    iCoolantM2OFF         = 9             ;Code: Mist Coolant OFF
+    iCoolantM3ON          = 130           ;Code: HP-Flood Coolant ON
+    iCoolantM3OFF         = 9             ;Code: HP-Flood Coolant OFF
+    iCoolantM4ON          = 8             ;Code: LP-Flood Coolant ON
+    iCoolantM4OFF         = 9             ;Code: LP-Flood Coolant OFF
+    iCoolantM5ON          = 77           ;Code: High Pressure Coolant Through Tool ON
+    iCoolantM5OFF         = 9             ;Code: High Pressure Coolant Through Tool OFF
+    iCoolantM6ON          = 51            ;Code: Low Pressure Coolant Through Tool ON
+    iCoolantM6OFF         = 9             ;Code: Low Pressure Coolant Through Tool OFF
+    iCoolantM7ON          = 50            ;Code: Air Blast ON
+    iCoolantM7OFF         = 9             ;Code: Air Blast OFF
+    iCoolantM8ON          = 92            ;Code: Air Through Tool ON
+    iCoolantM8OFF         = 9             ;Code: Air Through Tool OFF
 
     ;User Preferences
-    bTlist						= true          ;True = Outputs tool list at beginning of program
-    bTlseperation				= false         ;True = Seperates Tool List by blank line(s)
-    bTcseperation				= false         ;True = Outputs a blank line before every tool change after the first
+    bTlist                = true          ;True = Outputs tool list at beginning of program
+    bTlseperation         = false         ;True = Seperates Tool List by blank line(s)
+    bTcseperation         = false         ;True = Outputs a blank line before every tool change after the first
     bDateTimeOutput             = true          ;True = Outputs Date & Time
-    bToolChangeAtEnd			= false         ;True = Tool Change for First Tool at end of program
-    bOptstpbegin				= false         ;True = Outputs Optional Stop at beginning of program
-    bOptstptc					= true          ;True = Outputs Optional Stop between Tool Changes
-    bOptstpend					= false         ;True = Outputs Optional Stop at end of program
-    bWorkoffsettc				= true          ;True = Forces output of Work Offset at each Tool Change
-    bNnumtc						= False         ;True = Outputs N Numbers at Tool Changes (i.e. N1,N2,N3)
-    blknum_exist				= False         ;True = Outputs Line Numbers
-    blknum						= 200           ;Sets Starting Line Number
-    blknum_delta				= 10            ;Sets the delta for Line Numbers
-    blknum_max					= 99999         ;Sets the maximum value for Line Numbers
+    bToolChangeAtEnd      = false         ;True = Tool Change for First Tool at end of program
+    bOptstpbegin          = false         ;True = Outputs Optional Stop at beginning of program
+    bOptstptc             = true          ;True = Outputs Optional Stop between Tool Changes
+    bOptstpend            = false         ;True = Outputs Optional Stop at end of program
+    bWorkoffsettc         = true          ;True = Forces output of Work Offset at each Tool Change
+    bNnumtc               = False         ;True = Outputs N Numbers at Tool Changes (i.e. N1,N2,N3)
+    blknum_exist          = False         ;True = Outputs Line Numbers
+    blknum                = 200           ;Sets Starting Line Number
+    blknum_delta          = 10            ;Sets the delta for Line Numbers
+    blknum_max            = 99999         ;Sets the maximum value for Line Numbers
 
     ; Homing strings: one NC line per '8:prefix:line' entry, entries separated by ';', output in order
     ; (usr_prep_home_axis). 8 is the only mode (the line as given); prefix is usually empty.
@@ -168,17 +170,24 @@ endp
 ;-------------------
 
 @start_of_file
-    ; Start of the NC file (first event after @init_post): file name, path, date, the part messages.
+    ; Start of the NC file (first event after @init_post): ';%_N_<part>_MPF', the workpiece directory,
+    ; date and time, the VMID messages.
     bWorkpieceBuffered = false
     bWorkpieceUsesA = false
     call @usr_check_options
     call @usr_init_gmstates
-    call @usr_sof_character
+    {,cPb}
     call @usr_sof_progname
-    call @usr_sof_commentsbeforecodes
-    call @usr_sof_gmcodes
-    call @usr_sof_commentsaftercodes
-    bStartFile = true
+    call @usr_US_date
+    call @usr_US_time
+    if bDateTimeOutput
+        {nl,cCb,sUS_date'-'sUS_time,cCe}
+    endif
+    if bTlseperation
+        {nl}
+        {nl}
+        {nl}
+    endif
     if message1 ne ''
         {NL, cCb message1 cCe }
     endif
@@ -238,22 +247,14 @@ endp
     abort
 endp
 
-@usr_sof_character
-    ; Handle start of file character
-    {,cPb}
-endp
-
 @usr_sof_progname
-    ; Handle Program Number and/or Name
-    Local Integer name1 name2
-    Local string part_name1 part_name2
-    name1 = strlen(part_name)
-    name2 = instr(part_name,'-')
-    while name2 gt 0
-        name2 = instr(part_name,'-')
-        if name2 gt 0
-            part_name = left(part_name,(name2-1)) + '_' + right(part_name,(name1-name2))
-        endif
+    ; The program name after cPb (';%_N_<part>_MPF') and the workpiece directory line. Sinumerik
+    ; names allow letters, digits and '_': every '-' of the part name becomes '_'.
+    local integer iDash
+    iDash = instr(part_name,'-')
+    while iDash gt 0
+        part_name = left(part_name,(iDash-1)) + '_' + right(part_name,(strlen(part_name)-iDash))
+        iDash = instr(part_name,'-')
     endw
     if bUseprogname
         {part_name'_MPF' }
@@ -265,28 +266,6 @@ endp
     endif
 endp
 
-@usr_sof_commentsbeforecodes
-    ; Handle HardCoded or PartControlled comments  (Before G/M codes)
-    call @usr_US_date
-    call @usr_US_time
-    if bDateTimeOutput
-        {nl,cCb,sUS_date'-'sUS_time,cCe}
-    endif
-endp
-
-@usr_sof_gmcodes
-    ; Handle HardCoded or PartControlled G/M codes
-endp
-
-@usr_sof_commentsaftercodes
-    ; Handle HardCoded or UserDefined comments (After G/M codes)
-    if bTlseperation
-        {nl}
-        {nl}
-        {nl}
-    endif
-endp
-
 @usr_US_date
     ; Converts Europe Date format to US format
     Local Integer iInt1
@@ -295,32 +274,28 @@ endp
 endp
 
 @usr_US_time
-    ; Converts Military time to 12hr format
-    Local Integer iInt1 iHr_Mil_int iHour
-    Local String iHr_Mil iTm_of_day
-    iInt1 = instr(time,':')
-    iHr_Mil = left(time,(iInt1-1))
-    iHr_Mil_int = tonum(iHr_Mil)
-    if iHr_Mil_int < 12
-        if iHr_Mil_int < 1
-            iHour = 12
-        else
-            iHour = iHr_Mil_int
-        endif
-        iTm_of_day = 'AM'
+    ; Converts Military time to 12hr format: 'HH:MM:SS' -> sUS_time 'H:MM:SSAM' / 'H:MM:SSPM'.
+    local integer iColon iHour24 iHour
+    local string sMeridiem
+    iColon = instr(time,':')
+    iHour24 = tonum(left(time,(iColon-1)))
+    if iHour24 < 12
+        sMeridiem = 'AM'
     else
-        if iHr_Mil_int < 13
-            iHour = 12
-        else
-            iHour = iHr_Mil_int - 12
-        endif
-        iTm_of_day = 'PM'
+        sMeridiem = 'PM'
     endif
-    sUS_time = tostr(iHour:'5.0(p)') + substr(time,iInt1,8) + iTm_of_day
+    iHour = iHour24
+    if iHour24 > 12
+        iHour = iHour24 - 12
+    endif
+    if iHour24 < 1
+        iHour = 12
+    endif
+    sUS_time = tostr(iHour:'5.0(p)') + substr(time,iColon,8) + sMeridiem
 endp
 
 @usr_init_gmstates
-    ; Handle initializing G/M codes for correct modality from beginning of file
+    ; Modal state at the start of the file: what the control has active before the first block.
     iMotionmode     = 9999
     iMplane         = 17
     iAbsincmode     = 90
@@ -357,19 +332,18 @@ endp
     nFeedPrevR1 = 0
     nLastPathZ = 0
     nLastPathWorkoffset = -9999
-    nPR1pos			 = 0
+    nPR1pos         = 0
     nPR1postemp     = 0
-    change(cWo)		 = false
-    change(cR2)		 = false
-    change(cR1)		 = false
+    change(cWo)     = false
+    change(cR2)     = false
+    change(cR1)     = false
     bFirstVert      = true
 endp
 
 ;-------------------
 
 @def_tool
-    ; Handle Tool List Output at top of program
-    ; Use bTlchg to use different message for tool_change
+    ; Tool list line of the header (bTlist); after the last tool: the WORKPIECE blank.
     if bTlist
         if tool_message == '' then
             {nl, cCb'TOOL 'tool_number, ' - DIA '(tool_offset*2),' | HOLDER: ',holder_name,' | STICKOUT: ',tool_length:'5.3',' mm',cCe }
@@ -491,7 +465,7 @@ endp
 ;-------------------
 
 @start_program
-    ; Handle any safety G/M codes for top of program
+    ; Program start: home (sHomestrbegin).
     sHomestr = sHomestrbegin
     call @usr_prep_home_axis
 endp
@@ -539,17 +513,17 @@ endp
 ;-------------------
 
 @relative_mode
-    ; Handle setting of IncrementalMode Gcode
+    ; G91 for the following moves.
     iAbsincmode = 91
 endp
 
 @absolute_mode
-    ; Handle setting of AbsoluteMode Gcode
+    ; G90 for the following moves.
     iAbsincmode = 90
 endp
 
 @usr_abs_inc_output
-    ; Handle output of Absolute/Incremental Mode Gcode
+    ; G90/G91 when it changed (optional word).
     {['G'iAbsincmode, ' ']}
 endp
 
@@ -622,7 +596,6 @@ endp
     if !first_tool
         iTcnumber = iTcnumber + 1
     endif
-    bStartFile = false
     call @usr_tc_init_gmstates
     if !first_tool
         call @usr_ct_before_notfirsttool
@@ -634,8 +607,7 @@ endp
 endp
 
 @usr_ct_before_notfirsttool
-    ; Handle output before the next tool change
-    ; This is not called before the first tool change
+    ; Before a tool change after the first: coolant and spindle off, home, optional stop, safety block.
     if !bStopM00difftool
         if bCooloffend and bCoolExist
             call @usr_coolant_prep_all_off
@@ -664,7 +636,7 @@ endp
 endp
 
 @usr_ct_before_firsttool
-    ; Handle output before the first tool change
+    ; Before the first tool change: the safety block.
     call @usr_ct_safety_block
 endp
 
@@ -687,7 +659,7 @@ endp
 endp
 
 @usr_ct_toolchange
-    ; Handle G/M code output to make tool change
+    ; T, M06 and D1 of the new tool, the preselected next tool and the operation message.
     {nb, 'T',tool_number,cTCcodes}
     {nb, cTCcodep}
     {nb, 'D1 '}
@@ -908,7 +880,7 @@ endp
 endp
 
 @usr_coolant_output
-    ; Handle output of coolant variable
+    ; One M code per coolant channel whose state changed (bskipline joins them to the current line).
     if change(iCoolantM1)
         {nb,['M'iCoolantM1:mcode_f' ']}
         skipline = bskipline
@@ -1539,7 +1511,6 @@ endp
     endif
 endp
 
-
 @usr_arc_math
     ; takes:
     ;   xstart / ystart / zstart
@@ -1614,7 +1585,6 @@ endp
     c = cos(angle_deg)
     s = sin(angle_deg)
 
-
     ; --- XY plane: keep Z from CAD end ---
     if iMplane eq 17 then
         rx = vx * c - vy * s
@@ -1655,10 +1625,8 @@ endp
 
 endp
 
-
-
 @usr_arc
-    ; Handle output for arc movement (G02/G03)
+    ; G2/G3 block: end point checked against the CAM centre (usr_arc_math), I/J/K incremental.
     local numeric dummy_var
     if change(iDiametercomp)
         if iDiametercomp eq iCompActive
@@ -1723,19 +1691,20 @@ endp
 ;-------------------
 
 @usr_optionalstop
-    ; Handle line for Optional Stop G/M code
+    ; M1 optional stop.
     iStopmode = 1
     {nb, 'M'iStopmode:mcode_f' '}
 endp
 
 @usr_forcedstop
-    ; Handle line for forced Stop gmcode
+    ; M0 program stop.
     iStopmode = 0
     {nb, 'M'iStopmode:mcode_f' '}
 endp
 
 @usr_StopM00_sametool
-    ; Handle output for forced stopM00 between operations using the same tool
+    ; M0 between two operations of the same tool (VMID bStopM00): coolant and spindle off, home,
+    ; message, M0, then spindle and coolant back on.
     local logical bHomedBeforeReturn
     local numeric nZBeforeReturn
     if bCoolExist
@@ -1772,7 +1741,7 @@ endp
 endp
 
 @usr_StopM00_difftool
-    ; Handle output for forced stopM00 between operations using different tools
+    ; M0 before a tool change (VMID bStopM00): coolant and spindle off, home, message, M0.
     if bCoolExist
         call @usr_coolant_prep_all_off
         call @usr_coolant_output
@@ -1828,8 +1797,7 @@ endp
 endp
 
 @usr_message
-    ; Handle output for messages
-    ; We don't use messages directly from SolidCAM
+    ; The stop message (VMID sStopMessage) as a comment; SolidCAM @message texts are not printed.
     if sUsrmsg ne ''
         {nb, cCb,sUsrmsg,cCe}
     endif
@@ -1914,14 +1882,14 @@ endp
 ;-------------------
 
 @drill_point
-    ; Handle output for drill positions
+    ; Next hole of the modal cycle: the positioning block runs it.
     {nb,['X'xpos ' '], ['Y'ypos ' '], ['Z'zpos ' ']}
 endp
 
 ;-------------------
 
 @end_drill
-    ; Handle output to cancel drill cycles
+    ; Cancel the modal cycle (bare MCALL); G94 back after tapping.
     iDrillmode = 80
     if change(iDrillmode)
         {nb, 'MCALL '}
@@ -1995,7 +1963,7 @@ endp
 ;-------------------
 
 @offset_change
-    ; Handle setting of Diameter offset
+    ; Cutter radius offset number (D) of the tool.
     iDiameteroffset = tool_number
 endp
 
