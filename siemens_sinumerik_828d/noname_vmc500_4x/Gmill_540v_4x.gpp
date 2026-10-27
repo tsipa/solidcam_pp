@@ -1155,10 +1155,8 @@ endp
     if change(iDiametercomp)
         call @usr_rapid_trc_axes
     endif
-    if !change(nR1pos) and !change(xpos) and !change(ypos) and !change(zpos)
-        ; No axis moves: open no NC line for this rapid (its modal words, if any, join the current line).
-        skipline = false
-    endif
+    ; A rapid without axis motion prints only its pending modal words, in a block of their own: joined
+    ; to the current line they would turn a G1 block into G0 ('G1 Z-1 F200 G0').
     ; Climb first, then traverse X/Y, when the rapid rises from a Z the post knows (same work offset,
     ; no homing since the last move): at the first move of a job (the job starts above the current Z),
     ; and when it deselects cutter compensation in G17 (deselecting while still low moves the tool

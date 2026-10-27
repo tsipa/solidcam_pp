@@ -390,18 +390,6 @@ class CompensationPlaneAxisTests(unittest.TestCase):
         program.ev('move_5x', xpos=40, ypos=10, zpos=50)
         self.assertEqual(program.nc()[-2:], ['MSG("op2")', 'G0 G40 X40 Y10'])
 
-    def test_compensation_after_the_no_motion_test_is_detected(self):
-        source = PP.read_text(encoding='utf-8-sig')
-        start = source.index('\n@usr_rapid_xyz\n')
-        test = ('    if !change(nR1pos) and !change(xpos) and !change(ypos) and !change(zpos)\n'
-                '        ; No axis moves: open no NC line for this rapid (its modal words, if any, join the current line).\n'
-                '        skipline = false\n    endif\n')
-        trc = source.index('    if change(iDiametercomp)\n        call @usr_rapid_trc_axes\n', start)
-        self.assertEqual(source.count(test), 1, 'no-motion test changed; review this test')
-        moved = source.replace(test, '')
-        moved = moved[:trc] + test + moved[trc:]
-        self.assertEqual(self.null_rapid_after_compensated_cut(moved)[-1], 'G41 X40 G0 G40 X40 Y10')
-
     def test_deselecting_rapid_that_does_not_climb_stays_one_block(self):
         program = Program()
         program.start()

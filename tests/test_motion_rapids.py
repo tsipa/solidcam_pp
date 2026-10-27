@@ -33,6 +33,7 @@ import math
 import unittest
 
 from pp_tests.engine import UnsupportedGPPL
+from program_session import Program, require_nc_stream
 from support import (Session, assert_detected, covers, known_defect, mutate, parse_blocks, replay,
                      state_before)
 
@@ -343,6 +344,74 @@ class ApproachAfterHomingTests(unittest.TestCase):
         for name in ('first_link_of_job', 'after_cutting_retract'):
             assert_detected(self, lambda source: self.check_homed_return(name, source), mutant,
                             f'3e0c345 reverted ({name})', match='not A, XY, Z')
+
+
+class RapidWithoutMotionTests(unittest.TestCase):
+    """A rapid whose axes do not move (SolidCAM sends the position again) adds nothing to the block
+    before it. Oracle (INDEPENDENT): Sinumerik executes block by block; a G0 or a second F appended
+    to a G1 block changes how that block moves (one G function of a group per block, the cut keeps
+    its feed), and MSG("...") must be the only statement of its block."""
+
+    NO_JOIN = ("    ; A rapid without axis motion prints only its pending modal words, in a block of their own: joined\n"
+               "    ; to the current line they would turn a G1 block into G0 ('G1 Z-1 F200 G0').\n")
+    JOINED = ("    if !change(nR1pos) and !change(xpos) and !change(ypos) and !change(zpos)\n"
+              "        skipline = false\n    endif\n")
+
+    @staticmethod
+    def program(source=None, emulated=False):
+        require_nc_stream()
+        program = Program(source=source, options=dict(bSyncdrapid=False) if emulated else None)
+        program.start(job_type='3-d model' if emulated else 'contour')
+        return program
+
+    def check_lines(self, lines):
+        for line in (raw.strip() for raw in lines):
+            words = line.split()
+            motion = [word for word in words if word in ('G0', 'G1', 'G2', 'G3')]
+            feeds = [word for word in words if word.startswith('F')]
+            self.assertLessEqual(len(motion), 1, f'two motion G codes in one block: {line!r}')
+            self.assertLessEqual(len(feeds), 1, f'two feed words in one block: {line!r}')
+            if line.startswith('MSG('):
+                self.assertTrue(line.endswith(')'), f'MSG block carries more: {line!r}')
+
+    def check_after_cut(self, source=None, emulated=False):
+        program = self.program(source, emulated)
+        program.ev('move_5x', xpos=10, ypos=10, zpos=5)
+        cut = program.ev('line_5x', zpos=-1, feed=200, feed_type='feed_cut')
+        program.ev('move_5x', xpos=10, ypos=10, zpos=-1)
+        program.ev('line_5x', xpos=20, feed=200, feed_type='feed_cut')
+        self.check_lines(program.nc())
+        self.assertIn(cut[-1].strip(), [raw.strip() for raw in program.nc()])
+
+    def check_after_job_comment(self, source=None):
+        program = self.program(source)
+        program.ev('move_5x', xpos=10, ypos=10, zpos=5)
+        program.ev('line_5x', zpos=-1, feed=200, feed_type='feed_cut')
+        program.ev('line_5x', zpos=5, feed=200, feed_type='feed_cut')
+        program.ev('end_of_job', next_job_tool_number=1)
+        program.ev('start_of_job', job_name='op2')
+        program.ev('move_5x', xpos=10, ypos=10, zpos=5)
+        self.check_lines(program.nc())
+
+    def test_rapid_without_motion_leaves_the_cut_alone(self):
+        """INDEPENDENT: one motion G code per block; the plunge stays a G1 block."""
+        self.check_after_cut()
+
+    def test_emulated_rapid_without_motion_leaves_the_cut_feed_alone(self):
+        """INDEPENDENT: the plunge keeps its cutting feed; F<nRapidfeed> does not join it."""
+        self.check_after_cut(emulated=True)
+
+    def test_rapid_without_motion_leaves_the_job_comment_alone(self):
+        """INDEPENDENT: Sinumerik MSG("...") stands alone in its block."""
+        self.check_after_job_comment()
+
+    def test_joining_the_rapid_to_the_current_line_is_detected(self):
+        """INDEPENDENT: mutation self-check; the old join (skipline = false) fails each check."""
+        mutant = mutate(self.NO_JOIN, self.JOINED)
+        assert_detected(self, self.check_after_cut, mutant, 'G0 joined to the cut', match='two motion')
+        assert_detected(self, lambda source: self.check_after_cut(source, emulated=True), mutant,
+                        'F650 joined to the cut', match='two feed')
+        assert_detected(self, self.check_after_job_comment, mutant, 'G0 joined to MSG', match='MSG block')
 
 
 class FeedEmulatedRapidTests(unittest.TestCase):
