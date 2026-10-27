@@ -943,7 +943,7 @@ REVERSIONS = [
      [('    call @usr_link_boundary\n    call @home_number\n', '    call @home_number\n')],
      CamLinkBoundaryTests, '_check_boundaries'),
     ('end_of_job keeps the link',
-     [('    call @usr_feedmode_94\n    call @usr_link_boundary\n    if bStopM00', '    call @usr_feedmode_94\n    if bStopM00')],
+     [('    call @usr_feedmode_94\n    call @usr_link_boundary\n', '    call @usr_feedmode_94\n')],
      CamLinkBoundaryTests, '_check_boundaries'),
     ('tmatrix keeps the link',
      [('    bCamLinkRetract = false\n    bTmatrixIndexPending = true\nendp', '    bTmatrixIndexPending = true\nendp')],

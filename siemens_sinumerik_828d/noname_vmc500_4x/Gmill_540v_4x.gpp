@@ -1016,6 +1016,12 @@ endp
     ; End of a job: back to G94, the M00 stop (bStopM00), the job's work offset and Z levels for the next.
     call @usr_feedmode_94
     call @usr_link_boundary
+    if (iCompActive eq 41 or iCompActive eq 42) and iMplane eq 17 and bClimbZValid and nLastPathZ >= tool_start_plane
+        ; Compensation is still on at the control (CAM switched it off after the retract, or not at
+        ; all) and the tool stands at or above the clearance plane: deselect it here, before a stop,
+        ; homing, index or tool change, so no G75 or M block runs with it on.
+        call @usr_trc_cancel
+    endif
     if bStopM00
         if tool_number eq next_job_tool_number
             call @usr_StopM00_sametool
@@ -2049,7 +2055,27 @@ endp
         endif
         sHomeline = sEntry
         call @usr_home_axis
+        if (iCompActive eq 41 or iCompActive eq 42) and instr(sHomeline,'Z') > 0
+            ; Compensation is still on at the control: no linear block deselected it before this
+            ; homing. Deselect it now, with Z at the homing height, before the XY homing.
+            call @usr_trc_cancel
+        endif
     endw
+endp
+
+@usr_trc_cancel
+    ; G40 for compensation still on at the control, in a G0 block with the last programmed X and Y:
+    ; Sinumerik deselects it only in a G0/G1 block with an axis of the working plane (X and Y cover
+    ; G17, G18 and G19). The deselection move (one tool radius) runs at the current height. CAM
+    ; compensation still requested is selected again on the next linear block.
+    iMotionmode = 0
+    {nb,'G'iMotionmode:mcode_f ' ','G40 ','X'nFeedPrevX:xpos_f ' ','Y'nFeedPrevY:ypos_f ' '}
+    iCompActive = 40
+    if iDiametercomp eq 40
+        change(iDiametercomp) = false
+    else
+        change(iDiametercomp) = true
+    endif
 endp
 
 @usr_home_axis

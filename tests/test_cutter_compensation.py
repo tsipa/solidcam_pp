@@ -8,7 +8,9 @@ SolidCAM did not move them), so the change happens on that rapid, before any hom
 or program end. Deselection moves the tool centre from the compensated point onto the programmed one, so
 a G17 rapid that climbs deselects after the climb ('G0 Z50' / 'G40 X30 Y30'), not low near the wall.
 A Z-only G1 plunge keeps its pre-fix form ('G1 G41 Z-1'). TRC must be off at a tool change, and the
-post's TRC state must match the control's.
+post's TRC state must match the control's. TRC that no linear block deselected (CAM switched it off
+after the last retract, or never) is deselected at the end of the job when the tool stands at or above
+the clearance plane (G17), else right after the Z homing of the next post homing, before the XY homing.
 """
 import re
 import unittest
@@ -270,6 +272,107 @@ class CompensationProgramTests(unittest.TestCase):
         self.assertEqual(program.ev('move_5x', zpos=4), ['G41 Z4'])
 
 
+def index_next_job(program, angle=90):
+    program.ev('end_of_job')
+    program.ev('tmatrix', angle_4x_around_x=angle)
+    program.engine.state['btmatrixindexpending'] = True
+    return program.ev('start_of_job', job_name='op2', angle_4x_around_x=angle)
+
+
+def compensation_left_on(test):
+    """A contour whose compensation off comes after the last retract (or never): G41 is still on at Z50."""
+    program = Program()
+    program.start()
+    program.ev('move_5x', xpos=0, ypos=0, zpos=5)
+    program.ev('compensation', side='left')
+    program.ev('line_5x', zpos=-2, feed=200)
+    program.ev('line_5x', xpos=30, feed=200)
+    program.ev('line_5x', ypos=30, feed=200)
+    test.assertEqual(program.ev('move_5x', zpos=50), ['G0 Z50'])
+    program.ev('compensation', side='off')
+    return program
+
+
+class CompensationAtPostHomingTests(unittest.TestCase):
+    """Compensation still on at the control when the post homes, indexes, stops, changes the tool or
+    ends the program: no linear block deselected it. It is deselected at the end of the job when the
+    tool stands at or above the clearance plane, else right after the Z homing, above the part and
+    before the XY homing ('G0 G40' with the last X and Y: a plane axis, module oracle)."""
+
+    def test_compensation_left_on_at_the_job_end_is_deselected_at_the_clearance_height(self):
+        """INDEPENDENT: module oracle; G40 before any G75, index, M1 or tool change of the next job."""
+        program = compensation_left_on(self)
+        self.assertEqual(program.ev('end_of_job'), ['G0 G40 X30 Y30'])
+        program.ev('tmatrix', angle_4x_around_x=90)
+        program.engine.state['btmatrixindexpending'] = True
+        index = program.ev('start_of_job', job_name='op2', angle_4x_around_x=90)
+        self.assertEqual(index[:2], ['M1', 'G75 Z1=0.'])
+        self.assertNotIn('G40', ' '.join(index))
+
+    def test_compensation_left_on_at_an_index_is_deselected_before_the_index(self):
+        """INDEPENDENT: module oracle; the index (M1, G75, A word) runs with compensation off."""
+        program = compensation_left_on(self)
+        program.engine.state['tool_start_plane'] = 60     # Z50 is below the clearance plane
+        index = index_next_job(program)
+        self.assertEqual(index[:5], ['M1', 'G75 Z1=0.', 'G0 G40 X30 Y30', 'G75 Y1=0 X1=0', 'G54 A=ACP(90)'])
+        self.assertEqual(program.ev('move_5x', xpos=10, ypos=10, zpos=5), ['X10 Y10', 'Z5'])
+
+    def test_compensation_left_on_at_a_tool_change_is_deselected_after_the_z_homing(self):
+        """INDEPENDENT: TRC must be off at a tool change; G40 after the Z homing, before the XY homing and M1."""
+        program = compensation_left_on(self)
+        program.engine.state['tool_start_plane'] = 60
+        program.ev('end_of_job')
+        program.ev('change_tool', tool_number=2, next_tool_number=3, first_tool=False)
+        change = program.ev('start_of_job', job_name='op2')
+        z = change.index('G75 Z1=0.')
+        self.assertEqual(change[z:z + 3], ['G75 Z1=0.', 'G0 G40 X30 Y30', 'G75 Y1=0 X1=0'])
+        self.assertLess(z, change.index('M1'))
+
+    def test_compensation_left_on_at_program_end_is_deselected_after_the_z_homing(self):
+        """INDEPENDENT: module oracle; M30 runs with compensation off."""
+        program = compensation_left_on(self)
+        program.engine.state['tool_start_plane'] = 60
+        program.ev('end_of_job')
+        end = program.ev('end_program', last_tool=True)
+        self.assertEqual(end[-4:], ['G75 Z1=0.', 'G0 G40 X30 Y30', 'G75 Y1=0 X1=0', 'M30'])
+
+    def test_compensation_on_across_a_rotating_rapid_is_deselected_and_selected_again(self):
+        """INDEPENDENT: module oracle; G40 after the Z homing, CAM's G41 again on the XY return above the part."""
+        program = Program()
+        program.start()
+        program.ev('move_5x', xpos=0, ypos=0, zpos=5)
+        program.ev('compensation', side='left')
+        program.ev('line_5x', zpos=-2, feed=200)
+        program.ev('line_5x', xpos=30, feed=200)
+        self.assertEqual(program.ev('move_5x', apos=90, zpos=20),
+                         ['G75 Z1=0.', 'G0 G40 X30 Y0', 'G75 Y1=0 X1=0', 'G0 A=ACP(90)', 'G41 X30 Y0', 'Z20'])
+        self.assertEqual(program.ev('line_5x', zpos=-2, feed=200), ['G1 Z-2'])
+
+    def test_homing_without_compensation_has_no_deselection_block(self):
+        """INDEPENDENT: module oracle; nothing to deselect, no extra block."""
+        program = Program()
+        self.assertEqual(program.ev('start_program'), ['G75 Z1=0.', 'G75 Y1=0 X1=0'])
+        program = Program()
+        program.start()
+        contour_with_compensation(program)
+        program.ev('move_5x', zpos=50)                    # deselected here: 'G0 Z50' / 'G40 X30 Y30'
+        self.assertEqual(program.ev('end_of_job'), [])
+        self.assertNotIn('G40', ' '.join(program.ev('end_program', last_tool=True)))
+
+    def test_yz_job_deselection_programs_a_plane_axis(self):
+        """INDEPENDENT: module oracle; in G19 Y is a plane axis of the G0 G40 block."""
+        program = Program(cam=dict(machine_plane='yz'))
+        program.start(machine_plane='yz')
+        program.ev('move_5x', xpos=10, ypos=-7.5, zpos=5)
+        program.ev('compensation', side='right')
+        program.ev('line_5x', zpos=-2, feed=200)
+        program.ev('line_5x', ypos=-20.25, feed=200)
+        program.ev('move_5x', zpos=50)
+        program.ev('compensation', side='off')
+        index = index_next_job(program)
+        self.assertEqual(index[1:3], ['G75 Z1=0.', 'G0 G40 X10 Y-20.25'])
+
+
 YZ_ARC = dict(arc_plane='yz', arc_direction='ccw', arc_size=90, radius=10)
 
 
@@ -383,11 +486,11 @@ class CompensationPlaneAxisTests(unittest.TestCase):
         program.ev('line_5x', zpos=-1, feed=200)
         program.ev('compensation', side='left')
         program.ev('line_5x', xpos=40, feed=200)
-        program.ev('line_5x', zpos=50, feed=200)
+        program.ev('line_5x', zpos=40, feed=200)        # below the clearance plane: end_of_job keeps G41
         program.ev('compensation', side='off')
         program.ev('end_of_job')
         program.ev('start_of_job', job_name='op2')
-        program.ev('move_5x', xpos=40, ypos=10, zpos=50)
+        program.ev('move_5x', xpos=40, ypos=10, zpos=40)
         self.assertEqual(program.nc()[-2:], ['MSG("op2")', 'G0 G40 X40 Y10'])
 
     def test_deselecting_rapid_that_does_not_climb_stays_one_block(self):

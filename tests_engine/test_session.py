@@ -219,16 +219,18 @@ class CoverageTests(unittest.TestCase):
             program = session.engine.program
         summary = total.summary(program)
         self.assertEqual(summary['total'], sum(statement_kinds_from_text().values()))
-        self.assertGreaterEqual(summary['percent'], 87.0)    # ZX arc math after its stop, new POST ERROR paths
+        self.assertGreaterEqual(summary['percent'], 86.0)    # ZX arc math after its stop, POST ERROR paths, TRC fallback
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
         # arc_zx: no session has a ZX arc since a ZX arc stops the post (5408e5c);
         # test_replay_findings.test_zx_arc_stops_the_session runs it. The unsupported events stop the post
         # (tests/test_unsupported_features.py). usr_line_homed_return: a feed move right after a post homing,
         # which only the removed subprogram session recorded (tests/test_post_homing_reposition.py runs it).
         # usr_r1_wrong_way_stop: every session turns A the way CAM does (tests/test_rotary_direction_guard.py
-        # runs it).
+        # runs it). usr_trc_cancel: every session deselects compensation on a linear block
+        # (tests/test_cutter_compensation.py::CompensationAtPostHomingTests runs it).
         unsupported = {'call_proc', 'proc', 'end_proc', 'loop', 'end_loop', 'change_ref_point', 'usr_unsupported_event'}
-        self.assertEqual(never, {'arc_zx', 'usr_line_homed_return', 'usr_r1_wrong_way_stop'} | unsupported)
+        self.assertEqual(never, {'arc_zx', 'usr_line_homed_return', 'usr_r1_wrong_way_stop', 'usr_trc_cancel'}
+                         | unsupported)
         self.assertIn('Branch gaps', total.markdown(program))
 
     def test_coverage_file_merges_across_processes_and_ignores_mutants(self):
