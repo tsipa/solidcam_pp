@@ -152,15 +152,9 @@ endp
     blknum_delta				= 10            ;Sets the delta for Line Numbers
     blknum_max					= 99999         ;Sets the maximum value for Line Numbers
 
-    ;Homing Format Definitions
-    ;[integer:][Prepstr :][AxisStr1 ;][AxisStrN]
-    ;integer = Homing Output Mode (1=G28, 2=G28 G91, 3=G53 Non-Modal, 4=G53 Modal, 5=G30, 6=G30 G91 7=G90 G54 8= ANY STRING)
-    ;PrepStr = Sets the code(s) for the begging of line used for Homing Axis (i.e. 'G00')
-    ;AxisStr = Homing Axis Definition (i.e. 'Z0.0', 'H0.0 W0.')
-    ;Note: You can define up to 49 "Homing Lines" seperated by ";"
-    ;Note: Only use ";" if using more then 1 "Homing Line"
-    ;Note: Define string as empty '' to ignore Specific Homing Definition
-    ;Note: Only mode 8 (the line as given, here Sinumerik G75) suits this control; 1-7 are Fanuc forms.
+    ; Homing strings: one NC line per '8:prefix:line' entry, entries separated by ';', output in order
+    ; (usr_prep_home_axis). 8 is the only mode (the line as given); prefix is usually empty.
+    ; '' = no homing at that point.
     sHomestrbegin         = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'                           ; Program Begin Homing Definition
     sHomestrtc            = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'                           ; Tool Change Homing Definition
     sHomestrend           = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'                     ; Program End Homing Definition
@@ -531,8 +525,7 @@ endp
 ;-------------------
 
 @end_program
-    ; Handle output for end of program
-    change(iWorkoffset) = false
+    ; End of program: coolant and spindle off, homing, optional stop, M30 (or M2).
     if bCooloffend and bCoolExist
         call @usr_coolant_prep_all_off
         call @usr_coolant_output
@@ -542,11 +535,6 @@ endp
     endif
     sHomestr = sHomestrend
     call @usr_prep_home_axis
-    change(iAbsincmode) = false
-    if change(iWorkoffset)
-        {nb}
-        call @usr_homenumber_output
-    endif
     if bOptstpend
         call @usr_optionalstop
     endif
@@ -642,13 +630,6 @@ endp
     else
         iWorkoffset = tonum(home_user_name)
     endif
-endp
-
-@usr_homenumber_output
-    ; Handle output WorkOffset Gcode
-    {[cWo,iWorkoffset' ']}
-    change(cWo) = false
-    change(iWorkoffset) = false
 endp
 
 ;-------------------
@@ -2138,107 +2119,47 @@ endp
 ;-------------------
 
 @usr_prep_home_axis
-    ; Home with the homing string sHomestr ('' = no homing). Format (usr_ip_useroptions):
-    ;   mode:prep:line[;mode:prep:line...]   e.g. '8::G75 Z1=0. ;8::G75 Y1=0 X1=0' (prep empty)
-    ; Each line goes to usr_home_axis as iHomingmode / cHomep / sHomeline, in string order.
-    ; At most 49 lines (i = 50 ends the loop after the last one).
-    local integer i l mode p1
-    local string s s1 l1 pstr
-    if sHomestr ne ''
-        s = sHomestr
-        s1 = s
-        l = strlen(s1)
-        i = 1
-        while i < 50
-            i = i + 1
-            ; s1 = 'mode:prep:line;...': cut off the mode, then the prep string.
-            p1 = instr(s1,':')
-            l1 = left(s1,p1-1)
-            mode = tonum(l1)
-            s1 = substr(s1,p1+1,l)
-            l = strlen(s1)
-            p1 = instr(s1,':')
-            if p1 ne 0
-                pstr = left(s1,p1-1)
-                s1 = substr(s1,p1+1,l)
-                l = strlen(s1)
-            endif
-            ; The homing line runs to the next ';', or to the end for the last line.
-            p1 = instr(s1,';')
-            if p1 ne 0
-                l1 = left(s1,p1-1)
-                iHomingmode = mode
-                cHomep = pstr
-                sHomeline = l1
-                call @usr_home_axis
-            else
-                iHomingmode = mode
-                cHomep = pstr
-                sHomeline = s1
-                call @usr_home_axis
-                i = 50
-            endif
-            if i ne 50
-                ; Drop the line just output; s1 starts with the next line's mode.
-                s1 = substr(s1,p1+1,l)
-                l = strlen(s1)
-            endif
-        endw
-    endif
+    ; Home with the homing string sHomestr ('' = no homing): entries 'mode:prefix:line' separated by
+    ; ';', e.g. '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'. usr_home_axis outputs each entry in string order.
+    local integer iPos
+    local string sRest sEntry
+    sRest = sHomestr
+    while sRest ne ''
+        iPos = instr(sRest, ';')
+        if iPos eq 0
+            sEntry = sRest
+            sRest = ''
+        else
+            sEntry = left(sRest, iPos - 1)
+            sRest = substr(sRest, iPos + 1, strlen(sRest))
+        endif
+        iHomingmode = 0
+        iPos = instr(sEntry, ':')
+        if iPos ne 0
+            iHomingmode = tonum(left(sEntry, iPos - 1))
+            sEntry = substr(sEntry, iPos + 1, strlen(sEntry))
+        endif
+        cHomep = ''
+        iPos = instr(sEntry, ':')
+        if iPos ne 0
+            cHomep = left(sEntry, iPos - 1)
+            sEntry = substr(sEntry, iPos + 1, strlen(sEntry))
+        endif
+        sHomeline = sEntry
+        call @usr_home_axis
+    endw
 endp
 
 @usr_home_axis
-    ; Output one homing line (sHomeline with prefix cHomep) in mode iHomingmode: 1/2 = Fanuc G28
-    ; (2 incremental), 3/4 = G53 (WorkOffsetmode 2: offset 0), 5/6 = G30, 7 = G90 G54, 8 = the line as
-    ; given (Sinumerik G75). Then mark the axes as homed (bPostHomed).
-    local integer sav_iWorkOffset
-    sav_iWorkOffset = iWorkOffset
-    if iHomingmode eq 1
-        {nb,cHomep'G28 'sHomeline}
+    ; Output one homing line (cHomep + sHomeline, e.g. 'G75 Z1=0.'), then mark the axes as homed.
+    local numeric dummy_var
+    if iHomingmode ne 8
+        dummy_var = 0
+        input '"POST ERROR: Homing string entries must start with 8: (the line as given), e.g. 8::G75 Z1=0."'dummy_var
+        {nb,"POST ERROR: Homing string entries must start with 8: (the line as given), e.g. 8::G75 Z1=0."}
+        abort
     endif
-    if iHomingmode eq 2
-        {nb,cHomep'G28 '}
-        iAbsincmode = 91
-        change(iAbsincmode) = true
-        call @usr_abs_inc_output
-        { sHomeline}
-        iAbsincmode = 90
-        change(iAbsincmode) = true
-    endif
-    if iHomingmode eq 3 or iHomingmode eq 4
-        if iWorkOffsetmode eq 1 or iWorkOffsetmode eq 3
-            iWorkOffset = 53
-            {nb,cHomep,['G'iWorkoffset' ']}
-        endif
-        if iWorkOffsetmode eq 2
-            iWorkOffset = 0
-            {nb,cHomep,[cWo,iWorkoffset' ']}
-        endif
-        call @usr_abs_inc_output
-        { sHomeline}
-        iWorkOffset = sav_iWorkOffset
-        if iHomingmode eq 3
-            change(iWorkOffset) = false
-        endif
-    endif
-    if iHomingmode eq 5
-        {nb,cHomep'G30 'sHomeline}
-    endif
-    if iHomingmode eq 6
-        {nb,cHomep'G30 '}
-        iAbsincmode = 91
-        change(iAbsincmode) = true
-        call @usr_abs_inc_output
-        { sHomeline}
-        iAbsincmode = 90
-        change(iAbsincmode) = true
-    endif
-    if iHomingmode eq 7
-        {nb,cHomep'G90 G54 'sHomeline}
-    endif
-    if iHomingmode eq 8
-        {nb,cHomep,sHomeline}
-    endif
+    {nb,cHomep,sHomeline}
     ; The axes now stand at the homing position: the next positioning move must reprogram X, Y and Z
     ; even when the CAM values did not change.
     bPostHomed = true

@@ -213,7 +213,6 @@ class GppStructureTests(unittest.TestCase):
             for match in pattern.finditer(literals):
                 found[proc].add(match.group(0))
         allowed = {
-            'usr_home_axis': {'G28', 'G30'},            # iHomingmode 1,2,5,6; the options use mode 8
             'usr_hsm_mode': {'G187'},                   # PP-012 (VMID job parameters iG187_P/nG187_E)
         }
         unexpected = {proc: sorted(words - allowed.get(proc, set())) for proc, words in found.items()

@@ -22,7 +22,8 @@ a CHARACTERIZATION of how the engine renders nb/nl (TSR-16).
 import re
 import unittest
 
-from support import (Session, assert_detected, g_function_whitelist, index_of, known_defect, mutate,
+from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
+from support import (Session, assert_detected, covers, g_function_whitelist, index_of, known_defect, mutate,
                      parse_blocks, replay, state_before)
 from pp_tests.file_commands import assemble_files
 
@@ -593,8 +594,6 @@ class RealisticSessionTests(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 SHIPPED_HOMING = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'
-HOMING_MODES = {mode: f'{mode}::Z0;{mode}::X0 Y0' for mode in range(1, 8)}
-HOMING_MODES[8] = SHIPPED_HOMING
 HOMING_TARGET = dict(xpos=30, ypos=40, zpos=5)
 
 
@@ -617,84 +616,77 @@ def homing_session(homing, source=None, options=None, **cam):
     return s, before, after
 
 
+HOMING_STOP = 'POST ERROR: Homing string entries must start with 8: (the line as given), e.g. 8::G75 Z1=0.'
+
+
 class HomingStringTests(unittest.TestCase):
-    def check_homing_modes(self, source=None, modes=tuple(HOMING_MODES)):
-        for mode in modes:
-            s, before, after = homing_session(HOMING_MODES[mode], source)
-            program = s.blocks()
-            homing = s.blocks(before)[:len(s.blocks(before)) - len(s.blocks(after))]
-            shown = f'mode {mode}:\n' + listing(s.blocks(before))
-            # Z first, no X/Y before Z: the first homing block moves Z alone.
-            axes = [homed_axes(block) for block in homing]
-            self.assertTrue(axes, shown)
-            self.assertEqual(axes[0], {'Z'}, f'the first homing block must move Z alone:\n{shown}')
-            self.assertTrue(any({'X', 'Y'} <= moved for moved in axes[1:]), f'X/Y homing line missing:\n{shown}')
-            # G91 must not leak: the next rapid programs the absolute target with G90 in effect.
-            position = len(program) - len(s.blocks(after))
-            state = replay(program)[position][1]
-            self.assertEqual(state.distance, 90, f'G91 leaks after homing:\n{shown}')
-            targets = {axis: value for block in program[position:] for axis, value in block.axes.items()}
-            self.assertEqual(targets, dict(X=30, Y=40, Z=5), f'rapid after homing misses its target:\n{shown}')
-            if mode in (3, 4):
-                # Doc @usr_ip_useroptions: 3 = G53 Non-Modal, 4 = G53 Modal.
-                self.assertTrue(all(53 in block.g for block in homing), f'G53 homing not in machine coordinates:\n{shown}')
-                rapid = program[position]
-                self.assertNotIn(53, rapid.g, f'G53 leaks into the positioning block:\n{shown}')
-                offsets = [code for code in rapid.g if 54 <= code <= 57 or 505 <= code <= 599]
-                # CHARACTERIZATION: after block-wise G53 (mode 3) re-outputting G54 would be equally valid.
-                self.assertEqual(offsets, [54] if mode == 4 else [],
-                                 f'mode {mode}: work offset re-output after G53 homing:\n{shown}')
+    def check_homing(self, source=None, homing=SHIPPED_HOMING):
+        s, before, after = homing_session(homing, source)
+        program = s.blocks()
+        homing_blocks = s.blocks(before)[:len(s.blocks(before)) - len(s.blocks(after))]
+        shown = listing(s.blocks(before))
+        # Z first, no X/Y before Z: the first homing block moves Z alone.
+        axes = [homed_axes(block) for block in homing_blocks]
+        self.assertTrue(axes, shown)
+        self.assertEqual(axes[0], {'Z'}, f'the first homing block must move Z alone:\n{shown}')
+        self.assertTrue(any({'X', 'Y'} <= moved for moved in axes[1:]), f'X/Y homing line missing:\n{shown}')
+        # The next rapid programs the absolute target with G90 in effect.
+        position = len(program) - len(s.blocks(after))
+        state = replay(program)[position][1]
+        self.assertEqual(state.distance, 90, f'G91 leaks after homing:\n{shown}')
+        targets = {axis: value for block in program[position:] for axis, value in block.axes.items()}
+        self.assertEqual(targets, dict(X=30, Y=40, Z=5), f'rapid after homing misses its target:\n{shown}')
 
-    def test_homing_modes(self):
-        """INDEPENDENT: invariants of the documented homing modes 1..8 (@usr_ip_useroptions).
+    def test_shipped_homing_string(self):
+        """INDEPENDENT: Sinumerik G75 fixed-point approach, one line per homing entry
+        ('8::G75 Z1=0. ;8::G75 Y1=0 X1=0', @usr_ip_useroptions): Z is homed alone before
+        any X/Y, and the next absolute rapid runs in G90 and reaches its target.
+        STRUCTURAL guard of the parser: the homing procedure is driven directly (see
+        homing_session)."""
+        self.check_homing()
 
-        Kept invariants only (the G28/G30 block texts of modes 1/2/5/6 are ISO
-        dialect and not certified): Z is homed alone before any X/Y; after the
-        homing the next absolute rapid runs in G90 (modes 2/6 switch to G91 for
-        the homing block; a leaked G91 runs absolute targets incrementally) and
-        reaches its target; modes 3/4 home in machine coordinates (G53 is
-        block-wise on Sinumerik). CHARACTERIZATION of the PP's choice: only mode 4
-        ('G53 Modal') re-outputs the active work offset; for mode 3 a re-output G54
-        after the block-wise G53 would be equally valid on Sinumerik, so its absence
-        is pinned, not required. Mode 7's offset handling is PP-042 and not asserted.
-        STRUCTURAL guard of the parser and the mode table: the homing procedure
-        is driven directly (see homing_session).
-        """
-        self.check_homing_modes()
-
-    def test_homing_mode_mutations_are_detected(self):
-        """INDEPENDENT: the pp-region-4 homing mutants and two parser mutants fail the guard."""
+    def test_homing_parser_mutations_are_detected(self):
+        """INDEPENDENT: two parser mutants fail the guard."""
         cases = {
-            'mode 2 G91 leaks': ((2,), mutate(
-                "        { sHomeline}\n        iAbsincmode = 90\n        change(iAbsincmode) = true\n    endif\n    if iHomingmode eq 3",
-                "        { sHomeline}\n    endif\n    if iHomingmode eq 3"), 'G91 leaks'),
-            'mode 6 G91 leaks': ((6,), mutate(
-                "        { sHomeline}\n        iAbsincmode = 90\n        change(iAbsincmode) = true\n    endif\n    if iHomingmode eq 7",
-                "        { sHomeline}\n    endif\n    if iHomingmode eq 7"), 'G91 leaks'),
-            'mode 3 forces the work offset': ((3,), mutate(
-                '        if iHomingmode eq 3\n            change(iWorkOffset) = false',
-                '        if iHomingmode eq 30\n            change(iWorkOffset) = false'), 're-output'),
-            'G53 work offset not restored': ((3, 4), mutate('        iWorkOffset = sav_iWorkOffset\n', ''),
-                                             'G53 homing|re-output'),
-            'homing line separator ignored': ((8,), mutate("p1 = instr(s1,';')", 'p1 = 0'), 'X/Y homing line missing'),
-            'mode 8 homing line joins the previous block': ((8,), mutate(
-                '        {nb,cHomep,sHomeline}', '        {cHomep,sHomeline}'), 'Z alone'),
+            'homing line separator ignored': (mutate("iPos = instr(sRest, ';')", 'iPos = 0'), 'X/Y homing line missing'),
+            'homing line joins the previous block': (mutate(
+                '    {nb,cHomep,sHomeline}', '    {cHomep,sHomeline}'), 'Z alone'),
         }
-        for label, (modes, source, match) in cases.items():
+        for label, (source, match) in cases.items():
             with self.subTest(mutant=label):
-                assert_detected(self, lambda src, m=modes: self.check_homing_modes(src, m), source, label, match)
+                assert_detected(self, self.check_homing, source, label, match)
 
-    @known_defect('PP-040', match='homing lines merged|in a comment')
+    def check_fanuc_homing_modes_stop(self, source=None):
+        for mode in range(1, 8):
+            program = Program(source=source, policies=scripted_input_policies())
+            with self.assertRaises(post_abort_error(), msg=f'mode {mode}'):
+                program.ev('usr_prep_home_axis', sHomestr=f'{mode}::Z0;{mode}::X0 Y0')
+            self.assertEqual(program.nc(), [HOMING_STOP], f'mode {mode}')
+
+    @covers('PP-041', 'PP-042')
+    def test_fanuc_homing_modes_stop_the_post(self):
+        """INDEPENDENT: Sinumerik homes with G75 (fixed point) or G74; the template's modes
+        1-7 wrote Fanuc forms (G28/G30, G91 homing, G53 with a Fanuc offset style that could
+        print 'G0 Z0' in work coordinates (PP-041), 'G90 G54' that dropped the active offset
+        (PP-042)). A homing string entry with any mode but 8 must stop the post with a POST
+        ERROR before writing anything for that entry."""
+        require_nc_stream()
+        self.check_fanuc_homing_modes_stop()
+
+    def test_removing_the_homing_mode_stop_is_detected(self):
+        """INDEPENDENT: mutation self-check of the stop above."""
+        require_nc_stream()
+        stop = '    if iHomingmode ne 8\n'
+        assert_detected(self, self.check_fanuc_homing_modes_stop, mutate(stop, '    if iHomingmode eq 99\n'),
+                        'homing mode stop removed')
+
+    @covers('PP-040')
     def test_homing_lines_without_prep_string(self):
-        """INDEPENDENT: homing format doc '[integer:][Prepstr :][AxisStr1 ;][AxisStrN]'.
-
-        Prepstr is optional, and ';' starts a comment on Sinumerik. A
-        two-line definition without the prep colon must still give a Z block
-        and a separate X/Y block, with nothing hidden in a comment. STRUCTURAL:
-        the homing procedure is driven directly (see homing_session). No
-        homing output at all, or a first block that does not home Z, is a
-        precondition failure (match=).
-        """
+        """INDEPENDENT: homing entries 'mode:prefix:line' with an optional prefix, and ';'
+        starts a comment on Sinumerik. A two-line definition without the prefix colon must
+        still give a Z block and a separate X/Y block, with nothing hidden in a comment.
+        STRUCTURAL: the homing procedure is driven directly (see homing_session).
+        Regression guard of PP-040 (the old parser merged the lines)."""
         s, before, after = homing_session('8:G75 Z1=0. ;8:G75 Y1=0 X1=0')
         homing = parse_blocks(s.log[before][1])
         shown = listing(homing)
@@ -704,49 +696,6 @@ class HomingStringTests(unittest.TestCase):
                          f'homing lines merged:\n{shown}')
         self.assertEqual([block.comment for block in homing if block.comment is not None], [],
                          f'homing text ends up in a comment:\n{shown}')
-
-    @known_defect('PP-041', match='G53 homing left machine coordinates')
-    def test_g53_homing_stays_in_machine_coordinates_for_every_offset_mode(self):
-        """INDEPENDENT: homing mode doc (3/4 = G53, machine coordinates) for every iWorkOffsetmode.
-
-        The work-offset style option ('1=G54, 2=E1, 3=G54.1 P1') must not turn
-        the G53 machine-coordinate homing into a motion in work coordinates
-        (with iWorkOffsetmode=2 the PP prints cWo+0, i.e. 'G0 Z0'). The oracle
-        is one block carrying G53; a G0 next to the G53 is valid Sinumerik and
-        allowed. STRUCTURAL: the homing procedure is driven directly with G54
-        active (see homing_session). The shipped iWorkOffsetmode=1 must give the
-        G53 block (precondition, not a reproduction: match=).
-        """
-        failures = []
-        for mode in (3, 4):
-            for offset_mode in (1, 2, 3):
-                s = Session(options=dict(iWorkOffsetmode=offset_mode))
-                blocks = parse_blocks(s.ev('usr_prep_home_axis', sHomestr=f'{mode}::Z0', iWorkoffset=54))
-                if len(blocks) != 1 or 53 not in blocks[0].g:
-                    failures.append((mode, offset_mode, [block.raw for block in blocks]))
-        self.assertEqual([failure for failure in failures if failure[1] == 1], [],
-                         'precondition: G53 homing with the shipped iWorkOffsetmode=1')
-        self.assertEqual(failures, [], 'G53 homing left machine coordinates')
-
-    @known_defect('PP-042', match='after mode-7 homing')
-    def test_homing_mode_7_keeps_the_active_work_offset(self):
-        """INDEPENDENT: Sinumerik G54..G57/G505.. are modal; homing must not change the active offset.
-
-        With G55 active (iWorkOffset_Method=1, CoordSys '55'), a homing defined
-        with mode 7 ('G90 G54') must leave G55 in effect for the next
-        positioning move (or restore it). Mode 7 hard-codes G54 and never
-        re-outputs the active offset. STRUCTURAL: the homing procedure is
-        driven directly (see homing_session).
-        """
-        s, before, after = homing_session('7::Z0;7::X0 Y0', vmid=dict(iWorkOffset_Method=1), home_user_name='55')
-        program = s.blocks()
-        replayed = replay(program)
-        homing_start = len(program) - len(s.blocks(before))
-        self.assertEqual(state_before(replayed, homing_start).work_offset, 55,
-                         f'precondition: G55 active before the homing:\n{listing(program)}')
-        position = len(program) - len(s.blocks(after))
-        self.assertEqual(replayed[position][1].work_offset, 55,
-                         f'work offset in effect after mode-7 homing:\n{listing(s.blocks(before))}')
 
 
 # ---------------------------------------------------------------------------

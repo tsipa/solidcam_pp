@@ -64,8 +64,8 @@ class WholeGppTests(unittest.TestCase):
         branches = [d for d in self.diagnostics if d.code == 'I-CONFIG-DEAD']
         # Branches the shipped user options never take: 33 branches / 80 statements at 058b0e9, fewer
         # with each removal of template options for other controls.
-        self.assertEqual(len(branches), 23)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 52)
+        self.assertEqual(len(branches), 22)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 50)
         # The stop on an unsupported i4xIndexMode is one of them: it runs only on a wrong setting.
         guard = lines_matching(r'^\s*if i4xIndexMode ne 0 and i4xIndexMode ne 1\s*$', start='@usr_check_options')
         stop = [d for d in branches if d.proc == 'usr_check_options' and d.line == guard[0]]
@@ -77,7 +77,7 @@ class WholeGppTests(unittest.TestCase):
         for d in self.diagnostics:
             codes.setdefault(d.code, []).append(d.line)
         self.assertEqual(codes['W-QUOTE-DOUBLING'], lines_matching(QUOTE_DOUBLING))
-        integer_tonum = lines_matching(r'^\s*(iWorkoffset|macnum)\s*=\s*tonum\(')
+        integer_tonum = lines_matching(r'^\s*(iWorkoffset|macnum|iHomingmode)\s*=\s*tonum\(')
         self.assertEqual(sorted(set(codes['I-POLICY-INTEGER'])), integer_tonum)
         self.assertIn(integer_tonum[0], codes['I-POLICY-TONUM'])
         self.assertEqual(sorted(codes['I-POLICY-STMT']), lines_matching(r'^\s*(input|print)\b'))

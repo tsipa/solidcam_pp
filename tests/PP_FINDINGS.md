@@ -46,7 +46,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 63. `@covers` references: 66.
+Canonical `@known_defect` tests: 60. `@covers` references: 69.
 
 ## Index of open entries
 
@@ -78,9 +78,9 @@ Canonical `@known_defect` tests: 63. `@covers` references: 66.
 | [PP-036](#pp-036) | medium | confirmed | B | bLimit_3axis still emits A=DC(...) at the first rapid after a tool change | `test_limit_3axis_never_outputs_rotary` |
 | [PP-037](#pp-037) | low | confirmed | B | iR1posControl=3 ('shortest distance') negates the target angle | pinned only (@covers) |
 | [PP-039](#pp-039) | low | confirmed | C | Index clearance warning is written into the NC file as a bare text block (no comment prefix) | `test_index_clearance_warning_is_a_comment` |
-| [PP-040](#pp-040) | low | confirmed | A | Homing parser merges lines after ';' when the optional prep string is omitted | `test_homing_lines_without_prep_string` |
-| [PP-041](#pp-041) | low | confirmed | A | G53 homing with iWorkOffsetmode=2 prints cWo+0, i.e. 'G0 Z0' in work coordinates | `test_g53_homing_stays_in_machine_coordinates_for_every_offset_mode` |
-| [PP-042](#pp-042) | low | confirmed | A | Homing mode 7 hard-codes G54 instead of the active work offset | `test_homing_mode_7_keeps_the_active_work_offset` |
+| [PP-040](#pp-040) | low | confirmed | A | Homing parser merges lines after ';' when the optional prep string is omitted | pinned only (@covers) |
+| [PP-041](#pp-041) | low | confirmed | A | G53 homing with iWorkOffsetmode=2 prints cWo+0, i.e. 'G0 Z0' in work coordinates | pinned only (@covers) |
+| [PP-042](#pp-042) | low | confirmed | A | Homing mode 7 hard-codes G54 instead of the active work offset | pinned only (@covers) |
 | [PP-043](#pp-043) | very-low | confirmed | B | @home_data overwrites the CAM input shift_y (its output is commented out) | `test_home_data_does_not_modify_cam_inputs` |
 | [PP-046](#pp-046) | low | uncertain | B | Exact float compare on A triggers a full G75 Z+XY homing for sub-resolution angle changes | `test_sub_resolution_rotary_change_does_not_home` |
 | [PP-047](#pp-047) | medium | uncertain | F | @rotate/@mirror are empty while the VMID delegates transformations to the post (SoftwareTransform="0") | `test_mirror_event_changes_the_frame_or_stops` [mirror], `test_rotate_event_changes_the_frame_or_stops` [rotate] |
@@ -510,7 +510,8 @@ Canonical `@known_defect` tests: 63. `@covers` references: 66.
 - Evidence that would settle it: None needed (string parsing in @usr_prep_home_axis L2108-2113).
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: pp-region-4-cycles-rotary-14
-- Reproduced by:
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
+- Pinned or exercised by (`@covers`):
   - `tests/test_session_program.py::HomingStringTests::test_homing_lines_without_prep_string`
 
 ### PP-041
@@ -524,8 +525,9 @@ Canonical `@known_defect` tests: 63. `@covers` references: 66.
 - Evidence that would settle it: None needed (@usr_home_axis L2159-2161).
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: pp-region-4-cycles-rotary-17
-- Reproduced by:
-  - `tests/test_session_program.py::HomingStringTests::test_g53_homing_stays_in_machine_coordinates_for_every_offset_mode`
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
+- Pinned or exercised by (`@covers`):
+  - `tests/test_session_program.py::HomingStringTests::test_fanuc_homing_modes_stop_the_post`
 
 ### PP-042
 
@@ -538,8 +540,9 @@ Canonical `@known_defect` tests: 63. `@covers` references: 66.
 - Evidence that would settle it: None needed; owner decides the intended offset for mode 7.
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: pp-region-4-cycles-rotary(missed)
-- Reproduced by:
-  - `tests/test_session_program.py::HomingStringTests::test_homing_mode_7_keeps_the_active_work_offset`
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
+- Pinned or exercised by (`@covers`):
+  - `tests/test_session_program.py::HomingStringTests::test_fanuc_homing_modes_stop_the_post`
 
 ### PP-043
 

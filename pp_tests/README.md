@@ -290,11 +290,12 @@ it shows the open defects as red tests.
   PP-022) and parts of `@usr_r1pos_calc` (whole-turn handling, since rewritten by
   6228b3d). The owner's fixes changed those procedures; the mutation run has not
   been repeated on the current GPP.
-- Still not executed: `@loop_matrix_info`, `@offset_change` and
-  `@usr_homenumber_output` (dormant or disabled by the VMID). The Fanuc template
-  paths (subprogram output, loops, multiple-fixture files, the trig macro, G10) were
-  removed in the refactor; their events and settings stop the post with a POST ERROR.
-  `@usr_heightcomp_on/off` were deleted in the refactor.
+- Still not executed: `@loop_matrix_info` and `@offset_change` (dormant or
+  disabled by the VMID). The Fanuc template paths (subprogram output, loops,
+  multiple-fixture files, the trig macro, G10, other A range and arc modes, Fanuc
+  homing modes) were removed in the refactor; their events and settings stop the
+  post with a POST ERROR or no longer exist. `@usr_heightcomp_on/off` were deleted
+  in the refactor.
 
 ## Recording fixtures
 
