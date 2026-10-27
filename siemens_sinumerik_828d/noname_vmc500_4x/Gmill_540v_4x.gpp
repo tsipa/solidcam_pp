@@ -263,8 +263,6 @@ endp
         endif
     else
         if bUseprogname
-;			part_name = left(g_file_name,6)
-;			part_name = left(g_file_name,(instr(g_file_name,'.') - 1))
             {part_name'_MPF' }
             if strlen(sWorkpcDir) eq 0
                 {nl,cCb, '$PATH=/_N_WKS_DIR/_N_WPD'  ,cCe}
@@ -277,7 +275,6 @@ endp
 
 @usr_sof_commentsbeforecodes
     ; Handle HardCoded or PartControlled comments  (Before G/M codes)
-    ;{nl,cCb'COMPENSATION-WEAR'cCe}
     call @usr_US_date
     call @usr_US_time
     if bDateTimeOutput
@@ -337,11 +334,8 @@ endp
     iMplane         = 17
     iAbsincmode     = 90
     iWorkoffset     = 9999
-;	iHeightcomp     = 9999
-;   iMotionmode     = 0
     iDiametercomp   = 9999
     iCompActive     = 9999
-;	iDiameteroffset = 9999
     iDrillmode      = 9999
     iTcnumber       = 2001
     iCoolantM1      = iCoolantM1OFF
@@ -549,8 +543,6 @@ endp
         {nb,cTCcodep'T'next_tool_number' 'cTCcodes}
     endif
     if bVertical
-;        {nb, 'HVH'}
-;        {nb, 'ROT X '}
         bVertical = false
     endif
     if iProgendmode eq 1
@@ -709,7 +701,6 @@ endp
         call @usr_ct_after
     endif
     if !bMultiplefixtures
-;		bSkipxyrapid = true
     endif
     if bMultiplefixtures eq True
         bFromendchangetool = True
@@ -754,7 +745,6 @@ endp
             endif
             ; {nb, 'HVH'}
             zpos_f = '5.4'
-;                {nb, 'ROT X '}
             bVertical = false
             bFirstVert = false
         else
@@ -807,19 +797,10 @@ endp
     {nb, 'T',tool_number,cTCcodes}
     {nb, cTCcodep}
     {nb, 'D1 '}
-;    if tool_message == '' then
-;        {' ' cCb'TOOL 'tool_number, ' - DIA '(tool_offset*2),cCe }
-;    else
-;        {' ' cCb'T'tool_number,'-' tool_message,cCe}
-;    endif
 
     if bToolPreselect
         if !last_tool
             {nb, 'T'next_tool_number' '}
-;        else
-;            if !bToolChangeAtEnd
-;                {nb, 'T'iFirst_tool}
-;            endif
         endif
     endif
     if !bsubs
@@ -909,16 +890,7 @@ endp
         change(iWorkoffset) = true
         change(iDiameteroffset) = false
         change(iDiametercomp) = false
-;		iHeightcomp = 9999
         iDrillmode = 9999
-;		iCoolantM1 = iCoolantM1OFF
-;		iCoolantM2 = iCoolantM2OFF
-;		iCoolantM3 = iCoolantM3OFF
-;		iCoolantM4 = iCoolantM4OFF
-;		iCoolantM5 = iCoolantM5OFF
-;		iCoolantM6 = iCoolantM6OFF
-;		iCoolantM7 = iCoolantM7OFF
-;		iCoolantM8 = iCoolantM8OFF
     else
         if bSafetyprep
             call @machine_plane
@@ -937,14 +909,6 @@ endp
             change(iDiameteroffset) = false
             iHeightcomp = 9999
             iDrillmode = 9999
-;			iCoolantM1 = iCoolantM1OFF
-;			iCoolantM2 = iCoolantM2OFF
-;			iCoolantM3 = iCoolantM3OFF
-;			iCoolantM4 = iCoolantM4OFF
-;			iCoolantM5 = iCoolantM5OFF
-;			iCoolantM6 = iCoolantM6OFF
-;			iCoolantM7 = iCoolantM7OFF
-;			iCoolantM8 = iCoolantM8OFF
             change(nRapidfeed) = true
             ; ---- 4x
             nR1pos = 9999
@@ -1245,16 +1209,9 @@ endp
     bStopM00difftool = false
     iPworkoffset = iWorkoffset
     ; ---- 4x
-    ;if tool_z_level < tool_start_plane
-    ;    Print 'WARNING!! Tool Z Level is below Tool Start Plane in CoordSys'
-    ;    {nl,'WARNING!! Tool Z Level is below Tool Start Plane in CoordSys'}
-    ;endif
     nPtool_z_level = tool_z_level
     nPtool_start_plane = tool_start_plane
     ; ---- 4x
-;    if bCoolExist and !bsubs
-;	    call @usr_coolant
-;    endif
 endp
 
 ;-------------------
@@ -1311,7 +1268,6 @@ endp
                 endif
 ;                {nb, 'HVV'}
                 zpos_f = '5.4' ;'5.4(*-1)'
-                ;{nb, 'ROT X90. '}
                 bVertical = true
                 bFirstVert = false
             endif
@@ -1322,9 +1278,7 @@ endp
                     sHomestr = sHomestrrot
                     call @usr_prep_home_axis
                 endif
-;               {nb, 'HVH'}
                 zpos_f = '5.4'
-;                {nb, 'ROT X '}
                 bVertical = false
                 bFirstVert = false
             endif
@@ -1345,8 +1299,6 @@ endp
     endif
     if bTlchg or bFirstRapid
         zpos = tool_start_plane
-;		{nb, 'M11'}
-;		{nb, 'G04 K200'}
         if bVertical
             {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' ','Y'ypos ' '}
             if change(nR1pos)
@@ -1366,13 +1318,10 @@ endp
                 endif
             endif
         endif
-;		{nb, 'G04 K800'}
-;		{nb, 'M10'}
         bTlchg = false
         bFirstRapid = false
         bClimbZValid = false
         bFeedPrevValid = false
-;        bSkipxyrapid = true
     else
         if bPostHomed
             ; The post homed the axes after the last positioning move, so the CAM change flags no longer
@@ -2056,7 +2005,6 @@ endp
         bClimbZValid = false
         bFeedPrevValid = false
     endif
-;	call @usr_heightcomp_on
 endp
 
 @usr_StopM00_difftool
@@ -2128,10 +2076,6 @@ endp
         position = position + 1
     endif
     if bsubs
-;    {nb,'M11'}
-;    {nb,'M13'}
-;    {nb,'G54 G0 G90 A0. B0'}
-;    {nb,'G10 G90 L2 P1 B',angle}
     else
         gcode = 0
         apos = 0
@@ -2161,10 +2105,7 @@ endp
     sdis = safety
     dp = drill_lower_z
 
-;    if !first_drill
-;change(zpos) = false
     call @rapid_move
-;    endif
     if drill_type eq G81 then
         gcode = 81
     endif
@@ -2267,9 +2208,7 @@ endp
 
 @drill_point
     ; Handle output for drill positions
-;    if !first_drill then
     {nb,['X'xpos ' '], ['Y'ypos ' '], ['Z'zpos ' ']}
-;    endif
 endp
 
 
@@ -2297,7 +2236,6 @@ endp
         iSpindleDir = 4
     endif
     if change(spin)
-        ; call @usr_spindle_mcode_output
         call @usr_spindle_output
     endif
 endp
@@ -2424,12 +2362,6 @@ endp
 @loop
     ; Loops Not Supported in this template
     bPrintloop = true
-    ;local integer var_num
-
-    ;var_num = loop_level + 20
-    ;{nb, '#', var_num, ' = 0'}
-    ;{nb, 'WHILE [#', var_num, ' LT ', loop_count, '] DO ', loop_level}
-    ;call @home_number
 endp
 
 @end_loop
@@ -2631,7 +2563,6 @@ endp
     ; Note: fc=deg/min, f=linear feed
     local numeric tmpypos tmpzpos dummy_var wrapped
 	nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
-    ; nR1postmatrix = (-y_angle_const_z - dev_angle_z) * iR1dir         ;Rotary from CoordSys (tmatrix)
     nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
     nR1poscpos = (-cpos) * iR1dir                                       ;Rotary from C-axis cutting
     nR1pos5x = (-apos) * iR1dir                                         ;Rotary from 4/5x Simulatenous
@@ -2693,16 +2624,6 @@ endp
     nR2postmatrix = (-x_angle_const_z) * iR2dir                        ;Rotary from CoordSys (tmatrix)
     nR2pos5x = (-bpos) * iR2dir                                       ;Rotary from 4/5x Simulatenous
     nR2pos = nR2postmatrix + nR2pos5x
-;    if abs(nR2pos) gt 80
-;        tmpypos = ypos
-;        tmpzpos = zpos
-;        if change(zpos)
-;            ypos = tmpzpos
-;        endif
-;        if change(ypos)
-;            zpos = -tmpypos
-;        endif
-;    endif
     if nPR1pos ne nR1pos
         change(nR1pos) = TRUE
     else
@@ -2725,11 +2646,6 @@ endp
             call @usr_r1_select_dir
         endif
     endif
-;	{nb, 'nR1postmatrix =' nR1postmatrix }
-;	{nb, 'nR1postransform =' nR1postransform }
-;	{nb, 'nR1poscpos =' nR1poscpos }
-;	{nb, 'nR1pos5x =' nR1pos5x }
-;	{nb, 'nR1postemp =' nR1postemp }
     nR1posstep = nR1postemp - nPR1postemp
     nPR1postemp = nR1postemp
     nPR1pos = nR1pos
@@ -2995,17 +2911,12 @@ endp
     {nb,'#7043 = #7003 + #148 + #6'} ; center z  + new z calculated point + user shift  = new z in g112
     {nb,'M01'}
     {nb,'G103'}
-    ;{nb,'G112'}
-    ;{nb,' G0 A#1'}
     ;Used to end subprogram
     {nb,'M99'}
     {nl}
 endp
 
 @home_data
-;	local integer var1 var2 Var3 var4 var5 Var6 macnum
-;	local numeric newshift_z  newshift_x
-;	local string shift_x_sign shift_y_sign shift_z_sign
     macnum = tonum(substr(home_user_name,(instr(home_user_name,'P') + 1),2))
     if macnum eq 0
         macnum = tonum(substr(home_user_name,(instr(home_user_name,'p') + 1),2))
