@@ -9,7 +9,7 @@ import re
 import unittest
 from unittest import mock
 
-from program_session import require_nc_stream
+from program_session import Program, require_nc_stream
 from test_offline import PP
 from test_post_homing_reposition import Session
 
@@ -89,15 +89,43 @@ class JobPlaneRestoreTests(unittest.TestCase):
         output = session.step('line_5x', ['xpos'], xpos=50, feed_type='feed_cut')
         self.assertEqual(planes(output), [], output)
 
-    def test_side_change_inside_a_compensated_segment_keeps_the_plane(self):
-        # Changing G17/G18/G19 while TRC is active is not allowed: only a selection from G40 restores it.
+    def test_side_change_after_a_yz_arc_restores_the_job_plane(self):
+        # The YZ arc already changed the plane with TRC active. Staying in G19 would compensate the
+        # X/Y moves in the YZ plane (cut one radius off, silently); 'G17 G42' either works or alarms.
         session = Session()
         session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off', iDiametercomp=41, iCompActive=41)
         yz_arc(session)
         session.step('compensation', side='right')
         output = session.step('line_5x', ['ypos'], ypos=40, feed_type='feed_cut')
-        self.assertEqual(planes(output), [], output)
+        self.assertEqual(planes(output), ['17'], output)
         self.assertIn('G42', ' '.join(output))
+
+    def test_side_change_on_a_rapid_after_a_yz_arc_restores_the_job_plane(self):
+        session = Session()
+        session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off', iDiametercomp=41, iCompActive=41)
+        yz_arc(session)
+        session.step('compensation', side='right')
+        output = session.step('move_5x', ['xpos'], xpos=40)
+        self.assertEqual(output, ['G0 G17 G42 X40'])
+
+    def test_side_change_in_g17_prints_no_plane_word(self):
+        session = Session()
+        session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off', iDiametercomp=41, iCompActive=41)
+        session.step('compensation', side='right')
+        output = session.step('line_5x', ['ypos'], ypos=40, feed_type='feed_cut')
+        self.assertEqual(output, ['G42 Y40'])
+
+    def test_subprogram_first_tool_selection_after_yz_arc_restores_g17(self):
+        # bSubs never runs @usr_ct, so the post's TRC state is still the 9999 start value.
+        program = Program(options=dict(bSubs=True))
+        program.start()
+        program.ev('move_5x', xpos=10, ypos=10, zpos=0)
+        program.ev('line_5x', zpos=-1, feed=200)
+        program.engine.set(**YZ_ARC)
+        program.ev('arc_yz', ypos=0, zpos=9, ystart=10, zstart=-1, ycenter=0, zcenter=-1, xcenter=10,
+                   xcenter_rel=0, ycenter_rel=-10, zcenter_rel=0)
+        program.ev('compensation', side='left')
+        self.assertEqual(program.ev('line_5x', xpos=40, feed=200), ['G1 G17 G41 X40'])
 
     def test_restore_does_not_depend_on_equal_assignment_flags(self):
         # Unverified GPPL rule: an equal-value assignment may clear a change flag (policy clear_user).
@@ -106,6 +134,16 @@ class JobPlaneRestoreTests(unittest.TestCase):
             session, _ = job_after_yz_arc()
             first = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=30, ypos=40, zpos=5)
         self.assertEqual(first, ['G0 G17 X30 Y40', 'Z5'])
+
+    def test_restore_with_compensation_on_the_first_move_does_not_depend_on_equal_assignment_flags(self):
+        # @start_of_job restores G17; the TRC selection asks for it again before any block prints it.
+        require_nc_stream()
+        with mock.patch.dict(os.environ, GPPL_POLICY='change_on_equal_assign=clear_user'):
+            session, _ = job_after_yz_arc()
+            session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off')
+            session.step('compensation', side='left')
+            first = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=30, ypos=40, zpos=5)
+        self.assertEqual(first, ['G0 G17 G41 X30 Y40', 'Z5'])
 
     def test_no_plane_word_when_plane_did_not_change(self):
         session = Session()

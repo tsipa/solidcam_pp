@@ -2,10 +2,13 @@
 
 Oracle (INDEPENDENT): Sinumerik Programming Manual Fundamentals, TRC (G40, G41, G42): in the block with
 G40/G41/G42, G0 or G1 must be active and at least one axis of the working plane must be programmed;
-selecting or deselecting it on a G2/G3 block raises an alarm. A rapid that switches TRC in G17 therefore
-programs X and Y (the current position when SolidCAM did not move them), so the change happens on that
-rapid, before any homing, index, tool change or program end. A Z-only G1 plunge keeps its pre-fix form
-('G1 G41 Z-1'). TRC must be off at a tool change, and the post's TRC state must match the control's.
+selecting or deselecting it on a G2/G3 block raises an alarm. A rapid that switches TRC therefore
+programs an axis of the working plane (X and Y in G17, Y in G19, X in G18, at the current position when
+SolidCAM did not move them), so the change happens on that rapid, before any homing, index, tool change
+or program end. Deselection moves the tool centre from the compensated point onto the programmed one, so
+a G17 rapid that climbs deselects after the climb ('G0 Z50' / 'G40 X30 Y30'), not low near the wall.
+A Z-only G1 plunge keeps its pre-fix form ('G1 G41 Z-1'). TRC must be off at a tool change, and the
+post's TRC state must match the control's.
 """
 import re
 import unittest
@@ -189,7 +192,7 @@ class CompensationProgramTests(unittest.TestCase):
 
     def test_retract_before_tool_change_cancels_compensation(self):
         program = self.program()
-        self.assertEqual(program.ev('move_5x', zpos=50), ['G0 G40 X30 Y30 Z50'])
+        self.assertEqual(program.ev('move_5x', zpos=50), ['G0 Z50', 'G40 X30 Y30'])
         program.ev('end_of_job')
         program.ev('change_tool', tool_number=2, next_tool_number=3, first_tool=False)
         change = program.ev('start_of_job', job_name='op2')
@@ -197,13 +200,13 @@ class CompensationProgramTests(unittest.TestCase):
 
     def test_retract_before_program_end_cancels_compensation(self):
         program = self.program()
-        self.assertEqual(program.ev('move_5x', zpos=50), ['G0 G40 X30 Y30 Z50'])
+        self.assertEqual(program.ev('move_5x', zpos=50), ['G0 Z50', 'G40 X30 Y30'])
         program.ev('end_of_job')
         self.assertNotIn('G40', ' '.join(program.ev('end_program')))
 
     def test_retract_before_index_cancels_compensation(self):
         program = self.program()
-        self.assertEqual(program.ev('move_5x', zpos=50), ['G0 G40 X30 Y30 Z50'])
+        self.assertEqual(program.ev('move_5x', zpos=50), ['G0 Z50', 'G40 X30 Y30'])
         program.ev('end_of_job')
         program.ev('tmatrix', angle_4x_around_x=90)
         program.engine.state['btmatrixindexpending'] = True
@@ -213,7 +216,7 @@ class CompensationProgramTests(unittest.TestCase):
 
     def test_retract_before_a_drill_job_at_the_same_xy_cancels_compensation(self):
         program = self.program()
-        self.assertEqual(program.ev('move_5x', zpos=10), ['G0 G40 X30 Y30 Z10'])
+        self.assertEqual(program.ev('move_5x', zpos=10), ['G0 Z10', 'G40 X30 Y30'])
         program.ev('end_of_job')
         program.ev('start_of_job', job_name='drill')
         cycle = program.ev('drill', xpos=30, ypos=30, zpos=10, drill_type='g81', drill_clearance_z=10,
@@ -222,7 +225,7 @@ class CompensationProgramTests(unittest.TestCase):
 
     def test_next_pass_deselects_on_the_retract_and_selects_on_the_plunge(self):
         program = self.program()
-        self.assertEqual(program.ev('move_5x', zpos=2), ['G0 G40 X30 Y30 Z2'])
+        self.assertEqual(program.ev('move_5x', zpos=2), ['G0 Z2', 'G40 X30 Y30'])
         program.ev('compensation', side='left')
         self.assertEqual(program.ev('line_5x', zpos=-4, feed=200), ['G1 G41 Z-4'])
 
@@ -265,6 +268,151 @@ class CompensationProgramTests(unittest.TestCase):
         program.ev('move_5x', xpos=0, ypos=0, zpos=5)
         program.ev('compensation', side='left')
         self.assertEqual(program.ev('move_5x', zpos=4), ['G41 Z4'])
+
+
+YZ_ARC = dict(arc_plane='yz', arc_direction='ccw', arc_size=90, iArcmode=2, radius=10)
+
+
+def yz_arc(program, end, start, center, **values):
+    (y, z), (ys, zs), (yc, zc) = end, start, center
+    return program.ev('arc_yz', ypos=y, zpos=z, ystart=ys, zstart=zs, ycenter=yc, zcenter=zc,
+                      xcenter=program.engine.state['xpos'], xcenter_rel=0, ycenter_rel=yc - ys,
+                      zcenter_rel=zc - zs, **YZ_ARC, **values)
+
+
+def same_tool_second_job(plane, source=None, **options):
+    """A first job in `plane` that ends at X10 Y10 Z-1 (or Z2 after a link), then start_of_job op2."""
+    program = Program(options=options, source=source)
+    program.start(machine_plane=plane)
+    program.ev('move_5x', xpos=10, ypos=10, zpos=5)
+    program.ev('line_5x', zpos=-1, feed=200)
+    program.ev('end_of_job')
+    program.ev('start_of_job', job_name='op2', machine_plane=plane)
+    return program
+
+
+def without(source, text, count=1):
+    if source.count(text) != count:
+        raise AssertionError(f'{text!r} changed; review this test')
+    return source.replace(text, '')
+
+
+class CompensationPlaneAxisTests(unittest.TestCase):
+    """The TRC word lands on a G0/G1 block that programs an axis of the working plane in every
+    rapid path: climb, first-move split, drill positioning, rapids without a plane axis."""
+
+    def yz_climb(self, source=None):
+        require_nc_stream()
+        program = same_tool_second_job('yz', source)
+        program.ev('compensation', side='left')
+        program.ev('move_5x', xpos=10, ypos=10, zpos=40)
+        yz_arc(program, (0, 30), (10, 40), (10, 30), feed=200)
+        program.ev('line_5x', ypos=-5, feed=200)
+        return program.nc()[-4:]
+
+    def test_yz_job_climb_selects_compensation_on_a_y_block(self):
+        # Before: 'G0 Z40' and G41 never printed; the arc and the line ran uncompensated.
+        self.assertEqual(self.yz_climb(), ['G0 Z40', 'G41 Y10', 'G3 Y0 Z30 J0 K-10', 'G1 Y-5'])
+
+    def test_zx_job_climb_selects_compensation_on_an_x_block(self):
+        program = same_tool_second_job('zx')
+        program.ev('compensation', side='left')
+        self.assertEqual(program.ev('move_5x', zpos=40), ['G0 Z40', 'G41 X10'])
+
+    def test_yz_first_move_split_selects_compensation_on_a_y_block(self):
+        program = same_tool_second_job('yz')
+        program.ev('compensation', side='left')
+        # Below the last Z: no climb, the first move splits XY then Z. Before: a bare 'G41' block.
+        self.assertEqual(program.ev('move_5x', zpos=-2), ['G0 G41 Y10', 'Z-2'])
+
+    def test_yz_rapid_with_z_keeps_compensation_on_the_z_block(self):
+        program = same_tool_second_job('yz')
+        program.ev('move_5x', zpos=5)
+        program.ev('compensation', side='left')
+        self.assertEqual(program.ev('move_5x', xpos=12, zpos=4), ['G41 X12 Z4'])
+
+    def test_yz_rapid_without_y_or_z_gets_y(self):
+        program = same_tool_second_job('yz')
+        program.ev('move_5x', zpos=5)
+        program.ev('compensation', side='left')
+        self.assertEqual(program.ev('move_5x', xpos=12), ['G41 X12 Y10'])
+
+    def test_yz_drill_positioning_cancels_compensation_with_a_y_word(self):
+        program = Program()
+        program.start(machine_plane='yz')
+        program.ev('move_5x', xpos=30, ypos=30, zpos=5)
+        program.ev('compensation', side='left')
+        program.ev('line_5x', zpos=-2, feed=200)
+        program.ev('line_5x', ypos=40, feed=200)
+        program.ev('move_5x', zpos=30)
+        program.ev('compensation', side='off')
+        program.ev('end_of_job')
+        program.ev('start_of_job', job_name='drill', machine_plane='yz')
+        cycle = program.ev('drill', xpos=30, ypos=40, zpos=10, drill_type='g81', drill_clearance_z=10,
+                           drill_upper_z=0, drill_lower_z=-15, feed=80)
+        self.assertEqual(cycle[:2], ['G40 Y40', 'Z10'])
+
+    def test_removing_the_yz_plane_axis_is_detected(self):
+        source = without(PP.read_text(encoding='utf-8-sig'),
+                         '                if iMplane eq 19 and !change(ypos) and (!change(zpos) or bFirstMove)\n'
+                         '                    change(ypos) = true\n'
+                         '                endif\n')
+        self.assertEqual(self.yz_climb(source)[:2], ['MSG("op2")', 'G0 Z40'])
+
+    def null_rapid_after_compensated_cut(self, source=None):
+        require_nc_stream()
+        program = Program(source=source)
+        program.start()
+        program.ev('move_5x', xpos=10, ypos=10, zpos=5)
+        program.ev('line_5x', zpos=-1, feed=200)
+        program.ev('compensation', side='left')
+        program.ev('line_5x', xpos=40, feed=200)
+        program.ev('compensation', side='off')
+        program.ev('move_5x', xpos=40, ypos=10, zpos=-1)
+        return program.nc()[-2:]
+
+    def test_rapid_without_motion_switching_compensation_is_its_own_nc_line(self):
+        # Before: 'G41 X40 G0 G40 X40 Y10' (X twice in one block, the cut joined with the rapid).
+        self.assertEqual(self.null_rapid_after_compensated_cut(), ['G41 X40', 'G0 G40 X40 Y10'])
+
+    def test_job_start_rapid_without_motion_is_not_joined_to_the_msg_line(self):
+        require_nc_stream()
+        program = Program()
+        program.start()
+        program.ev('move_5x', xpos=10, ypos=10, zpos=5)
+        program.ev('line_5x', zpos=-1, feed=200)
+        program.ev('compensation', side='left')
+        program.ev('line_5x', xpos=40, feed=200)
+        program.ev('line_5x', zpos=50, feed=200)
+        program.ev('compensation', side='off')
+        program.ev('end_of_job')
+        program.ev('start_of_job', job_name='op2')
+        program.ev('move_5x', xpos=40, ypos=10, zpos=50)
+        self.assertEqual(program.nc()[-2:], ['MSG("op2")', 'G0 G40 X40 Y10'])
+
+    def test_compensation_after_the_no_motion_test_is_detected(self):
+        source = PP.read_text(encoding='utf-8-sig')
+        start = source.index('\n@usr_rapid\n')
+        test = ('        if !change(nR1pos) and !change(xpos) and !change(ypos) and !change(zpos)  '
+                ';Ignore apos prepositioning, handled at toolchange\n            skipline = false\n        endif\n')
+        trc = source.index('        if !bSkipxyrapid\n            if change(iDiametercomp)\n', start)
+        self.assertEqual(source.count(test), 1, 'no-motion test changed; review this test')
+        moved = source.replace(test, '')
+        moved = moved[:trc] + test + moved[trc:]
+        self.assertEqual(self.null_rapid_after_compensated_cut(moved)[-1], 'G41 X40 G0 G40 X40 Y10')
+
+    def test_deselecting_rapid_that_does_not_climb_stays_one_block(self):
+        program = Program()
+        program.start()
+        contour_with_compensation(program)
+        self.assertEqual(program.ev('move_5x', xpos=40, zpos=-3), ['G0 G40 X40 Z-3'])
+
+    def test_removing_the_retract_split_is_detected(self):
+        source = without(PP.read_text(encoding='utf-8-sig'), '                    bTrcRetract = true\n')
+        program = Program(source=source)
+        program.start()
+        contour_with_compensation(program)
+        self.assertEqual(program.ev('move_5x', zpos=50), ['G0 G40 X30 Y30 Z50'])
 
 
 if __name__ == '__main__':

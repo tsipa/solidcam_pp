@@ -616,11 +616,17 @@ endp
 
 @usr_job_plane
     ; Select the job's machining plane (G17 when SolidCAM leaves machine_plane empty or unknown).
-    ; One assignment only: an equal-value second assignment could clear the change flag.
-    if machine_plane eq XY or machine_plane eq ZX or machine_plane eq YZ
-        call @machine_plane
-    else
-        iMplane = 17
+    ; Assign only on a change: an equal-value assignment could clear a pending change flag.
+    local integer iJobPlane
+    iJobPlane = 17
+    if machine_plane eq ZX
+        iJobPlane = 18
+    endif
+    if machine_plane eq YZ
+        iJobPlane = 19
+    endif
+    if iMplane ne iJobPlane
+        iMplane = iJobPlane
     endif
 endp
 
@@ -1262,10 +1268,11 @@ endp
 endp
 
 @usr_rapid
-    local logical bCamLinkRapid bRapidRotaryChanged bHomedReposition
+    local logical bCamLinkRapid bRapidRotaryChanged bHomedReposition bTrcRetract bClimbFirst
     ; A CAM-tagged, straight Z retract authorizes its contiguous rapid link.
     bCamLinkRapid = false
     bHomedReposition = false
+    bTrcRetract = false
     if X5_job and bR1useDir5a and bJobPositioned and bCamLinkRetract
         if !bIndexClearancePending and !bTlchg and !bFirstRapid
             if prev_command eq '@line_5x' or prev_command eq '@line_4x' or prev_command eq '@move_5x' or prev_command eq '@move_4x'
@@ -1376,26 +1383,44 @@ endp
             bPostHomed = false
             bHomedReposition = true
         endif
+        if !bSkipxyrapid
+            if change(iDiametercomp)
+                if iDiametercomp ne 40
+                    ; TRC works in the job plane: a YZ/ZX arc earlier in the job must not leave another one.
+                    call @usr_job_plane
+                endif
+                ; Sinumerik switches cutter compensation only in a G0/G1 block that programs an axis of
+                ; the working plane: give the TRC block one at the current position when CAM sent none.
+                ; In G18/G19 the Z word is one, unless it goes to its own block (first move of a job).
+                if iMplane eq 17 and !change(xpos) and !change(ypos)
+                    change(xpos) = true
+                    change(ypos) = true
+                endif
+                if iMplane eq 18 and !change(xpos) and (!change(zpos) or bFirstMove)
+                    change(xpos) = true
+                endif
+                if iMplane eq 19 and !change(ypos) and (!change(zpos) or bFirstMove)
+                    change(ypos) = true
+                endif
+                if iDiametercomp eq 40 and iMplane eq 17 and change(zpos) and bClimbZValid and !bHomedReposition and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
+                    ; Deselecting while climbing moves the tool toward the wall while it is still low:
+                    ; climb with compensation on, then deselect at the new height.
+                    bTrcRetract = true
+                endif
+                iCompActive = iDiametercomp
+            endif
+        endif
         if !change(nR1pos) and !change(xpos) and !change(ypos) and !change(zpos)  ;Ignore apos prepositioning, handled at toolchange
             skipline = false
         endif
         ; ---- 4x
         if !bSkipxyrapid
-            if change(iDiametercomp)
-                if iDiametercomp ne 40 and iCompActive eq 40
-                    ; TRC works in the active plane: a YZ/ZX arc earlier in the job must not leave it there.
-                    call @usr_job_plane
-                endif
-                ; Sinumerik switches cutter compensation only in a G0/G1 block that programs an axis of
-                ; the working plane: a G17 rapid without X or Y gets them at the current position.
-                if iMplane eq 17 and !change(xpos) and !change(ypos)
-                    change(xpos) = true
-                    change(ypos) = true
-                endif
-                iCompActive = iDiametercomp
-            endif
+            bClimbFirst = bTrcRetract
             if bFirstMove and change(zpos) and bClimbZValid and !bHomedReposition and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
                 ; Job starts above the current Z (no homing since the last move): climb first, then traverse XY.
+                bClimbFirst = true
+            endif
+            if bClimbFirst
                 bFirstMovetlch = false
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],'Z'zpos ' '}
                 call @usr_emulated_rapid_feed
@@ -1553,8 +1578,8 @@ endp
 ;        {nb,['G'iFeedType' ']}
 ;    endif
     if change(iDiametercomp)
-        if iDiametercomp ne 40 and iCompActive eq 40
-            ; TRC works in the active plane: a YZ/ZX arc earlier in the job must not leave it there.
+        if iDiametercomp ne 40
+            ; TRC works in the job plane: a YZ/ZX arc earlier in the job must not leave another one.
             call @usr_job_plane
         endif
         iCompActive = iDiametercomp

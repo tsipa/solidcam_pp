@@ -48,7 +48,7 @@ class SessionReplayTests(unittest.TestCase):
             ';T2-DRILL 6 | HOLDER: BT40-ER25 | STICKOUT: 60.5 mm', ';---HSS', 'MSG(" Loading Zeropoints ")',
             'WORKPIECE(,,,"BOX",0,0,-30,-25,0,0,100,60)'])
         expected_in_order = ['G75 Z1=0.', 'T1', 'M06', 'D1', 'T2', 'MSG("F_CONTOUR")', 'X10 Y20', 'Z5',
-                             'G1 G41 Y30 Z-5 F600', 'X40', 'G2 X50 Y20 I0 J-10', 'G1 Y0', 'G0 G40 X50 Y0 Z50',
+                             'G1 G41 Y30 Z-5 F600', 'X40', 'G2 X50 Y20 I0 J-10', 'G1 Y0', 'G0 Z50', 'G40 X50 Y0',
                              'M9', 'M5', 'M1', 'T2', 'MSG("D_PECK")', 'X25 Y15', 'MCALL CYCLE83 (30,0,2,-20,,,4,4,,0.5,1,1)',
                              'X45', 'MCALL', 'G54 A=ACN(90)', 'MSG("F_SIDE_A90")', 'M0', ';CHECK PART',
                              'MSG("F_5X")', 'G0 A=ACN(100)', 'G1 G93 Z5 A=ACP(110) F19.769', 'G94 Z30 F300',
