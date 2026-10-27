@@ -1217,9 +1217,10 @@ endp
 endp
 
 @usr_rapid
-    local logical bCamLinkRapid bRapidRotaryChanged
+    local logical bCamLinkRapid bRapidRotaryChanged bHomedReposition
     ; A CAM-tagged, straight Z retract authorizes its contiguous rapid link.
     bCamLinkRapid = false
+    bHomedReposition = false
     if X5_job and bR1useDir5a and bJobPositioned and bCamLinkRetract
         if !bIndexClearancePending and !bTlchg and !bFirstRapid
             if prev_command eq '@line_5x' or prev_command eq '@line_4x' or prev_command eq '@move_5x' or prev_command eq '@move_4x'
@@ -1323,6 +1324,7 @@ endp
             change(ypos) = true
             change(zpos) = true
             bPostHomed = false
+            bHomedReposition = true
         endif
         if !change(nR1pos) and !change(xpos) and !change(ypos) and !change(zpos)  ;Ignore apos prepositioning, handled at toolchange
             skipline = false
@@ -1338,7 +1340,14 @@ endp
                     bFirstMove = false
                     skipline = true
                 else
-                    {'Z'zpos ' ' }
+                    if bHomedReposition
+                        ; Coming from the homing position: traverse XY at the homed Z, then plunge in Z.
+                        skipline = true
+                        {nb,'Z'zpos ' ' }
+                        skipline = true
+                    else
+                        {'Z'zpos ' ' }
+                    endif
                 endif
             endif
             if !bSyncdrapid

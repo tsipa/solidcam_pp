@@ -101,5 +101,39 @@ class PostHomingRepositionTests(unittest.TestCase):
             self.assert_xy_restored_before_descent(rotation, approach)
 
 
+class PostHomingApproachOrderTests(unittest.TestCase):
+    """Oracle (INDEPENDENT): the move back from the homing position is post-generated, not CAM-planned
+    or collision-checked; traverse XY at the homed Z first, then plunge in Z (same order the post
+    already uses for the first move of a job)."""
+
+    def test_rotation_after_cutting_returns_xy_then_z(self):
+        session = Session()
+        session.step('line_5x', ['xpos'], xpos=15, feed_type='feed_cut')
+        output = session.step('move_5x', ['apos', 'xpos', 'ypos', 'zpos'], apos=30, xpos=50, ypos=60, zpos=3,
+                              prev_command='@line_5x')
+        self.assertEqual(output, ['G75 Z1=0.', HOME_XY, 'G0 A=ACN(30)', 'X50 Y60', 'Z3'])
+
+    def test_rotate_only_returns_xy_then_z(self):
+        rotation, _ = PostHomingRepositionTests().rotate_only_scenario()
+        self.assertEqual(rotation, ['G75 Z1=0.', HOME_XY, 'G0 A=ACN(90)', 'X12 Y23', 'Z50'])
+
+    def test_rapid_without_homing_keeps_xyz_in_one_block(self):
+        session = Session()
+        output = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=40, ypos=30, zpos=20,
+                              prev_command='@line_5x')
+        self.assertEqual(output, ['G0 X40 Y30 Z20'])
+
+    def test_removing_the_split_is_detected(self):
+        source = PP.read_text(encoding='utf-8-sig')
+        anchor = "                        skipline = true\n                        {nb,'Z'zpos ' ' }\n                        skipline = true\n                    else"
+        self.assertEqual(source.count(anchor), 1, 'post-homing split changed; review this test')
+        broken = source.replace(anchor, "                        {'Z'zpos ' ' }\n                    else", 1)
+        session = Session(broken)
+        session.step('line_5x', ['xpos'], xpos=15, feed_type='feed_cut')
+        output = session.step('move_5x', ['apos', 'xpos', 'ypos', 'zpos'], apos=30, xpos=50, ypos=60, zpos=3,
+                              prev_command='@line_5x')
+        self.assertIn('X50 Y60 Z3', output)
+
+
 if __name__ == '__main__':
     unittest.main()
