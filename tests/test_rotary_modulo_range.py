@@ -7,6 +7,8 @@ Oracle (INDEPENDENT): ACP/ACN/DC address a modulo rotary axis; the programmed po
 import random
 import unittest
 
+from pp_tests.engine import UnsupportedGPPL
+from program_session import Program
 from test_offline import rotary_engine
 
 
@@ -46,6 +48,29 @@ class RotaryModuloRangeTests(unittest.TestCase):
         self.assertEqual(a_position(apos=359.9995).state['nr1pos'], 0)
         self.assertEqual(a_position(apos=0.0004).state['nr1pos'], 0)
         self.assertAlmostEqual(a_position(apos=0.0006).state['nr1pos'], 0.0006, places=9)
+
+    def test_cutting_block_turning_a_full_revolution_stops_the_post(self):
+        # The CAM A axis is unlimited (VMID); one ACP/ACN block turns less than a revolution on the modulo axis.
+        for apos in (360, 370, -720):
+            with self.subTest(apos=apos):
+                program = Program()
+                program.start()
+                program.ev('move_5x', xpos=12, ypos=0, zpos=25)
+                with self.assertRaisesRegex(UnsupportedGPPL, 'One cutting block turns A by 360 degrees or more'):
+                    program.ev('line_5x', xpos=20, apos=apos, feed=200, feed_type='feed_cut')
+
+    def test_link_block_turning_a_full_revolution_is_dropped(self):
+        program = Program()
+        program.start()
+        program.ev('move_5x', xpos=12, ypos=0, zpos=25)
+        self.assertEqual(program.ev('line_5x', xpos=20, apos=360, feed=200, feed_type='feed_link'), ['G1 X20 F200'])
+
+    def test_cutting_block_just_under_a_revolution_is_posted(self):
+        program = Program()
+        program.start()
+        program.ev('move_5x', xpos=12, ypos=0, zpos=25)
+        output = program.ev('line_5x', xpos=20, apos=359, feed=200, feed_type='feed_cut', dir5a='ccw')
+        self.assertIn('A=ACP(359)', ' '.join(output))
 
     def test_coordinate_system_angle_plus_simultaneous_angle_wraps(self):
         self.assertAlmostEqual(a_position(angle_4x_around_x=300, apos=100).state['nr1pos'], 40)

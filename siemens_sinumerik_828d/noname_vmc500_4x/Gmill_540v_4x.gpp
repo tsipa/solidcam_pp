@@ -19,7 +19,7 @@
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest bTmatrixIndexPending
     global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid bFeedPrevValid
     global integer iFeedMode iCompActive
-    global numeric nInvFeed nMaxInverseFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA nFeedPrevR1
+    global numeric nInvFeed nMaxInverseFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA nFeedPrevR1 nR1posstep
     global string nInvFeed_f
     global numeric nLastPathZ nLastPathWorkoffset
     global integer iMplane iAbsincmode iWorkoffset iHeightcomp iStopmode iMotionmode iPworkoffset
@@ -1168,8 +1168,11 @@ endp
         bSkipxyrapid = false
         spin = spin_rate
         change(spin) = false
-        ; X/Y are programmed here and Z after the spindle start below: no extra reposition.
-        bPostHomed = false
+        ; X/Y are programmed here and Z after the spindle start below: no extra reposition. The
+        ; tool-change rapid (bTlchg) programs no X/Y, so then the reposition stays pending.
+        if !bTlchg
+            bPostHomed = false
+        endif
         call @rapid_move
         call @start_tool
         if bCoolExist
@@ -1480,6 +1483,7 @@ endp
 
 @usr_line
     local logical bInverseBlock
+    local numeric dummy_var
     ; Evaluate CAM input changes before output consumes their change flags.
     bCamLinkRetract = false
     if X5_job and bR1useDir5a and bJobPositioned and !bIndexClearancePending
@@ -1498,6 +1502,14 @@ endp
     ; ---- 4x
     ;   - Set Rotary Position
     call @usr_r1pos_calc
+    if iR1posControl eq 1 and !bLimit_3axis and feed_type ne 'feed_link' and abs(nR1posstep) >= 359.9995
+        ; The CAM A axis is unlimited; on the modulo axis ACP/ACN turn less than one revolution per block,
+        ; so a cutting block that turns A by 360 degrees or more would lose whole turns.
+        dummy_var = 0
+        input '"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."'dummy_var
+        {"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."}
+        abort
+    endif
 ;    Do not pre-apply upcoming compensation here.
 ;    CAM emits @compensation before the move where it must become active.
 ;    Applying next_command compensation from @usr_line corrupts lead-out/zigzag side changes.
@@ -1578,6 +1590,10 @@ endp
     ; The rotation is the travel of the modulo axis as the control moves it (ACP positive, ACN negative,
     ; DC shortest), in the CAM angle sense. The CAM angle difference can be off by turns of 360 degrees.
     dm = nR1pos - nFeedPrevR1
+    if abs(dm) < 0.0005
+        ; Below the A output resolution (nR1pos_f '7.3') the control sees no rotation.
+        dm = 0
+    endif
     if iR1dirMode eq 2
         while dm < 0
             dm = dm + 360
@@ -1951,6 +1967,7 @@ endp
 @usr_StopM00_sametool
     ; Handle output for forced stopM00 between operations using the same tool
     local logical bHomedBeforeReturn
+    local numeric nZBeforeReturn
     if bCoolExist
         iCoolantM1 = iCoolantM1OFF
         iCoolantM2 = iCoolantM2OFF
@@ -1991,9 +2008,17 @@ endp
     ; This return is XY only, at the homed Z: a pending post homing stays pending, so the next move
     ; still programs Z.
     bHomedBeforeReturn = bPostHomed
+    nZBeforeReturn = nLastPathZ
     bPostHomed = false
     call @rapid_move
     bPostHomed = bHomedBeforeReturn
+    ; The return programs no Z: the tool stays at its Z (RTP after a drill cycle, or the homed top).
+    nLastPathZ = nZBeforeReturn
+    nFeedPrevZ = nZBeforeReturn
+    if bPostHomed
+        bClimbZValid = false
+        bFeedPrevValid = false
+    endif
 ;	call @usr_heightcomp_on
 endp
 
@@ -2668,6 +2693,7 @@ endp
 ;	{nb, 'nR1poscpos =' nR1poscpos }
 ;	{nb, 'nR1pos5x =' nR1pos5x }
 ;	{nb, 'nR1postemp =' nR1postemp }
+    nR1posstep = nR1postemp - nPR1postemp
     nPR1postemp = nR1postemp
     nPR1pos = nR1pos
     nPR2pos = nR2pos
@@ -2727,6 +2753,8 @@ endp
     call @usr_r1pos_calc
     if change(nR1pos)
         ; Turning A does not move Z. A homing clears bClimbZValid itself; a clearance move sets nLastPathZ.
+        ; The index is not a tracked feed start (A and possibly Z moved).
+        bFeedPrevValid = false
         call @usr_optionalstop
         if i4xIndexMode eq 0 ;Simple Rotation
             if i4xIndexClearanceMode eq 0
@@ -2781,6 +2809,8 @@ endp
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
                 call @usr_r1_output
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_z_level ' '}
+                nLastPathZ = tool_z_level
+                nLastPathWorkoffset = iWorkoffset
             endif
             if i4xIndexClearanceMode eq 2
                 iMotionmode = 0
@@ -2789,10 +2819,15 @@ endp
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
                 call @usr_r1_output
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_start_plane ' '}
+                nLastPathZ = tool_start_plane
+                nLastPathWorkoffset = iWorkoffset
             endif
         endif
     endif
     if i4xIndexMode eq 2 ;Trig Macro
+        ; The macro recomputes the G112 origin: Z before and after are not comparable.
+        bClimbZValid = false
+        bFeedPrevValid = false
         if sHomestrrot ne ''
             sHomestr = sHomestrrot
             call @usr_prep_home_axis

@@ -40,9 +40,9 @@ def drill_job_then(next_z, rtp=30, drill_z=10, source=None):
     return program.ev('move_5x', xpos=100, ypos=100, zpos=next_z)
 
 
-def index_job_then(next_z, clearance, homing=None, source=None):
-    """Simple-rotation index between same-tool jobs, then the next job's first rapid."""
-    options = dict(i4xIndexClearanceMode=clearance)
+def index_job_then(next_z, clearance, homing=None, source=None, options=None):
+    """Index between same-tool jobs (simple rotation unless options say otherwise), then the next job's first rapid."""
+    options = dict(i4xIndexClearanceMode=clearance, **(options or {}))
     program = Program(options=options, source=source)
     program.start()
     program.ev('move_5x', xpos=10, ypos=10, zpos=5)
@@ -120,6 +120,42 @@ class JobStartClimbTests(unittest.TestCase):
         self.assertEqual(index[-2:], ['Z45', 'MSG("op2")'], index)
         self.assertEqual(first, ['Z50', 'X100 Y100'])
         self.assertEqual(index_job_then(30, clearance=2)[1], ['X100 Y100', 'Z30'])
+
+    def test_new_work_offset_index_clearance_move_sets_the_current_z(self):
+        # i4xIndexMode=1 (non-default), clearance to tool_z_level=40 in the same offset (position 1).
+        for next_z, expected in ((20, ['X100 Y100', 'Z20']), (60, ['Z60', 'X100 Y100'])):
+            with self.subTest(next_z=next_z):
+                program = Program(options=dict(i4xIndexMode=1, i4xIndexClearanceMode=1))
+                program.start()
+                program.ev('move_5x', xpos=10, ypos=10, zpos=5)
+                program.ev('line_5x', zpos=-1, feed=100)
+                program.ev('move_5x', zpos=5)
+                program.ev('end_of_job')
+                program.ev('tmatrix', angle_4x_around_x=90)
+                program.engine.state['btmatrixindexpending'] = True
+                index = program.ev('start_of_job', job_name='op2', tool_z_level=40, tool_start_plane=45)
+                self.assertEqual(index[-2:], ['Z40', 'MSG("op2")'], index)
+                self.assertEqual(program.ev('move_5x', xpos=100, ypos=100, zpos=next_z), expected)
+
+    def test_trig_macro_index_does_not_climb(self):
+        # i4xIndexMode=2 recomputes the G112 origin: Z before and after the index are not comparable.
+        index, first = index_job_then(50, clearance=0, homing='', options=dict(i4xIndexMode=2))
+        self.assertIn('G112 A=ACP(90)', index)
+        self.assertEqual(first, ['X100 Y100', 'Z50'])
+
+    def test_m00_after_a_drill_job_keeps_rtp_as_the_current_z(self):
+        program = Program(cam=dict(bStopM00=True, next_job_tool_number=1))
+        program.start()
+        program.ev('move_5x', xpos=10, ypos=10, zpos=50)
+        program.ev('end_of_job')
+        program.ev('start_of_job', job_name='drill')
+        program.ev('drill', xpos=20, ypos=20, zpos=5, drill_type='g81', drill_clearance_z=10, drill_upper_z=0,
+                   drill_lower_z=-10, feed=80)
+        program.ev('drill_point', xpos=30, ypos=20)
+        program.ev('end_drill')
+        self.assertIn('M0', program.ev('end_of_job'))
+        program.ev('start_of_job', job_name='op3')
+        self.assertEqual(program.ev('move_5x', xpos=80, ypos=60, zpos=8), ['X80 Y60', 'Z8'])
 
     def test_work_offset_change_between_jobs_does_not_climb(self):
         # Z of another fixture offset is not comparable: traverse first as before.

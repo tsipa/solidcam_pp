@@ -60,13 +60,16 @@ class WholeGppTests(unittest.TestCase):
         self.assertEqual(config_dead_procs, {'usr_trig_macro_call', 'usr_trig_macro_output'})
         branches = [d for d in self.diagnostics if d.code == 'I-CONFIG-DEAD']
         # 37 before the review fixes + the iR1posControl eq 3 block split out of 'eq 1 or eq 3' (6228b3d).
+        # Dead statements 147 before the fixes: +3 that block, +2 bSubs branch (ed07c3f, review round 2),
+        # +2 index mode 0 clearance Z tracking (fc664ce), +4 index mode 1 clearance Z tracking and
+        # +2 trig-macro resets (review round 2).
         self.assertEqual(len(branches), 38)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 153)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 160)
         subs_line = lines_matching(r'^\s*if bSubs\s*$', start='@start_of_job')
         subs = [d for d in branches if d.proc == 'start_of_job' and d.line == subs_line[0]]
         option = lines_matching(r'^\s*bSubs\s*=')[0]
         self.assertIn(f'bsubs=False (L{option})', subs[0].message)
-        self.assertIn('22 statement(s)', subs[0].message)        # + 'bPostHomed = false' (review of 345cb49)
+        self.assertIn('23 statement(s)', subs[0].message)        # + reposition handling (ed07c3f, review round 2)
 
     def test_policy_sensitive_sites(self):
         codes = {}

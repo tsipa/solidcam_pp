@@ -11,6 +11,7 @@ import math
 import re
 import unittest
 
+from program_session import Program
 from test_offline import PP, ROOT
 from test_post_homing_reposition import Session
 
@@ -159,6 +160,42 @@ class InverseTimeFeedTests(unittest.TestCase):
         self.assertIn('A=ACP(181)', output[0])
         length = path_length((12, 0, 25, 179), (13, 0, 25, 181))
         self.assertAlmostEqual(feed_word(output[0]), 200 / length, delta=0.01)
+
+    def test_sub_resolution_a_change_is_no_rotation(self):
+        # 30 -> 29.99999 -> 30.00001 prints A=30 every time: the control does not turn, F is the linear one.
+        session = start_at(12, 0, 25, apos=30)
+        first = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=20, apos=29.99999, feed=300, dir5a='ccw',
+                             feed_type='feed_cut')
+        second = session.step('line_5x', ['xpos', 'apos'], xpos=28, apos=30.00001, feed=300, dir5a='cw',
+                              feed_type='feed_cut')
+        self.assertAlmostEqual(feed_word(first[0]), 300 / 8, delta=0.001)
+        self.assertAlmostEqual(feed_word(second[0]), 300 / 8, delta=0.001)
+
+    def test_index_without_homing_leaves_no_known_feed_start(self):
+        # Clearance mode 1 moves Z and A without homing: the next rotating G1 falls back to G94.
+        program = Program(options=dict(i4xIndexClearanceMode=1))
+        program.start()
+        program.ev('move_5x', xpos=12, ypos=0, zpos=25)
+        program.ev('line_5x', xpos=14, apos=30, feed=200)
+        program.ev('end_of_job')
+        program.ev('tmatrix', angle_4x_around_x=90)
+        program.engine.state['btmatrixindexpending'] = True
+        program.ev('start_of_job', job_name='op2', tool_z_level=50)
+        output = program.ev('line_5x', xpos=16, apos=10, feed=200)
+        self.assertNotIn('G93', ' '.join(output))
+        self.assertIn('A=ACP(100)', ' '.join(output))
+
+    def test_m00_homing_leaves_no_known_feed_start(self):
+        program = Program(options=dict(sHomestrstpsame='8::G75 Z1=0. ;8::G75 Y1=0 X1=0'),
+                          cam=dict(bStopM00=True, next_job_tool_number=1))
+        program.start()
+        program.ev('move_5x', xpos=30, ypos=10, zpos=5)
+        program.ev('line_5x', zpos=-2, feed=200)
+        program.ev('end_of_job')
+        program.ev('start_of_job', job_name='op2')
+        output = program.ev('line_5x', xpos=40, ypos=15, zpos=-1, apos=-10, dir5a='cw', feed=200)
+        self.assertEqual(output[0], 'G0 X40 Y15')
+        self.assertNotIn('G93', ' '.join(output))
 
     def test_part_frame_sign_straightens_the_recorded_link(self):
         # Oracle for the sign itself: SolidCAM's rotary link is a straight, evenly stepped line on the part.

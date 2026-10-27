@@ -164,6 +164,14 @@ class PostHomingProgramTests(unittest.TestCase):
         output = program.ev('start_of_job', job_name='op1', xnext=12, ynext=23, zpos=35, force=dict(zpos=True))
         self.assertEqual(output, ['MSG("op1")', 'G0 G90 X12 Y23 M3', 'S3000', 'G04 F6.3', 'M8', 'Z35'])
 
+    def test_subprogram_tool_change_rapid_keeps_the_reposition(self):
+        # The tool-change rapid programs no X/Y: after the start homing, X/Y must come before Z.
+        program = Program(options=dict(bSubs=True, sHomestrroth='', sHomestrrotv=''))
+        self.assertIn(HOME_XY, program.ev('start_program'))
+        program.engine.state.update(btlchg=True, br1forceoutput=False, nr1pos=0, npr1pos=0)
+        output = program.ev('start_of_job', job_name='op1', xnext=40, ynext=10, zpos=50, force=dict(zpos=True))
+        self.assertEqual(output[-2:], ['X40 Y10', 'Z50'], output)
+
     def test_file_start_clears_a_stale_homing_mark(self):
         program = Program()
         program.engine.state['bposthomed'] = True

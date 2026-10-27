@@ -218,7 +218,7 @@ class CoverageTests(unittest.TestCase):
             program = session.engine.program
         summary = total.summary(program)
         self.assertEqual(summary['total'], sum(statement_kinds_from_text().values()))
-        self.assertGreaterEqual(summary['percent'], 88.0)    # ZX arc math/output is dead after the 5408e5c stop
+        self.assertGreaterEqual(summary['percent'], 87.0)    # ZX arc math after its stop, new POST ERROR paths
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
         # usr_heightcomp_*: statically dead; arc_zx: a ZX arc stops the post (5408e5c, test_zx_arc_stops_the_session)
         self.assertEqual(never, {'usr_heightcomp_on', 'usr_heightcomp_off', 'arc_zx'})
