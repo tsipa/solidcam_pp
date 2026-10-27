@@ -11,6 +11,7 @@ def motion_engine():
     engine = rotary_engine()
     engine.call('usr_ip_useroptions')
     engine.set(X5_job=True, bJobPositioned=True, bCamLinkRetract=False, bPostHomed=False, bClimbZValid=False,
+               machine_plane='xy', xy='xy', zx='zx', yz='yz',
                bIndexClearancePending=False, bTlchg=False, bFirstRapid=False,
                bFirstMove=False, bFirstMovetlch=False, bVertical=False,
                bFirstVert=False, bSkipxyrapid=False, bFeedoutput=False,

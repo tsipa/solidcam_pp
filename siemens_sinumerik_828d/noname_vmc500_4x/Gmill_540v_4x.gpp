@@ -1109,6 +1109,8 @@ endp
     ; Handle what happens at start of operation(job)
     ; If using Subs we do not make tool change in @start_of_job
     call @home_number
+    ; Arcs in YZ/ZX leave iMplane at 19/18; restore the job's machining plane for its first motion block.
+    call @machine_plane
     if bTmatrixIndexPending
         change(cWo) = true
         change(iWorkoffset) = true

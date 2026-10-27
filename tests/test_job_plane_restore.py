@@ -1,0 +1,59 @@
+"""A job starts in its machining plane even if the previous job ended with a YZ/ZX arc.
+
+Oracle (INDEPENDENT): G17/G18/G19 are modal on Sinumerik. Cutter compensation and drilling cycles
+work in the active plane (CYCLE81 drills along the plane's applicate axis), so an XY job after a
+G19 arc must re-select G17 before it moves.
+"""
+import unittest
+
+from test_offline import PP
+from test_post_homing_reposition import Session
+
+
+def job_after_yz_arc(source=None):
+    session = Session(source)
+    session.engine.set(arc_plane='yz', arc_direction='ccw', arc_size=90, iArcmode=2, radius=10,
+                       xstart=12, ystart=10, zstart=0, xcenter=12, ycenter=0, zcenter=0,
+                       xcenter_rel=0, ycenter_rel=-10, zcenter_rel=0)
+    arc = session.step('arc_yz', ['ypos', 'zpos'], ypos=0, zpos=10)
+    session.step('end_of_job')
+    session.step('start_of_job')
+    return session, arc
+
+
+class JobPlaneRestoreTests(unittest.TestCase):
+    def test_first_move_after_yz_arc_reselects_g17(self):
+        session, arc = job_after_yz_arc()
+        self.assertTrue(arc[0].startswith('G3 G19'), arc)
+        first = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=30, ypos=40, zpos=5)
+        self.assertEqual(first, ['G0 G17 X30 Y40', 'Z5'])
+
+    def test_drill_cycle_after_yz_arc_runs_in_g17(self):
+        session, _ = job_after_yz_arc()
+        session.engine.set(drill_type='g81', drill_upper_z=12, drill_clearance_z=30, drill_lower_z=-15,
+                           safety=2, G81='g81', G82='g82', G83='g83', G84='g84', G86='g86')
+        output = session.step('drill', ['xpos', 'ypos'], xpos=30, ypos=40)
+        text = '\n'.join(output)
+        self.assertLess(text.index('G17'), text.index('MCALL CYCLE81'), output)
+
+    def test_no_plane_word_when_plane_did_not_change(self):
+        session = Session()
+        session.step('end_of_job')
+        session.step('start_of_job')
+        self.assertEqual(session.step('move_5x', ['xpos', 'ypos'], xpos=30, ypos=40), ['G0 X30 Y40'])
+
+    def test_removing_the_plane_restore_is_detected(self):
+        source = PP.read_text(encoding='utf-8-sig')
+        start = source.index('\n@start_of_job\n')
+        body = source[start:source.index('\nendp', start)]
+        restore = '    call @machine_plane\n'
+        self.assertEqual(body.count(restore), 1, 'plane restore in @start_of_job changed; review this test')
+        position = source.index(restore, start)
+        broken = source[:position] + source[position + len(restore):]
+        session, _ = job_after_yz_arc(broken)
+        first = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=30, ypos=40, zpos=5)
+        self.assertEqual(first, ['G0 X30 Y40', 'Z5'])
+
+
+if __name__ == '__main__':
+    unittest.main()
