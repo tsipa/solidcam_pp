@@ -77,8 +77,9 @@ class WholeGppTests(unittest.TestCase):
         # -3 branches / -5 statements: the fixup round moved the "homing string not ''" test into
         # usr_prep_home_axis; the call-site tests of sHomestrstpsame/stpdiff/endsub ('' as shipped) were
         # dead branches, and the trig-macro index homing gained its 'sHomestr = sHomestrrot' (+1).
+        # -1 statement: the always-true 'if !bSubs' in the dead bCoolspinaftertc branch of usr_ct_after.
         self.assertEqual(len(branches), 35)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 87)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 86)
         subs_line = lines_matching(r'^\s*if bSubs\s*$', start='@start_of_job')
         subs = [d for d in branches if d.proc == 'start_of_job' and d.line == subs_line[0]]
         option = lines_matching(r'^\s*bSubs\s*=')[0]

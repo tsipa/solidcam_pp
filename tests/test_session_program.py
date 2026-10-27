@@ -573,8 +573,8 @@ class RealisticSessionTests(unittest.TestCase):
                 (mutate('of file\n    iMotionmode     = 9999', 'of file\n    iMotionmode     = 0'), 'without effective G0'),
             '961facc reverted (no final line feed)': (mutate(END_ANCHOR_M30, "        {nb, 'M30'}\n"), 'line feed'),
             'no spindle start after the tool change': (mutate(
-                '            skipline = false\n            call @start_tool\n        endif\n    endif\nendp\n',
-                '            skipline = false\n        endif\n    endif\nendp\n'), 'spindle must be started'),
+                '        skipline = false\n        call @start_tool\n    endif\nendp\n',
+                '        skipline = false\n    endif\nendp\n'), 'spindle must be started'),
             'no homing before an index': (mutate(
                 "    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n        call @usr_prep_home_axis\n    endif\n", ''),
                 'without preceding Z homing'),

@@ -120,8 +120,8 @@ class ReplayFindings(unittest.TestCase):
             session = Session.from_paths(PP, vmid=VMID, policies=policy)
             session.start()
             engine = session.engine
-            engine.set(msg=message, i4xIndexMode=0, bCoolspinaftertc=False, bsubs=True)
-            engine.call('usr_ct_after')
+            engine.set(msg=message)
+            engine.call('usr_ct_msg_lines')
             return [line for line in engine.nc_lines() if line.startswith(';')]
         literal = first_tool_comments(Policies.session(), 'LINE ONE\\nLINE TWO')
         self.assertEqual(literal, [';LINE ON', ';nLINE TWO'])

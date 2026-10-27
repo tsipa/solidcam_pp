@@ -19,7 +19,7 @@
       "initial": {"angle": 90, "apos": 123, "opposite_z_angle_const_y": 0},
       "expected_a": 90,
       "expected_apos": 0,
-      "regression": {"find": "        apos = 0\n\t\tcall @usr_4x_index", "replace": "        apos = angle -opposite_z_angle_const_y\n\t\tcall @usr_4x_index"}
+      "regression": {"find": "        apos = 0\n        call @usr_4x_index", "replace": "        apos = angle -opposite_z_angle_const_y\n        call @usr_4x_index"}
     },
     {
       "name": "distinct_apos_and_bpos_map_to_separate_axes",

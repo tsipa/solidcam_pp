@@ -751,9 +751,9 @@ endp
 endp
 
 @usr_ct_after
-    ; After the T / M6 / D1 blocks: the operation message, the trig-macro index (index mode 2), then
-    ; the spindle start, the coolant and the first positioning rapid (usr_rapid_tc_block) in the order
-    ; bCoolspinaftertc selects.
+    ; After the T / M6 / D1 blocks (usr_ct calls it only without subprograms, !bSubs): the operation
+    ; message, the trig-macro index (index mode 2), then the spindle start, the coolant and the first
+    ; positioning rapid (usr_rapid_tc_block) in the order bCoolspinaftertc selects.
     call @usr_ct_msg_lines
     if i4xIndexMode eq 2 and !bLimit_3axis ;Trig Macro
         call @usr_r1pos_calc
@@ -765,27 +765,23 @@ endp
         ; Spindle and coolant first, each in its own block, then the positioning rapid.
         skipline = true
         call @start_tool
-        if bCoolExist and !bSubs
+        if bCoolExist
             skipline = true
             call @usr_coolant
         endif
-        if !bSubs
-            call @usr_ct_target
-            call @usr_rapid
-        endif
+        call @usr_ct_target
+        call @usr_rapid
     else
         ; The positioning rapid first; the coolant and the spindle start join its line.
-        if !bSubs
-            call @usr_ct_target
-            skipline = true
-            call @usr_rapid
-            if bCoolExist
-                skipline = false
-                call @usr_coolant
-            endif
+        call @usr_ct_target
+        skipline = true
+        call @usr_rapid
+        if bCoolExist
             skipline = false
-            call @start_tool
+            call @usr_coolant
         endif
+        skipline = false
+        call @start_tool
     endif
 endp
 
@@ -1985,16 +1981,17 @@ endp
 @fourth_axis
     bIndexClearancePending = true
     bCamLinkRetract = false
+    ; SolidCAM 4x index (angle; it reaches A through nR1postransform, so apos = 0). position counts
+    ; the index steps (index mode 1 steps the work offset by position-1).
     if angle eq 0
         position = 1
     else
         position = position + 1
     endif
-    if bSubs
-    else
+    if !bSubs
         gcode = 0
         apos = 0
-		call @usr_4x_index
+        call @usr_4x_index
     endif
 endp
 ;-------------------
@@ -2242,7 +2239,6 @@ endp
         else
             {nl,cCb'T'tool_number,'-' tool_message,cCe}
         endif
-    else
     endif
     call @usr_4x_index
     call @home_number

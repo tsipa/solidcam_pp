@@ -33,8 +33,7 @@ NO_COOLANT = dict(flood_coolant=0, Mist_coolant=0, HP_Flood_coolant=0, LP_Flood_
                   Air_Blast_coolant=0, air_through_coolant=0)
 TC_HOMING_CALL = "        else\n            sHomestr = sHomestrtc\n"
 INDEX_HOMING = "    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n        call @usr_prep_home_axis\n    endif\n"
-START_TOOL_AFTER_TC = ('            skipline = false\n            call @start_tool\n        endif\n    endif\n'
-                       'endp\n')
+START_TOOL_AFTER_TC = '        skipline = false\n        call @start_tool\n    endif\nendp\n'
 
 
 def listing(blocks):
@@ -118,7 +117,7 @@ class ToolChangeSequenceTests(unittest.TestCase):
 
     def test_d1_reversions_are_detected(self):
         """INDEPENDENT: removing D1 (420c4ab reverted) or moving it after the first rapid fails."""
-        rapid = "            call @usr_ct_target\n            skipline = true\n            call @usr_rapid\n"
+        rapid = "        call @usr_ct_target\n        skipline = true\n        call @usr_rapid\n"
         late = mutate("    {nb, 'D1 '}\n", '')
         late = mutate(rapid, rapid + "            {nb, 'D1 '}\n", source=late)
         sources = {'420c4ab reverted': mutate("    {nb, 'D1 '}\n", ''), 'D1 after the first rapid': late}
@@ -240,10 +239,10 @@ class ToolChangeSafetyTests(unittest.TestCase):
             'no M01 between tools': mutate("        if bOptstptc\n            call @usr_optionalstop\n        endif\n"
                                            "    endif\n    if bTcseperation", "    endif\n    if bTcseperation"),
             'no spindle start after M06': mutate(START_TOOL_AFTER_TC, START_TOOL_AFTER_TC.replace(
-                '            call @start_tool\n', '')),
-            'no coolant after M06': mutate("            if bCoolExist\n                skipline = false\n"
-                                           "                call @usr_coolant\n",
-                                           "            if bCoolExist\n                skipline = false\n"),
+                '        call @start_tool\n', '')),
+            'no coolant after M06': mutate("        if bCoolExist\n            skipline = false\n"
+                                           "            call @usr_coolant\n",
+                                           "        if bCoolExist\n            skipline = false\n"),
             'preselect before M06': mutate("    {nb, 'T',tool_number,cTCcodes}\n    {nb, cTCcodep}",
                                            "    {nb, 'T',tool_number,cTCcodes}\n    {nb, 'T'next_tool_number' '}\n"
                                            "    {nb, cTCcodep}"),
@@ -299,7 +298,7 @@ class ToolChangeSafetyTests(unittest.TestCase):
                                            "    {nb, 'T',tool_number,cTCcodes}\n    {nb, 'T'next_tool_number' '}\n"
                                            "    {nb, cTCcodep}"),
             'no spindle start after M06': mutate(START_TOOL_AFTER_TC, START_TOOL_AFTER_TC.replace(
-                '            call @start_tool\n', '')),
+                '        call @start_tool\n', '')),
             'no initial DC force': mutate('    bR1forceOutput = true\n', '    bR1forceOutput = false\n'),
         }
         for label, source in sources.items():
@@ -516,9 +515,9 @@ class ToolChangeSafetyTests(unittest.TestCase):
             'channel 7 never written': mutate("    if change(iCoolantM7)\n        {nb,['M'iCoolantM7:mcode_f' ']}\n",
                                               "    if false\n        {nb,['M'iCoolantM7:mcode_f' ']}\n"),
             '40 bar code': mutate('            iCoolantM5ON = 71\n', '            iCoolantM5ON = 72\n'),
-            'no coolant after M06': mutate("            if bCoolExist\n                skipline = false\n"
-                                           "                call @usr_coolant\n",
-                                           "            if bCoolExist\n                skipline = false\n"),
+            'no coolant after M06': mutate("        if bCoolExist\n            skipline = false\n"
+                                           "            call @usr_coolant\n",
+                                           "        if bCoolExist\n            skipline = false\n"),
         }
         for label, source in sources.items():
             with self.subTest(mutant=label):
@@ -561,13 +560,13 @@ class ToolChangeSafetyTests(unittest.TestCase):
         template procedure @usr_heightcomp_on) fails the guard."""
         g_function_whitelist()  # skip early when the control file is absent
         g43 = "            {nb, 'G43 H'tool_number' '}\n"
-        coolant_spindle_path = '            call @usr_ct_target\n            call @usr_rapid\n        endif\n    else\n'
+        coolant_spindle_path = '        call @usr_ct_target\n        call @usr_rapid\n    else\n'
         sources = {
             'height compensation enabled (coolant+spindle path)': mutate(
                 coolant_spindle_path, coolant_spindle_path.replace('call @usr_rapid\n', 'call @usr_rapid\n' + g43)),
             'height compensation in the default path': mutate(
                 START_TOOL_AFTER_TC, START_TOOL_AFTER_TC.replace(
-                    '            call @start_tool\n', '            call @start_tool\n' + g43)),
+                    '        call @start_tool\n', '        call @start_tool\n' + g43)),
         }
         for label, source in sources.items():
             with self.subTest(mutant=label):
