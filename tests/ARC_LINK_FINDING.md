@@ -27,3 +27,13 @@ must be documented and checked explicitly before narrowing the regression.
 The correction synchronizes endpoint/work-offset tracking after successful arc
 calculation and invalidates preceding rapid-link confirmation. It leaves the
 independent contiguous-rapid correction in `usr_rapid` intact.
+
+## Current coverage
+
+- `test_arc_link_boundary.py` keeps the XY helix case on the legacy mid-job
+  harness, compares parsed NC words and includes an in-memory reversion of the
+  `@usr_arc` endpoint tracking that must fail with an AssertionError.
+- `test_indexing_link.py::CamLinkTransitionTests::test_arc_in_any_plane_revokes_and_tracks_endpoint`
+  generalises the contract to ZX and YZ arcs on realistic sessions. Its arc
+  endpoints satisfy the PP's own rotation formula; the ZX direction convention
+  itself is the open item PP-003 (area D) and is not asserted there.

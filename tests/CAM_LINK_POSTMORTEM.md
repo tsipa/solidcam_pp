@@ -57,3 +57,27 @@ types, transformations, aborts or real fixture geometry.
 The interpreter is partial, normalizes formatting and does not emulate the
 special skipline runtime switch or full machine motion. A green suite establishes
 the saved contracts, not complete equivalence with SolidCAM or collision safety.
+
+## Follow-up (state-machine coverage)
+
+A later review mutated each rule of the authorization separately: 34 of 53
+single-rule mutations survived the suite of that time (only removing the whole
+authorization was caught). `tests/test_indexing_link.py` now guards each rule
+with realistic sessions (boundary revocation per event, Z tracking by rapids,
+feed moves and arcs, zero-length and non-straight links, the prev_command
+whitelist, 4x links) and with one-bit state injections for the redundant
+preconditions (`CamLinkGuardTests`). Its `ReversionDetectionTests` replays each
+mutation in memory and requires an AssertionError.
+
+Two policy questions remain open and are pinned, not judged:
+
+- DESIGN-001: the retract height is not checked (any positive feed_link Z step
+  authorizes) and a rapid that descends inside a confirmed link keeps the
+  authorization. In the shit2 trace Z rises monotonically, so the observed field
+  case is unaffected. Pin: `DesignPinTests.test_cam_link_trusts_any_positive_z_step_and_descending_rapids`.
+- DESIGN-004: inside a confirmed link the rotary block always precedes the XYZ
+  block, even when Z rises in the same event (pinned by the shit2 fixture,
+  `test_motion.py::test_actual_shit2_contiguous_link`).
+
+PP-018 (the straight-retract check ignores `cpos`, the rotary input of 4x
+events) is a registered known defect with an UNVERIFIED reachability.
