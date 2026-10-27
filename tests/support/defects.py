@@ -839,12 +839,13 @@ LOCATIONS = {
     'PP-021': 'GPP @usr_arc_math L1501-1509 (sets the global iMplane); only @usr_tc_init_gmstates L867/L884 calls '
               '@machine_plane',
     'PP-022': 'GPP @usr_arc L1587-1628 (absolute centre L1589/L1603/L1617, R word L1594-1627); option iArcmode L82',
-    'PP-023': 'GPP @usr_rapid L1286 (rotary G1), L1303 (tool-change block), L1323 (split XY block); F only at L1337',
+    'PP-023': 'GPP @usr_rapid A block (rotary G1), @usr_rapid_tc_block (tool-change block), @usr_rapid_xy_then_z '
+              '(split XY block of a first move); F only from @usr_emulated_rapid_feed',
     'PP-024': 'GPP @usr_StopM00_sametool L1679-1719 (M9, M5, M0, spindle restart without @usr_coolant or dwell); '
               '@start_of_job same-tool branch L1145-1159',
     'PP-025': 'GPP @usr_coolant callers: @usr_ct_after L832/L852 only (@end_of_job call commented out L1203-1205)',
     'PP-026': 'GPP @usr_spindle_output L1969-1972 (G04 F (0.3+(sdiff/500))); spindle_accel = 500 in @init_post',
-    'PP-027': 'GPP @usr_ct_before_firsttool L754 (bSafetyprep = true); @usr_tc_init_gmstates L863-915 (first-tool '
+    'PP-027': 'GPP @usr_ct_safety_block (bSafetyprep = true); @usr_tc_init_gmstates (first-tool '
               'branch never clears it)',
     'PP-028': "GPP @drill G84 branch L1881-1897 (''(FEED/SPIN) always positive, SDAC 3 at L1883/L1886); Vericut "
               'ctl L1933-1960 (PIT<0 -> CCW)',
@@ -869,7 +870,7 @@ LOCATIONS = {
     'PP-040': "GPP @usr_prep_home_axis L2108-2113 (second ':' searched across the whole remainder)",
     'PP-041': 'GPP @usr_home_axis L2159-2161 (iWorkOffsetmode 2: cWo + 0)',
     'PP-042': "GPP @usr_home_axis L2182-2184 (mode 7: 'G90 G54 ' literal)",
-    'PP-043': 'GPP @home_data L2646-2648 (shift_y overwritten); VMID HomeDataAtStart="1"',
+    'PP-043': 'GPP @home_data (shift_y overwritten); VMID HomeDataAtStart="1"',
     'PP-044': "GPP @call_proc L2000-2041 (L2015 'G20 ', L2031 @usr_4x_index, L2036 'cR1' literal, L2037 'M98 H')",
     'PP-045': "GPP @change_ref_point L1759-1766 ('G91 G10 L2 P..')",
     'PP-046': "GPP @usr_r1pos_calc L2328-2332 ('if nPR1pos ne nR1pos', exact compare); @usr_rapid L1278-1288",
@@ -881,15 +882,15 @@ LOCATIONS = {
     'PP-050': 'vericut/GcodeSim.ini [MAC] (1,2,3,5..10 = 54; MAC 4 missing)',
     'PP-051': 'vericut/sin840d_special.ctl <Word Name="K"> MetricFormat="5.3" (I/J 8.5); GPP @usr_arc L1606/L1620',
     'PP-052': 'Gmill_540v_4x.vmid ParamJobs GppName="M50"/"M51" (never read by the GPP)',
-    'PP-053': "GPP @usr_4x_index L2416 (if sHomestrrot ne ''); sHomestrrot assigned only in @usr_rapid "
-              'L1250/L1263/L1279 and @usr_ct_before_notfirsttool L718',
+    'PP-053': "GPP @usr_4x_index_rotate (sHomestr = sHomestrrot; '' = no homing in @usr_prep_home_axis); sHomestrrot "
+              'assigned only in @usr_rapid and @usr_head_home_select (first rapid / tool change)',
     'PP-054': 'GPP @usr_init_gmstates L341-350 (coolant channels OFF, iG187_P_gpp = 2); @usr_coolant_output '
               'L1038-1075; @usr_HSM_mode L1077-1099; pp_tests/gppl/legacy.py assignment flag rule',
     'PP-055': 'GPP @drill G83 branch L1846-1907 (FDPR relative to RFP, RFP shifted by SDIS when drill_upper_z <= 0)',
     'PP-056': 'GPP @usr_StopM00_difftool L1754 (flag set), @end_of_job L1193 (cleared), '
               '@usr_ct_before_notfirsttool L691 (read)',
     'PP-057': 'GPP @call_proc L2015/L2036-2037, @proc/@end_proc L2043-2061, @end_loop L2080-2087, @start_of_job '
-              'L1163-1168, @usr_trig_macro_* L2551-2614, @usr_heightcomp_on/off L919-938, @usr_4x_index L2483',
+              'L1163-1168, @usr_trig_macro_* L2551-2614, @usr_4x_index L2483',
     'PP-058': 'mach3/4x/Mach3_4X_Y.gpp at 6efcad8 (@line_5x and @arc lack the feed re-statement of @line)',
     'ENGINE-001': 'pp_tests/gppl/legacy.py Engine.call assignment branch (a flag is raised only when the value changes '
                   'and never cleared)',
@@ -919,11 +920,11 @@ LOCATIONS = {
                   "('zpos gt nLastPathZ')",
     'DESIGN-002': "GPP @usr_rapid L1278-1288 (homing + rotation) and L1322-1333 (Z on the XY line unless bFirstMove)",
     'DESIGN-003': 'GPP @start_of_job L1110-1115 (deferred index) before L1145-1148 (@usr_ct)',
-    'DESIGN-004': 'GPP @usr_rapid L1285-1288 (A block first) vs L1322-1333 (XYZ block after)',
+    'DESIGN-004': 'GPP @usr_rapid (A block first, then @usr_rapid_xyz)',
     'DESIGN-005': 'GPP @usr_tc_init_gmstates L908-913 (apos/bpos/cpos = 0); @usr_ct_after L836-849; '
                   '@usr_r1_select_dir L2371-2376 (abort L2397-2401)',
-    'DESIGN-006': 'GPP @home_number L611-618 (iWorkoffset = 54; newshift computed, output commented out in '
-                  '@home_data L2658-2661); vericut/GcodeSim.ini [MAC]',
+    'DESIGN-006': 'GPP @home_number (iWorkoffset = 54; the template newshift/ORGXYZ values were never output and '
+                  'were deleted from @home_data); vericut/GcodeSim.ini [MAC]',
     'DESIGN-007': 'GPP @usr_r1pos_calc L2315-2340 (nR2pos never output); @usr_rapid L1248-1273 (bVertical toggle)',
 }
 

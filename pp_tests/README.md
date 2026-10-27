@@ -291,8 +291,9 @@ it shows the open defects as red tests.
   been repeated on the current GPP.
 - Still not executed: `@end_proc`, `@loop`, `@end_loop`, `@loop_matrix_info`,
   `@usr_trig_macro_output`, `@offset_change`, `@usr_compensation_output`,
-  `@usr_mp_output`, `@usr_homenumber_output` and `@usr_heightcomp_off` (dormant or
-  disabled by the VMID; the dormant Fanuc paths are pinned statically, PP-057).
+  `@usr_mp_output` and `@usr_homenumber_output` (dormant or disabled by the VMID;
+  the dormant Fanuc paths are pinned statically, PP-057). `@usr_heightcomp_on/off`
+  were deleted in the refactor.
 
 ## Recording fixtures
 

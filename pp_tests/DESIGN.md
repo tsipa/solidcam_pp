@@ -250,7 +250,7 @@ fixtures under `session,<policy>=<value>`.
   statements never run with them (for example `if bSubs` in `@start_of_job`, 21
   statements, because `bSubs = false` at line 180); `usr_trig_macro_call` and
   `usr_trig_macro_output` are reachable only through such branches;
-  `usr_heightcomp_on/off` are never called.
+  `usr_heightcomp_on/off` were never called (deleted in the refactor).
 * **Policy-sensitive sites.** `I-POLICY-INTEGER` at 620/622/629/2620/2622
   (`iWorkoffset = tonum(...)`), `I-POLICY-TONUM` (309, 620, 622, 629, 2104, ...),
   `I-POLICY-STMT` for the 2 inputs and 2 Prints. No `!` over an unparenthesised
@@ -317,7 +317,8 @@ dropped; unexecuted unsupported code invisible; errors re-wrapped per frame;
   path (`Print`), reached from `@start_of_job`, `@fourth_axis` and `@call_proc`;
   `@home_number`/`@home_data` with home names such as `'G54P4'` (`tonum=atof`).
 * **Coverage.** 57 procedures are never executed by the legacy suite; the
-  sessions execute 55 of them (only the two dead `usr_heightcomp_*` remain):
+  sessions execute 55 of them (only the two dead `usr_heightcomp_*` remained; both were
+  deleted in the refactor):
   `init_post`, `start_of_file`, `def_tool`, `start_program`, `end_program`,
   `end_of_file`, `change_tool` and the whole `usr_ct*` family, `usr_coolant*`,
   `line`, stops (`usr_forcedstop`, `usr_stopm00_*`), `drill_point`, `end_drill`,

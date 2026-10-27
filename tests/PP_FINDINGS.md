@@ -343,7 +343,7 @@ Canonical `@known_defect` tests: 78. `@covers` references: 55.
 - Severity: low
 - Confidence: confirmed
 - Reachability: Non-default bSyncdrapid=false (feed-emulated rapids). The tool-change positioning G1 block (A=DC(0)) and the first XY block of a split first move have no F under both flag policies; the first-job split Z block without F depends on ENGINE-001 (it prints F650 under the persisting policy). The rotary G1 block after a post-inserted homing has no F either.
-- Location: GPP @usr_rapid L1286 (rotary G1), L1303 (tool-change block), L1323 (split XY block); F only at L1337
+- Location: GPP @usr_rapid A block (rotary G1), @usr_rapid_tc_block (tool-change block), @usr_rapid_xy_then_z (split XY block of a first move); F only from @usr_emulated_rapid_feed
 - Evidence that would settle it: None needed for the behaviour; owner decides the intended F on every emulated block.
 - Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
 - Source findings: pp3-emulated-rapid-no-feed
@@ -400,7 +400,7 @@ Canonical `@known_defect` tests: 78. `@covers` references: 55.
 - Severity: low
 - Confidence: confirmed
 - Reachability: Default config, second and later tool changes.
-- Location: GPP @usr_ct_before_firsttool L754 (bSafetyprep = true); @usr_tc_init_gmstates L863-915 (first-tool branch never clears it)
+- Location: GPP @usr_ct_safety_block (bSafetyprep = true); @usr_tc_init_gmstates (first-tool branch never clears it)
 - Evidence that would settle it: None needed (state flow visible in @usr_ct_before_firsttool L754 and @usr_tc_init_gmstates).
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: tc-10, TSR-02
@@ -613,7 +613,7 @@ Canonical `@known_defect` tests: 78. `@covers` references: 55.
 - Severity: very-low
 - Confidence: confirmed
 - Reachability: Default config (VMID HomeDataAtStart="1"); no NC output depends on it today.
-- Location: GPP @home_data L2646-2648 (shift_y overwritten); VMID HomeDataAtStart="1"
+- Location: GPP @home_data (shift_y overwritten); VMID HomeDataAtStart="1"
 - Evidence that would settle it: None needed (@home_data L2646-2648).
 - Owner area: B (rotary: r1pos/select_dir/output, modulo range, iR1dir, index direction, move_4x, 3-axis limit, home_data)
 - Source findings: pp-region-4-cycles-rotary-23
@@ -744,7 +744,7 @@ Canonical `@known_defect` tests: 78. `@covers` references: 55.
 - Severity: low
 - Confidence: confirmed
 - Reachability: Default i4xIndexClearanceMode=0, first job indexed before any rapid; safe in practice because start_program already homed.
-- Location: GPP @usr_4x_index L2416 (if sHomestrrot ne ''); sHomestrrot assigned only in @usr_rapid L1250/L1263/L1279 and @usr_ct_before_notfirsttool L718
+- Location: GPP @usr_4x_index_rotate (sHomestr = sHomestrrot; '' = no homing in @usr_prep_home_axis); sHomestrrot assigned only in @usr_rapid and @usr_head_home_select (first rapid / tool change)
 - Evidence that would settle it: None needed; owner decides whether the index must home explicitly.
 - Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
 - Source findings: history-indexing-link-13
@@ -802,7 +802,7 @@ Canonical `@known_defect` tests: 78. `@covers` references: 55.
 - Severity: low
 - Confidence: confirmed
 - Reachability: Only with non-default options (i4xIndexMode=2, bUseprognum, iProgendmode) or VMID-disabled events (subroutines, loops).
-- Location: GPP @call_proc L2015/L2036-2037, @proc/@end_proc L2043-2061, @end_loop L2080-2087, @start_of_job L1163-1168, @usr_trig_macro_* L2551-2614, @usr_heightcomp_on/off L919-938, @usr_4x_index L2483
+- Location: GPP @call_proc L2015/L2036-2037, @proc/@end_proc L2043-2061, @end_loop L2080-2087, @start_of_job L1163-1168, @usr_trig_macro_* L2551-2614, @usr_4x_index L2483
 - Evidence that would settle it: None needed; static allowlist pins the legacy procedures and VMID guards keep them disabled.
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: TSR-18, history-misc-16, R1-06, tc-13, tc-17, pp-weird-hunter-17, pp-region-4-cycles-rotary-19
@@ -1210,7 +1210,7 @@ Canonical `@known_defect` tests: 78. `@covers` references: 55.
 - Severity: low
 - Confidence: confirmed
 - Reachability: Default config; pinned by tests/fixtures/shit2_contiguous_link.json.
-- Location: GPP @usr_rapid L1285-1288 (A block first) vs L1322-1333 (XYZ block after)
+- Location: GPP @usr_rapid (A block first, then @usr_rapid_xyz)
 - Evidence that would settle it: Owner policy (rise first vs rotate first within a confirmed link).
 - Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
 - Source findings: pp3-rising-link-rotary-order
@@ -1240,7 +1240,7 @@ Canonical `@known_defect` tests: 78. `@covers` references: 55.
 - Severity: low
 - Confidence: confirmed
 - Reachability: Default iWorkOffset_Method=0 (c85f5f7 deliberately maps all MACs to G54; pp-weird-hunter-11 refuted).
-- Location: GPP @home_number L611-618 (iWorkoffset = 54; newshift computed, output commented out in @home_data L2658-2661); vericut/GcodeSim.ini [MAC]
+- Location: GPP @home_number (iWorkoffset = 54; the template newshift/ORGXYZ values were never output and were deleted from @home_data); vericut/GcodeSim.ini [MAC]
 - Evidence that would settle it: Owner policy: confirm all CoordSys share one origin (G54).
 - Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
 - Source findings: R1-11, pp-weird-hunter-11(refuted)

@@ -522,9 +522,6 @@ endp
     if bToolChangeAtEnd
         {nb,cTCcodep'T'next_tool_number' 'cTCcodes}
     endif
-    if bVertical
-        bVertical = false
-    endif
     if iProgendmode eq 1
         {nb, 'M30'}
         {nl}
@@ -992,11 +989,9 @@ endp
         {nb,['M'iCoolantM8:mcode_f' ']}
         skipline = bskipline
     endif
-    ; Always true (every changed code was output above, which cleared its flag): the next block starts
-    ; a new line unless the caller sets skipline = false again (usr_ct_after).
-    if  !change(iCoolantM1) or  !change(iCoolantM2) or !change(iCoolantM3) or  !change(iCoolantM4) or !change(iCoolantM5) or  !change(iCoolantM6) or !change(iCoolantM7) or !change(iCoolantM8)
-        skipline = TRUE
-    endif
+    ; The next block starts a new line unless the caller sets skipline = false again (usr_ct_after).
+    ; (The template tested 'any coolant flag not set' here, always true: the output above cleared them.)
+    skipline = TRUE
 endp
 
 @usr_coolant_prep_all_off
