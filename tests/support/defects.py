@@ -185,6 +185,13 @@ RESOLUTIONS = {
     'PP-028': ('fixed', 'a38f158 Post left-hand tapping with a negative CYCLE84 pitch (follow-up 595df73).'),
     'PP-049': ('fixed', '9f48a3a Post rotating G1 blocks in G93 inverse time (follow-ups f0ffada: F reprogrammed '
                         'after G93, control A travel; b94251b: indexes and M00 invalidate the G93 start).'),
+    'PP-033': ('fixed', 'f5c74cd Remove the multiple-fixture scheme (owner decision 2026-10-27): more than one '
+                        'fixture stops the post with a POST ERROR.'),
+    'PP-034': ('fixed', 'f5c74cd Remove the multiple-fixture scheme: more than one fixture stops the post.'),
+    'PP-035': ('fixed', 'f5c74cd Remove the multiple-fixture scheme: no temp files are opened or deleted.'),
+    'PP-038': ('fixed', 'f5c74cd Remove the trig macro: i4xIndexMode other than 0/1 stops the post.'),
+    'PP-044': ('fixed', 'f5c74cd @call_proc, @proc and @end_proc stop the post with a POST ERROR (VMID GenProc=0).'),
+    'PP-045': ('fixed', 'f5c74cd @change_ref_point stops the post with a POST ERROR instead of writing G10 L2.'),
     'DESIGN-002': ('fixed', '3e0c345 Split XY and Z when returning from post-inserted homing (owner decision; '
                             'follow-up ed07c3f).'),
     'ENGINE-021': ('fixed', '0eb3cef Clamp right() to the whole string when the count exceeds its length.'),
@@ -202,6 +209,12 @@ FIX_TESTS = {
     'PP-021': ('tests/test_job_plane_restore.py',),
     'PP-028': ('tests/test_tapping_direction.py',),
     'PP-049': ('tests/test_inverse_time_feed.py',),
+    'PP-033': ('tests/test_unsupported_features.py',),
+    'PP-034': ('tests/test_unsupported_features.py',),
+    'PP-035': ('tests/test_unsupported_features.py',),
+    'PP-038': ('tests/test_unsupported_features.py',),
+    'PP-044': ('tests/test_unsupported_features.py',),
+    'PP-045': ('tests/test_unsupported_features.py',),
     'DESIGN-002': ('tests/test_post_homing_reposition.py',),
 }
 

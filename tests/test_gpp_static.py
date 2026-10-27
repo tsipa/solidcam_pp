@@ -200,10 +200,9 @@ class GppStructureTests(unittest.TestCase):
         WHILE [..] loops). PP-057: the template keeps such output in procedures
         that the shipped options and VMID keep unreachable. This pins exactly
         where; a new occurrence or a move into another procedure fails.
-        Removing an occurrence passes (allowlist, not an exact pin): G187
-        (PP-012), the G10 L2 write (PP-045), @call_proc (PP-044) and the trig
-        macro (PP-038) are registered defects of other areas, and their fixes
-        must not trip this test."""
+        Removing an occurrence passes (allowlist, not an exact pin): G187 is
+        PP-012. The subprogram, loop, G10 L2 and trig-macro output went in
+        f5c74cd (PP-044, PP-045, PP-038)."""
         pattern = re.compile(r"(?<![A-Z0-9])(G28|G30|G65|G10|G20|G103|G187|M98|M99|O777)(?![\d.])"
                              r"|\bL2 P|#|WHILE \[")
         found = defaultdict(set)
@@ -216,13 +215,6 @@ class GppStructureTests(unittest.TestCase):
         allowed = {
             'usr_home_axis': {'G28', 'G30'},            # iHomingmode 1,2,5,6; the options use mode 8
             'usr_hsm_mode': {'G187'},                   # PP-012 (VMID job parameters iG187_P/nG187_E)
-            'change_ref_point': {'L2 P'},               # PP-045: G91 G10 L2 P.. (Fanuc offset write)
-            'call_proc': {'G20', 'M98'},                # PP-044: VMID ProceduresDef GenProc=0
-            'end_proc': {'M99'},
-            'usr_trig_macro_call': {'G65'},             # PP-038: i4xIndexMode 2 only
-            'usr_trig_macro_output': {'O777', 'G103', '#', 'M99'},
-            'start_of_job': {'#', 'WHILE ['},           # bPrintloop; VMID LoopExist=0
-            'end_loop': {'#'},
         }
         unexpected = {proc: sorted(words - allowed.get(proc, set())) for proc, words in found.items()
                       if words - allowed.get(proc, set())}

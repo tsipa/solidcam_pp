@@ -40,7 +40,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 48 | 9 | 1 | 1 |
+| pp | 42 | 15 | 1 | 1 |
 | engine | 20 | 1 | 0 | 0 |
 | design | 6 | 1 | 0 | 0 |
 
@@ -75,19 +75,13 @@ Canonical `@known_defect` tests: 68. `@covers` references: 63.
 | [PP-030](#pp-030) | low | uncertain | E | First drill hole may not trigger the modal cycle (empty block after MCALL) | `test_first_drill_point_is_a_motion_block` |
 | [PP-031](#pp-031) | low | confirmed | E | Unsupported drill_type falls through to a stale 'MCALL CYCLE<gcode>' without arguments | `test_unknown_drill_type_is_rejected` |
 | [PP-032](#pp-032) | medium | confirmed | C | home_number with iWorkOffset_Method=1 emits any operator number as the work offset (G1, G500, G58, ...) | `test_user_defined_offset_must_be_a_settable_offset` |
-| [PP-033](#pp-033) | medium | confirmed | C | Multiple-fixture loop emits G58/G59 for the 5th/6th fixture (axial offsets, not settable G505/G506) | pinned only (@covers) |
-| [PP-034](#pp-034) | high | confirmed | C | Multiple fixtures plus 4x indexing: fixture copies 2..N run at the wrong A angle and fall back to G54 | pinned only (@covers) |
-| [PP-035](#pp-035) | low | confirmed | C | End-of-file tempfile cleanup deletes TEMPFILE1..iTcnumber although numbering starts at 2001 | pinned only (@covers) |
 | [PP-036](#pp-036) | medium | confirmed | B | bLimit_3axis still emits A=DC(...) at the first rapid after a tool change | `test_limit_3axis_never_outputs_rotary` |
 | [PP-037](#pp-037) | low | confirmed | B | iR1posControl=3 ('shortest distance') negates the target angle | `test_shortest_distance_mode_keeps_target_angle` |
-| [PP-038](#pp-038) | low | confirmed | C | i4xIndexMode=2 (trig macro) emits Haas macro code and aborts on unchanged angles | pinned only (@covers) |
 | [PP-039](#pp-039) | low | confirmed | C | Index clearance warning is written into the NC file as a bare text block (no comment prefix) | `test_index_clearance_warning_is_a_comment` |
 | [PP-040](#pp-040) | low | confirmed | A | Homing parser merges lines after ';' when the optional prep string is omitted | `test_homing_lines_without_prep_string` |
 | [PP-041](#pp-041) | low | confirmed | A | G53 homing with iWorkOffsetmode=2 prints cWo+0, i.e. 'G0 Z0' in work coordinates | `test_g53_homing_stays_in_machine_coordinates_for_every_offset_mode` |
 | [PP-042](#pp-042) | low | confirmed | A | Homing mode 7 hard-codes G54 instead of the active work offset | `test_homing_mode_7_keeps_the_active_work_offset` |
 | [PP-043](#pp-043) | very-low | confirmed | B | @home_data overwrites the CAM input shift_y (its output is commented out) | `test_home_data_does_not_modify_cam_inputs` |
-| [PP-044](#pp-044) | low | confirmed | C | @call_proc emits Fanuc syntax (M98 H, literal 'cR1'; G20 on its tool-change path) and indexes A without being an index boundary | pinned only (@covers) |
-| [PP-045](#pp-045) | low | confirmed | D | @change_ref_point says 'Not Supported' but writes Fanuc 'G91 G10 L2 P.. X Y Z' | pinned only (@covers) |
 | [PP-046](#pp-046) | low | uncertain | B | Exact float compare on A triggers a full G75 Z+XY homing for sub-resolution angle changes | `test_sub_resolution_rotary_change_does_not_home` |
 | [PP-047](#pp-047) | medium | uncertain | F | @rotate/@mirror are empty while the VMID delegates transformations to the post (SoftwareTransform="0") | `test_mirror_event_changes_the_frame_or_stops` [mirror], `test_rotate_event_changes_the_frame_or_stops` [rotate] |
 | [PP-048](#pp-048) | medium | uncertain | F | SolidCAM MCO, dwell, 4x drill-point and rotate-to-plane events have no procedure (an MCO Halt produces no M0) | `test_every_event_of_the_authors_4x_template_is_handled` [event-coverage], `test_mco_halt_program_stops_the_machine` [mco-halt] |
@@ -463,51 +457,6 @@ Canonical `@known_defect` tests: 68. `@covers` references: 63.
 - Reproduced by:
   - `tests/test_work_offsets_fixtures.py::WorkOffsetTests::test_user_defined_offset_must_be_a_settable_offset`
 
-### PP-033
-
-**Multiple-fixture loop emits G58/G59 for the 5th/6th fixture (axial offsets, not settable G505/G506)**
-
-- Severity: medium
-- Confidence: confirmed
-- Reachability: Non-default VMID part parameter iNumber_of_Fixtures >= 5; copies 5/6 rerun in G57 or alarm.
-- Location: GPP @Multiple_Fixtures L2213-2217 and L2240-2244 ({nb,cWo,((iWorkoffset-1)+i)}); enabled by @start_of_file L193-196
-- Evidence that would settle it: Siemens PG Fundamentals 'Axial zero offset G58/G59' or a Vericut/828D run of a bare G58.
-- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
-- Source findings: R1-02
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_unsupported_features.py::UnsupportedOptionTests::test_several_fixtures_stop_the_post`
-
-### PP-034
-
-**Multiple fixtures plus 4x indexing: fixture copies 2..N run at the wrong A angle and fall back to G54**
-
-- Severity: high
-- Confidence: confirmed
-- Reachability: Non-default iNumber_of_Fixtures > 1 together with a tmatrix/fourth_axis index (crash risk).
-- Location: GPP @start_of_job L1110-1115 (index before @usr_ct L1146); @usr_ct L657-660/L682-685 -> @Multiple_Fixtures L2209-2245
-- Evidence that would settle it: Vericut run of an expanded multi-fixture program with an index between tools or jobs.
-- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
-- Source findings: critic-01, pp-region-4-cycles-rotary-26
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_unsupported_features.py::UnsupportedOptionTests::test_several_fixtures_stop_the_post`
-
-### PP-035
-
-**End-of-file tempfile cleanup deletes TEMPFILE1..iTcnumber although numbering starts at 2001**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Non-default iNumber_of_Fixtures > 1.
-- Location: GPP @usr_init_gmstates L340 (iTcnumber = 2001); @Multiple_Fixtures L2252-2261 (delete loop from 1), called from @end_of_file L561-564
-- Evidence that would settle it: What SolidCAM does with !!delete file!! for files that do not exist.
-- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
-- Source findings: R1-09
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_unsupported_features.py::UnsupportedOptionTests::test_several_fixtures_stop_the_post`
-
 ### PP-036
 
 **bLimit_3axis still emits A=DC(...) at the first rapid after a tool change**
@@ -535,21 +484,6 @@ Canonical `@known_defect` tests: 68. `@covers` references: 63.
 - Source findings: pp-region-4-cycles-rotary-11
 - Reproduced by:
   - `tests/test_rotary.py::KnownRotaryDefects::test_shortest_distance_mode_keeps_target_angle`
-
-### PP-038
-
-**i4xIndexMode=2 (trig macro) emits Haas macro code and aborts on unchanged angles**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Non-default i4xIndexMode=2.
-- Location: GPP @usr_4x_index L2476-2486 (mode 2 outside if change(nR1pos)); @usr_trig_macro_call L2551-2556, @usr_trig_macro_output L2558-2614; @usr_ct_after L820-825
-- Evidence that would settle it: None needed (Fanuc/Haas-only output; regression from bff5ed0 for the abort).
-- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
-- Source findings: pp-region-4-cycles-rotary-16, history-misc-16, R1-06
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_unsupported_features.py::UnsupportedOptionTests::test_trig_macro_index_mode_stops_the_post`
 
 ### PP-039
 
@@ -620,38 +554,6 @@ Canonical `@known_defect` tests: 68. `@covers` references: 63.
 - Source findings: pp-region-4-cycles-rotary-23
 - Reproduced by:
   - `tests/test_rotary.py::KnownRotaryDefects::test_home_data_does_not_modify_cam_inputs`
-
-### PP-044
-
-**@call_proc emits Fanuc syntax (M98 H, literal 'cR1'; G20 on its tool-change path) and indexes A without being an index boundary**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Subroutines disabled in the VMID (SubroutinesExist/LoopExist off); reachable only if enabled.
-- Location: GPP @call_proc L2000-2041 (L2015 'G20 ', L2031 @usr_4x_index, L2036 'cR1' literal, L2037 'M98 H')
-- Evidence that would settle it: None needed; VMID subroutine setting decides reachability.
-- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
-- Source findings: history-indexing-link-11, history-rotary-14, pp-region-4-cycles-rotary-19
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_machine_definition.py::ConfigurationGuards::test_vmid_keeps_subroutines_and_loops_disabled`
-  - `tests/test_unsupported_features.py::UnsupportedEventTests::test_subprogram_loop_and_reference_point_events_stop_the_post`
-
-### PP-045
-
-**@change_ref_point says 'Not Supported' but writes Fanuc 'G91 G10 L2 P.. X Y Z'**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Only if SolidCAM emits @change_ref_point (reference point change inside a job).
-- Location: GPP @change_ref_point L1759-1766 ('G91 G10 L2 P..')
-- Evidence that would settle it: None needed; owner decides abort vs Sinumerik equivalent.
-- Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
-- Source findings: pp3-change-ref-point-g10, TSR-18
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_motion_rapids.py::ChangeRefPointTests::test_change_ref_point_emits_no_fanuc_data_setting`
-  - `tests/test_unsupported_features.py::UnsupportedEventTests::test_subprogram_loop_and_reference_point_events_stop_the_post`
 
 ### PP-046
 
@@ -1283,6 +1185,12 @@ now a regression guard marked `@covers`.
 | [PP-020](#pp-020) | b999f65 | `test_compensation_not_activated_in_circular_block`, `test_compensation_not_deactivated_in_circular_block` | `tests/test_cutter_compensation.py` |
 | [PP-021](#pp-021) | 88695c9 | `test_drill_cycle_after_yz_arc_runs_in_g17`, `test_xy_compensation_after_yz_arc_runs_in_g17` | `tests/test_job_plane_restore.py` |
 | [PP-028](#pp-028) | a38f158 | `test_left_hand_tap_uses_negative_pitch` | `tests/test_tapping_direction.py` |
+| [PP-033](#pp-033) | f5c74cd | `test_several_fixtures_stop_the_post` | `tests/test_unsupported_features.py` |
+| [PP-034](#pp-034) | f5c74cd | `test_several_fixtures_stop_the_post` | `tests/test_unsupported_features.py` |
+| [PP-035](#pp-035) | f5c74cd | `test_several_fixtures_stop_the_post` | `tests/test_unsupported_features.py` |
+| [PP-038](#pp-038) | f5c74cd | `test_trig_macro_index_mode_stops_the_post` | `tests/test_unsupported_features.py` |
+| [PP-044](#pp-044) | f5c74cd | `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` | `tests/test_unsupported_features.py` |
+| [PP-045](#pp-045) | f5c74cd | `test_change_ref_point_emits_no_fanuc_data_setting`, `test_subprogram_loop_and_reference_point_events_stop_the_post` | `tests/test_unsupported_features.py` |
 | [PP-049](#pp-049) | 9f48a3a | `test_rotary_feed_moves_use_the_documented_inverse_time_mode` | `tests/test_inverse_time_feed.py` |
 | [ENGINE-021](#engine-021) | 0eb3cef | `test_right_count_beyond_the_string_returns_the_whole_string` |  |
 | [DESIGN-002](#design-002) | 3e0c345 | `test_homed_rotary_rapid_returns_xy_then_z` | `tests/test_post_homing_reposition.py` |
@@ -1427,6 +1335,110 @@ now a regression guard marked `@covers`.
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_cycles_spindle.py::RigidTappingTests::test_left_hand_tap_uses_negative_pitch`
+
+### PP-033
+
+**Multiple-fixture loop emits G58/G59 for the 5th/6th fixture (axial offsets, not settable G505/G506)**
+
+- Severity: medium
+- Confidence: confirmed
+- Reachability: Non-default VMID part parameter iNumber_of_Fixtures >= 5; copies 5/6 rerun in G57 or alarm.
+- Location: GPP @Multiple_Fixtures L2213-2217 and L2240-2244 ({nb,cWo,((iWorkoffset-1)+i)}); enabled by @start_of_file L193-196
+- Evidence that would settle it: Siemens PG Fundamentals 'Axial zero offset G58/G59' or a Vericut/828D run of a bare G58.
+- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
+- Source findings: R1-02
+- Status: fixed: f5c74cd Remove the multiple-fixture scheme (owner decision 2026-10-27): more than one fixture stops the post with a POST ERROR.
+- Tests of the fix: tests/test_unsupported_features.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_unsupported_features.py::UnsupportedOptionTests::test_several_fixtures_stop_the_post`
+
+### PP-034
+
+**Multiple fixtures plus 4x indexing: fixture copies 2..N run at the wrong A angle and fall back to G54**
+
+- Severity: high
+- Confidence: confirmed
+- Reachability: Non-default iNumber_of_Fixtures > 1 together with a tmatrix/fourth_axis index (crash risk).
+- Location: GPP @start_of_job L1110-1115 (index before @usr_ct L1146); @usr_ct L657-660/L682-685 -> @Multiple_Fixtures L2209-2245
+- Evidence that would settle it: Vericut run of an expanded multi-fixture program with an index between tools or jobs.
+- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
+- Source findings: critic-01, pp-region-4-cycles-rotary-26
+- Status: fixed: f5c74cd Remove the multiple-fixture scheme: more than one fixture stops the post.
+- Tests of the fix: tests/test_unsupported_features.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_unsupported_features.py::UnsupportedOptionTests::test_several_fixtures_stop_the_post`
+
+### PP-035
+
+**End-of-file tempfile cleanup deletes TEMPFILE1..iTcnumber although numbering starts at 2001**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Non-default iNumber_of_Fixtures > 1.
+- Location: GPP @usr_init_gmstates L340 (iTcnumber = 2001); @Multiple_Fixtures L2252-2261 (delete loop from 1), called from @end_of_file L561-564
+- Evidence that would settle it: What SolidCAM does with !!delete file!! for files that do not exist.
+- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
+- Source findings: R1-09
+- Status: fixed: f5c74cd Remove the multiple-fixture scheme: no temp files are opened or deleted.
+- Tests of the fix: tests/test_unsupported_features.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_unsupported_features.py::UnsupportedOptionTests::test_several_fixtures_stop_the_post`
+
+### PP-038
+
+**i4xIndexMode=2 (trig macro) emits Haas macro code and aborts on unchanged angles**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Non-default i4xIndexMode=2.
+- Location: GPP @usr_4x_index L2476-2486 (mode 2 outside if change(nR1pos)); @usr_trig_macro_call L2551-2556, @usr_trig_macro_output L2558-2614; @usr_ct_after L820-825
+- Evidence that would settle it: None needed (Fanuc/Haas-only output; regression from bff5ed0 for the abort).
+- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
+- Source findings: pp-region-4-cycles-rotary-16, history-misc-16, R1-06
+- Status: fixed: f5c74cd Remove the trig macro: i4xIndexMode other than 0/1 stops the post.
+- Tests of the fix: tests/test_unsupported_features.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_unsupported_features.py::UnsupportedOptionTests::test_trig_macro_index_mode_stops_the_post`
+
+### PP-044
+
+**@call_proc emits Fanuc syntax (M98 H, literal 'cR1'; G20 on its tool-change path) and indexes A without being an index boundary**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Subroutines disabled in the VMID (SubroutinesExist/LoopExist off); reachable only if enabled.
+- Location: GPP @call_proc L2000-2041 (L2015 'G20 ', L2031 @usr_4x_index, L2036 'cR1' literal, L2037 'M98 H')
+- Evidence that would settle it: None needed; VMID subroutine setting decides reachability.
+- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
+- Source findings: history-indexing-link-11, history-rotary-14, pp-region-4-cycles-rotary-19
+- Status: fixed: f5c74cd @call_proc, @proc and @end_proc stop the post with a POST ERROR (VMID GenProc=0).
+- Tests of the fix: tests/test_unsupported_features.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_machine_definition.py::ConfigurationGuards::test_vmid_keeps_subroutines_and_loops_disabled`
+  - `tests/test_unsupported_features.py::UnsupportedEventTests::test_subprogram_loop_and_reference_point_events_stop_the_post`
+
+### PP-045
+
+**@change_ref_point says 'Not Supported' but writes Fanuc 'G91 G10 L2 P.. X Y Z'**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Only if SolidCAM emits @change_ref_point (reference point change inside a job).
+- Location: GPP @change_ref_point L1759-1766 ('G91 G10 L2 P..')
+- Evidence that would settle it: None needed; owner decides abort vs Sinumerik equivalent.
+- Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
+- Source findings: pp3-change-ref-point-g10, TSR-18
+- Status: fixed: f5c74cd @change_ref_point stops the post with a POST ERROR instead of writing G10 L2.
+- Tests of the fix: tests/test_unsupported_features.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_motion_rapids.py::ChangeRefPointTests::test_change_ref_point_emits_no_fanuc_data_setting`
+  - `tests/test_unsupported_features.py::UnsupportedEventTests::test_subprogram_loop_and_reference_point_events_stop_the_post`
 
 ### PP-049
 
