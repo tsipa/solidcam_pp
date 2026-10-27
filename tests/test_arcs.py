@@ -17,7 +17,7 @@ class ArcTests(unittest.TestCase):
                         engine.set(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz', iFeedMode=94,
                                    arc_direction=case['direction'], arc_plane=plane,
                                    arc_size=case['size'], iArcmode=mode, radius=10,
-                                   bFeedoutput=False, iDiametercomp=40, cWo='G',
+                                   bFeedoutput=False, iDiametercomp=40, iCompActive=40, cWo='G',
                                    iWorkoffset=54, iAbsincmode=90, feed=100,
                                    mcode_f='2.0(p)', clear_change_after_gen=1)
                         u, v, w = axes

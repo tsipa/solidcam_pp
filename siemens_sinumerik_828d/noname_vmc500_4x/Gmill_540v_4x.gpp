@@ -18,7 +18,7 @@
     global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest bTmatrixIndexPending
     global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid bFeedPrevValid
-    global integer iFeedMode
+    global integer iFeedMode iCompActive
     global numeric nInvFeed nMaxInverseFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA nFeedPrevR1
     global string nInvFeed_f
     global numeric nLastPathZ nLastPathWorkoffset
@@ -340,6 +340,7 @@ endp
 ;	iHeightcomp     = 9999
 ;   iMotionmode     = 0
     iDiametercomp   = 9999
+    iCompActive     = 9999
 ;	iDiameteroffset = 9999
     iDrillmode      = 9999
     iTcnumber       = 2001
@@ -762,6 +763,10 @@ endp
         {nb,cCb}
     endif
     {nb, 'G17 G40 G64 G90'}
+    ; The safety block cancels cutter compensation on the control: keep the post's state in step.
+    iDiametercomp = 40
+    change(iDiametercomp) = false
+    iCompActive = 40
 endp
 
 @usr_ct_before_firsttool
@@ -775,6 +780,10 @@ endp
         {nb,cCb}
     endif
     {nb, 'G17 G40 G64 G90'}
+    ; The safety block cancels cutter compensation on the control: keep the post's state in step.
+    iDiametercomp = 40
+    change(iDiametercomp) = false
+    iCompActive = 40
 endp
 
 @usr_ct_toolchange
@@ -1170,6 +1179,10 @@ endp
             ; ---- 4x
             if iPworkoffset ne iWorkoffset and !bLimit_3axis   ; Cannot use multiple MAC offsets with 4x
                 call @usr_tc_init_gmstates
+                if iDiametercomp ne iCompActive
+                    ; Compensation left on by the last job is still active on the control: cancel it.
+                    change(iDiametercomp) = true
+                endif
                 bTlchg = true
                 call @rapid_move
             endif
@@ -1234,7 +1247,7 @@ endp
 endp
 
 @usr_rapid
-    local logical bCamLinkRapid bRapidRotaryChanged bHomedReposition
+    local logical bCamLinkRapid bRapidRotaryChanged bHomedReposition bCompHeld
     ; A CAM-tagged, straight Z retract authorizes its contiguous rapid link.
     bCamLinkRapid = false
     bHomedReposition = false
@@ -1353,13 +1366,23 @@ endp
         endif
         ; ---- 4x
         if !bSkipxyrapid
+            ; Sinumerik switches cutter compensation only in a G0/G1 block that moves an axis of the
+            ; working plane: a rapid without X or Y leaves the change pending for the next block.
+            bCompHeld = false
+            if change(iDiametercomp) and !change(xpos) and !change(ypos)
+                change(iDiametercomp) = false
+                bCompHeld = true
+            endif
+            if change(iDiametercomp)
+                iCompActive = iDiametercomp
+            endif
             if bFirstMove and change(zpos) and bClimbZValid and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
                 ; Job starts above the current Z (no homing since the last move): climb first, then traverse XY.
                 bFirstMovetlch = false
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],'Z'zpos ' '}
+                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],'Z'zpos ' '}
                 if change(xpos) or change(ypos)
                     skipline = true
-                    {nb,['X'xpos ' '],['Y'ypos ' ']}
+                    {nb,['G'iDiametercomp' '],['X'xpos ' '],['Y'ypos ' ']}
                 endif
                 bFirstMove = false
                 skipline = true
@@ -1388,6 +1411,9 @@ endp
                 if job_type eq '3-d model'
                     {['F'nRapidfeed' ']}
                 endif
+            endif
+            if bCompHeld
+                change(iDiametercomp) = true
             endif
             bSkipxyrapid = false
         else
@@ -1496,6 +1522,9 @@ endp
         change(ypos) = true
         change(zpos) = true
         bPostHomed = false
+    endif
+    if change(iDiametercomp)
+        iCompActive = iDiametercomp
     endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iFeedMode' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
     {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
@@ -1778,11 +1807,16 @@ endp
 	local string shit
     local numeric dummy_var
     if change(iDiametercomp)
-        ; Sinumerik selects/deselects cutter compensation only in G0/G1 blocks; G41/G42/G40 on G2/G3 alarms.
-        dummy_var = 0
-        input '"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."'dummy_var
-        {"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."}
-        abort
+        if iDiametercomp eq iCompActive
+            ; Switched back before any move: the control state does not change.
+            change(iDiametercomp) = false
+        else
+            ; Sinumerik selects/deselects cutter compensation only in G0/G1 blocks; G41/G42/G40 on G2/G3 alarms.
+            dummy_var = 0
+            input '"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."'dummy_var
+            {"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."}
+            abort
+        endif
     endif
     call @usr_feedmode_94
 	call @usr_arc_math
@@ -1870,6 +1904,7 @@ endp
 @usr_compensation_output
     ; Handle output of Diameter Compensation Gcode
     if change(iDiametercomp)
+        iCompActive = iDiametercomp
         if iDiametercomp eq 40
             {'G'iDiametercomp' '}
         else

@@ -18,7 +18,7 @@ def motion_engine():
                bFirstMove=False, bFirstMovetlch=False, bVertical=False,
                bFirstVert=False, bSkipxyrapid=False, bFeedoutput=False,
                nLastPathZ=10, nLastPathWorkoffset=54, iWorkoffset=54,
-               iPworkoffset=54, iMplane=17, iAbsincmode=90, iDiametercomp=40,
+               iPworkoffset=54, iMplane=17, iAbsincmode=90, iDiametercomp=40, iCompActive=40,
                iMotionmode=1, xpos=12, ypos=23, zpos=10, feed=100,
                tool_start_plane=35, tool_z_level=35, nPtool_z_level=35,
                nPtool_start_plane=35, prev_command='@line_5x',
