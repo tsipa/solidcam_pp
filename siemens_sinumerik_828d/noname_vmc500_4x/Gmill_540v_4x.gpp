@@ -2584,9 +2584,7 @@ endp
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we may...
     ;   Sync with @rapid_move, @move_5x, @move_4x, @move4x_polar, @move4x_cartesian
-    if change(xpos)
-        xpos = 0
-    endif
+    ; A rotates around X on this machine: X is the axial coordinate and is posted as given.
     bR1useDir5a = true
     call @usr_rapid
     bR1useDir5a = false
