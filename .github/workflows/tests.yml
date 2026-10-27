@@ -1,0 +1,59 @@
+name: offline tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+        # The mach3/4x submodule is not checked out: the Mach3 tests skip unless
+        # MACH3_PP_SOURCE names the 6efcad8 post.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Post tests (GPPL engine; known defects are reported as skips)
+        run: python -m unittest discover -s tests -v
+      - name: Engine tests (pp_tests/gppl)
+        run: python -m unittest discover -s tests_engine
+      - name: PP_FINDINGS.md is current
+        run: python -m pp_tests.tools.findings --check
+
+  legacy-engine:
+    name: post tests on the legacy engine (GPPL_ENGINE=legacy)
+    runs-on: ubuntu-latest
+    env:
+      GPPL_ENGINE: legacy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Post tests (pp_tests/gppl/legacy.py, the original engine)
+        run: python -m unittest discover -s tests
+
+  strict:
+    name: strict known defects (expected to fail while defects exist)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      PP_STRICT_KNOWN_DEFECTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Post tests (strict mode; every open registered defect fails red)
+        run: python -m unittest discover -s tests
