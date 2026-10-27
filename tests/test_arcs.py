@@ -28,7 +28,8 @@ class ArcTests(unittest.TestCase):
                                   v+'center_rel': case['center'][1]-case['start'][1], w+'center_rel': 0,
                                   u+'pos': case['end'][0]+delta[0], v+'pos': case['end'][1]+delta[1], w+'pos': -7}
                         engine.set(**values)
-                        engine.changed.update({key: True for key in ('imotionmode','implane','idiametercomp','cwo','iworkoffset','iabsincmode','xpos','ypos','zpos','feed')})
+                        engine.changed.update({key: True for key in ('imotionmode','implane','cwo','iworkoffset','iabsincmode','xpos','ypos','zpos','feed')})
+                        engine.changed['idiametercomp'] = False  # TRC changes are only legal on linear blocks
                         if plane == 'zx':
                             # G18 direction convention is unverified: the post must stop on every ZX arc.
                             with self.assertRaisesRegex(UnsupportedGPPL, r'ZX \(G18\) arc direction is unverified'):
@@ -47,7 +48,7 @@ class ArcTests(unittest.TestCase):
                         self.assertEqual(engine.state['imotionmode'], 3 if case['direction']=='ccw' else 2)
                         text = ''.join(engine.output)
                         self.assertEqual([int(g) for g in re.findall(r'\bG(\d+)', text)],
-                                         [3 if case['direction']=='ccw' else 2, plane_code, 40, 54, 90])
+                                         [3 if case['direction']=='ccw' else 2, plane_code, 54, 90])
                         positions = {key: float(value) for key,value in re.findall(r'\b([XYZF])([+-]?[\d.]+)', text)}
                         self.assertEqual(set(positions), {'X','Y','Z','F'})
                         for axis in ('x','y','z'):

@@ -748,7 +748,7 @@ endp
     else
         {nb,cCb}
     endif
-    {nb, 'G17 G64 G90'}
+    {nb, 'G17 G40 G64 G90'}
 endp
 
 @usr_ct_before_firsttool
@@ -761,7 +761,7 @@ endp
     else
         {nb,cCb}
     endif
-    {nb, 'G17 G64 G90'}
+    {nb, 'G17 G40 G64 G90'}
 endp
 
 @usr_ct_toolchange
@@ -1336,7 +1336,7 @@ endp
             if bFirstMove and change(zpos) and bClimbZValid and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
                 ; Job starts above the current Z (no homing since the last move): climb first, then traverse XY.
                 bFirstMovetlch = false
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],'Z'zpos ' '}
+                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],'Z'zpos ' '}
                 if change(xpos) or change(ypos)
                     skipline = true
                     {nb,['X'xpos ' '],['Y'ypos ' ']}
@@ -1344,7 +1344,7 @@ endp
                 bFirstMove = false
                 skipline = true
             else
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],['X'xpos ' '],['Y'ypos ' ']}
+                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],['X'xpos ' '],['Y'ypos ' ']}
                 if change(zpos)
                     if bFirstMove  ;!@#$% clear change
                         bFirstMovetlch = false
@@ -1626,6 +1626,14 @@ endp
 @usr_arc
     ; Handle output for arc movement (G02/G03)
 	local string shit
+    local numeric dummy_var
+    if change(iDiametercomp)
+        ; Sinumerik selects/deselects cutter compensation only in G0/G1 blocks; G41/G42/G40 on G2/G3 alarms.
+        dummy_var = 0
+        input '"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."'dummy_var
+        {"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."}
+        abort
+    endif
 	call @usr_arc_math
     ; A completed arc starts a new link context at its actual endpoint.
     bCamLinkRetract = false
