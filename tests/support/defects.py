@@ -187,7 +187,8 @@ RESOLUTIONS = {
                         'after G93, control A travel; b94251b: indexes and M00 invalidate the G93 start).'),
     'PP-002[negative-mode]': ('fixed', '3441c5f Keep only the modulo A range: the iR1posControl 0/2 modes are '
                                        'removed.'),
-    'PP-012': ('fixed', 'c06b190 A job that sets the G187 smoothing parameters stops the post; no G187 is written.'),
+    'PP-012': ('fixed', 'c06b190 A job that sets the G187 smoothing parameters stops the post; no G187 is written '
+                        '(8989278: iG187_P 2 stops too).'),
     'PP-022': ('fixed', 'd9fe31f Keep only Sinumerik arc words (incremental I/J/K): iArcmode 1/3/4 are removed.'),
     'PP-037': ('fixed', '3441c5f Keep only the modulo A range: the shortest-distance mode is removed.'),
     'PP-040': ('fixed', 'a2cb528 The homing parser splits entries on ; and :, the prefix is optional.'),
@@ -214,6 +215,7 @@ RESOLUTIONS = {
                         'the Z homing; ae19fa3 adds index modes 1/2 and stops at a combined Z+X/Y homing line.'),
     'PP-044': ('fixed', 'f5c74cd @call_proc, @proc and @end_proc stop the post with a POST ERROR (VMID GenProc=0).'),
     'PP-045': ('fixed', 'f5c74cd @change_ref_point stops the post with a POST ERROR instead of writing G10 L2.'),
+    'PP-047': ('fixed', '8989278 @rotate and @mirror stop the post with a POST ERROR (owner rule 2026-10-28).'),
     'DESIGN-002': ('fixed', '3e0c345 Split XY and Z when returning from post-inserted homing (owner decision; '
                             'follow-up ed07c3f).'),
     'ENGINE-004': ('fixed', "d5bd225 The CYCLE84 line writes ',0,' instead of the doubled-quote literal, so every "
@@ -251,6 +253,7 @@ FIX_TESTS = {
     'PP-061': ('tests/test_rotary_modulo_range.py',),
     'PP-062': ('tests/test_cutter_compensation.py',),
     'PP-045': ('tests/test_unsupported_features.py',),
+    'PP-047': ('tests/test_contracts.py',),
     'DESIGN-002': ('tests/test_post_homing_reposition.py',),
 }
 
@@ -954,7 +957,8 @@ LOCATIONS = {
     'PP-045': "GPP @change_ref_point L1759-1766 ('G91 G10 L2 P..')",
     'PP-046': "GPP @usr_r1pos_calc ('if nPR1pos ne nR1pos' on the unrounded angle, refactoring branch before "
               "d8f71e8); @usr_rapid",
-    'PP-047': 'GPP @rotate L1770-1773 and @mirror L1776-1779 (empty); VMID SoftwareTransform="0"',
+    'PP-047': 'GPP @rotate L1770-1773 and @mirror L1776-1779 (empty, refactoring branch before 8989278); VMID '
+              'SoftwareTransform="0"',
     'PP-048': 'GPP: procedures absent (@halt_program, @machine_opt_stop, @delay/@dwell, @drill4x_pnt, '
               '@rotate_to_plane, MCO events); reference: the Mach3 4x template at ffd296c',
     'PP-049': 'GPP option i4xFeedMode L173 (never read); F output @usr_line L1419-1424, @line_4x L2502-2510, '

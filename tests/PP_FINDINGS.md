@@ -40,7 +40,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 33 | 28 | 1 | 2 |
+| pp | 32 | 29 | 1 | 2 |
 | engine | 19 | 2 | 0 | 0 |
 | design | 6 | 1 | 0 | 0 |
 
@@ -75,7 +75,6 @@ Canonical `@known_defect` tests: 53. `@covers` references: 95.
 | [PP-032](#pp-032) | medium | confirmed | C | home_number with iWorkOffset_Method=1 emits any operator number as the work offset (G1, G500, G58, ...) | `test_user_defined_offset_must_be_a_settable_offset` |
 | [PP-036](#pp-036) | medium | confirmed | B | bLimit_3axis still emits A=DC(...) at the first rapid after a tool change | `test_limit_3axis_never_outputs_rotary` |
 | [PP-039](#pp-039) | low | confirmed | C | Index clearance warning is written into the NC file as a bare text block (no comment prefix) | `test_index_clearance_warning_is_a_comment` |
-| [PP-047](#pp-047) | medium | uncertain | F | @rotate/@mirror are empty while the VMID delegates transformations to the post (SoftwareTransform="0") | pinned only (@covers) |
 | [PP-048](#pp-048) | medium | uncertain | F | SolidCAM MCO, dwell, 4x drill-point and rotate-to-plane events have no procedure (an MCO Halt produces no M0) | `test_every_event_of_the_authors_4x_template_is_handled` [event-coverage], `test_mco_halt_program_stops_the_machine` [mco-halt] |
 | [PP-050](#pp-050) | medium | confirmed | F | vericut/GcodeSim.ini maps MAC 1-3 and 5-10 to G54 but omits MAC 4 | `test_vericut_mac_table_matches_post_work_offsets` |
 | [PP-051](#pp-051) | low | uncertain | F | Vericut K word format left at 5.3 while I/J were widened to 8.5 (f88de47) | `test_vericut_arc_center_words_keep_post_precision` |
@@ -445,22 +444,6 @@ Canonical `@known_defect` tests: 53. `@covers` references: 95.
 - Source findings: pp-region-4-cycles-rotary-18, efc-14
 - Reproduced by:
   - `tests/test_indexing_link.py::FourthAxisIndexTests::test_index_clearance_warning_is_a_comment`
-
-### PP-047
-
-**@rotate/@mirror are empty while the VMID delegates transformations to the post (SoftwareTransform="0")**
-
-- Severity: medium
-- Confidence: uncertain
-- Reachability: Only if a SolidCAM job uses rotate/mirror transformations with this VMID; event delivery UNVERIFIED.
-- Location: GPP @rotate L1770-1773 and @mirror L1776-1779 (empty); VMID SoftwareTransform="0"
-- Evidence that would settle it: SolidCAM run of a mirrored/rotated job with this VMID: are @rotate/@mirror called and is the toolpath already transformed?
-- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
-- Source findings: critic-02
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_contracts.py::TransformEventTests::test_mirror_event_changes_the_frame_or_stops`
-  - `tests/test_contracts.py::TransformEventTests::test_rotate_event_changes_the_frame_or_stops`
 
 ### PP-048
 
@@ -1045,6 +1028,7 @@ now a regression guard marked `@covers`.
 | [PP-044](#pp-044) | f5c74cd | `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` | `tests/test_unsupported_features.py` |
 | [PP-045](#pp-045) | f5c74cd | `test_change_ref_point_emits_no_fanuc_data_setting`, `test_subprogram_loop_and_reference_point_events_stop_the_post` | `tests/test_unsupported_features.py` |
 | [PP-046](#pp-046) | d8f71e8 | `test_sub_resolution_rotary_change_does_not_home` | `tests/test_rotary.py` |
+| [PP-047](#pp-047) | 8989278 | `test_mirror_event_changes_the_frame_or_stops`, `test_rotate_event_changes_the_frame_or_stops` | `tests/test_contracts.py` |
 | [PP-049](#pp-049) | 9f48a3a | `test_rotary_feed_moves_use_the_documented_inverse_time_mode` | `tests/test_inverse_time_feed.py` |
 | [PP-054 [g187-default]](#pp-054) | c06b190 | `test_no_fanuc_g187_in_a_default_program` |  |
 | [PP-057](#pp-057) | f5c74cd | `test_fanuc_only_output_is_pinned_to_legacy_procedures`, `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` |  |
@@ -1119,7 +1103,7 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: Siemens 828D G-function list (G187 undefined; repository Vericut control has no G187).
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: tc-07, efc-02, pp-weird-hunter-17
-- Status: fixed: c06b190 A job that sets the G187 smoothing parameters stops the post; no G187 is written.
+- Status: fixed: c06b190 A job that sets the G187 smoothing parameters stops the post; no G187 is written (8989278: iG187_P 2 stops too).
 - Tests of the fix: tests/test_toolchange_session.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
@@ -1436,6 +1420,24 @@ now a regression guard marked `@covers`.
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_rotary.py::KnownRotaryDefects::test_sub_resolution_rotary_change_does_not_home`
+
+### PP-047
+
+**@rotate/@mirror are empty while the VMID delegates transformations to the post (SoftwareTransform="0")**
+
+- Severity: medium
+- Confidence: uncertain
+- Reachability: Only if a SolidCAM job uses rotate/mirror transformations with this VMID; event delivery UNVERIFIED.
+- Location: GPP @rotate L1770-1773 and @mirror L1776-1779 (empty, refactoring branch before 8989278); VMID SoftwareTransform="0"
+- Evidence that would settle it: SolidCAM run of a mirrored/rotated job with this VMID: are @rotate/@mirror called and is the toolpath already transformed?
+- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
+- Source findings: critic-02
+- Status: fixed: 8989278 @rotate and @mirror stop the post with a POST ERROR (owner rule 2026-10-28).
+- Tests of the fix: tests/test_contracts.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_contracts.py::TransformEventTests::test_mirror_event_changes_the_frame_or_stops`
+  - `tests/test_contracts.py::TransformEventTests::test_rotate_event_changes_the_frame_or_stops`
 
 ### PP-049
 
