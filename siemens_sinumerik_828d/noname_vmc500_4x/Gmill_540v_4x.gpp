@@ -14,7 +14,7 @@
     global logical bStartFile bTlchg bWorkoffsettc bFirstMove bFirstRapid
     global logical bTlist bTlseperation bTcseperation bDateTimeOutput bStopM00difftool bToolPreselect bToolChangeAtEnd
     global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a bR1forceOutput
-    global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
+    global logical bOptstpbegin bOptstptc bOptstpend bUseprogname bCoolspinaftertc
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bTmatrixIndexPending
     ; bPostHomed: the post homed the axes after the last positioning move (usr_home_axis); the next
     ; move reprograms X/Y/Z. usr_rapid_xyz keeps it set to its end as the homed-return marker.
@@ -82,7 +82,6 @@ endp
     bToolPreselect        = TRUE                ;True = Next tool is Preselected after tool change
     bSyncdrapid           = TRUE                ;True = Machine Sync's Rapid Motion (Non-Box Move)
     nRapidfeed            = 650.                ;Set your value for Max Feed in G1 (Used with Non-Sync'd Rapid Moves)
-    bUseprognum           = false               ;True = Outputs Program Number
     bUseprogname          = TRUE                ;True = Outputs Program Name
     cTCcodep              = 'M06 '             ;Sets the Prefix Code(s) used for Tool Change (i.e. 'M06')
     cTCcodes              = ''                  ;Sets the Suffix Code(s) used for Tool Change (i.e. 'M06')
@@ -271,19 +270,12 @@ endp
             part_name = left(part_name,(name2-1)) + '_' + right(part_name,(name1-name2))
         endif
     endw
-    if bUseprognum
-        {nl, 'O'(program_number)}
-        if bUseprogname
-            {nl,cCb, part_name,cCe}
-        endif
-    else
-        if bUseprogname
-            {part_name'_MPF' }
-            if strlen(sWorkpcDir) eq 0
-                {nl,cCb, '$PATH=/_N_WKS_DIR/_N_WPD'  ,cCe}
-            else
-                {nl,cCb, '$PATH=/_N_WKS_DIR/_N_'sWorkpcDir '_WPD' ,cCe}
-            endif
+    if bUseprogname
+        {part_name'_MPF' }
+        if strlen(sWorkpcDir) eq 0
+            {nl,cCb, '$PATH=/_N_WKS_DIR/_N_WPD'  ,cCe}
+        else
+            {nl,cCb, '$PATH=/_N_WKS_DIR/_N_'sWorkpcDir '_WPD' ,cCe}
         endif
     endif
 endp

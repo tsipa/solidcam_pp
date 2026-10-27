@@ -257,7 +257,6 @@ class OptionTests(unittest.TestCase):
         # @usr_check_options.
         self.assertEqual(state['i4xindexmode'], 0, 'i4xIndexMode')
         self.assertEqual(state['cr1'], 'A', 'the rotary axis is A')
-        self.assertIs(state['buseprognum'], False, "'O<number>' is not a Sinumerik address")
         self.assertEqual(state['cwo'], 'G', 'G54-style work offsets')
         self.assertIn(state['iprogendmode'], (1, 2), 'any other value silently omits the program end')
         self.assertEqual((state['ccb'], state['cce'], state['comb'], state['come']), (';', '', 'MSG("', '")'),
@@ -270,7 +269,7 @@ class OptionTests(unittest.TestCase):
         documentation: the shipped options select the only modes that are
         valid for this control (i4xIndexMode 0,
         G54 offsets, M30/M2 program end, ';' comments and MSG() messages, no
-        O-number, no tool change at end). The alternative modes are registered
+        tool change at end). The alternative modes are registered
         defects (PP-016/017) or stop the post
         (i4xIndexMode 2); this static guard is their practical protection."""
         self.assert_safe_options()
@@ -281,7 +280,6 @@ class OptionTests(unittest.TestCase):
         mutants = {
             'i4xIndexMode 1': ('    i4xIndexMode          = 0 ', '    i4xIndexMode          = 1 '),
             'i4xIndexMode 2': ('    i4xIndexMode          = 0 ', '    i4xIndexMode          = 2 '),
-            'bUseprognum true': ('    bUseprognum           = false', '    bUseprognum           = true'),
             'iProgendmode 3': ('    iProgendmode          = 1 ', '    iProgendmode          = 3 '),
             'cR1 B': ("    cR1                   = 'A'", "    cR1                   = 'B'"),
         }
