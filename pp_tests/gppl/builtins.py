@@ -136,3 +136,9 @@ BUILTINS = {
     'tostr': (1, 1, f_tostr, 'used'),     # tostr(expr[:format]); the format is parsed specially
 }
 FLAG_FUNCTIONS = ('change', 'active')
+
+# Function names cannot be declared as variables in SolidCAM. Keep names of
+# unimplemented functions here too: lack of an evaluator must not make a name
+# available to user code. `dist` was confirmed by the SolidCAM compiler rejecting
+# the inverse-feed local declaration (2026-10-27).
+RESERVED_FUNCTION_NAMES = frozenset(BUILTINS) | frozenset(FLAG_FUNCTIONS) | {'dist'}

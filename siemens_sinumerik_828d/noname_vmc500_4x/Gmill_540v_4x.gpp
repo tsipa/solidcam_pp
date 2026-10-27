@@ -1524,7 +1524,7 @@ endp
     ; rotary angle into the part frame (part = Rx(-A) * machine: in this frame a recorded SolidCAM
     ; rotary link is a straight line), and the block is split into steps of at most 1 degree so the
     ; arc travelled by the cutting point is followed.
-    local numeric stepno steps a0 da dm u xa ya za aa yp zp xq yq zq length dist
+    local numeric stepno steps a0 da dm u xa ya za aa yp zp xq yq zq length nSegmentLengthSquared
     a0 = nFeedPrevA
     ; The rotation is the travel of the modulo axis as the control moves it (ACP positive, ACN negative,
     ; DC shortest), in the CAM angle sense. The CAM angle difference can be off by turns of 360 degrees.
@@ -1575,8 +1575,8 @@ endp
         aa = a0 + da * u
         yp = ya * cos(aa) + za * sin(aa)
         zp = -ya * sin(aa) + za * cos(aa)
-        dist = (xa - xq) * (xa - xq) + (yp - yq) * (yp - yq) + (zp - zq) * (zp - zq)
-        call @usr_sqrt(dist)
+        nSegmentLengthSquared = (xa - xq) * (xa - xq) + (yp - yq) * (yp - yq) + (zp - zq) * (zp - zq)
+        call @usr_sqrt(nSegmentLengthSquared)
         length = length + nSqrt
         xq = xa
         yq = yp

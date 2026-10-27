@@ -15,7 +15,7 @@ import hashlib
 import re
 
 from . import nodes as N
-from .builtins import BUILTINS
+from .builtins import BUILTINS, RESERVED_FUNCTION_NAMES
 from .errors import Diagnostic, GPPLSyntaxError, UnsupportedGPPL
 from .expr import DEFAULT_MAX_DEPTH, Parser, compile_expr, parse_expression
 from .formats import check_literal
@@ -24,6 +24,11 @@ from .lexer import strip_comment, tokenize
 TYPES = ('numeric', 'integer', 'logical', 'string')
 HEADER = re.compile(r'@([A-Za-z0-9_]+)(?:\((.*)\))?')
 BLOCK_WORD = re.compile(r'(if|while)(?![A-Za-z0-9_])', re.I)
+
+
+def check_variable_name(name):
+    if name.lower() in RESERVED_FUNCTION_NAMES:
+        raise GPPLSyntaxError(f'{name!r} is a reserved GPPL function name, not a variable')
 
 
 # ------------------------------------------------------------- output items --
@@ -105,6 +110,7 @@ def parse_simple(text, span, escape, max_depth=DEFAULT_MAX_DEPTH):
     tokens += [tokens[-1]] * 5             # trailing 'end' tokens: safe look-ahead
     first, second = tokens[0], tokens[1]
     if first.kind == 'id' and second.is_op('='):
+        check_variable_name(first.value)
         tree, fn = expr_at(second.pos + 1)
         return N.Assign(span, text, first.value, tree, fn)
     if first.kind == 'id' and first.value in ('change', 'active') and second.is_op('('):
@@ -124,6 +130,7 @@ def parse_simple(text, span, escape, max_depth=DEFAULT_MAX_DEPTH):
                 continue
             if token.kind != 'id':
                 raise GPPLSyntaxError(f'unsupported declaration syntax near {token.text!r} (arrays are not supported)')
+            check_variable_name(token.value)
             names.append(token.value)
         if not names:
             raise GPPLSyntaxError('declaration without names')
@@ -231,6 +238,7 @@ class Program:
                         kind, variable = parts
                         if kind.lower() not in TYPES:
                             raise UnsupportedGPPL(f'unsupported argument type: {kind}')
+                        check_variable_name(variable)
                         params.append((kind.lower(), variable.lower()))
                 if name in self.procedures:
                     raise UnsupportedGPPL(f'duplicate procedure {name}')

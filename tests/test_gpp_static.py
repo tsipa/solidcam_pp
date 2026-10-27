@@ -22,6 +22,7 @@ import unittest
 from collections import Counter, defaultdict
 
 from pp_tests.engine import uncomment
+from pp_tests.gppl.program import load_program
 
 from support import assert_detected, covers, fresh_engine, mutate, pp_source
 from support.paths import FIXTURES, read_text
@@ -65,6 +66,26 @@ def option_state(source=None):
 class GppStructureTests(unittest.TestCase):
     def setUp(self):
         self.lines = load_lines(pp_source())
+
+    def assert_valid_variable_names(self, source):
+        errors = [str(d) for d in load_program(source).diagnostics
+                  if d.severity == 'error' and 'reserved GPPL function name' in d.message]
+        self.assertEqual(errors, [])
+
+    def test_variable_names_do_not_conflict_with_gppl_functions(self):
+        """INDEPENDENT: SolidCAM rejects the `dist` local as invalid;
+        function names must not be accepted as user variable names."""
+        self.assert_valid_variable_names(pp_source())
+
+    def test_original_inverse_feed_dist_name_is_rejected(self):
+        """INDEPENDENT: replay the source rejected by SolidCAM, rather than
+        trusting successful numeric execution in our interpreter."""
+        # Recreate the actual compiler failure, including every use of the local.
+        source = pp_source()
+        self.assertIn('nSegmentLengthSquared', source)
+        mutant = source.replace('nSegmentLengthSquared', 'dist')
+        assert_detected(self, self.assert_valid_variable_names, mutant,
+                        'original SolidCAM dist declaration conflict')
 
     @covers('ENGINE-019')
     def test_every_statement_is_inside_a_procedure(self):
