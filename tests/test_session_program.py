@@ -355,7 +355,6 @@ class ProgramHeaderTests(unittest.TestCase):
             'CLAMP ON A',
             'CHECK Z0',
         ])
-        self.assertEqual(s.state['scamfilepath'], 'C:\\cam\\', 'CAM part folder = full path minus file name')
 
     def test_header_lines(self):
         """INDEPENDENT: Sinumerik file header conventions and the PP's own procedure docs.

@@ -16,8 +16,7 @@ HERE = Path(__file__).resolve().parent
 FIXTURES = HERE / 'fixtures'
 PP = Path(os.environ.get('PP_TEST_SOURCE', ROOT / 'siemens_sinumerik_828d/noname_vmc500_4x/Gmill_540v_4x.gpp'))
 VMID = Path(os.environ.get('PP_TEST_VMID', PP.with_suffix('.vmid')))
-SESSIONS = ('synthetic_session', 'options_session', 'fixtures_subs_session', 'subs_session',
-            'machine_variants_session', 'oracle_session')
+SESSIONS = ('synthetic_session', 'options_session', 'machine_variants_session', 'oracle_session')
 SESSION = Policies.session()
 COMPAT = Policies()
 

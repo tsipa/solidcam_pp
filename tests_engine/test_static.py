@@ -39,7 +39,7 @@ class WholeGppTests(unittest.TestCase):
     def test_compat_policy_lists_exactly_what_the_legacy_engine_would_reject(self):
         errors = sorted((d.code, d.line) for d in self.program.errors(COMPAT))
         expected = sorted(lines_matching(r"'5\.0\(n\)'") + lines_matching(r'^\s*print\b'))
-        self.assertEqual(len(expected), 4)                     # 3x '5.0(n)', 1x Print (usr_4x_index_rotate)
+        self.assertEqual(len(expected), 1)                     # Print (usr_4x_index_rotate); the '5.0(n)' formats went with the fixture files
         self.assertEqual(errors, [('E-POLICY', line) for line in expected])
         format_vars = sorted(d.line for d in self.program.policy_diagnostics(COMPAT) if d.code == 'W-FORMAT-POLICY')
         # The only policy-sensitive formats were newshift_*_f = '+8.5', deleted with the dead
@@ -58,40 +58,19 @@ class WholeGppTests(unittest.TestCase):
 
     def test_dead_code_and_shipped_configuration(self):
         unreachable = {d.proc for d in self.diagnostics if d.code == 'I-UNREACHABLE'}
-        self.assertEqual(unreachable, set())                       # usr_heightcomp_on/off deleted (refactor)
+        self.assertEqual(unreachable, set())
         config_dead_procs = {d.proc for d in self.diagnostics if d.code == 'I-CONFIG-DEAD-PROC'}
-        # usr_soj_subs: the bSubs branch of start_of_job (R13 moved its 22 statements there).
-        self.assertEqual(config_dead_procs, {'usr_trig_macro_call', 'usr_trig_macro_output', 'usr_soj_subs'})
+        self.assertEqual(config_dead_procs, set())       # the bSubs and trig-macro procedures are deleted
         branches = [d for d in self.diagnostics if d.code == 'I-CONFIG-DEAD']
-        # 37 before the review fixes + the iR1posControl eq 3 block split out of 'eq 1 or eq 3' (6228b3d).
-        # Dead statements 147 before the fixes: +3 that block, +2 bSubs branch (ed07c3f, review round 2),
-        # +2 index mode 0 clearance Z tracking (fc664ce), +4 index mode 1 clearance Z tracking and
-        # +2 trig-macro resets (review round 2). +1 branch / +2 statements: @usr_emulated_rapid_feed
-        # (bSyncdrapid=false only). -1 branch / -3 statements: refactor B4 deleted the first iR1posControl
-        # eq 3 block, which the second one fully overwrote. -1 branch / -2 statements: refactor B7 deleted
-        # the never-taken bSkipxyrapid else branch in usr_rapid. -1 branch / -3 statements: round 2 split
-        # usr_rapid into stages; the two head-homing copies became usr_head_home and the motion-mode
-        # if/else lost its nested job_type test. -1 statement: R2 deleted the dead bSkipxyrapid writes
-        # (one in the bSubs branch, hence 22 statements there). -1 branch / -5 statements: R4 moved the
-        # duplicated safety block (its dead bNnumtc branch) and the M5 copies into helpers. +3 branches /
-        # -35 statements: R5 folded the six index copies (modes 0/1 x clearance 0/1/2) into one
-        # usr_4x_index_rotate with smaller per-clearance branches. -21 statements: R13 moved the bSubs
-        # branch body into usr_soj_subs (a dead procedure; its statements are not counted here).
-        # -3 branches / -5 statements: the fixup round moved the "homing string not ''" test into
-        # usr_prep_home_axis; the call-site tests of sHomestrstpsame/stpdiff/endsub ('' as shipped) were
-        # dead branches, and the trig-macro index homing gained its 'sHomestr = sHomestrrot' (+1).
-        # -1 statement: the always-true 'if !bSubs' in the dead bCoolspinaftertc branch of usr_ct_after.
-        # -2 branches / -6 statements: the three per-plane copies of the usr_arc R block (iArcmode 3/4)
-        # became one block after the plane branches.
-        self.assertEqual(len(branches), 33)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 80)
-        subs_line = lines_matching(r'^\s*if bSubs\s*$', start='@start_of_job')
-        subs = [d for d in branches if d.proc == 'start_of_job' and d.line == subs_line[0]]
-        option = lines_matching(r'^\s*bSubs\s*=')[0]
-        self.assertIn(f'bsubs=False (L{option})', subs[0].message)
-        self.assertIn('1 statement(s)', subs[0].message)         # call @usr_soj_subs
-        # The dead bSubs code itself: + reposition handling (ed07c3f, review round 2).
-        self.assertEqual(len(list(self.program.procedures['usr_soj_subs'].statements())), 22)
+        # Branches the shipped user options never take. 33 branches / 80 statements before the
+        # template paths for other controls (subprograms, multiple fixtures, trig macro) were removed.
+        self.assertEqual(len(branches), 30)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 69)
+        # The stop on an unsupported i4xIndexMode is one of them: it runs only on a wrong setting.
+        guard = lines_matching(r'^\s*if i4xIndexMode ne 0 and i4xIndexMode ne 1\s*$', start='@usr_check_options')
+        stop = [d for d in branches if d.proc == 'usr_check_options' and d.line == guard[0]]
+        option = lines_matching(r'^\s*i4xIndexMode\s*=')[0]
+        self.assertIn(f'i4xindexmode=0 (L{option})', stop[0].message)
 
     def test_policy_sensitive_sites(self):
         codes = {}
@@ -123,9 +102,9 @@ class WholeGppTests(unittest.TestCase):
         for name in ('tool_number', 'arc_size', 'date', 'time', 'home_user_name'):
             self.assertIn(name, interface['cam_inputs'])
         self.assertEqual(interface['cam_inputs']['inumber_of_fixtures'], 'vmid-param')
-        for name in ('xpos', 'spin', 'shift_y', 'msg', 'part_name'):
+        for name in ('xpos', 'shift_y', 'msg', 'part_name'):
             self.assertIn(name, interface['cam_inputs_modified_by_gpp'])
-        self.assertEqual(interface['flag_inputs'], ['apos', 'bpos', 'feed', 'message', 'spin', 'xpos', 'ypos', 'zpos'])
+        self.assertEqual(interface['flag_inputs'], ['apos', 'bpos', 'feed', 'spin', 'xpos', 'ypos', 'zpos'])
         for name in ('clear_change_after_gen', 'skipline', 'numeric_def_f', 'blknum_exist'):
             self.assertIn(name, interface['runtime_switches_written_never_read'])
 

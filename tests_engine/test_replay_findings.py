@@ -56,18 +56,6 @@ class ReplayFindings(unittest.TestCase):
         self.assertIn('G1 G93 Z5 A=ACP(110) F19.769', tail)        # cutting continues ...
         self.assertFalse([line for line in tail if line.startswith('M8')])   # ... without M8
 
-    def test_multiple_fixtures_delete_loop_counts_from_one_to_2002(self):
-        """iTcnumber starts at 2001 (usr_init_gmstates) but the end-of-file delete loop
-        runs i = 1..iTcnumber: 2002 delete markers for 2 temp files."""
-        _, report = replay('fixtures_subs_session')
-        deletes = [line for line in nc(report) if line.startswith('!!delete file=')
-                   and not line.endswith('.workpiece.tmp!!')]
-        self.assertEqual(len(deletes), 2002)
-        self.assertEqual(deletes[0], '!!delete file=E:\\WORK\\TEMPFILE1!!')
-        opened = [line for line in nc(report) if line.startswith('!!open file=')
-                  and not line.endswith('.workpiece.tmp!!')]
-        self.assertEqual(opened, ['!!open file=E:\\WORK\\TEMPFILE2001!!', '!!open file=E:\\WORK\\TEMPFILE2002!!'])
-
     def test_index_warning_is_written_as_an_uncommented_nc_block(self):
         session, report = replay('machine_variants_session', tonum='atof')
         warning = [line for line in nc(report) if 'WARNING' in line]
@@ -92,28 +80,33 @@ class ReplayFindings(unittest.TestCase):
         stop = lines.index('M0')
         self.assertEqual(lines[stop + 2:stop + 4], ['M9', 'M5'])
 
-    def test_call_proc_emits_literal_cr1(self):
-        _, report = replay('fixtures_subs_session')
-        self.assertIn('G54 cR10', nc(report))
-        self.assertIn("{nb,cWo,iWorkoffset' ','cR1',nR1pos}", source())
-
-    def test_subs_mode_leaks_the_9999_sentinel(self):
-        # iDiametercomp keeps its 9999 start value in subs mode; since b999f65 the TRC word rides on the
-        # first XY rapid instead of the first feed move.
-        _, report = replay('subs_session')
-        self.assertIn('G9999 X1 Y2', nc(report))
+    def replay_edited(self, edit):
+        """Replay options_session after edit(events) changed its event list in place."""
+        session = json.loads((FIXTURES / 'options_session.json').read_text())
+        edit(session['events'])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'edited.json'
+            path.write_text(json.dumps(session))
+            return replay_file(PP, path, vmid=VMID)[1]
 
     def test_zx_arc_stops_the_session(self):
-        events = json.loads((FIXTURES / 'options_session.json').read_text())
-        index = next(i for i, event in enumerate(events['events']) if event['name'] == 'line'
-                     and event['parameters'].get('zpos') == -5)
-        events['events'][index] = ZX_ARC_EVENT
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / 'zx.json'
-            path.write_text(json.dumps(events))
-            _, report = replay_file(PP, path, vmid=VMID)
+        def zx_arc(events):
+            index = next(i for i, event in enumerate(events) if event['name'] == 'line'
+                         and event['parameters'].get('zpos') == -5)
+            events[index] = ZX_ARC_EVENT
+        report = self.replay_edited(zx_arc)
         self.assertFalse(report.ok)
         self.assertIn('ZX arc direction is unverified', str(report.errors))
+
+    def test_reference_point_change_stops_the_session(self):
+        # options_session had this event before the template's G10 output was removed.
+        def ref_point(events):
+            index = next(i for i, event in enumerate(events) if event['name'] == 'm_feed_spin')
+            events.insert(index, {'name': 'change_ref_point',
+                                  'parameters': {'home_number': 2, 'xhome': 1, 'yhome': 2, 'zhome': 3}})
+        report = self.replay_edited(ref_point)
+        self.assertFalse(report.ok)
+        self.assertIn('POST ERROR: SolidCAM subprograms, loops and reference point changes', str(report.errors))
 
     def test_message_split_needs_c_escapes_and_crlf(self):
         """usr_ct_msg_lines splits msg at instr(msg,'\\n') and uses iLf-2 / iLf+1: correct

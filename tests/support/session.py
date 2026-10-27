@@ -11,7 +11,8 @@ Session build order (documented change-flag policy)
 6. header=False (default): @usr_init_gmstates runs and bStartFile=true is set,
    i.e. the state-changing part of @start_of_file without the header text.
    header=True: the real @start_of_file runs (needs HEADER_DEFAULTS; with
-   iNumber_of_Fixtures > 1 it is mandatory because it enables fixture mode).
+   iNumber_of_Fixtures > 1 it is mandatory: @start_of_file stops the post,
+   multiple fixtures are not supported).
 7. Change flags:
    flags='clear'   (default) every flag is cleared after initialisation, the
                    convention of the legacy harness. A first job therefore only
@@ -159,7 +160,7 @@ class Session:
             engine.call('start_of_file')
         else:
             if engine.state.get('inumber_of_fixtures', 0) > 1:
-                raise ValueError('iNumber_of_Fixtures > 1 needs header=True (@start_of_file enables fixture mode)')
+                raise ValueError('iNumber_of_Fixtures > 1 needs header=True (@start_of_file stops the post on it)')
             engine.call('usr_init_gmstates')
             engine.set(bStartFile=True)
         if flags == 'clear':

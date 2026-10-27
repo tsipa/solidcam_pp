@@ -116,7 +116,8 @@ test_program_start_forces_dc`.
 | --- | --- |
 | `test_session_program.py`, `test_toolchange_session.py` | program start/end, header, tool list and WORKPIECE, init_post session, tool change, coolant, M00/M01 stops, HSM, homing strings |
 | `test_rotary.py`, `test_offline.py`, `test_rotary_modulo_range.py`, `test_move_4x_axial_x.py` | A-axis position/direction/output, modulo range and full-turn stop, iR1dir, index direction, move_4x, bLimit_3axis, home_data; recorded Slide angles |
-| `test_indexing_link.py`, `test_work_offsets_fixtures.py`, `test_motion.py`, `test_arc_link_boundary.py` | indexing, the CAM-link state machine, work offsets, multiple fixtures; recorded shit2 link |
+| `test_indexing_link.py`, `test_work_offsets_fixtures.py`, `test_motion.py`, `test_arc_link_boundary.py` | indexing, the CAM-link state machine, work offsets; recorded shit2 link |
+| `test_unsupported_features.py` | the POST ERROR stops for template features of other controls: multiple fixtures, the trig-macro index mode, subprograms, loops, reference point changes |
 | `test_motion_rapids.py`, `test_post_homing_reposition.py`, `test_job_start_climb.py`, `test_inverse_time_feed.py` | rapids and approach order, return after post-inserted homing, the first-rapid climb, feed emulation, Z precision, G93 inverse-time feed |
 | `test_arc_compensation_plane.py`, `test_cutter_compensation.py`, `test_job_plane_restore.py`, `test_zx_arc_guard.py`, `test_arcs.py` | arcs, the ZX-arc stop, cutter compensation, machining plane |
 | `test_cycles_spindle.py`, `test_tapping_direction.py`, `test_history_regressions.py` | CYCLE81-86, MCALL cancel, tapping, spindle start and dwell; historical fixture cases |
@@ -207,7 +208,7 @@ the WORKPIECE blank; tool change ordering (spindle/coolant off, Z retract, M06, 
 work offset, spindle start) and M00/M01 paths; coolant channels per tool; the A
 axis (DC/ACP/ACN selection, modulo range, index direction, initial DC, tool-change
 rapids, G93 inverse time); indexing and the CAM-link homing bypass state machine;
-work offsets and multiple fixtures; rapids, the return after post-inserted homing,
+work offsets; the stops on unsupported template features; rapids, the return after post-inserted homing,
 the first-rapid climb, feed emulation and Z precision; arcs in XY/YZ (DIN sweep
 oracle, off-axis centres, CAD mismatch abort) and the ZX stop; cutter compensation
 and plane codes; CYCLE81/82/83/84/86 parameters and MCALL cancel; spindle speed
@@ -289,11 +290,11 @@ it shows the open defects as red tests.
   PP-022) and parts of `@usr_r1pos_calc` (whole-turn handling, since rewritten by
   6228b3d). The owner's fixes changed those procedures; the mutation run has not
   been repeated on the current GPP.
-- Still not executed: `@end_proc`, `@loop`, `@end_loop`, `@loop_matrix_info`,
-  `@usr_trig_macro_output`, `@offset_change`, `@usr_compensation_output`,
-  `@usr_mp_output` and `@usr_homenumber_output` (dormant or disabled by the VMID;
-  the dormant Fanuc paths are pinned statically, PP-057). `@usr_heightcomp_on/off`
-  were deleted in the refactor.
+- Still not executed: `@loop_matrix_info`, `@offset_change` and
+  `@usr_homenumber_output` (dormant or disabled by the VMID). The Fanuc template
+  paths (subprogram output, loops, multiple-fixture files, the trig macro, G10) were
+  removed in the refactor; their events and settings stop the post with a POST ERROR.
+  `@usr_heightcomp_on/off` were deleted in the refactor.
 
 ## Recording fixtures
 

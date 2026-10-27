@@ -137,12 +137,6 @@ class JobStartClimbTests(unittest.TestCase):
                 self.assertEqual(index[-2:], ['Z40', 'MSG("op2")'], index)
                 self.assertEqual(program.ev('move_5x', xpos=100, ypos=100, zpos=next_z), expected)
 
-    def test_trig_macro_index_does_not_climb(self):
-        # i4xIndexMode=2 recomputes the G112 origin: Z before and after the index are not comparable.
-        index, first = index_job_then(50, clearance=0, homing='', options=dict(i4xIndexMode=2))
-        self.assertIn('G112 A=ACP(90)', index)
-        self.assertEqual(first, ['X100 Y100', 'Z50'])
-
     def test_m00_after_a_drill_job_keeps_rtp_as_the_current_z(self):
         program = Program(cam=dict(bStopM00=True, next_job_tool_number=1))
         program.start()

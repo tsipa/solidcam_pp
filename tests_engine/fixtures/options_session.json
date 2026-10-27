@@ -1,9 +1,9 @@
 {
  "schema": 1,
- "description": "Synthetic session exercising user options (program number, N-number tool changes with skipline joining, block numbers, coolant/spindle right after tool change, separations, optional stops, tool change at end), trig-macro indexing (i4xIndexMode=2), every coolant type incl. through-coolant 30 bar (the 07 literal), home_data, ZX/YZ arcs, 4x moves, M00 with a different tool and all drill cycle types.",
+ "description": "Synthetic session exercising user options (program number, N-number tool changes with skipline joining, block numbers, coolant/spindle right after tool change, separations, optional stops, tool change at end), new-work-offset indexing (i4xIndexMode=1), every coolant type incl. through-coolant 30 bar (the 07 literal), home_data, ZX/YZ arcs, 4x moves, M00 with a different tool and all drill cycle types.",
  "session": {
   "user_params": {"sworkpcdir": "JOBS", "message2": "SECOND MESSAGE"},
-  "overrides": {"i4xIndexMode": 2, "bNnumtc": true, "bUseprognum": true, "bCoolspinaftertc": true, "bTlseperation": true, "bTcseperation": true, "bOptstpbegin": true, "bToolChangeAtEnd": true, "bOptstpend": true, "blknum_exist": true, "iArcmode": 4}
+  "overrides": {"i4xIndexMode": 1, "bNnumtc": true, "bUseprognum": true, "bCoolspinaftertc": true, "bTlseperation": true, "bTcseperation": true, "bOptstpbegin": true, "bToolChangeAtEnd": true, "bOptstpend": true, "blknum_exist": true, "iArcmode": 4}
  },
  "events": [
   {"name": "start_of_file", "parameters": {"part_name": "OPT-1", "program_number": 1234, "date": "01-Jan-2026", "time": "00:30:00", "g_file_name": "OPT-1.MPF", "full_g_file_name": "D:\\NC\\OPT-1.MPF", "stock_x": 80, "stock_y": 80, "stock_z": 80, "stock_x_minus": -40, "stock_y_minus": -40, "stock_z_plus": 40, "stock_z_minus": -40, "target_z_minus": -40, "fourth_axis_used": true}},
@@ -25,7 +25,6 @@
   {"name": "message", "parameters": {"message": "IGNORED BY PP"}},
   {"name": "move_4x", "parameters": {"xpos": 5, "ypos": 10, "zpos": 20, "apos": 0, "bpos": 0, "cpos": 15, "dir5a": "ccw"}},
   {"name": "line_4x", "parameters": {"xpos": 0, "ypos": 12, "zpos": 18, "apos": 0, "bpos": 0, "cpos": 25, "dir5a": "ccw", "feed": 300, "feed_type": "feed_cut"}},
-  {"name": "change_ref_point", "parameters": {"home_number": 2, "xhome": 1, "yhome": 2, "zhome": 3}},
   {"name": "m_feed_spin", "parameters": {"spin": 3500, "feed": 300, "tool_direction": "ccw"}},
   {"name": "end_of_job", "parameters": {"next_job_tool_number": 4, "tool_z_level": 60, "tool_start_plane": 60}},
   {"name": "change_tool", "parameters": {"tool_number": 4, "first_tool": false, "last_tool": true, "next_tool_number": 3, "xnext": 10, "ynext": 10, "cnext": 0, "tool_start_plane": 40, "tool_direction": "cw", "spin": 500, "d_drill_type": "none", "tool_message": "", "tool_offset": 4}},

@@ -177,7 +177,7 @@ class SessionReplayTests(unittest.TestCase):
         with self.assertRaises(MissingInput):
             session.event('start_of_file', {'program_number': 1})
         record = session.events[-1]
-        self.assertTrue({'part_name', 'date', 'time', 'g_file_name'} <= set(record.contract_warnings))
+        self.assertTrue({'part_name', 'date', 'time'} <= set(record.contract_warnings))
         self.assertIsNotNone(record.error)
 
     def test_events_without_procedure_are_recorded(self):
@@ -222,8 +222,11 @@ class CoverageTests(unittest.TestCase):
         self.assertGreaterEqual(summary['percent'], 87.0)    # ZX arc math after its stop, new POST ERROR paths
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
         # arc_zx: no session has a ZX arc since a ZX arc stops the post (5408e5c);
-        # test_replay_findings.test_zx_arc_stops_the_session runs it.
-        self.assertEqual(never, {'arc_zx'})
+        # test_replay_findings.test_zx_arc_stops_the_session runs it. The unsupported events stop the post
+        # (tests/test_unsupported_features.py). usr_line_homed_return: a feed move right after a post homing,
+        # which only the removed subprogram session recorded (tests/test_post_homing_reposition.py runs it).
+        unsupported = {'call_proc', 'proc', 'end_proc', 'loop', 'end_loop', 'change_ref_point', 'usr_unsupported_event'}
+        self.assertEqual(never, {'arc_zx', 'usr_line_homed_return'} | unsupported)
         self.assertIn('Branch gaps', total.markdown(program))
 
     def test_coverage_file_merges_across_processes_and_ignores_mutants(self):

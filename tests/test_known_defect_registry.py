@@ -56,7 +56,8 @@ LEGACY_FILES = frozenset()
 MODULE_ORACLE_FILES = frozenset({
     'test_post_homing_reposition.py', 'test_job_start_climb.py', 'test_zx_arc_guard.py',
     'test_cutter_compensation.py', 'test_job_plane_restore.py', 'test_tapping_direction.py',
-    'test_rotary_modulo_range.py', 'test_move_4x_axial_x.py', 'test_inverse_time_feed.py'})
+    'test_rotary_modulo_range.py', 'test_move_4x_axial_x.py', 'test_inverse_time_feed.py',
+    'test_unsupported_features.py'})
 COMMIT = re.compile(r'[0-9a-f]{7} ')
 MARKER_NAMES = ('known_defect', 'covers')
 ID_PATTERN = re.compile(r'(PP|ENGINE|DESIGN)-\d{3}')

@@ -332,11 +332,11 @@ dropped; unexecuted unsupported code invisible; errors re-wrapped per frame;
 * **Characterised PP behaviour** (`tests_engine/test_replay_findings.py`; hypotheses
   until a real trace confirms them): the first hole after `MCALL CYCLE83` is not
   repositioned; coolant is not restored after a same-tool `M0`; the
-  multiple-fixtures cleanup writes 2002 delete markers for 2 temp files; the
   index warning is an uncommented NC block; CYCLE84 gets a stray apostrophe under
-  doubled-quote lexing; `M9`/`M5` repeat after `M0` with a tool change;
-  `@call_proc` prints the literal `cR1`; `bSubs` leaks the `G9999` sentinel; the
-  `msg` split loses a character with literal escapes.
+  doubled-quote lexing; `M9`/`M5` repeat after `M0` with a tool change; the
+  `msg` split loses a character with literal escapes. (The multiple-fixtures
+  delete markers, the literal `cR1` of `@call_proc` and the `bSubs` `G9999` leak
+  went with those template paths; they now stop the post.)
 * **The one trace that settles the open semantics.** A real 2-tool job with a
   drill cycle, `M0`, compensation, an arc and a 4x index, captured with
   `sanitize_for_replay` semantics and replayed with

@@ -512,7 +512,7 @@ class RotaryFeedModeTests(unittest.TestCase):
 class ChangeRefPointTests(unittest.TestCase):
     """@change_ref_point ('Not Supported in this template')."""
 
-    @known_defect('PP-045')
+    @covers('PP-045')
     def test_change_ref_point_emits_no_fanuc_data_setting(self):
         """INDEPENDENT: Sinumerik 828D (Siemens mode) has no G10 L2 data setting; work offsets
         are written via $P_UIFR or shifted with TRANS/ATRANS, and in ISO dialect

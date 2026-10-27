@@ -269,16 +269,10 @@ class OptionTests(unittest.TestCase):
         # 0 passes raw CAM angles; 2 emits negative directed positions on the
         # modulo A axis (PP-002); 3 is documented 'Not Working yet' (PP-037).
         self.assertEqual(state['ir1poscontrol'], 1, 'iR1posControl')
-        # 1 accumulates work offsets (PP-016/PP-017); 2 emits Fanuc macro B
-        # (G65 P777, #7041, G103) and G112 (Sinumerik polar pole) (PP-038).
+        # 1 accumulates work offsets (PP-016/PP-017); 2 (the Fanuc trig macro) stops the post in
+        # @usr_check_options.
         self.assertEqual(state['i4xindexmode'], 0, 'i4xIndexMode')
         self.assertEqual(state['cr1'], 'A', 'the rotary axis is A')
-        # bSubs=true skips @usr_ct_before_*/@usr_ct_after at every tool change
-        # (M9/M5 and G75 homing before M06; spindle, coolant and the first rapid
-        # after it) and restarts each job with a G1 positioning (@start_of_job). @call_proc is NOT gated by bSubs
-        # (history-misc-16 correction); the VMID ProceduresDef guard in
-        # test_machine_definition.py keeps it unreachable (PP-044).
-        self.assertIs(state['bsubs'], False, 'bSubs')
         self.assertIs(state['buseprognum'], False, "'O<number>' is not a Sinumerik address")
         self.assertEqual((state['iworkoffsetmode'], state['cwo']), (1, 'G'), 'G54-style work offsets')
         self.assertIn(state['iprogendmode'], (1, 2), 'any other value silently omits the program end')
@@ -292,10 +286,9 @@ class OptionTests(unittest.TestCase):
         documentation: the shipped options select the only modes that are
         valid for this control (iArcmode 2, iR1posControl 1, i4xIndexMode 0,
         G54 offsets, M30/M2 program end, ';' comments and MSG() messages, no
-        O-number, bSubs off so tool changes keep their preparation, no tool
-        change at end). The alternative modes are registered defects (PP-022,
-        PP-002, PP-037, PP-016/017, PP-038); this static guard is their
-        practical protection."""
+        O-number, no tool change at end). The alternative modes are registered
+        defects (PP-022, PP-002, PP-037, PP-016/017) or stop the post
+        (i4xIndexMode 2); this static guard is their practical protection."""
         self.assert_safe_options()
 
     def test_option_guard_detects_unsafe_values(self):
@@ -310,7 +303,6 @@ class OptionTests(unittest.TestCase):
             'i4xIndexMode 2': ('    i4xIndexMode          = 0 ', '    i4xIndexMode          = 2 '),
             'bUseprognum true': ('    bUseprognum           = false', '    bUseprognum           = true'),
             'iProgendmode 3': ('    iProgendmode          = 1 ', '    iProgendmode          = 3 '),
-            'bSubs true': ('    bSubs = false ', '    bSubs = true '),
             'cR1 B': ("    cR1                   = 'A'", "    cR1                   = 'B'"),
         }
         for label, (old, new) in mutants.items():

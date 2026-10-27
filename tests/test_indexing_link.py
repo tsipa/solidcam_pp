@@ -18,7 +18,7 @@ Oracles
   resolved work offset), e574716/719e946 (fourth_axis indexes with the default
   options and does not count the angle twice).
 * PP header option documentation: i4xIndexMode (0 simple rotation, 1 new work
-  offset per index position, 2 trig macro) and i4xIndexClearanceMode
+  offset per index position) and i4xIndexClearanceMode
   (0 Z homing, 1 Z tool Z level, 2 Z tool start plane).
 
 Scenarios are realistic sessions (support.session.Session: @init_post, VMID
@@ -474,39 +474,6 @@ class FourthAxisIndexTests(LinkOracle, unittest.TestCase):
         """
         self._check_fourth_axis_return_to_zero()
 
-    @known_defect('PP-038', facet='abort')
-    def test_trig_macro_mode_unchanged_angle_does_not_abort(self):
-        """INDEPENDENT: an index whose angle does not change needs no output and
-        must not stop the post (pre-bff5ed0 behaviour of the same branch).
-
-        With i4xIndexMode=2 the trig-macro branch runs outside
-        'if change(nR1pos)' and calls usr_r1_output without a selected
-        direction: 'POST ERROR: A-axis output direction mode ...'.
-        """
-        session = job_session(i4xIndexMode=2)       # A is at 0 after the first tool change
-        try:
-            session.same_tool_job(tmatrix=0)
-        except UnsupportedGPPL as stopped:
-            if 'POST ERROR' in str(stopped):
-                self.fail(f'unchanged index angle stops the post: {stopped}')
-            raise
-
-    @known_defect('PP-038', facet='syntax')
-    def test_trig_macro_mode_emits_sinumerik_code(self):
-        """INDEPENDENT: Sinumerik 828D Siemens-mode syntax: no G65 macro call and
-        no #-variables; G112 is polar-pole programming, not a work offset.
-
-        i4xIndexMode=2 emits 'G65P777 ...' and 'G0 G112 A=...' for an index.
-        """
-        session = job_session(i4xIndexMode=2)
-        mark = session.mark()
-        session.same_tool_job(tmatrix=90)
-        blocks = session.blocks(mark)
-        fanuc = [word.raw for block in blocks for word in block.words
-                 if re.match(r'G65(?!\d)', word.raw) or '#' in word.raw
-                 or (word.address == 'G' and word.value in (65, 112))]
-        self.assertEqual(fanuc, [], session.text(mark))
-
     @known_defect('PP-039')
     def test_index_clearance_warning_is_a_comment(self):
         """INDEPENDENT: Sinumerik syntax: free text in a part program must be a
@@ -837,45 +804,6 @@ class CamLinkGuardTests(LinkOracle, unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# @call_proc (known defect, two facets)
-# ---------------------------------------------------------------------------
-class SubroutineIndexTests(unittest.TestCase):
-    def call_proc_after_link(self):
-        session = rotated_job()
-        link_retract(session)
-        # Subroutine call to an indexed CoordSys (apos 0: the CoordSys angle alone).
-        text = session.ev('call_proc', label=100, angle_4x_around_x=90, apos=0)
-        if rotations(parse_blocks(text)) == []:
-            raise RuntimeError(f'scenario precondition failed (call_proc did not index): {text!r}')
-        return session, text
-
-    @known_defect('PP-044', facet='index-boundary')
-    def test_call_proc_index_is_an_index_boundary(self):
-        """INDEPENDENT (state consistency): @call_proc indexes A through
-        usr_4x_index, so like @fourth_axis/@tmatrix it must revoke the CAM-link
-        authorization and re-arm the index clearance.
-
-        Not a demonstrated safety bug: the next rapid homes anyway because
-        '@call_proc' is not in the prev_command whitelist.
-        """
-        session, _ = self.call_proc_after_link()
-        self.assertEqual((session.state['bcamlinkretract'], session.state['bindexclearancepending']),
-                         (False, True), '(link authorization, index clearance pending) after @call_proc')
-
-    @known_defect('PP-044', facet='syntax')
-    def test_call_proc_emits_sinumerik_syntax(self):
-        """INDEPENDENT: Sinumerik 828D subprogram calls use the program name (or
-        CALL/L<n>); M98/H are plain auxiliary functions in Siemens mode, so the
-        subprogram is never called. The rotary word must be A, not the literal
-        variable name 'cR1' ('G54 cR190').
-        """
-        _, text = self.call_proc_after_link()
-        fanuc = [word.raw for block in parse_blocks(text) for word in block.words
-                 if (word.address == 'M' and word.value == 98) or word.address == 'H' or word.raw.startswith('cR1')]
-        self.assertEqual(fanuc, [], text)
-
-
-# ---------------------------------------------------------------------------
 # DESIGN pins (owner decisions; @covers only)
 # ---------------------------------------------------------------------------
 class DesignPinTests(LinkOracle, unittest.TestCase):
@@ -955,7 +883,7 @@ REVERSIONS = [
      [("    nR1pos_f        = '7.3'", "    nR1pos_f        = '7.1'")],
      IndexHistoryTests, '_check_first_program_index'),
     ('c03e1b4: motion mode initialised to 0',
-     [('    iMotionmode     = 9999\n    nLlabel', '    iMotionmode     = 0\n    nLlabel')],
+     [('    iMotionmode     = 9999\n    iMplane', '    iMotionmode     = 0\n    iMplane')],
      IndexHistoryTests, '_check_first_program_index'),
     ('3696aa2: index before home_number',
      [('    call @home_number\n' + _JOB_PLANE + _INDEX_BLOCK, _JOB_PLANE + _INDEX_BLOCK + '    call @home_number\n')],
@@ -969,12 +897,12 @@ REVERSIONS = [
        '    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n')],
      IndexHistoryTests, '_check_index_after_feed_moves'),
     ('92e2b23: no optional stop before the index (after feed moves)',
-     [('        call @usr_optionalstop\n        if i4xIndexMode eq 0 or i4xIndexMode eq 1\n',
-       '        if i4xIndexMode eq 0 or i4xIndexMode eq 1\n')],
+     [('        call @usr_optionalstop\n        ; Another clearance mode value turns nothing.\n',
+       '        ; Another clearance mode value turns nothing.\n')],
      IndexHistoryTests, '_check_index_after_feed_moves'),
     ('92e2b23: no optional stop before the index (between jobs)',
-     [('        call @usr_optionalstop\n        if i4xIndexMode eq 0 or i4xIndexMode eq 1\n',
-       '        if i4xIndexMode eq 0 or i4xIndexMode eq 1\n')],
+     [('        call @usr_optionalstop\n        ; Another clearance mode value turns nothing.\n',
+       '        ; Another clearance mode value turns nothing.\n')],
      IndexHistoryTests, '_check_index_between_jobs'),
     ('index mode 0 does not home before the rotation',
      [("    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n        call @usr_prep_home_axis\n    endif\n", '')],
@@ -990,14 +918,14 @@ REVERSIONS = [
      [('    i4xIndexClearanceMode = 0 ', '    i4xIndexClearanceMode = 3 ')],
      FourthAxisIndexTests, '_check_default_indexing'),
     ('e574716: fourth_axis does not index',
-     [('        apos = 0\n        call @usr_4x_index\n', '        apos = 0\n')],
+     [('    apos = 0\n    call @usr_4x_index\n', '    apos = 0\n')],
      FourthAxisIndexTests, '_check_fourth_axis_single_word'),
     ('719e946: fourth_axis copies the angle into apos',
-     [('        apos = 0\n        call @usr_4x_index',
-       '        apos = angle -opposite_z_angle_const_y\n        call @usr_4x_index')],
+     [('    apos = 0\n    call @usr_4x_index',
+       '    apos = angle -opposite_z_angle_const_y\n    call @usr_4x_index')],
      FourthAxisIndexTests, '_check_fourth_axis_single_word'),
     ('719e946: fourth_axis keeps a stale apos',
-     [('        apos = 0\n        call @usr_4x_index', '        call @usr_4x_index')],
+     [('    apos = 0\n    call @usr_4x_index', '    call @usr_4x_index')],
      FourthAxisIndexTests, '_check_fourth_axis_single_word'),
     ('fourth_axis angle 0 does not reset the index position',
      [('    if angle eq 0\n        position = 1', '    if false\n        position = 1')],
@@ -1139,8 +1067,8 @@ REVERSIONS = [
      DesignPinTests, '_check_link_trust'),
     ('DESIGN-003 alternative: index after the tool change',
      [('    call @home_number\n' + _JOB_PLANE + _INDEX_BLOCK, '    call @home_number\n' + _JOB_PLANE),
-      ('            call @usr_ct\n            bTlchg = false\n',
-       '            call @usr_ct\n' + textwrap.indent(_INDEX_BLOCK, '        ') + '            bTlchg = false\n')],
+      ('        call @usr_ct\n        bTlchg = false\n',
+       '        call @usr_ct\n' + textwrap.indent(_INDEX_BLOCK, '    ') + '        bTlchg = false\n')],
      DesignPinTests, '_check_index_before_tool_change'),
 ]
 
