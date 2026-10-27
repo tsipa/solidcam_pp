@@ -1,2 +1,9 @@
 __pycache__/
 *.py[cod]
+
+# Machine backups may contain saved SMB passwords, including encoded passwords.
+# Only add sanitized .ard files; enable hooks first: git config core.hooksPath .githooks
+# Never add an exception or use git add -f without sanitization AND enabled hooks.
+*.ard
+*.ARD
+!siemens_sinumerik_828d/noname_vmc500_4x/backups/NOLOG.ard

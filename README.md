@@ -5,6 +5,20 @@ Also includes a Mach3 post forked from teodoryantcheff/SolidCam-Mach3-Post.
 
 This comes with absolutely no warranty.
 
+## Local credential checks
+
+Enable the tracked Git hooks once in each clone before adding machine backups:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+`pre-commit` checks staged backup/config blobs. `pre-push` checks outgoing commit
+history before sending objects, including credentials deleted in a later commit.
+Hook files are versioned; Git does not enable them automatically after fetch/pull
+or in a new clone. Do not bypass them. See [AGENTS.md](AGENTS.md) and the
+[SINUMERIK backup skill](.codex/skills/sinumerik-backups/SKILL.md).
+
 ## Offline tests
 
 Offline Python postprocessor tests (Python 3.10+, standard library only, no SolidCAM
