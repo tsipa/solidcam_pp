@@ -32,7 +32,7 @@ class PostprocessorTests(unittest.TestCase):
 
     def test_positive_angles_and_boundaries(self):
         for angle, expected in [(-359.999, .001), (-90, 270), (0, 0),
-                                (90, 90), (359.999, 359.999), (-360, -360), (360, 360)]:
+                                (90, 90), (359.999, 359.999), (-360, 0), (360, 0)]:
             with self.subTest(angle=angle):
                 engine = rotary_engine(apos=angle)
                 engine.call('usr_r1pos_calc')
