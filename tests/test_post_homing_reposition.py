@@ -57,7 +57,7 @@ class PostHomingRepositionTests(unittest.TestCase):
     def rotate_only_scenario(self, source=None):
         session = Session(source)
         session.step('move_5x', ['zpos'], zpos=50, prev_command='@line_5x')
-        rotation = session.step('move_5x', ['apos'], apos=90, prev_command='@move_5x')
+        rotation = session.step('move_5x', ['apos'], apos=90, dir5a='ccw', prev_command='@move_5x')
         approach = session.step('move_5x', ['zpos'], zpos=10, prev_command='@move_5x')
         return rotation, approach
 
@@ -209,7 +209,7 @@ class PostHomingApproachOrderTests(unittest.TestCase):
 
     def test_rotate_only_returns_xy_then_z(self):
         rotation, _ = PostHomingRepositionTests().rotate_only_scenario()
-        self.assertEqual(rotation, ['G75 Z1=0.', HOME_XY, 'G0 A=ACN(90)', 'X12 Y23', 'Z50'])
+        self.assertEqual(rotation, ['G75 Z1=0.', HOME_XY, 'G0 A=ACP(90)', 'X12 Y23', 'Z50'])
 
     def test_rapid_without_homing_keeps_xyz_in_one_block(self):
         session = Session()

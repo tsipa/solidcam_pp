@@ -280,17 +280,19 @@ def index_next_job(program, angle=90):
     return program.ev('start_of_job', job_name='op2', angle_4x_around_x=angle)
 
 
-def compensation_left_on(test):
-    """A contour whose compensation off comes after the last retract (or never): G41 is still on at Z50."""
-    program = Program()
+def compensation_left_on(test, side='left', options=None, retract=50, off=True, policies=None):
+    """A contour whose compensation off comes after the last retract (or never): G41/G42 is still on at
+    the retract height (Z50 by default)."""
+    program = Program(options=options, policies=policies)
     program.start()
     program.ev('move_5x', xpos=0, ypos=0, zpos=5)
-    program.ev('compensation', side='left')
+    program.ev('compensation', side=side)
     program.ev('line_5x', zpos=-2, feed=200)
     program.ev('line_5x', xpos=30, feed=200)
     program.ev('line_5x', ypos=30, feed=200)
-    test.assertEqual(program.ev('move_5x', zpos=50), ['G0 Z50'])
-    program.ev('compensation', side='off')
+    test.assertEqual(program.ev('move_5x', zpos=retract), [f'G0 Z{retract}'])
+    if off:
+        program.ev('compensation', side='off')
     return program
 
 
@@ -303,21 +305,24 @@ class CompensationAtPostHomingTests(unittest.TestCase):
     @covers('PP-062')
     def test_compensation_left_on_at_the_job_end_is_deselected_at_the_clearance_height(self):
         """INDEPENDENT: module oracle; G40 before any G75, index, M1 or tool change of the next job."""
-        program = compensation_left_on(self)
-        self.assertEqual(program.ev('end_of_job'), ['G0 G40 X30 Y30'])
-        program.ev('tmatrix', angle_4x_around_x=90)
-        program.engine.state['btmatrixindexpending'] = True
-        index = program.ev('start_of_job', job_name='op2', angle_4x_around_x=90)
-        self.assertEqual(index[:2], ['M1', 'G75 Z1=0.'])
-        self.assertNotIn('G40', ' '.join(index))
+        for side in ('left', 'right'):
+            with self.subTest(side=side):
+                program = compensation_left_on(self, side)
+                self.assertEqual(program.ev('end_of_job'), ['G0 G40 X30 Y30'])
+                program.ev('tmatrix', angle_4x_around_x=90)
+                program.engine.state['btmatrixindexpending'] = True
+                index = program.ev('start_of_job', job_name='op2', angle_4x_around_x=90)
+                self.assertEqual(index[:2], ['M1', 'G75 Z1=0.'])
+                self.assertNotIn('G40', ' '.join(index))
 
     @covers('PP-062')
     def test_compensation_left_on_at_an_index_is_deselected_before_the_index(self):
-        """INDEPENDENT: module oracle; the index (M1, G75, A word) runs with compensation off."""
+        """INDEPENDENT: owner rule; G40 right after the Z homing: the XY homing and the A word run with
+        compensation off (M1 and G75 Z still with it on)."""
         program = compensation_left_on(self)
         program.engine.state['tool_start_plane'] = 60     # Z50 is below the clearance plane
         index = index_next_job(program)
-        self.assertEqual(index[:5], ['M1', 'G75 Z1=0.', 'G0 G40 X30 Y30', 'G75 Y1=0 X1=0', 'G54 A=ACP(90)'])
+        self.assertEqual(index[:5], ['M1', 'G75 Z1=0.', 'G0 G40 X30 Y30', 'G75 Y1=0 X1=0', 'G0 G54 A=ACP(90)'])
         self.assertEqual(program.ev('move_5x', xpos=10, ypos=10, zpos=5), ['X10 Y10', 'Z5'])
 
     @covers('PP-062')
@@ -340,6 +345,50 @@ class CompensationAtPostHomingTests(unittest.TestCase):
         program.ev('end_of_job')
         end = program.ev('end_program', last_tool=True)
         self.assertEqual(end[-4:], ['G75 Z1=0.', 'G0 G40 X30 Y30', 'G75 Y1=0 X1=0', 'M30'])
+
+    @covers('PP-062')
+    def test_compensation_left_on_at_an_index_without_homing_is_deselected_at_the_clearance_height(self):
+        """INDEPENDENT: owner rule; index clearance modes 1 and 2 retract Z without G75: G40 after the
+        clearance block, before A turns."""
+        for mode in (1, 2):
+            with self.subTest(i4xIndexClearanceMode=mode):
+                program = compensation_left_on(self, options=dict(i4xIndexClearanceMode=mode), retract=20)
+                self.assertEqual(program.ev('end_of_job'), [])
+                index = index_next_job(program)
+                self.assertEqual(index[:4], ['M1', 'G54 Z50', 'G0 G40 X30 Y30', 'G0 A=ACP(90)'])
+
+    def test_deselection_inside_a_feed_emulated_rapid_keeps_its_g1(self):
+        """INDEPENDENT: bSyncdrapid false posts a '3-d model' rapid as G1 F<nRapidfeed>; the G40 block
+        after the Z homing does not turn the rest of it into G0."""
+        program = compensation_left_on(self, options=dict(bSyncdrapid=False), retract=20)
+        self.assertEqual(program.ev('end_of_job'), [])
+        program.ev('start_of_job', job_name='op2', job_type='3-d model')
+        self.assertEqual(program.ev('move_5x', xpos=5, ypos=5, zpos=10, apos=90),
+                         ['G75 Z1=0.', 'G0 G40 X30 Y30', 'G75 Y1=0 X1=0', 'G1 A=ACP(90)', 'X5 Y5', 'Z10 F650'])
+
+    def test_compensation_left_on_at_a_combined_z_and_xy_homing_stops_the_post(self):
+        """INDEPENDENT: owner rule; a homing line with Z and X/Y leaves no slot for G40 between the Z and
+        the XY homing (before it: low near the part, after it: the XY homing undone): stop."""
+        require_nc_stream()
+        homing = '8::G75 Z1=0. Y1=0 X1=0'
+        program = compensation_left_on(self, options=dict(sHomestrtc=homing, sHomestrend=homing), retract=20,
+                                       policies=scripted_input_policies())
+        program.ev('end_of_job')
+        with self.assertRaises(post_abort_error()):
+            program.ev('end_program', last_tool=True)
+        self.assertEqual(program.nc()[-1], 'POST ERROR: Cutter compensation is still on at a homing line that '
+                                           'moves Z with X/Y. Home Z alone first.')
+
+    def test_deselection_after_a_drill_job_uses_the_last_hole(self):
+        """INDEPENDENT: module oracle; the G0 G40 block programs the last programmed X/Y (the last hole)."""
+        program = compensation_left_on(self, off=False)
+        program.ev('end_of_job')
+        program.ev('start_of_job', job_name='drill')
+        program.ev('drill', xpos=10, ypos=10, zpos=50, drill_type='g81', drill_clearance_z=50, drill_upper_z=0,
+                   drill_lower_z=-15, feed=80)
+        program.ev('drill_point', xpos=100, ypos=80, zpos=50)
+        program.ev('end_drill')
+        self.assertEqual(program.ev('end_of_job'), ['G0 G40 X100 Y80'])
 
     def test_compensation_on_across_a_rotating_rapid_is_deselected_and_selected_again(self):
         """INDEPENDENT: module oracle; G40 after the Z homing, CAM's G41 again on the XY return above the part."""

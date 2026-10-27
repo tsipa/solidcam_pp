@@ -773,7 +773,8 @@ class CamLinkGuardTests(LinkOracle, unittest.TestCase):
                 link_retract(session)
                 self.assertTrue(session.state['bcamlinkretract'], 'precondition: confirmed retract')
                 session.engine.set(**state)
-                self.assert_rotation_after_homing(session.ev(call, ['apos'], apos=10, dir5a='ccw'), name)
+                self.assert_rotation_after_homing(
+                    session.ev(call, ['apos'], apos=10, dir5a='ccw', angle_4x_around_x_dir='ccw'), name)
 
     def test_each_rapid_precondition_blocks_authorization(self):
         """INDEPENDENT: the d5952a2 usr_rapid preconditions (5x/4x event, 5x job,

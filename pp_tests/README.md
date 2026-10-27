@@ -75,7 +75,7 @@ in `tests_engine/fixtures/`), and `python -m pp_tests.gppl validate <post.gpp> -
 
 ### Running and reading the result
 
-The default run has 496 tests, takes about 25 s and must end `OK`. Its 49 skips
+The default run has 506 tests, takes about 25 s and must end `OK`. Its 49 skips
 have two causes:
 
 - `known defect PP-xxx reproduced: ...` (47 tests). Each open suspected defect has
@@ -87,9 +87,9 @@ have two causes:
   initialised. Set `MACH3_PP_SOURCE` to the 6efcad8 Mach3 post (`git show
   6efcad8:mach3/4x/Mach3_4X_Y.gpp > mach3.gpp`) to run them.
 
-With `GPPL_ENGINE=legacy` the run takes about 1.5 minutes and has 102 skips: 54 known
+With `GPPL_ENGINE=legacy` the run takes about 1.5 minutes and has 103 skips: 54 known
 defects (seven ENGINE facets reproduce only on the legacy engine, ENGINE-021 only on
-the default engine), 43 tests that need the default engine, 3 that need `tostr` with a
+the default engine), 44 tests that need the default engine, 3 that need `tostr` with a
 format and the 2 Mach3 tests.
 
 Strict mode runs every open known-defect test as a plain test, so they fail red

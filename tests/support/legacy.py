@@ -22,7 +22,7 @@ def rotary_engine(source=None, **overrides):
     # Explicit CAM/environment defaults for isolated rotary procedure tests.
     engine.set(angle_4x_around_x=0, angle=0, cpos=0, apos=0, bpos=0,
                x_angle_const_z=0, iR1dir=-1, iR2dir=1,
-               nPR1postemp=0, nPR1poscam=0, bR1StepReset=False, nPR1pos=0, nPR2pos=0, bLimit_3axis=False,
+               nPR1postemp=0, nPR1camcpos=0, nPR1camapos=0, bR1StepReset=False, nPR1pos=0, nPR2pos=0, bLimit_3axis=False,
                bR1forceOutput=False, bR1useDir5a=True, dir5a='cw',
                angle_4x_around_x_dir='cw', cw='cw', ccw='ccw', cR1='A')
     engine.set(**overrides)
@@ -32,7 +32,7 @@ def rotary_engine(source=None, **overrides):
 def motion_engine(source=None):
     engine = rotary_engine(source)
     engine.call('usr_ip_useroptions')
-    engine.set(X5_job=True, bJobPositioned=True, bCamLinkRetract=False, bPostHomed=False, bClimbZValid=False,
+    engine.set(X5_job=True, bJobPositioned=True, bCamLinkRetract=False, bPostHomed=False, bPostHomedZ=False, bClimbZValid=False,
                machine_plane='xy', xy='xy', zx='zx', yz='yz',
                iFeedMode=94, bFeedPrevValid=True, nFeedPrevX=12, nFeedPrevY=23, nFeedPrevZ=10,
                nFeedPrevA=0, nFeedPrevR1=0, nInvFeed_f='5.3',

@@ -206,7 +206,7 @@ class HomingDefinitionTests(unittest.TestCase):
             self.assertEqual(modes, ['8'] * len(modes), f'{name}: every line uses homing mode 8 (G75 fixed point)')
             engine = fresh_engine(source)
             engine.call('usr_ip_useroptions')
-            engine.set(sHomestr=engine.state[name], iWorkoffset=54, cWo='G', iAbsincmode=90, iCompActive=40)
+            engine.set(sHomestr=engine.state[name], iWorkoffset=54, cWo='G', iAbsincmode=90, iCompActive=40, bPostHomed=False)
             engine.call('usr_prep_home_axis')
             blocks = parse_blocks(''.join(engine.output))
             self.assertGreaterEqual(len(blocks), 2, name)

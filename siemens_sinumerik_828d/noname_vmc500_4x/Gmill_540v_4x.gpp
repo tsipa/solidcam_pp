@@ -31,7 +31,7 @@
     global integer iHomingmode
     ; A axis (usr_r1pos_calc, usr_r1_output) and the template's second rotary axis
     global numeric nR1pos nR1pos5x nR1postmatrix nR1postransform nR1poscpos nPR1pos nR1postemp nPR1postemp nR1posstep
-    global numeric nR1from nR1travel nR1camstep nPR1poscam
+    global numeric nR1from nR1travel nR1camstep nPR1camcpos nPR1camapos
     global numeric nR2pos nR2pos5x nR2postmatrix
     global integer iR1dirMode
     ; bVertical: nR2pos was not 0 at the last head check (swivel-head template term; here only a
@@ -46,7 +46,8 @@
     ; bPostHomed: the post homed the axes after the last positioning move (usr_home_axis); the next
     ; move reprograms X/Y/Z. usr_rapid_xyz keeps it set to its end as the homed-return marker.
     ; bCamLinkRapid / bRapidRotaryChanged: per-rapid decisions of usr_rapid, shared by its stages.
-    global logical bPostHomed bCamLinkRapid bRapidRotaryChanged
+    ; bPostHomedZ: Z is among the axes homed since the last positioning move (with bPostHomed).
+    global logical bPostHomed bPostHomedZ bCamLinkRapid bRapidRotaryChanged
     ; WORKPIECE header: the program body is buffered in a file until the end of the file
     ; (usr_workpiece_begin / usr_workpiece_flush), so the blank is clamped on A only when a non-zero
     ; A word was printed (usr_r1_output sets bWorkpieceUsesA; A=DC(0) of the first tool does not).
@@ -334,6 +335,7 @@ endp
     bCamLinkRetract = false
     bJobPositioned = false
     bPostHomed = false
+    bPostHomedZ = false
     bClimbZValid = false
     iFeedMode = 94
     change(iFeedMode) = false
@@ -347,7 +349,8 @@ endp
     nLastPathWorkoffset = -9999
     nPR1pos         = 0
     nPR1postemp     = 0
-    nPR1poscam      = 0
+    nPR1camcpos     = 0
+    nPR1camapos     = 0
     nR1from         = 0
     nR1travel       = 0
     nR1camstep      = 0
@@ -756,6 +759,9 @@ endp
     xpos = nTcXnext
     ypos = nTcYnext
     cpos = nTcCnext
+    ; cnext is CAM's C for the new tool: the CAM-side cpos reference (usr_r1pos_calc), also while a
+    ; post reset holds the apos one.
+    nPR1camcpos = (-cpos) * iR1dir
     change(zpos) = false
 endp
 
@@ -791,7 +797,7 @@ endp
             apos = 0
             bpos = 0
             cpos = 0
-            ; The post zeroed the CAM A, CAM did not: keep the CAM-side reference (usr_r1pos_calc).
+            ; The post zeroed the CAM A, CAM did not: keep the CAM-side references (usr_r1pos_calc).
             bR1StepReset = true
         endif
     endif
@@ -1054,16 +1060,11 @@ endp
     ; usr_emulated_rapid_feed call nothing deeper.
     call @usr_rapid_cam_link
     call @usr_rapid_motion_mode
-    if !bTlchg
-        ; A CAM rapid: CAM's A turns again from here (usr_r1pos_calc: CAM-side step).
+    if bR1useDir5a
+        ; A 4x/5x event brings CAM's A: the CAM-side references follow it again (usr_r1pos_calc).
         bR1StepReset = false
     endif
     call @usr_r1pos_calc
-    if bR1wrongWay and bR1useDir5a and (bCamLinkRapid or sHomestrroth eq '')
-        ; A turns at the cutting height (CAM link, or rotation homing switched off) another way than CAM:
-        ; stop. A homed turn follows the word like an index: the tool stands at the homing height.
-        call @usr_r1_wrong_way_stop
-    endif
     if bFirstRapid or bTlchg
         ; First rapid of a job or of a tool change: home if the head orientation changes.
         call @usr_rapid_head_check
@@ -1077,6 +1078,12 @@ endp
         sHomestrrot = sHomestrroth
         sHomestr = sHomestrrot
         call @usr_prep_home_axis
+    endif
+    if bR1wrongWay and !(bPostHomed and bPostHomedZ)
+        ; A turns another way than CAM and the tool does not stand at a Z homing (a CAM link, a rotation
+        ; homing without Z or switched off): stop. After a Z homing the turn follows the word like an
+        ; index.
+        call @usr_r1_wrong_way_stop
     endif
     if bTlchg
         call @usr_rapid_tc_block
@@ -1321,19 +1328,27 @@ endp
     ; Feed move (G1). A block that turns A is posted in G93 (inverse time, usr_inverse_feed) when its
     ; start point is known (bFeedPrevValid; not right after a homing, a tool change or an index).
     local logical bInverseBlock
-    local numeric dummy_var
-    ; CAM's A turns again from here (usr_r1pos_calc: CAM-side step).
-    bR1StepReset = false
+    local numeric dummy_var nStep
+    if bR1useDir5a
+        ; A 4x/5x event brings CAM's A: the CAM-side references follow it again (usr_r1pos_calc).
+        bR1StepReset = false
+    endif
     ; Evaluate CAM input changes before output consumes their change flags.
     call @usr_line_cam_link
     nLastPathZ = zpos
     nLastPathWorkoffset = iWorkoffset
     bClimbZValid = true
     call @usr_r1pos_calc
-    if feed_type ne 'feed_link' and bR1turnDropped and abs(nR1camstep) >= 359.9985
-        ; The CAM A axis is unlimited; on the modulo axis ACP/ACN turn less than one revolution per block,
-        ; so a cutting block that turns A by 360 degrees or more loses whole turns. Not when only the
-        ; post put A back to 0 since the last CAM A (tool change, @fourth_axis): CAM's own step decides.
+    ; The CAM A axis is unlimited; on the modulo axis ACP/ACN turn less than one revolution per block,
+    ; so a cutting block that turns A by 360 degrees or more loses whole turns. The step that counts is
+    ; CAM's own A for a 4x/5x event (a post reset of A since the last CAM A is not CAM motion), else the
+    ; step since the last A position. 359.9995 is 360 at the output step; down to 359.9985 when the
+    ; printed positions hide the turn (bR1turnDropped).
+    nStep = nR1posstep
+    if bR1useDir5a
+        nStep = nR1camstep
+    endif
+    if feed_type ne 'feed_link' and (abs(nStep) >= 359.9995 or (bR1turnDropped and abs(nStep) >= 359.9985))
         dummy_var = 0
         input '"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."'dummy_var
         {nb,"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."}
@@ -1804,7 +1819,7 @@ endp
     else
         position = position + 1
     endif
-    ; The post zeroes the CAM A, CAM does not: keep the CAM-side reference (usr_r1pos_calc).
+    ; The post zeroes the CAM A, CAM does not: keep the CAM-side references (usr_r1pos_calc).
     bR1StepReset = true
     apos = 0
     call @usr_4x_index
@@ -1901,8 +1916,11 @@ endp
 ;-------------------
 
 @drill_point
-    ; Next hole of the modal cycle: the positioning block runs it.
+    ; Next hole of the modal cycle: the positioning block runs it. Its X/Y are the last programmed
+    ; position (usr_trc_cancel, the G93 start point).
     {nb,['X'xpos ' '], ['Y'ypos ' '], ['Z'zpos ' ']}
+    nFeedPrevX = xpos
+    nFeedPrevY = ypos
 endp
 
 ;-------------------
@@ -2030,6 +2048,7 @@ endp
     ; Home with the homing string sHomestr ('' = no homing): entries 'mode:prefix:line' separated by
     ; ';', e.g. '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'. usr_home_axis outputs each entry in string order.
     local integer iPos
+    local numeric dummy_var
     local string sRest sEntry
     sRest = sHomestr
     while sRest ne ''
@@ -2054,6 +2073,14 @@ endp
             sEntry = substr(sEntry, iPos + 1, strlen(sEntry))
         endif
         sHomeline = sEntry
+        if (iCompActive eq 41 or iCompActive eq 42) and instr(sHomeline,'Z') > 0 and (instr(sHomeline,'X') > 0 or instr(sHomeline,'Y') > 0)
+            ; Compensation still on and no Z-only homing to deselect it after: G40 here would run low
+            ; near the part, after the line it would undo the XY homing.
+            dummy_var = 0
+            input '"POST ERROR: Cutter compensation is still on at a homing line that moves Z with X/Y. Home Z alone first."'dummy_var
+            {nb,"POST ERROR: Cutter compensation is still on at a homing line that moves Z with X/Y. Home Z alone first."}
+            abort
+        endif
         call @usr_home_axis
         if (iCompActive eq 41 or iCompActive eq 42) and instr(sHomeline,'Z') > 0
             ; Compensation is still on at the control: no linear block deselected it before this
@@ -2068,8 +2095,9 @@ endp
     ; Sinumerik deselects it only in a G0/G1 block with an axis of the working plane (X and Y cover
     ; G17, G18 and G19). The deselection move (one tool radius) runs at the current height. CAM
     ; compensation still requested is selected again on the next linear block.
-    iMotionmode = 0
-    {nb,'G'iMotionmode:mcode_f ' ','G40 ','X'nFeedPrevX:xpos_f ' ','Y'nFeedPrevY:ypos_f ' '}
+    {nb,'G0 G40 X'nFeedPrevX:xpos_f ' ','Y'nFeedPrevY:ypos_f ' '}
+    ; The control is in G0 now: the caller's next motion block prints its G code again.
+    change(iMotionmode) = true
     iCompActive = 40
     if iDiametercomp eq 40
         change(iDiametercomp) = false
@@ -2090,6 +2118,12 @@ endp
     {nb,cHomep,sHomeline}
     ; The axes now stand at the homing position: the next positioning move must reprogram X, Y and Z
     ; even when the CAM values did not change.
+    if !bPostHomed
+        bPostHomedZ = false
+    endif
+    if instr(sHomeline, 'Z') > 0
+        bPostHomedZ = true
+    endif
     bPostHomed = true
     bClimbZValid = false
     bFeedPrevValid = false
@@ -2131,11 +2165,14 @@ endp
     ; The CAM step of this move and the control's turn for it (usr_line, usr_rapid stop on a mismatch).
     nR1posstep = nR1postemp - nPR1postemp
     call @usr_r1_check_travel
-    ; The CAM-side step: CAM's own A (apos, cpos) from the last CAM A. A post reset of apos (tool
-    ; change, @fourth_axis: bR1StepReset) does not move this reference (usr_line full-turn check).
-    nR1camstep = nR1poscpos + nR1pos5x - nPR1poscam
+    ; The CAM-side step: CAM's own cpos and apos from their last CAM values. After a post reset of
+    ; apos/cpos (tool change, @fourth_axis, work offset change: bR1StepReset) the references stay
+    ; until a 4x/5x event brings CAM's A again (usr_line, usr_rapid); usr_ct_target moves the cpos one
+    ; to cnext (usr_line full-turn check).
+    nR1camstep = nR1poscpos - nPR1camcpos + nR1pos5x - nPR1camapos
     if !bR1StepReset
-        nPR1poscam = nR1poscpos + nR1pos5x
+        nPR1camcpos = nR1poscpos
+        nPR1camapos = nR1pos5x
     endif
     ; The references for the next move.
     nPR1postemp = nR1postemp
@@ -2323,6 +2360,10 @@ endp
     endif
     if i4xIndexClearanceMode eq 2
         {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'nPtool_start_plane ' '}
+    endif
+    if i4xIndexClearanceMode ne 0 and (iCompActive eq 41 or iCompActive eq 42)
+        ; Compensation still on: deselect it at the clearance height, before A turns.
+        call @usr_trc_cancel
     endif
     if i4xIndexMode eq 1
         iWorkoffset = iWorkoffset + (position-1)

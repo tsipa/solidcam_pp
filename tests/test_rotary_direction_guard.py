@@ -7,9 +7,10 @@ positive direction, ACN in the negative one, so the turn follows from the two PR
 must agree within the rounding of the two positions; CAM may turn whole turns more in the same
 direction (a rapid drops them; a cutting block stops, test_rotary_modulo_range). Owner rule
 (2026-10-27): when the control could turn A another way than CAM, the post stops: no silent flip of
-the word. This covers every feed move and the rotary rapids that turn A at the cutting height (a
-CAM link, or rotation homing switched off). A rapid that homes first keeps CAM's word: the tool
-stands at the homing height. Printed positions that are equal are no rotation (no A word, no G93).
+the word. This covers every feed move and every rapid that turns A while the tool does not stand at
+a Z homing (a CAM link, a rotation homing without Z or switched off), whatever event it comes from.
+A rapid after a Z homing keeps CAM's word: the tool stands at the homing height. Printed positions
+that are equal are no rotation (no A word, no G93).
 """
 import json
 import random
@@ -113,6 +114,21 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         program.ev('move_5x', zpos=60)
         self.assert_wrong_way_stop(lambda: program.ev('move_5x', apos=10, dir5a='ccw'))
 
+    @covers('PP-060')
+    def test_wrong_way_three_axis_rapid_without_rotation_homing_stops_the_post(self):
+        """INDEPENDENT: owner rule. A @rapid_move takes its word from angle_4x_around_x_dir; with the
+        rotation homing switched off it turns A at the current height, here +350 for CAM's -10."""
+        program = started(options=dict(sHomestrroth=''))
+        program.ev('line_5x', zpos=30, feed=200, feed_type='feed_cut')
+        self.assert_wrong_way_stop(lambda: program.ev('rapid_move', xpos=20, apos=10, angle_4x_around_x_dir='ccw'))
+
+    @covers('PP-060')
+    def test_wrong_way_rapid_with_a_rotation_homing_without_z_stops_the_post(self):
+        """INDEPENDENT: owner rule. A rotation homing of X/Y only leaves the tool at its height."""
+        program = started(options=dict(sHomestrroth='8::G75 Y1=0 X1=0'))
+        program.ev('move_5x', zpos=60)
+        self.assert_wrong_way_stop(lambda: program.ev('move_5x', apos=10, dir5a='ccw'))
+
     def test_wrong_way_homed_rapid_keeps_the_word(self):
         """CHARACTERIZATION: after G75 Z the post keeps CAM's word (only time is at stake)."""
         program = started()
@@ -197,8 +213,7 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         """INDEPENDENT: mutation self-check; without the feed-move stop or the link-rapid stop the
         wrong-way cases post."""
         feed = mutate('    if bR1wrongWay\n        call @usr_r1_wrong_way_stop\n    endif\n', '')
-        rapid = mutate('    if bR1wrongWay and bR1useDir5a and (bCamLinkRapid or sHomestrroth eq \'\')\n',
-                       '    if false\n')
+        rapid = mutate('    if bR1wrongWay and !(bPostHomed and bPostHomedZ)\n', '    if false\n')
 
         def feed_case(source):
             program = started(source=source)

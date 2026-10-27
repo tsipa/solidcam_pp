@@ -260,6 +260,78 @@ class FullTurnBaselineTests(unittest.TestCase):
         with self.assertRaisesRegex(UnsupportedGPPL, FULL_TURN):
             program.ev('line_5x', xpos=20, zpos=10, apos=360, feed=200, dir5a='ccw')
 
+    def test_cam_turn_back_to_the_post_zero_after_a_reset_still_stops(self):
+        """INDEPENDENT: owner rule #2; CAM's own step 360 -> 0 (or -10) is a whole turn even though it
+        ends on the A the post zeroed: the control turns 0 (or -10)."""
+        for target in (0, -10):
+            with self.subTest(tool=3, target=target):
+                program = _third_tool_after(360)
+                with self.assertRaisesRegex(UnsupportedGPPL, FULL_TURN):
+                    program.ev('line_5x', xpos=20, zpos=10, apos=target, feed=200, dir5a='cw')
+        with self.subTest('fourth_axis'):
+            program = Program()
+            _first_job(program, end_apos=360)
+            program.ev('fourth_axis', angle=90)
+            program.ev('start_of_job', job_name='op2')
+            with self.assertRaisesRegex(UnsupportedGPPL, FULL_TURN):
+                program.ev('line_5x', xpos=20, zpos=10, apos=0, feed=200, dir5a='cw')
+
+    def test_cam_rapid_after_a_reset_is_the_start_of_the_next_cut(self):
+        """INDEPENDENT: owner rule #2; SolidCAM's own first rapid brings CAM's A (-100): the cut from it
+        to 260 is a whole CAM turn."""
+        program = _third_tool_after(0)
+        program.ev('move_5x', xpos=12, ypos=0, zpos=25, apos=-100, dir5a='cw')
+        with self.assertRaisesRegex(UnsupportedGPPL, FULL_TURN):
+            program.ev('line_5x', xpos=20, zpos=10, apos=260, feed=200, dir5a='ccw')
+
+    def test_three_axis_events_after_a_reset_keep_the_cam_reference(self):
+        """INDEPENDENT: owner rule #2; a 3-axis rapid, line or drill job between the post's apos = 0 and
+        the next 4x/5x cut brings no CAM A: CAM's A is still 725, no full turn."""
+        def rapid(program):
+            program.ev('rapid_move', xpos=20, ypos=0, zpos=12)
+
+        def line(program):
+            program.ev('line', xpos=20, ypos=0, zpos=10, feed=200, feed_type='feed_cut')
+
+        def drill_job(program):
+            program.ev('end_of_job')
+            program.ev('start_of_job', job_name='drill')
+            program.ev('drill', xpos=20, ypos=0, zpos=12, drill_type='g81', drill_clearance_z=12,
+                       drill_upper_z=0, drill_lower_z=-5, feed=80)
+            program.ev('end_drill')
+            program.ev('end_of_job')
+            program.ev('start_of_job', job_name='op4')
+        for between in (rapid, line, drill_job):
+            with self.subTest(between=between.__name__):
+                program = _third_tool_after(725)
+                between(program)
+                output = program.ev('line_5x', xpos=25, zpos=10, apos=725, feed=200, dir5a='ccw',
+                                    force=dict(apos=False))
+                self.assertNotIn('POST ERROR', ' '.join(output))
+
+    def test_cnext_is_the_cam_start_of_the_next_4x_job(self):
+        """INDEPENDENT: owner rule #2; SolidCAM's cnext is CAM's C of the next tool: from cnext 0 the
+        first 4x cut to 360 is a whole CAM turn, wherever the previous tool ended."""
+        def four_x_job(program, end_cpos, tool, first=False):
+            program.ev('change_tool', tool_number=tool, next_tool_number=tool + 1, first_tool=first, cnext=0)
+            program.ev('start_of_job', job_name=f'op{tool}')
+            program.ev('move_4x', xpos=12, ypos=0, zpos=25, cpos=0, dir5a='ccw')
+            program.ev('line_4x', zpos=10, feed=200, cpos=0)
+            for cpos in range(90, end_cpos + 1, 90):
+                program.ev('line_4x', xpos=12 + cpos / 90, cpos=cpos, feed=200, dir5a='ccw')
+            program.ev('move_4x', zpos=40)
+            program.ev('end_of_job')
+        for end_cpos in (0, 360):
+            with self.subTest(tool2_ends_at=end_cpos):
+                program = Program()
+                program.ev('start_program')
+                four_x_job(program, 0, 1, first=True)
+                four_x_job(program, end_cpos, 2)
+                program.ev('change_tool', tool_number=3, next_tool_number=4, first_tool=False, cnext=0)
+                program.ev('start_of_job', job_name='op3')
+                with self.assertRaisesRegex(UnsupportedGPPL, FULL_TURN):
+                    program.ev('line_4x', xpos=20, zpos=10, cpos=360, feed=200, dir5a='ccw')
+
 
 if __name__ == '__main__':
     unittest.main()
