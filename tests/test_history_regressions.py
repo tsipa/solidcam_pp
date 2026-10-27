@@ -26,7 +26,7 @@ import json
 import re
 import unittest
 
-from support import FIXTURES, REGISTRY, block_texts, mutate, parse_blocks, replay, state_before
+from support import ENGINE_NAME, FIXTURES, REGISTRY, block_texts, mutate, parse_blocks, replay, state_before
 from support.legacy import history_engine  # also re-exported for older importers
 
 FIXTURE = FIXTURES / 'history_regressions.json'
@@ -105,6 +105,10 @@ class HistoryRegressionTests(unittest.TestCase):
             # Drilling cycles use the modal F: the job feed must be active at the MCALL block.
             self.assertEqual(state_before(replayed, calls[0]).feed, feed)
         elif kind == 'stock':
+            if ENGINE_NAME == 'legacy':
+                # usr_workpiece_data builds the WORKPIECE arguments with tostr(value:xpos_f); the stock
+                # legacy engine has no tostr (ENGINE-007), the compat engine and the default engine do.
+                self.skipTest('stock legacy engine has no tostr(value:fmt) (ENGINE-007)')
             engine.set(bWorkpieceBuffered=False, bWorkpieceUsesA=case['initial'].get('bWorkpieceUsesA', False))
             engine.call('usr_workpiece_stock')
             self.assertEqual(block_texts(''.join(engine.output)), case['expected_blocks'])

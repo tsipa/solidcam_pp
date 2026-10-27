@@ -49,7 +49,8 @@ class LegacyCompatEngine(Engine):
     Default-on (additive; the stock engine raises on these constructs):
       leading_zero_literals  ENGINE-006  `07` is an integer literal (GPP line 990).
       string_builtins        ENGINE-007  right(s, n) (clamped: '' for n <= 0, whole
-                                         string for n > len) and tostr(v[:'fmt']).
+                                         string for n > len) and tostr(v[:'fmt']), the
+                                         descriptor also in a variable (tostr(v:xpos_f)).
       print_statement        ENGINE-008  `Print <expr>` records the message in
                                          self.messages and continues (assumed
                                          SolidCAM message-window semantics).
@@ -119,6 +120,9 @@ class LegacyCompatEngine(Engine):
                     chunk = _LEADING_ZERO.sub('', chunk)
                 if options['string_builtins'] and index + 1 < len(chunks) and re.search(r':\s*$', chunk):
                     chunk = re.sub(r':\s*$', ', ', chunk)  # tostr(value:'fmt') -> tostr(value, 'fmt')
+                if options['string_builtins']:
+                    # tostr(value:xpos_f) -> tostr(value, xpos_f): the format in a variable
+                    chunk = re.sub(r':\s*([A-Za-z_]\w*)\s*\)', r', \1)', chunk)
                 return chunk
             value = _unquoted_map(value, rewrite)
         return super().expression(value)

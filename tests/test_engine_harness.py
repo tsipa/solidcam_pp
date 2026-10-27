@@ -591,14 +591,15 @@ class GpplCompatEngineTests(unittest.TestCase):
         for n <= 0 (Python's s[-0:] would return everything and make
         @usr_sof_progname loop); tostr(v[:'fmt']) uses the descriptor's
         decimals, the default numeric format without one, and returns strings
-        unchanged. The default numeric format of tostr(v) is numeric_def_f on
+        unchanged; the descriptor may be held in a variable (tostr(v:xpos_f),
+        @usr_workpiece_data). The default numeric format of tostr(v) is numeric_def_f on
         LegacyCompatEngine and needs default_formats=True (typed_default_formats,
         ENGINE-003) on the GPPL engine. right(s, n) for n > len(s) is
         test_right_count_beyond_the_string_returns_the_whole_string (ENGINE-021)."""
         options = {} if LEGACY else {'default_formats': True}
         engine = GpplCompatEngine('', **options)
-        engine.set(numeric_def_f='8.5')
-        cases = {'07': 7, '-05 + 1': -4, "right('abcdef', 2)": 'ef', "right('abc-', 0)": '',
+        engine.set(numeric_def_f='8.5', xpos_f='8.5', stock=3)
+        cases = {"',' + tostr((stock - 1.5):xpos_f) + ','": ',1.5,', '07': 7, '-05 + 1': -4, "right('abcdef', 2)": 'ef', "right('abc-', 0)": '',
                  "right('abc', -1)": '', "right('abc', 3)": 'abc', "tostr(7:'5.0(p)')": '7',
                  'tostr(2.5)': '2.5', 'tostr(1.234567)': '1.23457', "tostr('x')": 'x',
                  "'07' + tostr(3:'5.0(n)')": '073'}
