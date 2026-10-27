@@ -17,7 +17,10 @@
     global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a bR1forceOutput
     global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest bTmatrixIndexPending
-    global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid
+    global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid bFeedPrevValid
+    global integer iFeedMode
+    global numeric nInvFeed nMaxInverseFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA
+    global string nInvFeed_f
     global numeric nLastPathZ nLastPathWorkoffset
     global integer iMplane iAbsincmode iWorkoffset iHeightcomp iStopmode iMotionmode iPworkoffset
     global integer iDiametercomp iDrillmode iTcnumber iNumpecks iSpindleDir iR1dirMode
@@ -61,6 +64,7 @@
     apos_f          = '5.3'
     bpos_f          = '5.3'
     feed_f          = '4.4(P)'
+    nInvFeed_f      = '5.3'
     P_Dwell_f       = '4.4(P)'
     newshift_z_f    = '+8.5'
     newshift_y_f    = '+8.5'
@@ -171,6 +175,7 @@ endp
     i4xIndexMode          = 0         ;4x-Indexing control (0=Simple Rotation, 1=New WorkOffset, 2=Trig Macro)
     i4xIndexClearanceMode = 0         ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
     i4xFeedMode           = 1         ;4x-Simultanious control (0=Programed feedRate, 1=Inverse Time FeedRate, 2=Deg. per Minute)
+    nMaxInverseFeed       = 59999.99  ;G93 F limit, 1/min (VMID MaxInverseFeed)
     ; ---- 4x
 
 endp
@@ -356,6 +361,13 @@ endp
     bJobPositioned = false
     bPostHomed = false
     bClimbZValid = false
+    iFeedMode = 94
+    change(iFeedMode) = false
+    bFeedPrevValid = false
+    nFeedPrevX = 0
+    nFeedPrevY = 0
+    nFeedPrevZ = 0
+    nFeedPrevA = 0
     nLastPathZ = 0
     nLastPathWorkoffset = -9999
     nPR1pos			 = 0
@@ -1181,6 +1193,7 @@ endp
 ;--------------------
 
 @end_of_job
+    call @usr_feedmode_94
     bIndexClearancePending = true
     bCamLinkRetract = false
     bJobPositioned = false
@@ -1246,6 +1259,9 @@ endp
         endif
     else
         iMotionmode = 0
+    endif
+    if iMotionmode eq 1
+        call @usr_feedmode_94
     endif
 
     call @usr_r1pos_calc
@@ -1319,6 +1335,7 @@ endp
         bTlchg = false
         bFirstRapid = false
         bClimbZValid = false
+        bFeedPrevValid = false
 ;        bSkipxyrapid = true
     else
         if bPostHomed
@@ -1387,6 +1404,11 @@ endp
             bSkipxyrapid = false
         endif
         bClimbZValid = true
+        nFeedPrevX = xpos
+        nFeedPrevY = ypos
+        nFeedPrevZ = zpos
+        nFeedPrevA = -nR1postemp * iR1dir
+        bFeedPrevValid = true
     endif
     if !bSyncdrapid
         bFeedoutput        = true
@@ -1417,6 +1439,7 @@ endp
 endp
 
 @usr_line
+    local logical bInverseBlock
     ; Evaluate CAM input changes before output consumes their change flags.
     bCamLinkRetract = false
     if X5_job and bR1useDir5a and bJobPositioned and !bIndexClearancePending
@@ -1444,6 +1467,19 @@ endp
 ;    endif
     iMotionmode = 1
     ; ---- 4x
+    ; A rotating G1 block is posted in G93 (inverse time): under G94 the control applies F to the
+    ; linear axes only (deg/min for A alone), so the feed along the part would be wrong.
+    bInverseBlock = false
+    if i4xFeedMode eq 1 and change(nR1pos) and bFeedPrevValid
+        call @usr_inverse_feed
+        bInverseBlock = true
+        iFeedMode = 93
+    else
+        if iFeedMode eq 93
+            iFeedMode = 94
+            change(feed) = true
+        endif
+    endif
     if bFeedoutput
         change(feed) = true
         bFeedoutput  = false
@@ -1459,14 +1495,93 @@ endp
         change(zpos) = true
         bPostHomed = false
     endif
-    {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+    {nb,['G'iMotionmode:mcode_f ' '],['G'iFeedMode' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
     {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
     if change(nR1pos)
         call @usr_r1_output
     endif
-    {['F'feed ' ']}
+    if bInverseBlock
+        {'F'nInvFeed:nInvFeed_f ' '}
+    else
+        {['F'feed ' ']}
+    endif
     prevFeed = feed
     change(nRapidfeed) = true
+    nFeedPrevX = xpos
+    nFeedPrevY = ypos
+    nFeedPrevZ = zpos
+    nFeedPrevA = -nR1postemp * iR1dir
+    bFeedPrevValid = true
+endp
+
+@usr_inverse_feed
+    ; G93 feed for a G1 block that rotates A: nInvFeed = feed / path length on the part (1/min).
+    ; The A axis lies along X with its centre at Y0 Z0. Machine points are rotated back by the CAM
+    ; rotary angle into the part frame (part = Rx(-A) * machine: in this frame a recorded SolidCAM
+    ; rotary link is a straight line), and the block is split into steps of at most 1 degree so the
+    ; arc travelled by the cutting point is followed.
+    local numeric i steps a0 da u xa ya za aa yp zp xq yq zq length
+    a0 = nFeedPrevA
+    da = (-nR1postemp * iR1dir) - a0
+    steps = 1
+    while steps < abs(da) and steps < 360
+        steps = steps + 1
+    endw
+    length = 0
+    xq = nFeedPrevX
+    yq = nFeedPrevY * cos(a0) + nFeedPrevZ * sin(a0)
+    zq = -nFeedPrevY * sin(a0) + nFeedPrevZ * cos(a0)
+    i = 1
+    while i <= steps
+        u = i / steps
+        xa = nFeedPrevX + (xpos - nFeedPrevX) * u
+        ya = nFeedPrevY + (ypos - nFeedPrevY) * u
+        za = nFeedPrevZ + (zpos - nFeedPrevZ) * u
+        aa = a0 + da * u
+        yp = ya * cos(aa) + za * sin(aa)
+        zp = -ya * sin(aa) + za * cos(aa)
+        call @usr_sqrt((xa - xq) * (xa - xq) + (yp - yq) * (yp - yq) + (zp - zq) * (zp - zq))
+        length = length + nSqrt
+        xq = xa
+        yq = yp
+        zq = zp
+        i = i + 1
+    endw
+    if length * nMaxInverseFeed > feed
+        nInvFeed = feed / length
+    else
+        nInvFeed = nMaxInverseFeed
+    endif
+endp
+
+@usr_sqrt(numeric v)
+    ; Square root by Newton iteration, result in nSqrt.
+    local numeric i
+    if v <= 0
+        nSqrt = 0
+    else
+        nSqrt = v
+        if nSqrt < 1
+            nSqrt = 1
+        endif
+        i = 0
+        while i < 40
+            nSqrt = (nSqrt + v / nSqrt) / 2
+            i = i + 1
+        endw
+    endif
+endp
+
+@usr_feedmode_94
+    ; Leave G93 before a move that is not a rotating G1 (feed-emulated rapid, arc, drill cycle) and at
+    ; the end of a job, so F is read as mm/min again.
+    if iFeedMode eq 93
+        iFeedMode = 94
+        change(iFeedMode) = false
+        skipline = true
+        {nb,'G94'}
+        change(feed) = true
+    endif
 endp
 
 ; -----------
@@ -1636,6 +1751,7 @@ endp
         {"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."}
         abort
     endif
+    call @usr_feedmode_94
 	call @usr_arc_math
     ; A completed arc starts a new link context at its actual endpoint.
     bCamLinkRetract = false
@@ -1692,6 +1808,9 @@ endp
     endif
     {['F'feed ' ']}
     change(nRapidfeed) = true
+    nFeedPrevX = xpos
+    nFeedPrevY = ypos
+    nFeedPrevZ = zpos
 endp
 
 ;-------------------
@@ -1904,6 +2023,7 @@ endp
     if drill_type eq G86 then
         gcode = 86
     endif
+    call @usr_feedmode_94
     {nb,' F'feed }
     {nb,'MCALL CYCLE',gcode}
 
@@ -2265,6 +2385,7 @@ endp
     ; even when the CAM values did not change.
     bPostHomed = true
     bClimbZValid = false
+    bFeedPrevValid = false
 endp
 
 ;-------------------

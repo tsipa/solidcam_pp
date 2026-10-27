@@ -12,6 +12,8 @@ def motion_engine():
     engine.call('usr_ip_useroptions')
     engine.set(X5_job=True, bJobPositioned=True, bCamLinkRetract=False, bPostHomed=False, bClimbZValid=False,
                machine_plane='xy', xy='xy', zx='zx', yz='yz',
+               iFeedMode=94, bFeedPrevValid=True, nFeedPrevX=12, nFeedPrevY=23, nFeedPrevZ=10,
+               nFeedPrevA=0, nInvFeed_f='5.3',
                bIndexClearancePending=False, bTlchg=False, bFirstRapid=False,
                bFirstMove=False, bFirstMovetlch=False, bVertical=False,
                bFirstVert=False, bSkipxyrapid=False, bFeedoutput=False,

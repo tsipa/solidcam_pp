@@ -14,7 +14,7 @@ class ArcTests(unittest.TestCase):
                 for mode in (1, 2, 3, 4):
                     with self.subTest(case=case['name'], plane=plane, mode=mode):
                         engine = Engine.from_path(PP)
-                        engine.set(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz',
+                        engine.set(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz', iFeedMode=94,
                                    arc_direction=case['direction'], arc_plane=plane,
                                    arc_size=case['size'], iArcmode=mode, radius=10,
                                    bFeedoutput=False, iDiametercomp=40, cWo='G',

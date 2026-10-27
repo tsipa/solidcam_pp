@@ -14,7 +14,7 @@ MESSAGE = r'POST ERROR: ZX \(G18\) arc direction is unverified'
 
 def arc_engine(plane):
     engine = Engine.from_path(PP)
-    engine.set(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz', arc_direction='ccw', arc_plane=plane,
+    engine.set(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz', iFeedMode=94, arc_direction='ccw', arc_plane=plane,
                arc_size=90, iArcmode=2, radius=10, bFeedoutput=False, iDiametercomp=40, cWo='G',
                iWorkoffset=54, iAbsincmode=90, feed=100, mcode_f='2.0(p)', clear_change_after_gen=1,
                xstart=10, ystart=0, zstart=0, xcenter=0, ycenter=0, zcenter=0,
