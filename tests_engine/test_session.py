@@ -219,7 +219,7 @@ class CoverageTests(unittest.TestCase):
             program = session.engine.program
         summary = total.summary(program)
         self.assertEqual(summary['total'], sum(statement_kinds_from_text().values()))
-        self.assertGreaterEqual(summary['percent'], 86.0)    # ZX arc math after its stop, POST ERROR paths, TRC fallback
+        self.assertGreaterEqual(summary['percent'], 85.0)    # ZX arc math after its stop, POST ERROR paths, TRC fallback
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
         # arc_zx: no session has a ZX arc since a ZX arc stops the post (5408e5c);
         # test_replay_findings.test_zx_arc_stops_the_session runs it. The unsupported events stop the post
@@ -262,7 +262,7 @@ class CoverageTests(unittest.TestCase):
                                 str(FIXTURES / f'{name}.json'), '--vmid', str(VMID)],
                                cwd=ROOT, env=env, capture_output=True, check=True)
             merged = load_for(program, cov).summary(program)
-            self.assertGreaterEqual(merged['percent'], 93.0)
+            self.assertGreaterEqual(merged['percent'], 92.0)
             out = Path(tmp) / 'cov.md'
             text = subprocess.run([sys.executable, '-m', 'pp_tests.gppl', 'coverage', str(PP), str(cov), str(out),
                                    '--vmid', str(VMID)], cwd=ROOT, capture_output=True, text=True, check=True).stdout

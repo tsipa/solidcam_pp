@@ -88,6 +88,12 @@ class UnsupportedOptionTests(unittest.TestCase):
                 nc = stopped_with(self, program, 'start_of_file', **HEADER_DEFAULTS)
                 self.assertEqual(nc[-1], CLEARANCE_STOP)
 
+    def test_a_direction_other_than_minus_one_stops_the_post(self):
+        # Owner rule 2026-10-28: only iR1dir -1 matches the recorded SolidCAM directions (PP-004).
+        program = self.program(options=dict(iR1dir=1))
+        nc = stopped_with(self, program, 'start_of_file', **HEADER_DEFAULTS)
+        self.assertEqual(nc[-1], 'POST ERROR: iR1dir must be -1 (the A direction checked against SolidCAM).')
+
     def test_index_clearance_modes_0_1_2_post(self):
         for mode in (0, 1, 2):
             with self.subTest(i4xIndexClearanceMode=mode):

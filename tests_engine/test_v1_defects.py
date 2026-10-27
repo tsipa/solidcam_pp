@@ -225,7 +225,7 @@ class V1DefectTests(unittest.TestCase):
                        bLimit_3axis=False, bR1forceOutput=True,
                        i4xIndexClearanceMode=1, tool_z_level=10, tool_start_plane=40, nPtool_z_level=10,
                        iMplane=17, cWo='G', iWorkoffset=54, iAbsincmode=90, iMotionmode=1, position=1,
-                       iCompActive=40,
+                       iCompActive=40, bR1useDir5a=False,
                        mcode_f='2.0(p)', clear_change_after_gen=1)
             engine.changed.update({k: False for k in engine.state})
             return engine

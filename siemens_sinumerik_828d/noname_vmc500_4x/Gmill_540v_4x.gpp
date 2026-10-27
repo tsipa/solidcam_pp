@@ -252,6 +252,13 @@ endp
         {nb,"POST ERROR: i4xFeedMode must be 0 or 1."}
         abort
     endif
+    if iR1dir ne -1
+        ; ACP/ACN follow dir5a as recorded with iR1dir -1; +1 would flip every turn (PP-004).
+        dummy_var = 0
+        input '"POST ERROR: iR1dir must be -1 (the A direction checked against SolidCAM)."'dummy_var
+        {nb,"POST ERROR: iR1dir must be -1 (the A direction checked against SolidCAM)."}
+        abort
+    endif
 endp
 
 @usr_unsupported_event
@@ -1328,7 +1335,7 @@ endp
     ; Feed move (G1). A block that turns A is posted in G93 (inverse time, usr_inverse_feed) when its
     ; start point is known (bFeedPrevValid; not right after a homing, a tool change or an index).
     local logical bInverseBlock
-    local numeric dummy_var nStep
+    local numeric dummy_var
     if bR1useDir5a
         ; A 4x/5x event brings CAM's A: the CAM-side references follow it again (usr_r1pos_calc).
         bR1StepReset = false
@@ -1340,15 +1347,10 @@ endp
     bClimbZValid = true
     call @usr_r1pos_calc
     ; The CAM A axis is unlimited; on the modulo axis ACP/ACN turn less than one revolution per block,
-    ; so a cutting block that turns A by 360 degrees or more loses whole turns. The step that counts is
-    ; CAM's own A for a 4x/5x event (a post reset of A since the last CAM A is not CAM motion), else the
-    ; step since the last A position. 359.9995 is 360 at the output step; down to 359.9985 when the
-    ; printed positions hide the turn (bR1turnDropped).
-    nStep = nR1posstep
-    if bR1useDir5a
-        nStep = nR1camstep
-    endif
-    if feed_type ne 'feed_link' and (abs(nStep) >= 359.9995 or (bR1turnDropped and abs(nStep) >= 359.9985))
+    ; so a cutting block whose CAM step (nR1camstep) is 360 degrees or more loses whole turns.
+    ; 359.9995 is 360 at the output step; down to 359.9985 when the printed positions hide the turn
+    ; (bR1turnDropped).
+    if feed_type ne 'feed_link' and (abs(nR1camstep) >= 359.9995 or (bR1turnDropped and abs(nR1camstep) >= 359.9985))
         dummy_var = 0
         input '"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."'dummy_var
         {nb,"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."}
@@ -2134,7 +2136,8 @@ endp
 @usr_r1pos_calc
     ; A position (nR1pos) of the current CAM state: the CAM angle nR1postemp (tmatrix + 4x transform +
     ; C-axis cutting + 4/5x apos, in the machine direction iR1dir) wrapped into 0 <= A < 360. Also sets
-    ; change(nR1pos) (A moves), iR1dirMode (the A word's ACN/ACP/DC) and the CAM step nR1posstep.
+    ; change(nR1pos) (A moves), iR1dirMode (the A word's ACN/ACP/DC) and the CAM step nR1camstep.
+    local numeric dummy_var
     call @usr_r1_cam_angle
     call @usr_r1_range
     iR1dirMode = 0
@@ -2162,18 +2165,30 @@ endp
             call @usr_r1_select_dir
         endif
     endif
-    ; The CAM step of this move and the control's turn for it (usr_line, usr_rapid stop on a mismatch).
+    ; The step since the last A position, and CAM's step nR1camstep that the control's turn must match
+    ; (usr_r1_check_travel; usr_line, usr_rapid stop on a mismatch). For a 4x/5x event it is CAM's own
+    ; cpos/apos change from their last CAM values. Owner rule 2026-10-28: after the post's own A reset
+    ; (tool change, @fourth_axis, work offset change: bR1StepReset) the control starts from the
+    ; post's A, not CAM's, so a move whose turn differs from CAM's own step stops (no extra turn in a
+    ; cut). The reset keeps the references until a 4x/5x event (usr_line, usr_rapid); usr_ct_target
+    ; sets the cpos one to cnext.
     nR1posstep = nR1postemp - nPR1postemp
-    call @usr_r1_check_travel
-    ; The CAM-side step: CAM's own cpos and apos from their last CAM values. After a post reset of
-    ; apos/cpos (tool change, @fourth_axis, work offset change: bR1StepReset) the references stay
-    ; until a 4x/5x event brings CAM's A again (usr_line, usr_rapid); usr_ct_target moves the cpos one
-    ; to cnext (usr_line full-turn check).
-    nR1camstep = nR1poscpos - nPR1camcpos + nR1pos5x - nPR1camapos
+    nR1camstep = nR1posstep
+    if bR1useDir5a
+        nR1camstep = nR1poscpos - nPR1camcpos + nR1pos5x - nPR1camapos
+    endif
     if !bR1StepReset
         nPR1camcpos = nR1poscpos
         nPR1camapos = nR1pos5x
     endif
+    if bLimit_3axis and abs(nR1posstep) >= 0.0005
+        ; A 3-axis machine (VMID bLimit_3axis) cannot follow CAM's A: stop instead of dropping it.
+        dummy_var = 0
+        input '"POST ERROR: bLimit_3axis is set (3-axis machine) but this job turns A."'dummy_var
+        {nb,"POST ERROR: bLimit_3axis is set (3-axis machine) but this job turns A."}
+        abort
+    endif
+    call @usr_r1_check_travel
     ; The references for the next move.
     nPR1postemp = nR1postemp
     nPR1pos = nR1pos
@@ -2181,7 +2196,7 @@ endp
 
 @usr_r1_cam_angle
     ; The unwrapped CAM angle of A in the machine direction (nR1postemp). The difference of two
-    ; successive values is the CAM step of a move (nR1posstep in usr_r1pos_calc).
+    ; successive values is the step of a move (nR1posstep in usr_r1pos_calc).
     nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
     nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
     nR1poscpos = (-cpos) * iR1dir                                       ;Rotary from C-axis cutting
@@ -2222,7 +2237,7 @@ endp
 endp
 
 @usr_r1_check_travel
-    ; How the control turns A for this move, against CAM's turn nR1posstep. nR1travel: the A word's
+    ; How the control turns A for this move, against CAM's turn nR1camstep. nR1travel: the A word's
     ; turn from the printed previous position to the printed new one (ACP positive, ACN negative; 0
     ; without an A word). CAM may turn whole turns more in the same direction: the control drops
     ; them (bR1turnDropped; usr_line stops a cutting block). Any other difference is bR1wrongWay: the
@@ -2248,7 +2263,7 @@ endp
         endif
     endif
     if !bLimit_3axis and iR1dirMode ne 3 and (iR1dirMode ne 0 or !change(nR1pos))
-        camstep = nR1posstep
+        camstep = nR1camstep
         while abs(nR1travel - camstep) > 0.0015 and abs(camstep) >= 359.9985
             if camstep > 0
                 camstep = camstep - 360
@@ -2269,7 +2284,7 @@ endp
     local numeric dummy_var
     dummy_var = 0
     input '"POST ERROR: A would turn another way than in CAM (ACP/ACN). Check the A angles of this move."'dummy_var
-    {nb,"POST ERROR: A would turn another way than in CAM (ACP/ACN): A", nR1from, " to A", nR1pos, ", CAM ", nR1posstep, " deg, control ", nR1travel, " deg."}
+    {nb,"POST ERROR: A would turn another way than in CAM (ACP/ACN): A", nR1from, " to A", nR1pos, ", CAM ", nR1camstep, " deg, control ", nR1travel, " deg."}
     abort
 endp
 

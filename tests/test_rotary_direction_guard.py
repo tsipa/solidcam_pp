@@ -166,6 +166,30 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         self.assert_wrong_way_stop(
             lambda: program.ev('line_5x', xpos=12, zpos=50, apos=30, feed=200, feed_type='feed_cut', dir5a='cw'))
 
+    @covers('PP-060')
+    def test_extra_turn_after_the_post_unwind_stops(self):
+        """INDEPENDENT: owner rule (2026-10-28). After the third tool change (A unwound to 0 by the post) or
+        @fourth_axis, CAM goes 37 -> 40 'ccw' (+3) but ACP(40) turns the control +40 from 0: stop, even
+        though the direction agrees."""
+        program = Program()
+        program.start()
+        for tool in (2, 3):
+            program.ev('move_5x', xpos=10, ypos=0, zpos=30, apos=37, dir5a='ccw')
+            program.ev('line_5x', zpos=25, feed=200, feed_type='feed_cut')
+            program.ev('move_5x', zpos=60)
+            program.ev('end_of_job')
+            program.ev('change_tool', tool_number=tool, next_tool_number=tool + 1, first_tool=False)
+            program.ev('start_of_job', job_name=f'op{tool}')
+        self.assert_wrong_way_stop(
+            lambda: program.ev('line_5x', xpos=12, zpos=50, apos=40, feed=200, feed_type='feed_cut', dir5a='ccw'))
+        program = started(37.0)
+        program.ev('move_5x', zpos=60)
+        program.ev('end_of_job')
+        program.ev('start_of_job', job_name='op2')
+        program.ev('fourth_axis', angle=0, angle_4x_around_x_dir='ccw')
+        self.assert_wrong_way_stop(
+            lambda: program.ev('line_5x', xpos=12, zpos=50, apos=40, feed=200, feed_type='feed_cut', dir5a='ccw'))
+
     def test_recorded_slide_angles_turn_exactly_the_cam_steps(self):
         """INDEPENDENT: the 482 recorded Slide A angles (both directions, steps down to 0.001) as one
         simultaneous cut with dir5a from the step sign: no stop, every A word turns the control by

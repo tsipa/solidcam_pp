@@ -167,29 +167,36 @@ class FullTurnBaselineTests(unittest.TestCase):
 
     @covers('PP-061')
     def test_post_reset_of_a_is_not_a_cutting_turn(self):
-        # CAM A unchanged across the 3rd tool change: no full-turn stop; the NC is what cfd5787 posts for CAM A 5.
-        for end_apos, a_word in ((5, ' A=ACP(5)'), (725, ' A=ACP(5)'), (720, '')):
+        """INDEPENDENT: owner rules #1/#2 (2026-10-28). CAM A unchanged across the 3rd tool change: no
+        full-turn stop. At 720 the post's 0 is CAM's position: the cut posts. At 5 or 725 the control would
+        turn +5 where CAM does not turn: wrong-way stop."""
+        program = _third_tool_after(720)
+        output = program.ev('line_5x', xpos=20, zpos=10, apos=720, feed=200, dir5a='ccw', force=dict(apos=False))
+        self.assertEqual(output, ['G0 X20 Y0', 'G1 Z10 F200'])
+        for end_apos in (5, 725):
             with self.subTest(end_apos=end_apos):
                 program = _third_tool_after(end_apos)
-                output = program.ev('line_5x', xpos=20, zpos=10, apos=end_apos, feed=200, dir5a='ccw',
-                                    force=dict(apos=False))
-                self.assertEqual(output, ['G0 X20 Y0', f'G1 Z10{a_word} F200'])
+                with self.assertRaisesRegex(UnsupportedGPPL, 'another way than in CAM'):
+                    program.ev('line_5x', xpos=20, zpos=10, apos=end_apos, feed=200, dir5a='ccw',
+                               force=dict(apos=False))
 
     @covers('PP-061')
     def test_fourth_axis_and_offset_change_resets_are_not_cutting_turns(self):
+        """INDEPENDENT: owner rules #1/#2. After @fourth_axis or a work offset change the post's A reset
+        is no CAM turn (no full-turn stop), but the +5 it adds to the next cut stops the post."""
         program = Program()
         _first_job(program, end_apos=725)
         program.ev('fourth_axis', angle=90)
         program.ev('start_of_job', job_name='op2')
-        output = program.ev('line_5x', xpos=20, zpos=10, apos=725, feed=200, dir5a='ccw', force=dict(apos=False))
-        self.assertNotIn('POST ERROR', ' '.join(output))
+        with self.assertRaisesRegex(UnsupportedGPPL, 'another way than in CAM'):
+            program.ev('line_5x', xpos=20, zpos=10, apos=725, feed=200, dir5a='ccw', force=dict(apos=False))
         program = Program(cam=dict(home_user_name='54'))
         program.engine.state['iworkoffset_method'] = 1
         _first_job(program)
         _second_tool_job(program, 725)
         program.ev('start_of_job', job_name='op3', home_user_name='55')
-        output = program.ev('line_5x', xpos=20, zpos=10, apos=725, feed=200, dir5a='ccw', force=dict(apos=False))
-        self.assertNotIn('POST ERROR', ' '.join(output))
+        with self.assertRaisesRegex(UnsupportedGPPL, 'another way than in CAM'):
+            program.ev('line_5x', xpos=20, zpos=10, apos=725, feed=200, dir5a='ccw', force=dict(apos=False))
 
     def test_cam_full_turn_after_a_post_reset_still_stops(self):
         # The CAM A turns 360 in the first block after the post's apos = 0: a real turn that the modulo
@@ -223,13 +230,13 @@ class FullTurnBaselineTests(unittest.TestCase):
                 program.ev('line_5x', xpos=25, apos=360, feed=200, dir5a='ccw')
 
     def test_later_turns_after_a_post_reset_are_checked(self):
-        program = _third_tool_after(725)
-        program.ev('line_5x', xpos=20, zpos=10, apos=725, feed=200, dir5a='ccw', force=dict(apos=False))
+        program = _third_tool_after(720)
+        program.ev('line_5x', xpos=20, zpos=10, apos=720, feed=200, dir5a='ccw', force=dict(apos=False))
         with self.assertRaisesRegex(UnsupportedGPPL, FULL_TURN):
-            program.ev('line_5x', xpos=25, apos=1085, feed=200, dir5a='ccw')
+            program.ev('line_5x', xpos=25, apos=1080, feed=200, dir5a='ccw')
         # The CAM baseline follows the CAM again after the first feed block.
-        program = _third_tool_after(725)
-        program.ev('line_5x', xpos=20, zpos=10, apos=725, feed=200, dir5a='ccw', force=dict(apos=False))
+        program = _third_tool_after(720)
+        program.ev('line_5x', xpos=20, zpos=10, apos=720, feed=200, dir5a='ccw', force=dict(apos=False))
         program.ev('line_5x', xpos=22, apos=400, feed=200, dir5a='cw')
         with self.assertRaisesRegex(UnsupportedGPPL, FULL_TURN):
             program.ev('line_5x', xpos=25, apos=760, feed=200, dir5a='ccw')
@@ -286,7 +293,7 @@ class FullTurnBaselineTests(unittest.TestCase):
 
     def test_three_axis_events_after_a_reset_keep_the_cam_reference(self):
         """INDEPENDENT: owner rule #2; a 3-axis rapid, line or drill job between the post's apos = 0 and
-        the next 4x/5x cut brings no CAM A: CAM's A is still 725, no full turn."""
+        the next 4x/5x cut brings no CAM A: CAM's A is still 720, no full turn."""
         def rapid(program):
             program.ev('rapid_move', xpos=20, ypos=0, zpos=12)
 
@@ -303,9 +310,9 @@ class FullTurnBaselineTests(unittest.TestCase):
             program.ev('start_of_job', job_name='op4')
         for between in (rapid, line, drill_job):
             with self.subTest(between=between.__name__):
-                program = _third_tool_after(725)
+                program = _third_tool_after(720)
                 between(program)
-                output = program.ev('line_5x', xpos=25, zpos=10, apos=725, feed=200, dir5a='ccw',
+                output = program.ev('line_5x', xpos=25, zpos=10, apos=720, feed=200, dir5a='ccw',
                                     force=dict(apos=False))
                 self.assertNotIn('POST ERROR', ' '.join(output))
 

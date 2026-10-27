@@ -208,7 +208,7 @@ class RotaryChecks:
         ]
         for procedure, previous, apos, direction, expected in cases:
             engine = motion_engine(source)
-            engine.set(bR1forceOutput=False, nPR1pos=previous % 360, nPR1postemp=previous)
+            engine.set(bR1forceOutput=False, nPR1pos=previous % 360, nPR1postemp=previous, nPR1camapos=previous)
             text = self.posted(lambda: event(engine, procedure, ('apos',), apos=apos, dir5a=direction),
                                repr((procedure, previous, apos, direction)))
             self.assertEqual(rotary_words(text), [expected], (procedure, previous, apos, direction, text))
@@ -732,14 +732,21 @@ class KnownRotaryDefects(unittest.TestCase):
     @known_defect('PP-036')
     def test_limit_3axis_never_outputs_rotary(self):
         """INDEPENDENT: meaning of the VMID machine parameter bLimit_3axis ('limit to
-        3 axes'); the GPP itself suppresses rotary changes and the 4x trig/MAC paths
-        when it is set (@usr_r1pos_calc, @usr_ct_after, @start_of_job). A program
-        posted with bLimit_3axis=1 must contain no A word; the forced initial DC
-        (ab853be) still prints A=DC(0) at the first tool change."""
+        3 axes'). A 3-axis program posted with bLimit_3axis=1 must contain no A word;
+        the forced initial DC (ab853be) still prints A=DC(0) at the first tool change.
+        A job that turns A stops the post (test_limit_3axis_stops_on_a_cam_a_turn)."""
         session = Session(vmid={'bLimit_3axis': True})
         session.first_tool()
-        five_x_job(session, 30)
+        session.cut(10, 20, 5, -1)
         self.assertEqual(rotary_words(session.text()), [], session.text())
+
+    def test_limit_3axis_stops_on_a_cam_a_turn(self):
+        """INDEPENDENT: owner rule (2026-10-28): a 3-axis machine cannot follow CAM's A, so a job that
+        turns A with bLimit_3axis=1 stops the post instead of dropping the turn."""
+        session = Session(vmid={'bLimit_3axis': True})
+        session.first_tool()
+        with self.assertRaisesRegex(UnsupportedGPPL, 'bLimit_3axis'):
+            five_x_job(session, 30)
 
     @covers('PP-043')
     def test_home_data_does_not_modify_cam_inputs(self):
@@ -762,7 +769,7 @@ class KnownRotaryDefects(unittest.TestCase):
         usr_r1_range now rounds nR1pos to the output step, so the compare sees the
         printed positions. Regression guard of PP-046."""
         engine = motion_engine()
-        engine.set(nPR1pos=270, nPR1postemp=-90, apos=-90)   # A already at 270
+        engine.set(nPR1pos=270, nPR1postemp=-90, nPR1camapos=-90, apos=-90)   # A already at 270
         text = event(engine, 'move_5x', ('xpos',), apos=-90 - 1e-9, xpos=50)
         blocks = parse_blocks(text)
         self.assertEqual([block.raw for block in blocks if 75 in block.g or block.rotary('A')], [], text)

@@ -64,10 +64,10 @@ class WholeGppTests(unittest.TestCase):
         self.assertEqual(config_dead_procs, set())       # the bSubs and trig-macro procedures are deleted
         branches = [d for d in self.diagnostics if d.code == 'I-CONFIG-DEAD']
         # Branches the shipped user options never take: 33 branches / 80 statements at 058b0e9, fewer
-        # with each removal of template options for other controls (+1: the G40 before an index in
-        # clearance modes 1/2).
-        self.assertEqual(len(branches), 23)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 51)
+        # with each removal of template options for other controls (+2: the G40 before an index in
+        # clearance modes 1/2, the iR1dir stop).
+        self.assertEqual(len(branches), 24)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 55)
         # The stops on an unsupported i4xIndexMode, i4xIndexClearanceMode or i4xFeedMode are among them: they run
         # only on a wrong setting.
         guard = lines_matching(r'^\s*if i4xIndexMode ne 0 and i4xIndexMode ne 1\s*$', start='@usr_check_options')
