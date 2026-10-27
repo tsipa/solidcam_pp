@@ -4,21 +4,33 @@ Oracle (INDEPENDENT): G17/G18/G19 are modal on Sinumerik. Cutter compensation an
 work in the active plane (CYCLE81 drills along the plane's applicate axis), so an XY job after a
 G19 arc must re-select G17 before it moves.
 """
+import re
 import unittest
 
 from test_offline import PP
 from test_post_homing_reposition import Session
 
+YZ_ARC = dict(arc_plane='yz', arc_direction='ccw', arc_size=90, iArcmode=2, radius=10,
+              xstart=12, ystart=10, zstart=0, xcenter=12, ycenter=0, zcenter=0,
+              xcenter_rel=0, ycenter_rel=-10, zcenter_rel=0)
 
-def job_after_yz_arc(source=None):
+
+def yz_arc(session):
+    session.engine.set(**YZ_ARC)
+    return session.step('arc_yz', ['ypos', 'zpos'], ypos=0, zpos=10)
+
+
+def job_after_yz_arc(source=None, machine_plane='xy'):
     session = Session(source)
-    session.engine.set(arc_plane='yz', arc_direction='ccw', arc_size=90, iArcmode=2, radius=10,
-                       xstart=12, ystart=10, zstart=0, xcenter=12, ycenter=0, zcenter=0,
-                       xcenter_rel=0, ycenter_rel=-10, zcenter_rel=0)
-    arc = session.step('arc_yz', ['ypos', 'zpos'], ypos=0, zpos=10)
+    arc = yz_arc(session)
     session.step('end_of_job')
+    session.engine.set(machine_plane=machine_plane)
     session.step('start_of_job')
     return session, arc
+
+
+def planes(output):
+    return re.findall(r'\bG(1[789])\b', ' '.join(output))
 
 
 class JobPlaneRestoreTests(unittest.TestCase):
@@ -34,7 +46,45 @@ class JobPlaneRestoreTests(unittest.TestCase):
                            safety=2, G81='g81', G82='g82', G83='g83', G84='g84', G86='g86')
         output = session.step('drill', ['xpos', 'ypos'], xpos=30, ypos=40)
         text = '\n'.join(output)
+        self.assertIn('G17', text, output)
         self.assertLess(text.index('G17'), text.index('MCALL CYCLE81'), output)
+
+    def test_empty_or_unknown_machine_plane_falls_back_to_g17(self):
+        for machine_plane in ('', 'unknown'):
+            with self.subTest(machine_plane=machine_plane):
+                session, _ = job_after_yz_arc(machine_plane=machine_plane)
+                first = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=30, ypos=40, zpos=5)
+                self.assertEqual(first, ['G0 G17 X30 Y40', 'Z5'])
+
+    def test_yz_job_starts_in_g19(self):
+        session = Session()
+        session.step('end_of_job')
+        session.engine.set(machine_plane='yz')
+        session.step('start_of_job')
+        first = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=30, ypos=40, zpos=5)
+        self.assertEqual(planes(first), ['19'], first)
+
+    def test_compensation_after_yz_arc_in_the_same_job_is_selected_in_g17(self):
+        session = Session()
+        session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off', iCompActive=40)
+        yz_arc(session)
+        session.step('compensation', side='left')
+        output = session.step('line_5x', ['xpos'], xpos=50, feed_type='feed_cut')
+        self.assertRegex(' '.join(output), r'\bG17\b.*\bG41\b', output)
+        session.step('compensation', side='off')
+        session.step('line_5x', ['ypos'], ypos=5, feed_type='feed_cut')
+        session.step('compensation', side='right')
+        rapid = session.step('move_5x', ['xpos', 'ypos'], xpos=60, ypos=10)
+        self.assertEqual(planes(rapid), [], rapid)   # plane already G17: no repeat
+        self.assertIn('G42', ' '.join(rapid))
+
+    def test_compensation_off_after_yz_arc_keeps_the_arc_plane(self):
+        session = Session()
+        session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off', iDiametercomp=41, iCompActive=41)
+        yz_arc(session)
+        session.step('compensation', side='off')
+        output = session.step('line_5x', ['xpos'], xpos=50, feed_type='feed_cut')
+        self.assertEqual(planes(output), [], output)
 
     def test_no_plane_word_when_plane_did_not_change(self):
         session = Session()
@@ -46,13 +96,13 @@ class JobPlaneRestoreTests(unittest.TestCase):
         source = PP.read_text(encoding='utf-8-sig')
         start = source.index('\n@start_of_job\n')
         body = source[start:source.index('\nendp', start)]
-        restore = '    call @machine_plane\n'
+        restore = '    call @usr_job_plane\n'
         self.assertEqual(body.count(restore), 1, 'plane restore in @start_of_job changed; review this test')
         position = source.index(restore, start)
         broken = source[:position] + source[position + len(restore):]
         session, _ = job_after_yz_arc(broken)
         first = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=30, ypos=40, zpos=5)
-        self.assertEqual(first, ['G0 X30 Y40', 'Z5'])
+        self.assertNotIn('17', planes(first), first)
 
 
 if __name__ == '__main__':

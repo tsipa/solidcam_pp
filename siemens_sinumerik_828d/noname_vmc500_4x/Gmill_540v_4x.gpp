@@ -614,6 +614,12 @@ endp
     endif
 endp
 
+@usr_job_plane
+    ; Select the job's machining plane (G17 when SolidCAM leaves machine_plane empty or unknown).
+    iMplane = 17
+    call @machine_plane
+endp
+
 @usr_mp_output
     ; Handle output of MachinePlane Gcode
     ; Use bStartFile variable to ignore this output at beginning of file
@@ -1132,7 +1138,7 @@ endp
     ; If using Subs we do not make tool change in @start_of_job
     call @home_number
     ; Arcs in YZ/ZX leave iMplane at 19/18; restore the job's machining plane for its first motion block.
-    call @machine_plane
+    call @usr_job_plane
     if bTmatrixIndexPending
         change(cWo) = true
         change(iWorkoffset) = true
@@ -1377,6 +1383,10 @@ endp
             endif
             if change(iDiametercomp)
                 iCompActive = iDiametercomp
+                if iDiametercomp ne 40
+                    ; TRC works in the active plane: a YZ/ZX arc earlier in the job must not leave it there.
+                    call @usr_job_plane
+                endif
             endif
             if bFirstMove and change(zpos) and bClimbZValid and !bHomedReposition and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
                 ; Job starts above the current Z (no homing since the last move): climb first, then traverse XY.
@@ -1531,6 +1541,10 @@ endp
     endif
     if change(iDiametercomp)
         iCompActive = iDiametercomp
+        if iDiametercomp ne 40
+            ; TRC works in the active plane: a YZ/ZX arc earlier in the job must not leave it there.
+            call @usr_job_plane
+        endif
     endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iFeedMode' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
     {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
