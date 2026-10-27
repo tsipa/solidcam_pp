@@ -706,15 +706,10 @@ endp
             call @usr_spindle_mcode_output
         endif
         if bVertical or bFirstVert
-            sHomestrrot = sHomestrrotv
-            if sHomestrrot ne ''
-                sHomestr = sHomestrrot
-                call @usr_prep_home_axis
-            endif
-            ; {nb, 'HVH'}
-            zpos_f = '5.4'
+            ; No rapid since the program start (bFirstVert) or the head was vertical: home with the
+            ; head-orientation homing (sHomestrrotv) instead of the tool-change homing.
+            call @usr_head_home
             bVertical = false
-            bFirstVert = false
         else
             if sHomestrtc ne ''
                 sHomestr = sHomestrtc
@@ -1479,12 +1474,12 @@ endp
     local numeric dummy_var
     ; Evaluate CAM input changes before output consumes their change flags.
     bCamLinkRetract = false
-    if X5_job and bR1useDir5a and bJobPositioned and !bIndexClearancePending
+    ; A straight Z retract tagged feed_link by CAM (no X/Y/A/B motion, rising, same work offset)
+    ; authorizes the rapids of the same link that follow it (usr_rapid: no homing for their rotation).
+    if X5_job and bR1useDir5a and bJobPositioned and !bIndexClearancePending and nLastPathWorkoffset eq iWorkoffset
         if feed_type eq 'feed_link' and zpos gt nLastPathZ
             if !change(xpos) and !change(ypos) and !change(apos) and !change(bpos)
-                if nLastPathWorkoffset eq iWorkoffset
-                    bCamLinkRetract = true
-                endif
+                bCamLinkRetract = true
             endif
         endif
     endif
@@ -1492,8 +1487,6 @@ endp
     nLastPathWorkoffset = iWorkoffset
     bClimbZValid = true
     ; Handle output for line movement (G01)
-    ; ---- 4x
-    ;   - Set Rotary Position
     call @usr_r1pos_calc
     if iR1posControl eq 1 and !bLimit_3axis and feed_type ne 'feed_link' and abs(nR1posstep) >= 359.9995
         ; The CAM A axis is unlimited; on the modulo axis ACP/ACN turn less than one revolution per block,
@@ -1504,15 +1497,9 @@ endp
         {nb,"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."}
         abort
     endif
-;    Do not pre-apply upcoming compensation here.
-;    CAM emits @compensation before the move where it must become active.
-;    Applying next_command compensation from @usr_line corrupts lead-out/zigzag side changes.
-;    if next_command eq '@compensation' and iMotionmode ne 0
-;        side = tool_side
-;        call @compensation
-;    endif
+    ; Do not pre-apply upcoming compensation here (next_command): CAM emits @compensation before the
+    ; move where it must become active; a look-ahead corrupts lead-out/zigzag side changes (2aa6df0).
     iMotionmode = 1
-    ; ---- 4x
     ; A rotating G1 block is posted in G93 (inverse time): under G94 the control applies F to the
     ; linear axes only (deg/min for A alone), so the feed along the part would be wrong.
     bInverseBlock = false
@@ -1530,10 +1517,6 @@ endp
         change(feed) = true
         bFeedoutput  = false
     endif
-;    if change(iFeedType)
-;        change(iMotionmode) = true
-;        {nb,['G'iFeedType' ']}
-;    endif
     if change(iDiametercomp)
         if iDiametercomp ne 40
             ; TRC works in the job plane: a YZ/ZX arc earlier in the job must not leave another one.
@@ -1564,12 +1547,7 @@ endp
         {['F'feed ' ']}
     endif
     change(nRapidfeed) = true
-    nFeedPrevX = xpos
-    nFeedPrevY = ypos
-    nFeedPrevZ = zpos
-    nFeedPrevA = -nR1postemp * iR1dir
-    nFeedPrevR1 = nR1pos
-    bFeedPrevValid = true
+    call @usr_feed_start_here
 endp
 
 @usr_inverse_feed

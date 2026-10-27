@@ -228,10 +228,10 @@ class ToolChangeSafetyTests(unittest.TestCase):
 
     def test_next_tool_change_mutations_are_detected(self):
         """INDEPENDENT: tc-14 and weird-hunter tool-change mutants fail the guard."""
-        both_homing = mutate("            sHomestrrot = sHomestrrotv\n            if sHomestrrot ne ''\n"
-                             "                sHomestr = sHomestrrot\n                call @usr_prep_home_axis\n"
-                             "            endif\n            ; {nb, 'HVH'}",
-                             "            sHomestrrot = sHomestrrotv\n            ; {nb, 'HVH'}")
+        # usr_ct_before_notfirsttool: usr_head_home without its homing (sHomestrrot, zpos_f, bFirstVert kept)
+        both_homing = mutate("instead of the tool-change homing.\n            call @usr_head_home\n",
+                             "instead of the tool-change homing.\n            sHomestrrot = sHomestrrotv\n"
+                             "            zpos_f = '5.4'\n            bFirstVert = false\n")
         both_homing = mutate("        else\n            if sHomestrtc ne ''\n                sHomestr = sHomestrtc\n"
                              "                call @usr_prep_home_axis\n            endif\n        endif",
                              "        else\n        endif", source=both_homing)

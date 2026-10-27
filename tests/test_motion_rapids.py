@@ -112,8 +112,8 @@ class MotionModeTests(unittest.TestCase):
     def test_dropping_g1_after_rapid_is_detected(self):
         """INDEPENDENT: deleting 'iMotionmode = 1' in @usr_line (TSR-01 mutant, survived the
         original suite) must fail the modal-G1 check with AssertionError."""
-        mutant = mutate('    iMotionmode = 1\n    ; ---- 4x\n    ; A rotating G1 block',
-                        '    ; ---- 4x\n    ; A rotating G1 block')
+        mutant = mutate('    iMotionmode = 1\n    ; A rotating G1 block',
+                        '    ; A rotating G1 block')
         assert_detected(self, self.check_feed_moves_after_rapid, mutant, 'usr_line without iMotionmode = 1')
 
 
@@ -365,8 +365,8 @@ class FeedEmulatedRapidTests(unittest.TestCase):
         """INDEPENDENT: deleting change(feed)=true from the bFeedoutput branch of @usr_line
         must fail the line case with AssertionError."""
         mutant = mutate('    if bFeedoutput\n        change(feed) = true\n        bFeedoutput  = false\n    endif\n'
-                        ';    if change(iFeedType)',
-                        '    if bFeedoutput\n        bFeedoutput  = false\n    endif\n;    if change(iFeedType)')
+                        '    if change(iDiametercomp)',
+                        '    if bFeedoutput\n        bFeedoutput  = false\n    endif\n    if change(iDiametercomp)')
         assert_detected(self, lambda source: self.check_feed_restored('line', source), mutant,
                         '@usr_line feed restore removed')
 

@@ -9,7 +9,7 @@
       "reason": "Commit and source comment explicitly say lookahead pre-applied upcoming compensation to the current lead-out/zigzag move.",
       "initial": {"iDiametercomp": 41, "side": "left", "tool_side": "right", "next_command": "@compensation"},
       "expected_codes": [[41], [42], [40]],
-      "regression": {"find": ";    if next_command eq '@compensation' and iMotionmode ne 0\n;        side = tool_side\n;        call @compensation\n;    endif", "replace": "    if next_command eq '@compensation' and iMotionmode ne 0\n        side = tool_side\n        call @compensation\n    endif"}
+      "regression": {"find": "    ; move where it must become active; a look-ahead corrupts lead-out/zigzag side changes (2aa6df0).\n", "replace": "    ; move where it must become active; a look-ahead corrupts lead-out/zigzag side changes (2aa6df0).\n    if next_command eq '@compensation' and iMotionmode ne 0\n        side = tool_side\n        call @compensation\n    endif\n"}
     },
     {
       "name": "fourth_axis_transform_angle_is_not_counted_twice",

@@ -1135,8 +1135,7 @@ REVERSIONS = [
        'if X5_job and bR1useDir5a and bJobPositioned')],
      CamLinkGuardTests, '_check_retract_preconditions'),
     ('usr_line: work offset guard removed',
-     [('                if nLastPathWorkoffset eq iWorkoffset\n                    bCamLinkRetract = true',
-       '                if true\n                    bCamLinkRetract = true')],
+     [(' and !bIndexClearancePending and nLastPathWorkoffset eq iWorkoffset\n', ' and !bIndexClearancePending\n')],
      CamLinkGuardTests, '_check_retract_preconditions'),
     # Policy changes the DESIGN pins must notice.
     ('DESIGN-001 alternative: retract must reach the tool Z level',
