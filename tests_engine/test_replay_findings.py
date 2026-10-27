@@ -60,10 +60,12 @@ class ReplayFindings(unittest.TestCase):
         """iTcnumber starts at 2001 (usr_init_gmstates) but the end-of-file delete loop
         runs i = 1..iTcnumber: 2002 delete markers for 2 temp files."""
         _, report = replay('fixtures_subs_session')
-        deletes = [line for line in nc(report) if line.startswith('!!delete file=')]
+        deletes = [line for line in nc(report) if line.startswith('!!delete file=')
+                   and not line.endswith('.workpiece.tmp!!')]
         self.assertEqual(len(deletes), 2002)
         self.assertEqual(deletes[0], '!!delete file=E:\\WORK\\TEMPFILE1!!')
-        opened = [line for line in nc(report) if line.startswith('!!open file=')]
+        opened = [line for line in nc(report) if line.startswith('!!open file=')
+                  and not line.endswith('.workpiece.tmp!!')]
         self.assertEqual(opened, ['!!open file=E:\\WORK\\TEMPFILE2001!!', '!!open file=E:\\WORK\\TEMPFILE2002!!'])
 
     def test_index_warning_is_written_as_an_uncommented_nc_block(self):

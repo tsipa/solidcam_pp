@@ -99,15 +99,15 @@
       "reason": "Commit comment explicitly preserves real off-center stock extents rather than recentering with RECTANGLE.",
       "initial": {"fourth_axis_used": false, "stock_x": 100, "stock_y": 30, "stock_z": 20, "stock_x_minus": 25, "stock_y_minus": -7, "stock_z_plus": 8, "stock_z_minus": -12, "target_z_minus": -10},
       "expected_blocks": ["WORKPIECE(,,,\"BOX\",0,8,-20,-18,25,-7,100,30)"],
-      "regression": {"find": "{nl, 'WORKPIECE(,,,\"BOX\",0,' nStockZ0:xpos_f ',' nStockZ1:xpos_f ',' nStockZB:xpos_f ',' stock_x_minus:xpos_f ',' stock_y_minus:xpos_f ',' nStockLength:xpos_f ',' nStockWidth:xpos_f ')'}", "replace": "{nl, 'WORKPIECE(,,,\"RECTANGLE\",0,0,' nStockLength:xpos_f ',' nStockMachining:xpos_f ',' nStockWidth:xpos_f ',' nStockHeight:xpos_f ')'}"}
+      "regression": {"find": "tostr((stock_z_minus - stock_z_plus):xpos_f)", "replace": "tostr(stock_z_minus:xpos_f)"}
     },
     {
-      "name": "rotary_stock_preserves_known_good_a_clamped_rectangle",
+      "name": "rotary_stock_preserves_off_center_box_on_a",
       "kind": "stock",
       "commit": "55d9935ae191d7973dd2a854a68e349f46fdf3e7",
-      "reason": "Commit comment explicitly retains RECTANGLE clamped to A for rotary jobs; off-center BOX logic must not leak into this branch.",
-      "initial": {"fourth_axis_used": true, "stock_x": 100, "stock_y": 30, "stock_z": 20, "stock_x_minus": 25, "stock_y_minus": -7, "stock_z_plus": 8, "stock_z_minus": -12, "target_z_minus": -10},
-      "expected_blocks": ["WORKPIECE(,\"A\",,\"RECTANGLE\",0,0,100,-100,30,20)"]
+      "reason": "2026-10-27 user requirement supersedes the old RECTANGLE characterization: clamping to A must preserve the same off-center BOX extents.",
+      "initial": {"fourth_axis_used": true, "stock_x": 100, "stock_y": 30, "stock_z": 20, "stock_x_minus": 25, "stock_y_minus": -7, "stock_z_plus": 8, "stock_z_minus": -12, "target_z_minus": -10, "bWorkpieceUsesA": true},
+      "expected_blocks": ["WORKPIECE(,\"A\",,\"BOX\",0,8,-20,-18,25,-7,100,30)"]
     }
   ]
 }

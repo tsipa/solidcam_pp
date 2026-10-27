@@ -105,6 +105,7 @@ class HistoryRegressionTests(unittest.TestCase):
             # Drilling cycles use the modal F: the job feed must be active at the MCALL block.
             self.assertEqual(state_before(replayed, calls[0]).feed, feed)
         elif kind == 'stock':
+            engine.set(bWorkpieceBuffered=False, bWorkpieceUsesA=case['initial'].get('bWorkpieceUsesA', False))
             engine.call('usr_workpiece_stock')
             self.assertEqual(block_texts(''.join(engine.output)), case['expected_blocks'])
         else:

@@ -22,6 +22,8 @@
     global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid bFeedPrevValid
     ; Per-rapid decisions of usr_rapid, shared by its stages (set before they are read).
     global logical bCamLinkRapid bRapidRotaryChanged
+    global logical bWorkpieceBuffered bWorkpieceUsesA
+    global string sWorkpieceBodyPath sWorkpieceArgs
     global integer iFeedMode iCompActive
     global numeric nInvFeed nMaxInverseFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA nFeedPrevR1 nR1posstep
     global string nInvFeed_f
@@ -200,6 +202,8 @@ endp
 
 @start_of_file
     ; Start of the NC file (first event after @init_post): file name, path, date, the part messages.
+    bWorkpieceBuffered = false
+    bWorkpieceUsesA = false
     if iNumber_of_Fixtures > 1
         bMultiplefixtures = true
         blknum_exist    = false
@@ -417,7 +421,7 @@ endp
                 call @usr_optionalstop
             endif
             {nl, 'MSG(" Loading Zeropoints ")'}
-            call @usr_workpiece_stock
+            call @usr_workpiece_begin
         endif
     endif
 endp
@@ -463,25 +467,44 @@ endp
     ; With Par5 = 0, X1/Y1/Z1/ZB are incremental. Therefore for a SolidCAM stock
     ; box we output X0/Y0 from stock_*_minus and X1/Y1 as stock_x/stock_y sizes.
     ;
-    ; Keep 4x output as "RECTANGLE" clamped to "A": this matches the known-good
-    ; rotary-axis blank behavior on the control. For non-4x jobs use "BOX" so an
-    ; off-center stock is represented by its real X/Y/Z extents instead of being
-    ; recentered by SINUMERIK.
-    local numeric nStockLength nStockWidth nStockHeight nStockMachining
-    local numeric nStockZ0 nStockZ1 nStockZB
-
-    nStockLength = stock_x
-    nStockWidth = stock_y
-    nStockHeight = stock_z
-    nStockMachining = -stock_x
-    nStockZ0 = stock_z_plus
-    nStockZ1 = stock_z_minus - stock_z_plus
-    nStockZB = target_z_minus - stock_z_plus
-
-    if fourth_axis_used
-        {nl, 'WORKPIECE(,"A",,"RECTANGLE",0,0,' nStockLength:xpos_f ',' nStockMachining:xpos_f ',' nStockWidth:xpos_f ',' nStockHeight:xpos_f ')'}
+    ; BOX geometry is independent of the clamping reference. The header is emitted
+    ; after scanning the body, but before that body is copied into the final file.
+    if !bWorkpieceBuffered
+        call @usr_workpiece_data
+    endif
+    if bWorkpieceUsesA
+        {nl, 'WORKPIECE(,"A",' sWorkpieceArgs}
     else
-        {nl, 'WORKPIECE(,,,"BOX",0,' nStockZ0:xpos_f ',' nStockZ1:xpos_f ',' nStockZB:xpos_f ',' stock_x_minus:xpos_f ',' stock_y_minus:xpos_f ',' nStockLength:xpos_f ',' nStockWidth:xpos_f ')'}
+        {nl, 'WORKPIECE(,,' sWorkpieceArgs}
+    endif
+endp
+
+@usr_workpiece_data
+    ; Snapshot the stock in the initial MAC before later jobs change CAM values.
+    ; Preserve the header's numeric format even if motion output changes xpos_f.
+    sWorkpieceArgs = ',"BOX",0,' + tostr(stock_z_plus:xpos_f)
+    sWorkpieceArgs = sWorkpieceArgs + ',' + tostr((stock_z_minus - stock_z_plus):xpos_f)
+    sWorkpieceArgs = sWorkpieceArgs + ',' + tostr((target_z_minus - stock_z_plus):xpos_f)
+    sWorkpieceArgs = sWorkpieceArgs + ',' + tostr(stock_x_minus:xpos_f) + ',' + tostr(stock_y_minus:xpos_f)
+    sWorkpieceArgs = sWorkpieceArgs + ',' + tostr(stock_x:xpos_f) + ',' + tostr(stock_y:xpos_f) + ')'
+endp
+
+@usr_workpiece_begin
+    if !bWorkpieceBuffered
+        sWorkpieceBodyPath = full_g_file_name + '.workpiece.tmp'
+        call @usr_workpiece_data
+        {nl, '!!open file=' sWorkpieceBodyPath '!!'}
+        bWorkpieceBuffered = true
+    endif
+endp
+
+@usr_workpiece_flush
+    if bWorkpieceBuffered
+        {nl, '!!close file=' sWorkpieceBodyPath '!!'}
+        call @usr_workpiece_stock
+        {nl, '!!copy file=' sWorkpieceBodyPath '!!'}
+        {nl, '!!delete file=' sWorkpieceBodyPath '!!'}
+        bWorkpieceBuffered = false
     endif
 endp
 
@@ -547,6 +570,7 @@ endp
         bFromendoffile = True
         call @Multiple_Fixtures
     endif
+    call @usr_workpiece_flush
 endp
 
 ;-------------------
@@ -2600,6 +2624,10 @@ endp
         input '"POST ERROR: A-axis output direction mode is not ACP/ACN/DC."'dummy_var
         {"POST ERROR: A-axis output direction mode is not ACP/ACN/DC. A=", nR1pos}
         abort
+    endif
+    ; Track only emitted A words, at their 0.001 degree output resolution.
+    if abs(nR1pos) >= 0.0005
+        bWorkpieceUsesA = true
     endif
     if iR1dirMode eq 1
         {cR1,'=ACN(' nR1pos ') '}

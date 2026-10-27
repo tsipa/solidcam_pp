@@ -145,7 +145,7 @@ submodule is not initialised and would point at a different fork revision).
 | `420c4ab` | Tool offset initialization adds D1 after M06. Check every block including following tool preselection. The commit does not explain the underlying mechanical failure. | `tool_change_selects_d1_before_preselection` |
 | `bea8c62` | Correct RFP/SDIS/DP/DPR ordering with a positive reference plane. Cases give independently specified complete positional argument arrays for CYCLE81, CYCLE82 and CYCLE86. | `cycle81_*`, `cycle82_*`, `cycle86_*` |
 | `1710187`, clarified by `e4af180` | CYCLE83 upper dwell DTS changes from 1 to 0.5. Verify its exact argument index and every other field except FDPR (index 6, unpinned: PP-055) for both positive and nonpositive reference-plane branches. | `cycle83_positive_*`, `cycle83_nonpositive_*` |
-| `55d9935` | Nonrotary off-center stock was recentered through RECTANGLE. Check BOX with X0/Y0 and incremental extents; separately preserve A-clamped RECTANGLE for rotary stock. | `off_center_stock_*`, `rotary_stock_*` |
+| `55d9935` | Nonrotary off-center stock was recentered through RECTANGLE. Check BOX with X0/Y0 and incremental extents. The 2026-10-27 WORKPIECE change supersedes the old rotary RECTANGLE characterization: A-clamped stock now preserves the same BOX extents. | `off_center_stock_*`, `rotary_stock_*` |
 
 All 11 cases execute procedures loaded from the tested `.gpp` with the same strict
 interpreter as the motion/arc suite. Cycle cases execute the real `drill` entry
@@ -162,8 +162,9 @@ must fail an independent assertion. Each patch is built with
 `support.mutation.mutate`; `regression.count` states how many anchor occurrences
 the real commit changed (bea8c62 G81/82/83: 3, 1710187: 2), so a rewritten GPP
 raises `StaleAnchor` instead of silently skipping the reversion. Interpreter errors
-do not count as detecting a regression. The rotary RECTANGLE preservation case has
-no regression patch: it keeps the unaffected branch stable while BOX evolves.
+do not count as detecting a regression. The rotary stock case has
+no historical regression patch: its expected geometry was updated to BOX by the
+2026-10-27 user requirement. The original RECTANGLE expectation is superseded.
 
 During the original implementation each of those ten cases was also run against the
 full real `commit^` GPP from `git show`. All ten parent versions failed the expected

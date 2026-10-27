@@ -24,6 +24,7 @@ import unittest
 
 from support import (Session, assert_detected, g_function_whitelist, index_of, known_defect, mutate,
                      parse_blocks, replay, state_before)
+from pp_tests.file_commands import assemble_files
 
 
 def listing(blocks):
@@ -211,7 +212,8 @@ def tool_list(tools, source=None, fourth_axis_used=True, during_tool_change=Fals
     different message for tool_change'); whether SolidCAM ever produces it is
     UNVERIFIED.
     """
-    s = Session(source=source, options=options, fourth_axis_used=fourth_axis_used, **TOOL_LIST_STOCK)
+    s = Session(source=source, options=options, fourth_axis_used=fourth_axis_used,
+                full_g_file_name='C:\\cam\\tool_list.mpf', **TOOL_LIST_STOCK)
     if during_tool_change:
         s.ev('change_tool', first_tool=True, tool_number=tools[0]['tool_number'],
              next_tool_number=tools[0]['tool_number'])
@@ -220,6 +222,7 @@ def tool_list(tools, source=None, fourth_axis_used=True, during_tool_change=Fals
         values = dict(NO_TOOL_MESSAGES, **tool)
         values['next_command'] = '@def_tool' if ordinal + 1 < len(tools) else last
         s.ev('def_tool', **values)
+    s.ev('usr_workpiece_flush')
     return s
 
 
@@ -244,7 +247,7 @@ class ToolListTests(unittest.TestCase):
 
     def assert_tool_lines(self, source=None):
         s = tool_list(LIST_TOOLS, source)
-        blocks = s.blocks()
+        blocks = parse_blocks(assemble_files(s.text()))
         self.assertGreaterEqual(len(blocks), 4, listing(blocks))
         self.assert_tool_comment(blocks[0], LIST_TOOLS[0])
         self.assert_tool_comment(blocks[1], LIST_TOOLS[1])
@@ -271,17 +274,18 @@ class ToolListTests(unittest.TestCase):
         pieces = workpiece_blocks(blocks)
         self.assertEqual(len(pieces), 1, f'the last tool entry must emit exactly one WORKPIECE (115bd14):\n{shown}')
         self.assertIs(pieces[0], blocks[-1], shown)
-        # CHARACTERIZATION: the known-good rotary-axis blank of @usr_workpiece_stock
-        # ("RECTANGLE" clamped on A; Par7 = stock_x, Par8 = -stock_x, Par9/10 = stock_y/z).
-        self.assertEqual(pieces[0].words[0].args, ('', '"A"', '', '"RECTANGLE"', '0', '0', '100', '-100', '30', '20'))
-        with_stop = tool_list(SIMPLE_TOOLS, source, bOptstpbegin=True).blocks()
+        # No A words were emitted: fourth_axis_used alone must not attach to A.
+        self.assertEqual(pieces[0].words[0].args,
+                         ('', '', '', '"BOX"', '0', '8', '-20', '-18', '25', '-7', '100', '30'),
+                         'BOX Z extents and X/Y origin and sizes')
+        with_stop = parse_blocks(assemble_files(tool_list(SIMPLE_TOOLS, source, bOptstpbegin=True).text()))
         self.assertEqual([b.m for b in with_stop[3:4]], [[1]], listing(with_stop))
         self.assertEqual(len(workpiece_blocks(with_stop)), 1, listing(with_stop))
         self.assertIs(workpiece_blocks(with_stop)[0], with_stop[-1], listing(with_stop))
-        during = tool_list(SIMPLE_TOOLS, source, during_tool_change=True).blocks()
+        during = parse_blocks(assemble_files(tool_list(SIMPLE_TOOLS, source, during_tool_change=True).text()))
         self.assertEqual([b.raw for b in during if b.find('MSG') or workpiece_blocks([b])], [],
                          f'trailer emitted for a @def_tool during a tool change:\n{listing(during)}')
-        box = tool_list(SIMPLE_TOOLS[:1], source, fourth_axis_used=False).blocks()
+        box = parse_blocks(assemble_files(tool_list(SIMPLE_TOOLS[:1], source, fourth_axis_used=False).text()))
         pieces = workpiece_blocks(box)
         self.assertEqual(len(pieces), 1, listing(box))
         args = pieces[0].words[0].args
@@ -303,8 +307,7 @@ class ToolListTests(unittest.TestCase):
         UNVERIFIED, see tool_list) emits no trailer. Non-4x stock
         uses Siemens "BOX": with Par5=0 the Z1/ZB/X1/Y1 sizes are incremental
         (Siemens WORKPIECE doc cited in @usr_workpiece_stock), so the blank must
-        reproduce the stock extents. The RECTANGLE argument list is a
-        CHARACTERIZATION of the known-good rotary blank.
+        reproduce the stock extents. Clamping depends on emitted A words.
         """
         self.assert_trailer()
 
@@ -318,12 +321,12 @@ class ToolListTests(unittest.TestCase):
     def test_workpiece_reversion_115bd14_is_detected(self):
         """INDEPENDENT: no WORKPIECE (115bd14 reverted), a trailer per tool or during a tool change, or absolute BOX Z1 fails."""
         sources = {
-            '115bd14 reverted': (mutate('            call @usr_workpiece_stock\n', ''), None),
+            '115bd14 reverted': (mutate('            call @usr_workpiece_begin\n', ''), None),
             'trailer after every tool': (mutate("        if next_command ne '@def_tool' and bTlchg eq false\n",
                                                 "        if bTlchg eq false\n"), None),
             'trailer during a tool change': (mutate("        if next_command ne '@def_tool' and bTlchg eq false\n",
                                                     "        if next_command ne '@def_tool'\n"), 'during a tool change'),
-            'BOX Z1 absolute': (mutate('    nStockZ1 = stock_z_minus - stock_z_plus\n', '    nStockZ1 = stock_z_minus\n'),
+            'BOX Z1 absolute': (mutate('tostr((stock_z_minus - stock_z_plus):xpos_f)', 'tostr(stock_z_minus:xpos_f)'),
                                 'BOX Z extents'),
         }
         for label, (source, match) in sources.items():

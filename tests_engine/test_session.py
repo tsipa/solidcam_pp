@@ -16,6 +16,7 @@ from pp_tests.gppl.errors import MissingInput
 from pp_tests.gppl.session import (Session, compare_with_trace, load_events, replay_file,
                                    sanitize_for_replay)
 from pp_tests.trace import parse_trace, sanitize
+from pp_tests.file_commands import assemble_files
 from support import FIXTURES, PP, ROOT, SESSIONS, VMID, lines_matching, require_vmid, source, statement_kinds_from_text
 
 MAIN = FIXTURES / 'synthetic_session.json'
@@ -41,12 +42,12 @@ class SessionReplayTests(unittest.TestCase):
         session, report = main_replay()
         self.assertTrue(report.ok, report.errors)
         self.assertTrue(all(event.called for event in report.events))
-        lines = [line.rstrip() for line in report.nc_text.splitlines()]
+        lines = [line.rstrip() for line in assemble_files(report.nc_text).splitlines()]
         self.assertEqual(lines[:9], [
             ';%_N_DEMO_PART_1_MPF', ';$PATH=/_N_WKS_DIR/_N_WPD', ';Oct-26-2026-2:05:33PM',
             ';SYNTHETIC REPLAY', ';TOOL 1 - DIA 10 | HOLDER: BT40-ER32 | STICKOUT: 45 mm',
             ';T2-DRILL 6 | HOLDER: BT40-ER25 | STICKOUT: 60.5 mm', ';---HSS', 'MSG(" Loading Zeropoints ")',
-            'WORKPIECE(,,,"BOX",0,0,-30,-25,0,0,100,60)'])
+            'WORKPIECE(,"A",,"BOX",0,0,-30,-25,0,0,100,60)'])
         expected_in_order = ['G75 Z1=0.', 'T1', 'M06', 'D1', 'T2', 'MSG("F_CONTOUR")', 'X10 Y20', 'Z5',
                              'G1 G41 Y30 Z-5 F600', 'X40', 'G2 X50 Y20 I0 J-10', 'G1 Y0', 'G0 Z50', 'G40 X50 Y0',
                              'M9', 'M5', 'M1', 'T2', 'MSG("D_PECK")', 'X25 Y15', 'MCALL CYCLE83 (30,0,2,-20,,,4,4,,0.5,1,1)',
@@ -149,7 +150,7 @@ class SessionReplayTests(unittest.TestCase):
             safe.write_text(json.dumps({'schema': 1, 'events': sanitize_for_replay(parse_trace(original.trace_text))}))
             code, nc, summary = run_cli('replay', PP, safe, '--vmid', VMID)
             self.assertEqual((code, summary['errors']), (0, []))
-            self.assertTrue(nc.rstrip().endswith('M30'))
+            self.assertTrue(assemble_files(nc).rstrip().endswith('M30'))
 
     def test_replay_of_sanitized_capture(self):
         _, original = main_replay()
