@@ -2503,16 +2503,11 @@ endp
 ;-------------------
 
 @usr_r1pos_calc
-    ; Calculate Rotary 1 Position (Main Spindle)
-    ; tmatrix + 4th Transform + cpos + 5xapos
-    ; Note: Angular Feed Formula fc = f*(180/(pi*r))
-    ; Note: fc=deg/min, f=linear feed
+    ; A position (nR1pos) of the current CAM state: the CAM angle nR1postemp (tmatrix + 4x transform +
+    ; C-axis cutting + 4/5x apos, in the machine direction iR1dir) wrapped per iR1posControl. Also sets
+    ; change(nR1pos) (A moves), iR1dirMode (the A word's ACN/ACP/DC) and the CAM step nR1posstep.
     local numeric wrapped
-	nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
-    nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
-    nR1poscpos = (-cpos) * iR1dir                                       ;Rotary from C-axis cutting
-    nR1pos5x = (-apos) * iR1dir                                         ;Rotary from 4/5x Simulatenous
-    nR1postemp = nR1postmatrix + nR1postransform + nR1poscpos + nR1pos5x
+    call @usr_r1_cam_angle
     if iR1posControl eq 0 ;SolidCAM Angles
         nR1posadj = 0
     endif
@@ -2586,11 +2581,22 @@ endp
             call @usr_r1_select_dir
         endif
     endif
+    ; The CAM step of this move (usr_line full-turn check), then the references for the next one.
     nR1posstep = nR1postemp - nPR1postemp
     nPR1postemp = nR1postemp
     nPR1pos = nR1pos
     nPR2pos = nR2pos
 
+endp
+
+@usr_r1_cam_angle
+    ; The unwrapped CAM angle of A in the machine direction (nR1postemp). The difference of two
+    ; successive values is the CAM step of a move (nR1posstep in usr_r1pos_calc).
+	nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
+    nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
+    nR1poscpos = (-cpos) * iR1dir                                       ;Rotary from C-axis cutting
+    nR1pos5x = (-apos) * iR1dir                                         ;Rotary from 4/5x Simulatenous
+    nR1postemp = nR1postmatrix + nR1postransform + nR1poscpos + nR1pos5x
 endp
 
 @usr_r1_select_dir
@@ -2614,29 +2620,27 @@ endp
 endp
 
 @usr_r1_output
+    ; The A word of a block, as usr_r1pos_calc chose it: A=ACN(..) / A=ACP(..) turn the modulo axis in a
+    ; given direction (iR1dirMode 1 / 2), A=DC(..) the shortest way (3). The only place an A word is
+    ; printed (except the Fanuc subprogram call in @call_proc), for G0, G1 and index blocks alike.
     local numeric dummy_var
+    if iR1dirMode ne 1 and iR1dirMode ne 2 and iR1dirMode ne 3
+        dummy_var = 0
+        input '"POST ERROR: A-axis output direction mode is not ACP/ACN/DC."'dummy_var
+        {"POST ERROR: A-axis output direction mode is not ACP/ACN/DC. A=", nR1pos}
+        abort
+    endif
     if iR1dirMode eq 1
         {cR1,'=ACN(' nR1pos ') '}
-        iR1dirMode = 0
-        bR1forceOutput = false
-    else
-        if iR1dirMode eq 2
-            {cR1,'=ACP(' nR1pos ') '}
-            iR1dirMode = 0
-            bR1forceOutput = false
-        else
-            if iR1dirMode eq 3
-                {cR1,'=DC(' nR1pos ') '}
-                iR1dirMode = 0
-                bR1forceOutput = false
-            else
-                dummy_var = 0
-                input '"POST ERROR: A-axis output direction mode is not ACP/ACN/DC."'dummy_var
-                {"POST ERROR: A-axis output direction mode is not ACP/ACN/DC. A=", nR1pos}
-                abort
-            endif
-        endif
     endif
+    if iR1dirMode eq 2
+        {cR1,'=ACP(' nR1pos ') '}
+    endif
+    if iR1dirMode eq 3
+        {cR1,'=DC(' nR1pos ') '}
+    endif
+    iR1dirMode = 0
+    bR1forceOutput = false
 endp
 
 @usr_4x_index
