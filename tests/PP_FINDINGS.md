@@ -46,7 +46,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 57. `@covers` references: 72.
+Canonical `@known_defect` tests: 56. `@covers` references: 73.
 
 ## Index of open entries
 
@@ -75,7 +75,7 @@ Canonical `@known_defect` tests: 57. `@covers` references: 72.
 | [PP-032](#pp-032) | medium | confirmed | C | home_number with iWorkOffset_Method=1 emits any operator number as the work offset (G1, G500, G58, ...) | `test_user_defined_offset_must_be_a_settable_offset` |
 | [PP-036](#pp-036) | medium | confirmed | B | bLimit_3axis still emits A=DC(...) at the first rapid after a tool change | `test_limit_3axis_never_outputs_rotary` |
 | [PP-039](#pp-039) | low | confirmed | C | Index clearance warning is written into the NC file as a bare text block (no comment prefix) | `test_index_clearance_warning_is_a_comment` |
-| [PP-043](#pp-043) | very-low | confirmed | B | @home_data overwrites the CAM input shift_y (its output is commented out) | `test_home_data_does_not_modify_cam_inputs` |
+| [PP-043](#pp-043) | very-low | confirmed | B | @home_data overwrites the CAM input shift_y (its output is commented out) | pinned only (@covers) |
 | [PP-046](#pp-046) | low | uncertain | B | Exact float compare on A triggers a full G75 Z+XY homing for sub-resolution angle changes | `test_sub_resolution_rotary_change_does_not_home` |
 | [PP-047](#pp-047) | medium | uncertain | F | @rotate/@mirror are empty while the VMID delegates transformations to the post (SoftwareTransform="0") | `test_mirror_event_changes_the_frame_or_stops` [mirror], `test_rotate_event_changes_the_frame_or_stops` [rotate] |
 | [PP-048](#pp-048) | medium | uncertain | F | SolidCAM MCO, dwell, 4x drill-point and rotate-to-plane events have no procedure (an MCO Halt produces no M0) | `test_every_event_of_the_authors_4x_template_is_handled` [event-coverage], `test_mco_halt_program_stops_the_machine` [mco-halt] |
@@ -459,7 +459,8 @@ Canonical `@known_defect` tests: 57. `@covers` references: 72.
 - Evidence that would settle it: None needed (@home_data L2646-2648).
 - Owner area: B (rotary: r1pos/select_dir/output, modulo range, iR1dir, index direction, move_4x, 3-axis limit, home_data)
 - Source findings: pp-region-4-cycles-rotary-23
-- Reproduced by:
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
+- Pinned or exercised by (`@covers`):
   - `tests/test_rotary.py::KnownRotaryDefects::test_home_data_does_not_modify_cam_inputs`
 
 ### PP-046

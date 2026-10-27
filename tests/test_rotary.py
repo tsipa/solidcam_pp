@@ -390,14 +390,15 @@ REVERSIONS = [
         ('    bR1useDir5a = true\n    call @usr_line\n    bR1useDir5a = false\nendp\n\n@chng_tool_cnext',
          '    bR1useDir5a = true\n    call @usr_line\nendp\n\n@chng_tool_cnext', 1)]),
     # The commented-out template block was deleted (fixup round): inject its four output statements
-    # (signs folded into the plain shift values) where it stood, inside 'if position ne 1'.
+    # (signs folded into the plain shift values) into the now empty @home_data.
     ('CTRANS frame writes re-enabled', '77c03c6', 'check_home_data_writes_no_frames', [
-        ("            shift_y = -1 * shift_y\n        endif\n",
-         "            shift_y = -1 * shift_y\n        endif\n"
-         "        {nl,'$P_UIFR['(position + home_number + 2)']= CTRANS( X,'shift_x:'5.3'}\n"
-         "        {', Y,'shift_y:'5.3'}\n"
-         "        {', Z,'shift_z:'5.3'}\n"
-         "        {', B,0',')',cCb,'G',(position + home_number + 502)}\n", 1)]),
+        ("    ; printed (77c03c6).\nendp\n",
+         "    ; printed (77c03c6).\n"
+         "    {nl,'$P_UIFR['(position + home_number + 2)']= CTRANS( X,'shift_x:'5.3'}\n"
+         "    {', Y,'shift_y:'5.3'}\n"
+         "    {', Z,'shift_z:'5.3'}\n"
+         "    {', B,0',')',cCb,'G',(position + home_number + 502)}\n"
+         "endp\n", 1)]),
     ('HVV head macro re-enabled', '77c03c6', 'check_secondary_rotation_adds_no_extra_rotation', [
         ('            call @usr_head_home_select\n            bVertical = true\n',
          "            call @usr_head_home_select\n            {nb, 'HVV'}\n            bVertical = true\n", 1)]),
@@ -726,14 +727,12 @@ class KnownRotaryDefects(unittest.TestCase):
         five_x_job(session, 30)
         self.assertEqual(rotary_words(session.text()), [], session.text())
 
-    @known_defect('PP-043')
+    @covers('PP-043')
     def test_home_data_does_not_modify_cam_inputs(self):
         """INDEPENDENT: SolidCAM system variables are inputs; a postprocessor must not
         overwrite them. @home_data (run at program start, VMID HomeDataAtStart="1")
-        replaces a negative shift_y by its absolute value when position != 1. No NC
-        output depends on it with the default config; the only printed consumer is
-        the non-default trig macro (i4xIndexMode=2), so severity is very low
-        (correction to pp-region-4-cycles-rotary-23)."""
+        replaced a negative shift_y by its absolute value when position != 1, for the
+        removed trig macro only. Regression guard of PP-043."""
         session = Session()
         session.ev('home_data', home_user_name='P2', position=2, home_number=1,
                    shift_x=10, shift_y=-5, shift_z=3, y_angle_const_z=0)

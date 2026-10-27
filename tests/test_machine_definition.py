@@ -231,8 +231,8 @@ class HomingDefinitionTests(unittest.TestCase):
             'tool change homes XY first': ("sHomestrtc            = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'",
                                            "sHomestrtc            = '8::G75 Y1=0 X1=0 ;8::G75 Z1=0.'"),
             'rotation homing block unknown to Vericut': (
-                "sHomestrroth           = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'",
-                "sHomestrroth           = '8::G75 Z1=0 ;8::G75 Y1=0 X1=0'"),
+                "sHomestrroth          = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'",
+                "sHomestrroth          = '8::G75 Z1=0 ;8::G75 Y1=0 X1=0'"),
         }
         for label, (old, new) in mutants.items():
             assert_detected(self, self.check_homing, mutate(old, new), label)

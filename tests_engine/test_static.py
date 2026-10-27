@@ -65,9 +65,10 @@ class WholeGppTests(unittest.TestCase):
         branches = [d for d in self.diagnostics if d.code == 'I-CONFIG-DEAD']
         # Branches the shipped user options never take: 33 branches / 80 statements at 058b0e9, fewer
         # with each removal of template options for other controls.
-        self.assertEqual(len(branches), 20)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 42)
-        # The stop on an unsupported i4xIndexMode is one of them: it runs only on a wrong setting.
+        self.assertEqual(len(branches), 21)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 46)
+        # The stops on an unsupported i4xIndexMode or i4xIndexClearanceMode are among them: they run
+        # only on a wrong setting.
         guard = lines_matching(r'^\s*if i4xIndexMode ne 0 and i4xIndexMode ne 1\s*$', start='@usr_check_options')
         stop = [d for d in branches if d.proc == 'usr_check_options' and d.line == guard[0]]
         option = lines_matching(r'^\s*i4xIndexMode\s*=')[0]
@@ -103,8 +104,9 @@ class WholeGppTests(unittest.TestCase):
         for name in ('tool_number', 'arc_size', 'date', 'time', 'home_user_name'):
             self.assertIn(name, interface['cam_inputs'])
         self.assertEqual(interface['cam_inputs']['inumber_of_fixtures'], 'vmid-param')
-        for name in ('xpos', 'shift_y', 'msg', 'part_name'):
+        for name in ('xpos', 'msg', 'part_name'):
             self.assertIn(name, interface['cam_inputs_modified_by_gpp'])
+        self.assertNotIn('shift_y', interface['cam_inputs_modified_by_gpp'])     # PP-043
         self.assertEqual(interface['flag_inputs'], ['apos', 'bpos', 'feed', 'spin', 'xpos', 'ypos', 'zpos'])
         for name in ('clear_change_after_gen', 'skipline', 'numeric_def_f', 'blknum_exist'):
             self.assertIn(name, interface['runtime_switches_written_never_read'])

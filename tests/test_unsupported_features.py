@@ -17,6 +17,7 @@ from test_offline import PP
 
 OPTION_STOP = 'POST ERROR: Multiple fixtures (more than one fixture in the job) are not supported by this post.'
 INDEX_STOP = 'POST ERROR: i4xIndexMode must be 0 or 1 (2 was a Fanuc trig macro).'
+CLEARANCE_STOP = 'POST ERROR: i4xIndexClearanceMode must be 0, 1 or 2.'
 EVENT_STOP = 'POST ERROR: SolidCAM subprograms, loops and reference point changes are not supported by this post.'
 
 
@@ -58,6 +59,21 @@ class UnsupportedOptionTests(unittest.TestCase):
         for mode in (0, 1):
             with self.subTest(i4xIndexMode=mode):
                 program = self.program(options=dict(i4xIndexMode=mode))
+                start_of_file(program)
+                self.assertFalse([line for line in program.nc() if 'POST ERROR' in line])
+
+    def test_unknown_index_clearance_mode_stops_the_post(self):
+        # Another value used to skip the clearance move silently before the A index.
+        for mode in (-1, 3):
+            with self.subTest(i4xIndexClearanceMode=mode):
+                program = self.program(options=dict(i4xIndexClearanceMode=mode))
+                nc = stopped_with(self, program, 'start_of_file', **HEADER_DEFAULTS)
+                self.assertEqual(nc[-1], CLEARANCE_STOP)
+
+    def test_index_clearance_modes_0_1_2_post(self):
+        for mode in (0, 1, 2):
+            with self.subTest(i4xIndexClearanceMode=mode):
+                program = self.program(options=dict(i4xIndexClearanceMode=mode))
                 start_of_file(program)
                 self.assertFalse([line for line in program.nc() if 'POST ERROR' in line])
 
