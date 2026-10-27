@@ -204,6 +204,11 @@ RESOLUTIONS = {
     'PP-038': ('fixed', 'f5c74cd Remove the trig macro: i4xIndexMode other than 0/1 stops the post.'),
     'PP-043': ('fixed', '12db1de @home_data no longer writes shift_y (its only reader, the trig macro, is gone).'),
     'PP-059': ('fixed', 'f7fb9bf A rapid without axis motion prints its pending modal words in a block of their own.'),
+    'PP-046': ('fixed', 'd8f71e8 nR1pos is rounded to the output step: a sub-step A change is no rotation (no A word, '
+                        'no homing).'),
+    'PP-060': ('fixed', 'd8f71e8 A feed move or a rotary rapid at the cutting height stops when the A word would turn A '
+                        'another way than CAM.'),
+    'PP-061': ('fixed', "d8f71e8 The full-turn stop counts CAM's own A step; the post's apos = 0 no longer trips it."),
     'PP-044': ('fixed', 'f5c74cd @call_proc, @proc and @end_proc stop the post with a POST ERROR (VMID GenProc=0).'),
     'PP-045': ('fixed', 'f5c74cd @change_ref_point stops the post with a POST ERROR instead of writing G10 L2.'),
     'DESIGN-002': ('fixed', '3e0c345 Split XY and Z when returning from post-inserted homing (owner decision; '
@@ -238,6 +243,9 @@ FIX_TESTS = {
     'PP-043': ('tests/test_rotary.py',),
     'PP-044': ('tests/test_unsupported_features.py',),
     'PP-059': ('tests/test_motion_rapids.py',),
+    'PP-046': ('tests/test_rotary.py',),
+    'PP-060': ('tests/test_rotary_direction_guard.py',),
+    'PP-061': ('tests/test_rotary_modulo_range.py',),
     'PP-045': ('tests/test_unsupported_features.py',),
     'DESIGN-002': ('tests/test_post_homing_reposition.py',),
 }
@@ -670,6 +678,21 @@ _ENTRIES = [
        'Sinumerik reads one motion G code and one F per block: a G0 on the cutting line makes the plunge a rapid '
        'or alarms; a trace of SolidCAM sending a rapid to the current position settles how often.',
        ['ralph-iteration-8-empty-rapid'], 'D'),
+    _d('PP-060', 'ACP/ACN can turn A the other way round than CAM (a silent flip: 350 degrees instead of -10) in a '
+       'cut or a CAM-link rotary rapid', 'high',
+       "Any feed move or unhomed rotary rapid whose A word disagrees with CAM's step: dir5a against the angle "
+       'step, angles wrapped to +-180, the tool-change unwind (DESIGN-005), frame changes without an index, '
+       'rounding straddles. 418 of 6000 generated runs with dir5a following the CAM step.',
+       'confirmed',
+       'A SolidCAM trace of a 4x/5x job across 180 degrees and of the first move after the third tool change.',
+       ['owner-review-2026-10-27-1'], 'B'),
+    _d('PP-061', 'False full-turn stop: the tool-change apos = 0 or @fourth_axis makes the next cutting block look '
+       'like a 360 degree CAM turn', 'medium',
+       'A 4x/5x job ending at a whole turn (e.g. CAM A 720 or 725) followed by a reset of apos by the post and a '
+       'first cutting block at the same CAM A.',
+       'confirmed',
+       'A SolidCAM trace of a multi-turn wrap job followed by a tool change.',
+       ['owner-review-2026-10-27-2'], 'B'),
     # -------------------------------------------------------------- ENGINE
     _d('ENGINE-001', 'Change-flag rule for equal-value assignment is unverified (engine: only a value change '
        'raises a flag, nothing clears it)', 'medium',
@@ -918,7 +941,8 @@ LOCATIONS = {
     'PP-043': 'GPP @home_data (shift_y overwritten); VMID HomeDataAtStart="1"',
     'PP-044': "GPP @call_proc L2000-2041 (L2015 'G20 ', L2031 @usr_4x_index, L2036 'cR1' literal, L2037 'M98 H')",
     'PP-045': "GPP @change_ref_point L1759-1766 ('G91 G10 L2 P..')",
-    'PP-046': "GPP @usr_r1pos_calc L2328-2332 ('if nPR1pos ne nR1pos', exact compare); @usr_rapid L1278-1288",
+    'PP-046': "GPP @usr_r1pos_calc ('if nPR1pos ne nR1pos' on the unrounded angle, refactoring branch before "
+              "d8f71e8); @usr_rapid",
     'PP-047': 'GPP @rotate L1770-1773 and @mirror L1776-1779 (empty); VMID SoftwareTransform="0"',
     'PP-048': 'GPP: procedures absent (@halt_program, @machine_opt_stop, @delay/@dwell, @drill4x_pnt, '
               '@rotate_to_plane, MCO events); reference: the Mach3 4x template at ffd296c',
@@ -938,6 +962,10 @@ LOCATIONS = {
               'L1163-1168, @usr_trig_macro_* L2551-2614, @usr_4x_index L2483',
     'PP-058': 'mach3/4x/Mach3_4X_Y.gpp at 6efcad8 (@line_5x and @arc lack the feed re-statement of @line)',
     'PP-059': "GPP @usr_rapid_xyz (refactoring branch before f7fb9bf): 'skipline = false' when no axis moved",
+    'PP-060': 'GPP @usr_r1pos_calc / @usr_r1_select_dir / @usr_r1_output (refactoring branch before d8f71e8): the '
+              'word followed dir5a or angle_4x_around_x_dir whatever the two positions were',
+    'PP-061': "GPP @usr_line (refactoring branch before d8f71e8): 'abs(nR1posstep) >= 359.9995' with nPR1postemp "
+              'taken after the post zeroed apos',
     'ENGINE-001': 'pp_tests/gppl/legacy.py Engine.call assignment branch (a flag is raised only when the value changes '
                   'and never cleared)',
     'ENGINE-002': "pp_tests/gppl/legacy.py Engine._render (nb/nl always start a new block; 'skipline' is a plain variable)",

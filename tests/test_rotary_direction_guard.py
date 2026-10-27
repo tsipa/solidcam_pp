@@ -18,7 +18,7 @@ import unittest
 
 from pp_tests.engine import UnsupportedGPPL
 from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
-from support import assert_detected, mutate
+from support import assert_detected, covers, mutate
 from test_offline import ROOT
 
 WORD = re.compile(r'A=(ACP|ACN|DC)\(([-\d.]+)\)')
@@ -47,6 +47,7 @@ class RotaryDirectionGuardTests(unittest.TestCase):
             run()
         self.assertIn(WRONG_WAY, str(stop.exception))
 
+    @covers('PP-060')
     def test_wrong_way_feed_moves_stop_the_post(self):
         """INDEPENDENT: module oracle. CAM 20 -> 10 (-10 degrees) with ACP would turn +350 degrees while the tool feeds."""
         cases = {
@@ -73,6 +74,7 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         self.assertEqual(program.nc()[-1].strip(), 'POST ERROR: A would turn another way than in CAM (ACP/ACN): '
                                                    'A20 to A10, CAM -10 deg, control 350 deg.')
 
+    @covers('PP-060')
     def test_rounding_straddle_against_the_word_stops(self):
         """INDEPENDENT: owner rule. 20.0004 -> 20.0006 prints 20 -> 20.001; a 'cw' word makes ACN turn 359.999 degrees."""
         program = started(20.0004)
@@ -97,12 +99,14 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         self.assertNotIn('A=', output[0])
         self.assertNotIn('G93', output[0])
 
+    @covers('PP-060')
     def test_wrong_way_rotary_link_rapid_stops_the_post(self):
         """INDEPENDENT: module oracle. A CAM rotary link turns A without homing Z: the other way round sweeps the part under the tool."""
         program = started()
         program.ev('line_5x', zpos=40, feed=200, feed_type='feed_link')
         self.assert_wrong_way_stop(lambda: program.ev('move_5x', apos=10, dir5a='ccw'))
 
+    @covers('PP-060')
     def test_wrong_way_rapid_without_rotation_homing_stops_the_post(self):
         """INDEPENDENT: owner rule. With the rotation homing switched off (sHomestrroth '') the turn runs at the current Z."""
         program = started(options=dict(sHomestrroth=''))
@@ -116,6 +120,7 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         output = program.ev('move_5x', apos=10, dir5a='ccw')
         self.assertEqual([block.strip() for block in output[:3]], ['G75 Z1=0.', 'G75 Y1=0 X1=0', 'G0 A=ACP(10)'])
 
+    @covers('PP-060')
     def test_angles_that_jump_by_a_turn_stop_in_a_cut(self):
         """INDEPENDENT: owner rule. 179 -> -179 with 'ccw' is -358 degrees in CAM but +2 on the control."""
         program = started(179.0)
@@ -129,6 +134,7 @@ class RotaryDirectionGuardTests(unittest.TestCase):
             program.ev('line_5x', xpos=15, apos=379.9998, feed=200, feed_type='feed_cut', dir5a='ccw')
         self.assertIn('360 degrees or more', str(stop.exception))
 
+    @covers('PP-060')
     def test_first_feed_move_after_toolchange_unwind_stops(self):
         """INDEPENDENT: DESIGN-005 path. The third tool change puts A back to 0; SolidCAM's word for the
         next job's first feed move (30, 'cw' from its own 37) would make ACN turn 330 degrees from 0."""

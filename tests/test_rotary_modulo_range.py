@@ -15,6 +15,7 @@ import unittest
 
 from pp_tests.engine import UnsupportedGPPL
 from program_session import Program
+from support import covers
 from test_offline import rotary_engine
 
 
@@ -164,6 +165,7 @@ class FullTurnBaselineTests(unittest.TestCase):
                 program.ev('start_of_job', job_name='op2', **job)
                 self.assertEqual(program.ev('line_5x', xpos=20, zpos=10, feed=200), ['G1 X20 Z10'])
 
+    @covers('PP-061')
     def test_post_reset_of_a_is_not_a_cutting_turn(self):
         # CAM A unchanged across the 3rd tool change: no full-turn stop; the NC is what cfd5787 posts for CAM A 5.
         for end_apos, a_word in ((5, ' A=ACP(5)'), (725, ' A=ACP(5)'), (720, '')):
@@ -173,6 +175,7 @@ class FullTurnBaselineTests(unittest.TestCase):
                                     force=dict(apos=False))
                 self.assertEqual(output, ['G0 X20 Y0', f'G1 Z10{a_word} F200'])
 
+    @covers('PP-061')
     def test_fourth_axis_and_offset_change_resets_are_not_cutting_turns(self):
         program = Program()
         _first_job(program, end_apos=725)

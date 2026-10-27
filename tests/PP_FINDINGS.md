@@ -28,25 +28,25 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | entries | high | medium-high | medium | low-medium | low | very-low | informational |
 |---|---|---|---|---|---|---|---|---|
-| pp | 59 | 3 | 1 | 18 | 5 | 31 | 1 | 0 |
+| pp | 61 | 4 | 1 | 19 | 5 | 31 | 1 | 0 |
 | engine | 21 | 0 | 0 | 3 | 3 | 14 | 1 | 0 |
 | design | 7 | 0 | 0 | 1 | 0 | 6 | 0 | 0 |
 
 | kind | confirmed | uncertain | likely-engine-artifact |
 |---|---|---|---|
-| pp | 42 | 16 | 1 |
+| pp | 44 | 16 | 1 |
 | engine | 15 | 5 | 1 |
 | design | 4 | 3 | 0 |
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 34 | 24 | 1 | 2 |
+| pp | 33 | 27 | 1 | 2 |
 | engine | 19 | 2 | 0 | 0 |
 | design | 6 | 1 | 0 | 0 |
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 55. `@covers` references: 77.
+Canonical `@known_defect` tests: 55. `@covers` references: 85.
 
 ## Index of open entries
 
@@ -75,7 +75,6 @@ Canonical `@known_defect` tests: 55. `@covers` references: 77.
 | [PP-032](#pp-032) | medium | confirmed | C | home_number with iWorkOffset_Method=1 emits any operator number as the work offset (G1, G500, G58, ...) | `test_user_defined_offset_must_be_a_settable_offset` |
 | [PP-036](#pp-036) | medium | confirmed | B | bLimit_3axis still emits A=DC(...) at the first rapid after a tool change | `test_limit_3axis_never_outputs_rotary` |
 | [PP-039](#pp-039) | low | confirmed | C | Index clearance warning is written into the NC file as a bare text block (no comment prefix) | `test_index_clearance_warning_is_a_comment` |
-| [PP-046](#pp-046) | low | uncertain | B | Exact float compare on A triggers a full G75 Z+XY homing for sub-resolution angle changes | pinned only (@covers) |
 | [PP-047](#pp-047) | medium | uncertain | F | @rotate/@mirror are empty while the VMID delegates transformations to the post (SoftwareTransform="0") | `test_mirror_event_changes_the_frame_or_stops` [mirror], `test_rotate_event_changes_the_frame_or_stops` [rotate] |
 | [PP-048](#pp-048) | medium | uncertain | F | SolidCAM MCO, dwell, 4x drill-point and rotate-to-plane events have no procedure (an MCO Halt produces no M0) | `test_every_event_of_the_authors_4x_template_is_handled` [event-coverage], `test_mco_halt_program_stops_the_machine` [mco-halt] |
 | [PP-050](#pp-050) | medium | confirmed | F | vericut/GcodeSim.ini maps MAC 1-3 and 5-10 to G54 but omits MAC 4 | `test_vericut_mac_table_matches_post_work_offsets` |
@@ -446,21 +445,6 @@ Canonical `@known_defect` tests: 55. `@covers` references: 77.
 - Source findings: pp-region-4-cycles-rotary-18, efc-14
 - Reproduced by:
   - `tests/test_indexing_link.py::FourthAxisIndexTests::test_index_clearance_warning_is_a_comment`
-
-### PP-046
-
-**Exact float compare on A triggers a full G75 Z+XY homing for sub-resolution angle changes**
-
-- Severity: low
-- Confidence: uncertain
-- Reachability: Default config when consecutive A targets differ below the 0.001 output resolution; depends on GPPL numeric compare semantics (UNVERIFIED).
-- Location: GPP @usr_r1pos_calc L2328-2332 ('if nPR1pos ne nR1pos', exact compare); @usr_rapid L1278-1288
-- Evidence that would settle it: GPPL manual statement or a trace with sub-resolution apos differences.
-- Owner area: B (rotary: r1pos/select_dir/output, modulo range, iR1dir, index direction, move_4x, 3-axis limit, home_data)
-- Source findings: pp-weird-hunter-08
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_rotary.py::KnownRotaryDefects::test_sub_resolution_rotary_change_does_not_home`
 
 ### PP-047
 
@@ -1059,10 +1043,13 @@ now a regression guard marked `@covers`.
 | [PP-043](#pp-043) | 12db1de | `test_home_data_does_not_modify_cam_inputs` | `tests/test_rotary.py` |
 | [PP-044](#pp-044) | f5c74cd | `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` | `tests/test_unsupported_features.py` |
 | [PP-045](#pp-045) | f5c74cd | `test_change_ref_point_emits_no_fanuc_data_setting`, `test_subprogram_loop_and_reference_point_events_stop_the_post` | `tests/test_unsupported_features.py` |
+| [PP-046](#pp-046) | d8f71e8 | `test_sub_resolution_rotary_change_does_not_home` | `tests/test_rotary.py` |
 | [PP-049](#pp-049) | 9f48a3a | `test_rotary_feed_moves_use_the_documented_inverse_time_mode` | `tests/test_inverse_time_feed.py` |
 | [PP-054 [g187-default]](#pp-054) | c06b190 | `test_no_fanuc_g187_in_a_default_program` |  |
 | [PP-057](#pp-057) | f5c74cd | `test_fanuc_only_output_is_pinned_to_legacy_procedures`, `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` |  |
 | [PP-059](#pp-059) | f7fb9bf | `test_emulated_rapid_without_motion_leaves_the_cut_feed_alone`, `test_rapid_without_motion_leaves_the_cut_alone`, `test_rapid_without_motion_leaves_the_job_comment_alone` | `tests/test_motion_rapids.py` |
+| [PP-060](#pp-060) | d8f71e8 | `test_angles_that_jump_by_a_turn_stop_in_a_cut`, `test_first_feed_move_after_toolchange_unwind_stops`, `test_rounding_straddle_against_the_word_stops`, `test_wrong_way_feed_moves_stop_the_post`, `test_wrong_way_rapid_without_rotation_homing_stops_the_post`, `test_wrong_way_rotary_link_rapid_stops_the_post` | `tests/test_rotary_direction_guard.py` |
+| [PP-061](#pp-061) | d8f71e8 | `test_fourth_axis_and_offset_change_resets_are_not_cutting_turns`, `test_post_reset_of_a_is_not_a_cutting_turn` | `tests/test_rotary_modulo_range.py` |
 | [ENGINE-004](#engine-004) | d5bd225 | `test_cycle84_arguments_are_numeric_and_ordered`, `test_cycle84_rigid_tapping_fields`, `test_string_case_and_escaped_quotes` |  |
 | [ENGINE-021](#engine-021) | 0eb3cef | `test_right_count_beyond_the_string_returns_the_whole_string` |  |
 | [DESIGN-002](#design-002) | 3e0c345 | `test_homed_rotary_rapid_returns_xy_then_z` | `tests/test_post_homing_reposition.py` |
@@ -1431,6 +1418,23 @@ now a regression guard marked `@covers`.
   - `tests/test_motion_rapids.py::ChangeRefPointTests::test_change_ref_point_emits_no_fanuc_data_setting`
   - `tests/test_unsupported_features.py::UnsupportedEventTests::test_subprogram_loop_and_reference_point_events_stop_the_post`
 
+### PP-046
+
+**Exact float compare on A triggers a full G75 Z+XY homing for sub-resolution angle changes**
+
+- Severity: low
+- Confidence: uncertain
+- Reachability: Default config when consecutive A targets differ below the 0.001 output resolution; depends on GPPL numeric compare semantics (UNVERIFIED).
+- Location: GPP @usr_r1pos_calc ('if nPR1pos ne nR1pos' on the unrounded angle, refactoring branch before d8f71e8); @usr_rapid
+- Evidence that would settle it: GPPL manual statement or a trace with sub-resolution apos differences.
+- Owner area: B (rotary: r1pos/select_dir/output, modulo range, iR1dir, index direction, move_4x, 3-axis limit, home_data)
+- Source findings: pp-weird-hunter-08
+- Status: fixed: d8f71e8 nR1pos is rounded to the output step: a sub-step A change is no rotation (no A word, no homing).
+- Tests of the fix: tests/test_rotary.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_rotary.py::KnownRotaryDefects::test_sub_resolution_rotary_change_does_not_home`
+
 ### PP-049
 
 **i4xFeedMode=1 (inverse time) is never implemented: simultaneous rotary moves use mm/min F under G94**
@@ -1484,6 +1488,46 @@ now a regression guard marked `@covers`.
   - `tests/test_motion_rapids.py::RapidWithoutMotionTests::test_emulated_rapid_without_motion_leaves_the_cut_feed_alone`
   - `tests/test_motion_rapids.py::RapidWithoutMotionTests::test_rapid_without_motion_leaves_the_cut_alone`
   - `tests/test_motion_rapids.py::RapidWithoutMotionTests::test_rapid_without_motion_leaves_the_job_comment_alone`
+
+### PP-060
+
+**ACP/ACN can turn A the other way round than CAM (a silent flip: 350 degrees instead of -10) in a cut or a CAM-link rotary rapid**
+
+- Severity: high
+- Confidence: confirmed
+- Reachability: Any feed move or unhomed rotary rapid whose A word disagrees with CAM's step: dir5a against the angle step, angles wrapped to +-180, the tool-change unwind (DESIGN-005), frame changes without an index, rounding straddles. 418 of 6000 generated runs with dir5a following the CAM step.
+- Location: GPP @usr_r1pos_calc / @usr_r1_select_dir / @usr_r1_output (refactoring branch before d8f71e8): the word followed dir5a or angle_4x_around_x_dir whatever the two positions were
+- Evidence that would settle it: A SolidCAM trace of a 4x/5x job across 180 degrees and of the first move after the third tool change.
+- Owner area: B (rotary: r1pos/select_dir/output, modulo range, iR1dir, index direction, move_4x, 3-axis limit, home_data)
+- Source findings: owner-review-2026-10-27-1
+- Status: fixed: d8f71e8 A feed move or a rotary rapid at the cutting height stops when the A word would turn A another way than CAM.
+- Tests of the fix: tests/test_rotary_direction_guard.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_rotary_direction_guard.py::RotaryDirectionGuardTests::test_angles_that_jump_by_a_turn_stop_in_a_cut`
+  - `tests/test_rotary_direction_guard.py::RotaryDirectionGuardTests::test_first_feed_move_after_toolchange_unwind_stops`
+  - `tests/test_rotary_direction_guard.py::RotaryDirectionGuardTests::test_rounding_straddle_against_the_word_stops`
+  - `tests/test_rotary_direction_guard.py::RotaryDirectionGuardTests::test_wrong_way_feed_moves_stop_the_post`
+  - `tests/test_rotary_direction_guard.py::RotaryDirectionGuardTests::test_wrong_way_rapid_without_rotation_homing_stops_the_post`
+  - `tests/test_rotary_direction_guard.py::RotaryDirectionGuardTests::test_wrong_way_rotary_link_rapid_stops_the_post`
+
+### PP-061
+
+**False full-turn stop: the tool-change apos = 0 or @fourth_axis makes the next cutting block look like a 360 degree CAM turn**
+
+- Severity: medium
+- Confidence: confirmed
+- Reachability: A 4x/5x job ending at a whole turn (e.g. CAM A 720 or 725) followed by a reset of apos by the post and a first cutting block at the same CAM A.
+- Location: GPP @usr_line (refactoring branch before d8f71e8): 'abs(nR1posstep) >= 359.9995' with nPR1postemp taken after the post zeroed apos
+- Evidence that would settle it: A SolidCAM trace of a multi-turn wrap job followed by a tool change.
+- Owner area: B (rotary: r1pos/select_dir/output, modulo range, iR1dir, index direction, move_4x, 3-axis limit, home_data)
+- Source findings: owner-review-2026-10-27-2
+- Status: fixed: d8f71e8 The full-turn stop counts CAM's own A step; the post's apos = 0 no longer trips it.
+- Tests of the fix: tests/test_rotary_modulo_range.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_rotary_modulo_range.py::FullTurnBaselineTests::test_fourth_axis_and_offset_change_resets_are_not_cutting_turns`
+  - `tests/test_rotary_modulo_range.py::FullTurnBaselineTests::test_post_reset_of_a_is_not_a_cutting_turn`
 
 ### ENGINE-004
 

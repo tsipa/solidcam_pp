@@ -75,10 +75,10 @@ in `tests_engine/fixtures/`), and `python -m pp_tests.gppl validate <post.gpp> -
 
 ### Running and reading the result
 
-The default run has 441 tests, takes about 40 s and must end `OK`. Its 73 skips
+The default run has 489 tests, takes about 25 s and must end `OK`. Its 49 skips
 have two causes:
 
-- `known defect PP-xxx reproduced: ...` (71 tests). Each open suspected defect has
+- `known defect PP-xxx reproduced: ...` (47 tests). Each open suspected defect has
   one canonical test per facet that asserts the correct behaviour; while the defect
   exists the test is reported as a skip. If the behaviour changes so that the test
   passes, the default run FAILS with `PP-xxx no longer reproduces: update the registry
@@ -87,9 +87,10 @@ have two causes:
   initialised. Set `MACH3_PP_SOURCE` to the 6efcad8 Mach3 post (`git show
   6efcad8:mach3/4x/Mach3_4X_Y.gpp > mach3.gpp`) to run them.
 
-With `GPPL_ENGINE=legacy` the run takes about 2.5 minutes and has 87 skips: 77 known
+With `GPPL_ENGINE=legacy` the run takes about 1.5 minutes and has 102 skips: 54 known
 defects (seven ENGINE facets reproduce only on the legacy engine, ENGINE-021 only on
-the default engine), 8 tests that need the default engine and the 2 Mach3 tests.
+the default engine), 43 tests that need the default engine, 3 that need `tostr` with a
+format and the 2 Mach3 tests.
 
 Strict mode runs every open known-defect test as a plain test, so they fail red
 while the defects exist. It is meant for working on a defect, not for the green
@@ -103,7 +104,7 @@ PP_STRICT_KNOWN_DEFECTS=1 python3 -m unittest discover -s tests
 $env:PP_STRICT_KNOWN_DEFECTS = '1'; py -m unittest discover -s tests
 ```
 
-The expected strict result is exactly 71 failures on the default engine and 77 on
+The expected strict result is exactly 47 failures on the default engine and 54 on
 the legacy engine, all AssertionError, no errors (one more with `MACH3_PP_SOURCE`
 set: PP-058). A known-defect test whose entry does not reproduce on the running
 engine (an ENGINE gap of the other engine) runs as a plain passing test. Select
@@ -115,7 +116,7 @@ test_program_start_forces_dc`.
 | file | scope |
 | --- | --- |
 | `test_session_program.py`, `test_toolchange_session.py` | program start/end, header, tool list and WORKPIECE, init_post session, tool change, coolant, M00/M01 stops, HSM, homing strings |
-| `test_rotary.py`, `test_offline.py`, `test_rotary_modulo_range.py`, `test_move_4x_axial_x.py` | A-axis position/direction/output, modulo range and full-turn stop, iR1dir, index direction, move_4x, bLimit_3axis, home_data; recorded Slide angles |
+| `test_rotary.py`, `test_offline.py`, `test_rotary_modulo_range.py`, `test_rotary_direction_guard.py`, `test_move_4x_axial_x.py` | A-axis position/direction/output, modulo range and full-turn stop, the stop on an A word that turns another way than CAM, iR1dir, index direction, move_4x, bLimit_3axis, home_data; recorded Slide angles |
 | `test_indexing_link.py`, `test_work_offsets_fixtures.py`, `test_motion.py`, `test_arc_link_boundary.py` | indexing, the CAM-link state machine, work offsets; recorded shit2 link |
 | `test_unsupported_features.py` | the POST ERROR stops for template features of other controls: multiple fixtures, the trig-macro index mode, unknown index clearance modes, subprograms, loops, reference point changes |
 | `test_motion_rapids.py`, `test_post_homing_reposition.py`, `test_job_start_climb.py`, `test_inverse_time_feed.py` | rapids and approach order, return after post-inserted homing, the first-rapid climb, feed emulation, Z precision, G93 inverse-time feed |
