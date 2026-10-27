@@ -1943,11 +1943,23 @@ endp
 
 
     if drill_type eq G84 then ;---------------------------
-        if drill_upper_z > 0
-            {' (',rtp,','rfp,','sdis,',',dp,',,0.,3,,',''(FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
+        ; CYCLE84(RTP,RFP,SDIS,DP,DPR,DTB,SDAC,MPIT,PIT,POSS,SST,SST1,...)
+        ; The sign of PIT selects the thread hand: positive = right-hand (M3), negative = left-hand (M4).
+        ; SDAC = spindle direction after the cycle: 3 for a CW (right-hand) tap, 4 for a CCW (left-hand) tap.
+        if tool_direction eq CW then
+            if drill_upper_z > 0
+                {' (',rtp,','rfp,','sdis,',',dp,',,0.,3,,',''(FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
+            else
+                {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
+                {',0.,3,,',''(FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
+            endif
         else
-            {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
-            {',0.,3,,',''(FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
+            if drill_upper_z > 0
+                {' (',rtp,','rfp,','sdis,',',dp,',,0.,4,,',''(-FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
+            else
+                {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
+                {',0.,4,,',''(-FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
+            endif
         endif
         {',,,1221'}
         if Step_Down ne 0
