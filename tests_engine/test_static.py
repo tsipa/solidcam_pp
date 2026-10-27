@@ -12,7 +12,7 @@ from pp_tests.gppl.analysis import Analysis
 from pp_tests.gppl.policies import Policies
 from pp_tests.gppl.program import load_program
 from pp_tests.gppl.vmid import load_vmid, parse_vmid
-from support import COMPAT, PP, QUOTE_DOUBLING, SESSION, VMID, declared_global_count, first_statement_line, lines_matching, require_vmid, source, statement_kinds_from_text
+from support import COMPAT, PP, SESSION, VMID, declared_global_count, first_statement_line, lines_matching, require_vmid, source, statement_kinds_from_text
 
 
 class WholeGppTests(unittest.TestCase):
@@ -34,7 +34,8 @@ class WholeGppTests(unittest.TestCase):
         Engine(source(), policies=SESSION.with_(load_errors='raise'))
         self.assertEqual(sum(1 for p in self.program.procedures.values() if p.error), 0)
         warnings = sorted((d.code, d.line) for d in self.diagnostics if d.severity == 'warning')
-        self.assertEqual(warnings, [('W-QUOTE-DOUBLING', line) for line in lines_matching(QUOTE_DOUBLING)])
+        # The only warnings were W-QUOTE-DOUBLING on the CYCLE84 ',0,''' idiom, gone with the @drill rewrite.
+        self.assertEqual(warnings, [])
 
     def test_compat_policy_lists_exactly_what_the_legacy_engine_would_reject(self):
         errors = sorted((d.code, d.line) for d in self.program.errors(COMPAT))
@@ -76,7 +77,7 @@ class WholeGppTests(unittest.TestCase):
         codes = {}
         for d in self.diagnostics:
             codes.setdefault(d.code, []).append(d.line)
-        self.assertEqual(codes['W-QUOTE-DOUBLING'], lines_matching(QUOTE_DOUBLING))
+        self.assertNotIn('W-QUOTE-DOUBLING', codes)
         integer_tonum = lines_matching(r'^\s*(iWorkoffset|macnum|iHomingmode)\s*=\s*tonum\(')
         self.assertEqual(sorted(set(codes['I-POLICY-INTEGER'])), integer_tonum)
         self.assertIn(integer_tonum[0], codes['I-POLICY-TONUM'])

@@ -1838,7 +1838,7 @@ endp
 @drill
     ; Sinumerik drilling cycle MCALL CYCLE8x(RTP, RFP, SDIS, DP, DPR, ...), modal on the following
     ; drill_point blocks until @end_drill. RTP = clearance Z, DP = hole bottom. Hole top above Z0:
-    ; RFP = top - safety and SDIS = safety; otherwise RFP = top, SDIS empty and DPR 0.
+    ; RFP = top - safety, SDIS = safety, DPR empty; otherwise RFP = top, SDIS empty and DPR 0.
     local numeric rtp rfp sdis dp
     rtp = drill_clearance_z
     rfp = (drill_upper_z - safety)
@@ -1864,56 +1864,34 @@ endp
     call @usr_feedmode_94
     {nb,' F'feed }
     {nb,'MCALL CYCLE',gcode}
-
-    if drill_type eq G81 or drill_type eq G82 then
-        ; CYCLE81(RTP,RFP,SDIS,DP,DPR) and CYCLE82(RTP,RFP,SDIS,DP,DPR,DTB): DTB = dwell at the bottom.
-        if drill_upper_z > 0
-            {' (',rtp,','rfp,','sdis,',',dp,','}
-        else
-            {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
-        endif
-        if drill_type eq G81 then
-            {')'}
-        endif
-        if drill_type eq G82 then
-            {','delay,')'}
-        endif
+    if drill_upper_z > 0
+        {' (',rtp,','rfp,','sdis,',',dp,','}
+    else
+        {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
     endif
-
+    ; The parameters after DPR. CYCLE81(RTP,RFP,SDIS,DP,DPR) has none.
+    if drill_type eq G82 then
+        ; CYCLE82(RTP,RFP,SDIS,DP,DPR,DTB): DTB = dwell at the bottom.
+        {','delay}
+    endif
     if drill_type eq G83 then
-        ; CYCLE83(RTP,RFP,SDIS,DP,DPR,FDEP,FDPR,DAM,DTB,DTS,FRF,VARI)
-        ; DTB = dwell at final drilling depth, DTS = dwell at start point during swarf removal.
-        ; Current G83 output uses DTB empty/0, DTS 0.5 sec, FRF 1, VARI 1 (swarf removal).
-        if drill_upper_z > 0
-            {' (',rtp,','rfp,','sdis,',',dp,','}
-            {',,',down_step,','down_step,',,0.5,1,1)'}
-        else
-            {' (',rtp,',',drill_upper_z',,',dp}
-            {',0.,,',down_step,','down_step,',,0.5,1,1)'}
-        endif
+        ; CYCLE83(RTP,RFP,SDIS,DP,DPR,FDEP,FDPR,DAM,DTB,DTS,FRF,VARI): FDEP empty, FDPR and DAM = down_step,
+        ; DTB empty/0, DTS 0.5 sec, FRF 1, VARI 1 (swarf removal). DTS = dwell at the start point during
+        ; swarf removal.
+        {',,',down_step,','down_step,',,0.5,1,1'}
     endif
-
     if drill_type eq G84 then
-        ; CYCLE84(RTP,RFP,SDIS,DP,DPR,DTB,SDAC,MPIT,PIT,POSS,SST,SST1,...)
-        ; The sign of PIT selects the thread hand: positive = right-hand (M3), negative = left-hand (M4).
-        ; SDAC = spindle direction after the cycle: 3 for a CW (right-hand) tap, 4 for a CCW (left-hand) tap.
+        ; CYCLE84(RTP,RFP,SDIS,DP,DPR,DTB,SDAC,MPIT,PIT,POSS,SST,SST1,AXN,PTAB,TECHNO,VARI,DAM,VRT): DTB 0.
+        ; The sign of PIT selects the thread hand and SDAC the spindle direction after the cycle:
+        ; right-hand (CW) +FEED/SPIN and 3, left-hand (CCW) -FEED/SPIN and 4. POSS 0, SST = SPIN,
+        ; SST1 = 2 x SPIN (retract), AXN and PTAB empty, TECHNO 1221; with Step_Down: VARI 1 (chip
+        ; breaking), DAM = Step_Down, VRT = VarRetract (Step_Down when 0).
         if tool_direction eq CW then
-            if drill_upper_z > 0
-                {' (',rtp,','rfp,','sdis,',',dp,',,0.,3,,',''(FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
-            else
-                {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
-                {',0.,3,,',''(FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
-            endif
+            {',0.,3,,',(FEED/SPIN)}
         else
-            if drill_upper_z > 0
-                {' (',rtp,','rfp,','sdis,',',dp,',,0.,4,,',''((0-FEED)/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
-            else
-                {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
-                {',0.,4,,',''((0-FEED)/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
-            endif
+            {',0.,4,,',((0-FEED)/SPIN)}
         endif
-        ; AXN and PTAB empty, TECHNO = 1221; with Step_Down: VARI = 1 (chip breaking), DAM, VRT.
-        {',,,1221'}
+        {',0,',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F,',,,1221'}
         if Step_Down ne 0
             if VarRetract ne 0
                 {',1,'Step_Down:feed_f ',' VarRetract:feed_f}
@@ -1921,21 +1899,14 @@ endp
                 {',1,'Step_Down:feed_f ',' Step_Down:feed_f}
             endif
         endif
-
-        {')'}
     endif
-
     if drill_type eq G86 then
-        if drill_upper_z > 0
-            {' (',rtp,','rfp,','sdis,',',dp,',,,3'}
-        else
-            {' (',rtp,','drill_upper_z,',,',dp,',','0.,,3'}
-        endif
-        {')'}
+        ; CYCLE86(RTP,RFP,SDIS,DP,DPR,DTB,SDIR,RPA,RPO,RPAP,POSS): DTB empty, SDIR 3 (spindle M3).
+        {',,3'}
     endif
+    {')'}
     ; The cycle retracts to RTP after every hole: that is the Z the next move starts from.
     nLastPathZ = rtp
-
 endp
 
 ;-------------------

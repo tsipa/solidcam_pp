@@ -36,10 +36,9 @@ Harness
   Feed/spin pairs are chosen so that FEED/SPIN is exact in three decimals,
   because the unformatted PIT uses the engine's default of three decimals
   (ENGINE-003).
-  ENGINE-004: the engine renders the CYCLE84 literal ',0,''' with a stray
-  apostrophe before SST ("...,1.5,0,'100,200,..."). The guards remove exactly
-  that one documented artifact (without_engine_004), so they hold under either
-  literal semantics. The canonical ENGINE-004 test asserts the quote-free list.
+  ENGINE-004: the CYCLE84 line used the literal ',0,''' that the engine rendered
+  with a stray apostrophe before SST. The @drill rewrite writes ',0,', so every
+  reading of the literal gives the same quote-free list.
   Guards are check_*(tc, source=None) functions without subTest, so a mutated GPP
   (support.mutation.mutate) fails them with AssertionError (MutationKillTests).
   Structural sequences: the cycle-geometry, continuity and tapping guards deliver
@@ -70,9 +69,10 @@ DRILL_TYPES = (('g81', 81), ('g82', 82), ('g83', 83), ('g84', 84), ('g86', 86))
 UPPER_LEVELS = (12, 1, 0, -2)
 HOLE = dict(xpos=10, ypos=20, zpos=30)
 
-# bea8c62 "Fix Sinumerik drill cycle parameters", CYCLE84 hunk (positive branch).
-G84_FIX = "{' (',rtp,','rfp,','sdis,',',dp,',,0.,3,,',"
-G84_BEFORE_BEA8C62 = "{' (',rtp,',,'sdis,',',dp,',',rfp,',0.,3,,',"
+# bea8c62 "Fix Sinumerik drill cycle parameters", positive branch; one shared CYCLE8x head since the
+# @drill rewrite, so reverting it reverts every cycle, CYCLE84 included.
+G84_FIX = "{' (',rtp,','rfp,','sdis,',',dp,','}"
+G84_BEFORE_BEA8C62 = "{' (',rtp,',,'sdis,',',dp,',',rfp}"
 
 
 # --------------------------------------------------------------------------- helpers
@@ -122,18 +122,6 @@ def cycle_arguments(tc, blocks, cycle, where=''):
     return list(call[1])
 
 
-def without_engine_004(fields):
-    """CYCLE84 arguments with the documented ENGINE-004 artifact removed.
-
-    Only one apostrophe directly in front of SST (index 10) is removed. Any other
-    quote stays in place and fails assert_plain_arguments.
-    """
-    fields = list(fields)
-    if len(fields) > 10 and fields[10].startswith("'"):
-        fields[10] = fields[10][1:]
-    return fields
-
-
 def assert_plain_arguments(tc, fields, where=''):
     quoted = [field for field in fields if "'" in field or '"' in field]
     tc.assertEqual(quoted, [], f'{where}: quote character inside cycle arguments: {fields}')
@@ -147,10 +135,8 @@ def named(tc, fields, cycle, where=''):
 
 
 def cycle_parameters(tc, session, drill_type, cycle, where='', **inputs):
-    """Run one drill job and return its CYCLE parameters by name (ENGINE-004 removed)."""
+    """Run one drill job and return its CYCLE parameters by name."""
     fields = cycle_arguments(tc, drill(session, drill_type, **inputs), cycle, where)
-    if cycle == 84:
-        fields = without_engine_004(fields)
     assert_plain_arguments(tc, fields, where)
     return named(tc, fields, cycle, where), fields
 
@@ -393,10 +379,11 @@ class DrillCycleGeometryTests(unittest.TestCase):
         check_drill_continuity(self)
 
     def test_pin_drill_continuity_detects_mutation(self):
-        """INDEPENDENT: the continuity guard kills an RFP shift in the CYCLE83 Z0 branch."""
-        mutant = mutate("{' (',rtp,',',drill_upper_z',,',dp}", "{' (',rtp,',',rfp',,',dp}")
+        """INDEPENDENT: the continuity guard kills an RFP shift in the Z0 branch of the shared
+        CYCLE8x head."""
+        mutant = mutate("{' (',rtp,','drill_upper_z,',,',dp,',','0.'}", "{' (',rtp,','rfp,',,',dp,',','0.'}")
         assert_detected(self, lambda source: check_drill_continuity(self, source), mutant,
-                        'CYCLE83 RFP = upper - safety in the drill_upper_z <= 0 branch')
+                        'RFP = upper - safety in the drill_upper_z <= 0 branch')
 
     def test_cycle83_documentation_matches_output(self):
         """INDEPENDENT: Siemens CYCLE83 signature and the e4af180/1710187 commit intent.
@@ -456,7 +443,6 @@ class RigidTappingTests(unittest.TestCase):
         POSS 0, the exact tail (nothing for a single pass), _VARI 1 (chip breaking
         rather than chip removal) and _VRT = Step_Down when VarRetract is 0
         (history-misc-05 correction: a PP fallback, not Siemens).
-        The ENGINE-004 apostrophe before SST is removed, not pinned.
         """
         check_tapping_fields(self)
 
@@ -495,19 +481,17 @@ class RigidTappingTests(unittest.TestCase):
         """INDEPENDENT: negative validation of the PP-028 guard. Reverting a38f158 in
         memory (every G84 tap takes the right-hand CYCLE84 line, whatever tool_direction)
         must make check_left_hand_tap fail with AssertionError."""
-        anchor = "        if tool_direction eq CW then\n            if drill_upper_z > 0\n                {' (',rtp,','rfp,"
+        anchor = "        if tool_direction eq CW then\n            {',0.,3,,',(FEED/SPIN)}"
         mutant = mutate(anchor, anchor.replace('if tool_direction eq CW then', 'if true then'))
         assert_detected(self, self.check_left_hand_tap, mutant, 'a38f158 reverted')
 
-    @known_defect('ENGINE-004', match='quote character')
+    @covers('ENGINE-004')
     def test_cycle84_arguments_are_numeric_and_ordered(self):
         """INDEPENDENT: Siemens CYCLE84 arguments are numeric or empty; a quote is a syntax error.
 
-        UNVERIFIED (likely engine artifact): the engine lexes '' inside a literal as an
-        escaped quote, so ',0,''' renders ",0,'" and SST reads "'500". The same line
-        uses '' as an empty literal (''(FEED/SPIN)) and bea8c62 edited it without
-        touching the quote, so a real PP defect is unlikely. One SolidCAM G84 run or
-        a GPPL statement on literal quoting settles it.
+        The old line used ',0,''' (the engine lexed '' inside a literal as an escaped
+        quote, so SST read "'500"); the @drill rewrite writes ',0,', so no literal
+        reading can put a quote there. Regression guard of ENGINE-004.
         Fields: RTP 30, RFP 10, SDIS 2, DP -15, DPR empty, SDAC 3, PIT 625/500 = 1.25,
         POSS 0, SST 500, SST1 1000.
         """
@@ -691,11 +675,9 @@ MUTATIONS = (
     ('drill_point_drops_y', 'modal_cycle_cancel',
      "{nb,['X'xpos ' '], ['Y'ypos ' '], ['Z'zpos ' ']}", "{nb,['X'xpos ' '], ['Z'zpos ' ']}", 1),
     ('cycle_feed_not_programmed', 'cycle_geometry', "    {nb,' F'feed }\n", '', 1),
-    ('cycle81_nonpositive_rfp_shifted', 'cycle_geometry',
-     "        else\n            {' (',rtp,','drill_upper_z,',,',dp,',','0.'}\n        endif\n        if drill_type eq G81 then\n",
-     "        else\n            {' (',rtp,','rfp,',,',dp,',','0.'}\n        endif\n        if drill_type eq G81 then\n", 1),
-    ('cycle86_nonpositive_spindle_mode_lost', 'cycle_geometry',
-     "{' (',rtp,','drill_upper_z,',,',dp,',','0.,,3'}", "{' (',rtp,','drill_upper_z,',,',dp,',','0.,,'}", 1),
+    ('nonpositive_rfp_shifted', 'cycle_geometry',
+     "        {' (',rtp,','drill_upper_z,',,',dp,',','0.'}\n", "        {' (',rtp,','rfp,',,',dp,',','0.'}\n", 1),
+    ('cycle86_spindle_mode_lost', 'cycle_geometry', "        {',,3'}\n", "        {',,'}\n", 1),
     ('cycle84_variable_retract_ignored', 'tapping_fields',
      "{',1,'Step_Down:feed_f ',' VarRetract:feed_f}", "{',1,'Step_Down:feed_f ',' Step_Down:feed_f}", 1),
     ('tapping_tool_starts_spindle', 'spindle_start',

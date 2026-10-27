@@ -27,7 +27,6 @@ def source():
 
 # Source-derived expectations: line numbers and statement counts follow the GPP text, so editing the
 # GPP does not require re-pinning numbers in the harness tests.
-QUOTE_DOUBLING = re.escape(",0," + "'" * 3)     # the CYCLE84 doubled-quote idiom
 
 
 def code_lines():

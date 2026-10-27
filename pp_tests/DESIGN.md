@@ -175,7 +175,7 @@ fixtures under `session,<policy>=<value>`.
 | rounding | python (binary, ties to even) | same | half_away changes nothing observed | low |
 | typed_default_formats | off (3 decimals) | on (`numeric_def_f`/`integer_def_f`) | no observed difference in the sessions | medium-high |
 | format_grammar | legacy (`N.M[(p)]`) | extended | `'5.0(n)'` in `@Multiple_Fixtures` needs it; `'+8.5'` only in unused format variables | grammar: medium; meaning of `(n)`, `+`: low |
-| quote_escape | double (`'can''t'`) | double / **none** | suite pins double (1 error under none); under double CYCLE84 prints `,0,'500` (lines 1883/1886, lint W-QUOTE-DOUBLING) | low-medium |
+| quote_escape | double (`'can''t'`) | double / **none** | suite pins double (1 error under none); under double CYCLE84 printed `,0,'500` (lint W-QUOTE-DOUBLING) until the @drill rewrite dropped the `',0,'''` idiom | low-medium |
 | string_escapes | literal | literal / **c** | `usr_ct_after` splits msg at `instr(msg,'\n')` with poz1-2/poz1+1: only right for one LF in a CRLF message | low-medium |
 | tonum | strict (error) | strict / **atof** | `home_number`/`home_data` parse `'G54P4'` and fall back when 0 (C atof); machine_variants fixture sets atof | medium |
 | string_index | **error** (legacy: Python slicing) | error / **clamp** | `left('abc',-1)` gave `'ab'`: a Python artefact, not a GPPL rule, so compat raises loudly; `python` keeps the legacy value | medium |
@@ -244,7 +244,8 @@ fixtures under `session,<policy>=<value>`.
   at 2221/2229/2256, 2x `Print` at 2426/2456), plus 3 warnings for the unused
   `'+8.5'` format variables (65-67); strict compat load fails, as it should.
 * **Warnings.** `W-QUOTE-DOUBLING` at 1883/1886: `',0,'''` in the G84/CYCLE84
-  output; the legacy reading prints a stray apostrophe before the spindle speed.
+  output; the legacy reading printed a stray apostrophe before the spindle speed
+  (the @drill rewrite removed the idiom; no warnings are left).
 * **Shipped configuration.** 84 configuration constants (assigned once,
   unconditionally, to a literal in `@init_post`'s closure); 37 branches with 147
   statements never run with them (for example `if bSubs` in `@start_of_job`, 21
@@ -332,8 +333,8 @@ dropped; unexecuted unsupported code invisible; errors re-wrapped per frame;
 * **Characterised PP behaviour** (`tests_engine/test_replay_findings.py`; hypotheses
   until a real trace confirms them): the first hole after `MCALL CYCLE83` is not
   repositioned; coolant is not restored after a same-tool `M0`; the
-  index warning is an uncommented NC block; CYCLE84 gets a stray apostrophe under
-  doubled-quote lexing; `M9`/`M5` repeat after `M0` with a tool change; the
+  index warning is an uncommented NC block; CYCLE84 got a stray apostrophe under
+  doubled-quote lexing (until the @drill rewrite); `M9`/`M5` repeat after `M0` with a tool change; the
   `msg` split loses a character with literal escapes. (The multiple-fixtures
   delete markers, the literal `cR1` of `@call_proc` and the `bSubs` `G9999` leak
   went with those template paths; they now stop the post.)

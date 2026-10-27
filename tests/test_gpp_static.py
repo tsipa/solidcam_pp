@@ -348,12 +348,8 @@ HISTORY_KEYS = {'name', 'kind', 'commit', 'reason', 'initial', 'regression', 're
                 'expected_cycle', 'expected_parameters', 'unpinned'}
 REGRESSION_KEYS = {'find', 'replace', 'count'}
 # A reversal anchor may occur several times (the real commit changed every
-# occurrence). Area E's fixture states that number as regression.count, which
-# tests/test_history_regressions.py passes to support.mutation.mutate; for a
-# fixture revision without 'count' these are the expected occurrence counts.
-LEGACY_ANCHOR_COUNTS = {'cycle81_positive_reference_plane': 2, 'cycle82_positive_reference_and_dwell': 2,
-                        'cycle83_positive_reference_and_upper_dwell': 2,
-                        'cycle83_nonpositive_reference_keeps_relative_depth_zero': 2}
+# occurrence). Area E's fixture states that number as regression.count (default 1),
+# which tests/test_history_regressions.py passes to support.mutation.mutate.
 
 
 def load_fixture(name):
@@ -409,7 +405,7 @@ class FixtureSchemaTests(unittest.TestCase):
                 regression = case['regression']
                 if set(regression) - REGRESSION_KEYS:
                     problems.append((case['name'], sorted(set(regression) - REGRESSION_KEYS)))
-                expected = regression.get('count', LEGACY_ANCHOR_COUNTS.get(case['name'], 1))
+                expected = regression.get('count', 1)
                 count = source.count(regression['find'])
                 if count != expected:
                     problems.append((case['name'], f'anchor occurs {count} times, expected {expected}'))

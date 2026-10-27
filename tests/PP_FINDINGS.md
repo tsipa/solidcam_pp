@@ -46,7 +46,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 58. `@covers` references: 71.
+Canonical `@known_defect` tests: 57. `@covers` references: 72.
 
 ## Index of open entries
 
@@ -90,7 +90,7 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
 | [ENGINE-001](#engine-001) | medium | uncertain | F | Change-flag rule for equal-value assignment is unverified (engine: only a value change raises a flag, nothing clears it) | pinned only (@covers) |
 | [ENGINE-002](#engine-002) | low-medium | confirmed | F | skipline block joining is not emulated (nb/nl always start a new block) | `test_skipline_false_joins_the_next_block` |
 | [ENGINE-003](#engine-003) | low-medium | confirmed | F | numeric_def_f / integer_def_f are ignored: unformatted numbers use 3 decimals instead of '8.5' | `test_numeric_def_f_formats_unformatted_numeric_variables` |
-| [ENGINE-004](#engine-004) | low-medium | likely-engine-artifact | E | The engine's doubled-quote ('') escape renders a stray apostrophe in the CYCLE84 argument list (',0,''') | `test_cycle84_arguments_are_numeric_and_ordered` |
+| [ENGINE-004](#engine-004) | low-medium | likely-engine-artifact | E | The engine's doubled-quote ('') escape renders a stray apostrophe in the CYCLE84 argument list (',0,''') | pinned only (@covers) |
 | [ENGINE-005](#engine-005) | medium | confirmed | F | Declared globals get no change flag (locals get False); change(<global>) raises KeyError | `test_declared_global_has_change_flag` |
 | [ENGINE-006](#engine-006) | low | confirmed | F | Leading-zero integer literal 07 raises (Python parser) | `test_leading_zero_integer_literal` |
 | [ENGINE-007](#engine-007) | low | confirmed | F | right() and tostr(value:'fmt') built-ins are missing | `test_right_and_tostr_builtins` |
@@ -690,9 +690,9 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
 - Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
 - Source findings: engine-impl-critic-06, history-misc-06, pp-region-4-cycles-rotary-24, pp-weird-hunter-10
 - GPPL engine: Same default (policy quote_escape=double; alternative none).
-- Reproduced by:
-  - `tests/test_cycles_spindle.py::RigidTappingTests::test_cycle84_arguments_are_numeric_and_ordered`
+- Reproduced by: none (an unverified engine rule; pinned by the CHARACTERIZATION tests below)
 - Pinned or exercised by (`@covers`):
+  - `tests/test_cycles_spindle.py::RigidTappingTests::test_cycle84_arguments_are_numeric_and_ordered`
   - `tests/test_cycles_spindle.py::RigidTappingTests::test_cycle84_rigid_tapping_fields`
   - `tests/test_offline.py::HarnessTests::test_string_case_and_escaped_quotes`
 

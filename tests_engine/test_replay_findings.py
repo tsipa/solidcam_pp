@@ -63,14 +63,14 @@ class ReplayFindings(unittest.TestCase):
         self.assertIn(('print', 'WARNING!! Tool Z Level is below Tool Start Plane in CoordSys'),
                       session.engine.console)
 
-    def test_cycle84_apostrophe_depends_on_quote_lexing(self):
-        _, report = replay('options_session')
-        cycle = [line for line in nc(report) if 'CYCLE84' in line][0]
-        self.assertIn(",0,'500,1000", cycle)                  # doubled-quote escape (v1 rule)
-        _, report = replay('options_session', quote_escape='none')
-        cycle = [line for line in nc(report) if 'CYCLE84' in line][0]
-        self.assertIn(',0,500,1000', cycle)
-        self.assertNotIn("'", cycle)
+    def test_cycle84_does_not_depend_on_quote_lexing(self):
+        # The CYCLE84 line used ',0,''' (a stray apostrophe before SST under the doubled-quote rule);
+        # since the @drill rewrite both lexing rules give the same quote-free line.
+        for policy in ({}, dict(quote_escape='none')):
+            _, report = replay('options_session', **policy)
+            cycle = [line for line in nc(report) if 'CYCLE84' in line][0]
+            self.assertIn(',0,500,1000', cycle, policy)
+            self.assertNotIn("'", cycle, policy)
 
     def test_m00_with_tool_change_repeats_coolant_and_spindle_off(self):
         """usr_StopM00_difftool sets bStopM00difftool, but end_of_job clears it on the
