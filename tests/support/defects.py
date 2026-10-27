@@ -203,6 +203,7 @@ RESOLUTIONS = {
                         'opened or deleted. The WORKPIECE body buffer (f004bdf) is a separate, balanced file.'),
     'PP-038': ('fixed', 'f5c74cd Remove the trig macro: i4xIndexMode other than 0/1 stops the post.'),
     'PP-043': ('fixed', '12db1de @home_data no longer writes shift_y (its only reader, the trig macro, is gone).'),
+    'PP-059': ('fixed', 'f7fb9bf A rapid without axis motion prints its pending modal words in a block of their own.'),
     'PP-044': ('fixed', 'f5c74cd @call_proc, @proc and @end_proc stop the post with a POST ERROR (VMID GenProc=0).'),
     'PP-045': ('fixed', 'f5c74cd @change_ref_point stops the post with a POST ERROR instead of writing G10 L2.'),
     'DESIGN-002': ('fixed', '3e0c345 Split XY and Z when returning from post-inserted homing (owner decision; '
@@ -236,6 +237,7 @@ FIX_TESTS = {
     'PP-038': ('tests/test_unsupported_features.py',),
     'PP-043': ('tests/test_rotary.py',),
     'PP-044': ('tests/test_unsupported_features.py',),
+    'PP-059': ('tests/test_motion_rapids.py',),
     'PP-045': ('tests/test_unsupported_features.py',),
     'DESIGN-002': ('tests/test_post_homing_reposition.py',),
 }
@@ -660,6 +662,14 @@ _ENTRIES = [
        'uncertain',
        'A recorded Mach3 run of a line_5x/arc feed change, and the post version the submodule would pin.',
        ['history-misc-18'], 'F'),
+    _d('PP-059', "A rapid without axis motion appends its modal words to the previous NC line ('G1 Z-1 F200 G0', "
+       "'Z35 F300 F650', 'MSG(\"op\")G0')", 'high',
+       'Any rapid event whose X/Y/Z/A do not change while a modal word is pending (motion mode after a feed move, '
+       'the emulated-rapid F, a work offset): 648 of 4000 generated runs.',
+       'confirmed',
+       'Sinumerik reads one motion G code and one F per block: a G0 on the cutting line makes the plunge a rapid '
+       'or alarms; a trace of SolidCAM sending a rapid to the current position settles how often.',
+       ['ralph-iteration-8-empty-rapid'], 'D'),
     # -------------------------------------------------------------- ENGINE
     _d('ENGINE-001', 'Change-flag rule for equal-value assignment is unverified (engine: only a value change '
        'raises a flag, nothing clears it)', 'medium',
@@ -927,6 +937,7 @@ LOCATIONS = {
     'PP-057': 'GPP @call_proc L2015/L2036-2037, @proc/@end_proc L2043-2061, @end_loop L2080-2087, @start_of_job '
               'L1163-1168, @usr_trig_macro_* L2551-2614, @usr_4x_index L2483',
     'PP-058': 'mach3/4x/Mach3_4X_Y.gpp at 6efcad8 (@line_5x and @arc lack the feed re-statement of @line)',
+    'PP-059': "GPP @usr_rapid_xyz (refactoring branch before f7fb9bf): 'skipline = false' when no axis moved",
     'ENGINE-001': 'pp_tests/gppl/legacy.py Engine.call assignment branch (a flag is raised only when the value changes '
                   'and never cleared)',
     'ENGINE-002': "pp_tests/gppl/legacy.py Engine._render (nb/nl always start a new block; 'skipline' is a plain variable)",

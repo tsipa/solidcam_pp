@@ -393,14 +393,17 @@ class RapidWithoutMotionTests(unittest.TestCase):
         program.ev('move_5x', xpos=10, ypos=10, zpos=5)
         self.check_lines(program.nc())
 
+    @covers('PP-059')
     def test_rapid_without_motion_leaves_the_cut_alone(self):
         """INDEPENDENT: one motion G code per block; the plunge stays a G1 block."""
         self.check_after_cut()
 
+    @covers('PP-059')
     def test_emulated_rapid_without_motion_leaves_the_cut_feed_alone(self):
         """INDEPENDENT: the plunge keeps its cutting feed; F<nRapidfeed> does not join it."""
         self.check_after_cut(emulated=True)
 
+    @covers('PP-059')
     def test_rapid_without_motion_leaves_the_job_comment_alone(self):
         """INDEPENDENT: Sinumerik MSG("...") stands alone in its block."""
         self.check_after_job_comment()

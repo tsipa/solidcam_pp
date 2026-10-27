@@ -28,25 +28,25 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | entries | high | medium-high | medium | low-medium | low | very-low | informational |
 |---|---|---|---|---|---|---|---|---|
-| pp | 58 | 2 | 1 | 18 | 5 | 31 | 1 | 0 |
+| pp | 59 | 3 | 1 | 18 | 5 | 31 | 1 | 0 |
 | engine | 21 | 0 | 0 | 3 | 3 | 14 | 1 | 0 |
 | design | 7 | 0 | 0 | 1 | 0 | 6 | 0 | 0 |
 
 | kind | confirmed | uncertain | likely-engine-artifact |
 |---|---|---|---|
-| pp | 41 | 16 | 1 |
+| pp | 42 | 16 | 1 |
 | engine | 15 | 5 | 1 |
 | design | 4 | 3 | 0 |
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 34 | 23 | 1 | 2 |
+| pp | 34 | 24 | 1 | 2 |
 | engine | 19 | 2 | 0 | 0 |
 | design | 6 | 1 | 0 | 0 |
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 56. `@covers` references: 73.
+Canonical `@known_defect` tests: 56. `@covers` references: 76.
 
 ## Index of open entries
 
@@ -1061,6 +1061,7 @@ now a regression guard marked `@covers`.
 | [PP-049](#pp-049) | 9f48a3a | `test_rotary_feed_moves_use_the_documented_inverse_time_mode` | `tests/test_inverse_time_feed.py` |
 | [PP-054 [g187-default]](#pp-054) | c06b190 | `test_no_fanuc_g187_in_a_default_program` |  |
 | [PP-057](#pp-057) | f5c74cd | `test_fanuc_only_output_is_pinned_to_legacy_procedures`, `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` |  |
+| [PP-059](#pp-059) | f7fb9bf | `test_emulated_rapid_without_motion_leaves_the_cut_feed_alone`, `test_rapid_without_motion_leaves_the_cut_alone`, `test_rapid_without_motion_leaves_the_job_comment_alone` | `tests/test_motion_rapids.py` |
 | [ENGINE-004](#engine-004) | d5bd225 | `test_cycle84_arguments_are_numeric_and_ordered`, `test_cycle84_rigid_tapping_fields`, `test_string_case_and_escaped_quotes` |  |
 | [ENGINE-021](#engine-021) | 0eb3cef | `test_right_count_beyond_the_string_returns_the_whole_string` |  |
 | [DESIGN-002](#design-002) | 3e0c345 | `test_homed_rotary_rapid_returns_xy_then_z` | `tests/test_post_homing_reposition.py` |
@@ -1463,6 +1464,25 @@ now a regression guard marked `@covers`.
   - `tests/test_gpp_static.py::GppStructureTests::test_fanuc_only_output_is_pinned_to_legacy_procedures`
   - `tests/test_machine_definition.py::ConfigurationGuards::test_vmid_keeps_subroutines_and_loops_disabled`
   - `tests/test_unsupported_features.py::UnsupportedEventTests::test_subprogram_loop_and_reference_point_events_stop_the_post`
+
+### PP-059
+
+**A rapid without axis motion appends its modal words to the previous NC line ('G1 Z-1 F200 G0', 'Z35 F300 F650', 'MSG("op")G0')**
+
+- Severity: high
+- Confidence: confirmed
+- Reachability: Any rapid event whose X/Y/Z/A do not change while a modal word is pending (motion mode after a feed move, the emulated-rapid F, a work offset): 648 of 4000 generated runs.
+- Location: GPP @usr_rapid_xyz (refactoring branch before f7fb9bf): 'skipline = false' when no axis moved
+- Evidence that would settle it: Sinumerik reads one motion G code and one F per block: a G0 on the cutting line makes the plunge a rapid or alarms; a trace of SolidCAM sending a rapid to the current position settles how often.
+- Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
+- Source findings: ralph-iteration-8-empty-rapid
+- Status: fixed: f7fb9bf A rapid without axis motion prints its pending modal words in a block of their own.
+- Tests of the fix: tests/test_motion_rapids.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_motion_rapids.py::RapidWithoutMotionTests::test_emulated_rapid_without_motion_leaves_the_cut_feed_alone`
+  - `tests/test_motion_rapids.py::RapidWithoutMotionTests::test_rapid_without_motion_leaves_the_cut_alone`
+  - `tests/test_motion_rapids.py::RapidWithoutMotionTests::test_rapid_without_motion_leaves_the_job_comment_alone`
 
 ### ENGINE-004
 
