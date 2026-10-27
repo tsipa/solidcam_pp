@@ -504,23 +504,7 @@ endp
         call @Multiple_Fixtures
     endif
     if bCooloffend and bCoolExist
-        iCoolantM1 = iCoolantM1OFF
-        iCoolantM2 = iCoolantM2OFF
-        iCoolantM3 = iCoolantM3OFF
-        iCoolantM4 = iCoolantM4OFF
-        iCoolantM5 = iCoolantM5OFF
-        iCoolantM6 = iCoolantM6OFF
-        iCoolantM7 = iCoolantM7OFF
-        iCoolantM8 = iCoolantM8OFF
-        change(iCoolantM1) = true
-        change(iCoolantM2) = false
-        change(iCoolantM3) = false
-        change(iCoolantM4) = false
-        change(iCoolantM5) = false
-        change(iCoolantM6) = false
-        change(iCoolantM7) = false
-        change(iCoolantM8) = false
-        bskipline = true
+        call @usr_coolant_prep_all_off
         call @usr_coolant_output
     endif
     if bSpinoffend
@@ -711,23 +695,7 @@ endp
     ; This is not called before the first tool change
     if !bStopM00difftool
         if bCooloffend and bCoolExist
-            iCoolantM1 = iCoolantM1OFF
-            iCoolantM2 = iCoolantM2OFF
-            iCoolantM3 = iCoolantM3OFF
-            iCoolantM4 = iCoolantM4OFF
-            iCoolantM5 = iCoolantM5OFF
-            iCoolantM6 = iCoolantM6OFF
-            iCoolantM7 = iCoolantM7OFF
-            iCoolantM8 = iCoolantM8OFF
-            change(iCoolantM1) = true
-            change(iCoolantM2) = false
-            change(iCoolantM3) = false
-            change(iCoolantM4) = false
-            change(iCoolantM5) = false
-            change(iCoolantM6) = false
-            change(iCoolantM7) = false
-            change(iCoolantM8) = false
-            bskipline = true
+            call @usr_coolant_prep_all_off
             call @usr_coolant_output
         endif
         if bSpinoffend
@@ -1078,6 +1046,28 @@ endp
     if  !change(iCoolantM1) or  !change(iCoolantM2) or !change(iCoolantM3) or  !change(iCoolantM4) or !change(iCoolantM5) or  !change(iCoolantM6) or !change(iCoolantM7) or !change(iCoolantM8)
         skipline = TRUE
     endif
+endp
+
+@usr_coolant_prep_all_off
+    ; Prepare coolant off for usr_coolant_output: every code takes its OFF value and only iCoolantM1
+    ; is flagged, so one OFF code is output.
+    iCoolantM1 = iCoolantM1OFF
+    iCoolantM2 = iCoolantM2OFF
+    iCoolantM3 = iCoolantM3OFF
+    iCoolantM4 = iCoolantM4OFF
+    iCoolantM5 = iCoolantM5OFF
+    iCoolantM6 = iCoolantM6OFF
+    iCoolantM7 = iCoolantM7OFF
+    iCoolantM8 = iCoolantM8OFF
+    change(iCoolantM1) = true
+    change(iCoolantM2) = false
+    change(iCoolantM3) = false
+    change(iCoolantM4) = false
+    change(iCoolantM5) = false
+    change(iCoolantM6) = false
+    change(iCoolantM7) = false
+    change(iCoolantM8) = false
+    bskipline = true
 endp
 
 @usr_HSM_mode
@@ -1943,23 +1933,7 @@ endp
     local logical bHomedBeforeReturn
     local numeric nZBeforeReturn
     if bCoolExist
-        iCoolantM1 = iCoolantM1OFF
-        iCoolantM2 = iCoolantM2OFF
-        iCoolantM3 = iCoolantM3OFF
-        iCoolantM4 = iCoolantM4OFF
-        iCoolantM5 = iCoolantM5OFF
-        iCoolantM6 = iCoolantM6OFF
-        iCoolantM7 = iCoolantM7OFF
-        iCoolantM8 = iCoolantM8OFF
-        change(iCoolantM1) = true
-        change(iCoolantM2) = false
-        change(iCoolantM3) = false
-        change(iCoolantM4) = false
-        change(iCoolantM5) = false
-        change(iCoolantM6) = false
-        change(iCoolantM7) = false
-        change(iCoolantM8) = false
-        bskipline = true
+        call @usr_coolant_prep_all_off
         call @usr_coolant_output
     endif
     iSpindleDir = 5
@@ -1998,23 +1972,7 @@ endp
 @usr_StopM00_difftool
     ; Handle output for forced stopM00 between operations using different tools
     if bCoolExist
-        iCoolantM1 = iCoolantM1OFF
-        iCoolantM2 = iCoolantM2OFF
-        iCoolantM3 = iCoolantM3OFF
-        iCoolantM4 = iCoolantM4OFF
-        iCoolantM5 = iCoolantM5OFF
-        iCoolantM6 = iCoolantM6OFF
-        iCoolantM7 = iCoolantM7OFF
-        iCoolantM8 = iCoolantM8OFF
-        change(iCoolantM1) = true
-        change(iCoolantM2) = false
-        change(iCoolantM3) = false
-        change(iCoolantM4) = false
-        change(iCoolantM5) = false
-        change(iCoolantM6) = false
-        change(iCoolantM7) = false
-        change(iCoolantM8) = false
-        bskipline = true
+        call @usr_coolant_prep_all_off
         call @usr_coolant_output
     endif
     iSpindleDir = 5
