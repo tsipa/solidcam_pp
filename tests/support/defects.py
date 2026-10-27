@@ -195,6 +195,7 @@ RESOLUTIONS = {
     'PP-041': ('fixed', 'a2cb528 Homing modes 1-7 (G53 among them) stop the post; only mode 8 is left.'),
     'PP-042': ('fixed', 'a2cb528 Homing modes 1-7 (mode 7 G90 G54 among them) stop the post; only mode 8 is left.'),
     'PP-054[g187-default]': ('fixed', 'c06b190 No G187 output exists any more.'),
+    'PP-053': ('fixed', '0667596 The first index before any rapid homes with sHomestrrotv in clearance mode 0, also with the program start homing off (bHomebegin).'),
     'PP-057': ('fixed', 'f5c74cd Remove the Fanuc template paths (follow-ups a2cb528 homing modes, 9d519d7 '
                         'O number, c06b190 G187): the post writes no Fanuc/Haas-only words.'),
     'PP-033': ('fixed', 'f5c74cd Remove the multiple-fixture scheme (owner decision 2026-10-27): more than one '

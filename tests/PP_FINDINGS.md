@@ -40,7 +40,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 32 | 29 | 1 | 2 |
+| pp | 31 | 30 | 1 | 2 |
 | engine | 19 | 2 | 0 | 0 |
 | design | 6 | 1 | 0 | 0 |
 
@@ -79,7 +79,6 @@ Canonical `@known_defect` tests: 52. `@covers` references: 96.
 | [PP-050](#pp-050) | medium | confirmed | F | vericut/GcodeSim.ini maps MAC 1-3 and 5-10 to G54 but omits MAC 4 | `test_vericut_mac_table_matches_post_work_offsets` |
 | [PP-051](#pp-051) | low | uncertain | F | Vericut K word format left at 5.3 while I/J were widened to 8.5 (f88de47) | `test_vericut_arc_center_words_keep_post_precision` |
 | [PP-052](#pp-052) | low | confirmed | F | VMID job parameters M50/M51 appear in every job dialog but the GPP never reads them | `test_every_vmid_user_parameter_is_read_by_the_post` |
-| [PP-053](#pp-053) | low | confirmed | C | First index of a program in default Z-homing mode has no G75 (sHomestrrot assigned lazily) | pinned only (@covers) |
 | [PP-054](#pp-054) | low | likely-engine-artifact | A | First job under persisting init flags: 'G187 P2' and flood M8 cancelled by seven M9 | `test_flood_coolant_is_not_cancelled_before_the_first_cut` [coolant-burst] |
 | [PP-055](#pp-055) | low | confirmed | E | CYCLE83 first peck depth jumps by SDIS when drill_upper_z crosses 0 (FDPR relative to RFP) | `test_cycle83_first_peck_is_continuous_across_z0` |
 | [PP-056](#pp-056) | low | confirmed | A | bStopM00difftool is set and cleared in the same @end_of_job: the skip path is dead and is what keeps the G75 retract before M06 | pinned only (@covers) |
@@ -501,21 +500,6 @@ Canonical `@known_defect` tests: 52. `@covers` references: 96.
 - Source findings: critic-10
 - Reproduced by:
   - `tests/test_machine_definition.py::MachineDefinitionKnownDefects::test_every_vmid_user_parameter_is_read_by_the_post`
-
-### PP-053
-
-**First index of a program in default Z-homing mode has no G75 (sHomestrrot assigned lazily)**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Default i4xIndexClearanceMode=0, first job indexed before any rapid; safe in practice because start_program already homed. With bHomebegin false (or sHomestrbegin empty) that index turns A with no clearance at all.
-- Location: GPP @usr_4x_index_rotate (sHomestr = sHomestrrot; '' = no homing in @usr_prep_home_axis); sHomestrrot assigned only in @usr_rapid and @usr_head_home_select (first rapid / tool change)
-- Evidence that would settle it: None needed; owner decides whether the index must home explicitly.
-- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
-- Source findings: history-indexing-link-13
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_indexing_link.py::FirstIndexClearanceTests::test_first_index_in_z_homing_mode_homes_z`
 
 ### PP-054
 
@@ -1031,6 +1015,7 @@ now a regression guard marked `@covers`.
 | [PP-046](#pp-046) | d8f71e8 | `test_sub_resolution_rotary_change_does_not_home` | `tests/test_rotary.py` |
 | [PP-047](#pp-047) | 8989278 | `test_mirror_event_changes_the_frame_or_stops`, `test_rotate_event_changes_the_frame_or_stops` | `tests/test_contracts.py` |
 | [PP-049](#pp-049) | 9f48a3a | `test_rotary_feed_moves_use_the_documented_inverse_time_mode` | `tests/test_inverse_time_feed.py` |
+| [PP-053](#pp-053) | 0667596 | `test_first_index_in_z_homing_mode_homes_z` |  |
 | [PP-054 [g187-default]](#pp-054) | c06b190 | `test_no_fanuc_g187_in_a_default_program` |  |
 | [PP-057](#pp-057) | f5c74cd | `test_fanuc_only_output_is_pinned_to_legacy_procedures`, `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` |  |
 | [PP-059](#pp-059) | f7fb9bf | `test_emulated_rapid_without_motion_leaves_the_cut_feed_alone`, `test_rapid_without_motion_leaves_the_cut_alone`, `test_rapid_without_motion_leaves_the_job_comment_alone` | `tests/test_motion_rapids.py` |
@@ -1456,6 +1441,22 @@ now a regression guard marked `@covers`.
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_motion_rapids.py::RotaryFeedModeTests::test_rotary_feed_moves_use_the_documented_inverse_time_mode`
+
+### PP-053
+
+**First index of a program in default Z-homing mode has no G75 (sHomestrrot assigned lazily)**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Default i4xIndexClearanceMode=0, first job indexed before any rapid; safe in practice because start_program already homed. With bHomebegin false (or sHomestrbegin empty) that index turns A with no clearance at all.
+- Location: GPP @usr_4x_index_rotate (sHomestr = sHomestrrot; '' = no homing in @usr_prep_home_axis); sHomestrrot assigned only in @usr_rapid and @usr_head_home_select (first rapid / tool change)
+- Evidence that would settle it: None needed; owner decides whether the index must home explicitly.
+- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
+- Source findings: history-indexing-link-13
+- Status: fixed: 0667596 The first index before any rapid homes with sHomestrrotv in clearance mode 0, also with the program start homing off (bHomebegin).
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_indexing_link.py::FirstIndexClearanceTests::test_first_index_in_z_homing_mode_homes_z`
 
 ### PP-057
 
