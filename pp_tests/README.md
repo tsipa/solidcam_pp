@@ -75,7 +75,7 @@ in `tests_engine/fixtures/`), and `python -m pp_tests.gppl validate <post.gpp> -
 
 ### Running and reading the result
 
-The default run has 489 tests, takes about 25 s and must end `OK`. Its 49 skips
+The default run has 496 tests, takes about 25 s and must end `OK`. Its 49 skips
 have two causes:
 
 - `known defect PP-xxx reproduced: ...` (47 tests). Each open suspected defect has

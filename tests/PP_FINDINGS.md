@@ -28,25 +28,25 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | entries | high | medium-high | medium | low-medium | low | very-low | informational |
 |---|---|---|---|---|---|---|---|---|
-| pp | 61 | 4 | 1 | 19 | 5 | 31 | 1 | 0 |
+| pp | 62 | 4 | 1 | 20 | 5 | 31 | 1 | 0 |
 | engine | 21 | 0 | 0 | 3 | 3 | 14 | 1 | 0 |
 | design | 7 | 0 | 0 | 1 | 0 | 6 | 0 | 0 |
 
 | kind | confirmed | uncertain | likely-engine-artifact |
 |---|---|---|---|
-| pp | 44 | 16 | 1 |
+| pp | 45 | 16 | 1 |
 | engine | 15 | 5 | 1 |
 | design | 4 | 3 | 0 |
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 33 | 27 | 1 | 2 |
+| pp | 33 | 28 | 1 | 2 |
 | engine | 19 | 2 | 0 | 0 |
 | design | 6 | 1 | 0 | 0 |
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 55. `@covers` references: 85.
+Canonical `@known_defect` tests: 55. `@covers` references: 89.
 
 ## Index of open entries
 
@@ -1050,6 +1050,7 @@ now a regression guard marked `@covers`.
 | [PP-059](#pp-059) | f7fb9bf | `test_emulated_rapid_without_motion_leaves_the_cut_feed_alone`, `test_rapid_without_motion_leaves_the_cut_alone`, `test_rapid_without_motion_leaves_the_job_comment_alone` | `tests/test_motion_rapids.py` |
 | [PP-060](#pp-060) | d8f71e8 | `test_angles_that_jump_by_a_turn_stop_in_a_cut`, `test_first_feed_move_after_toolchange_unwind_stops`, `test_rounding_straddle_against_the_word_stops`, `test_wrong_way_feed_moves_stop_the_post`, `test_wrong_way_rapid_without_rotation_homing_stops_the_post`, `test_wrong_way_rotary_link_rapid_stops_the_post` | `tests/test_rotary_direction_guard.py` |
 | [PP-061](#pp-061) | d8f71e8 | `test_fourth_axis_and_offset_change_resets_are_not_cutting_turns`, `test_post_reset_of_a_is_not_a_cutting_turn` | `tests/test_rotary_modulo_range.py` |
+| [PP-062](#pp-062) | ad2a22b | `test_compensation_left_on_at_a_tool_change_is_deselected_after_the_z_homing`, `test_compensation_left_on_at_an_index_is_deselected_before_the_index`, `test_compensation_left_on_at_program_end_is_deselected_after_the_z_homing`, `test_compensation_left_on_at_the_job_end_is_deselected_at_the_clearance_height` | `tests/test_cutter_compensation.py` |
 | [ENGINE-004](#engine-004) | d5bd225 | `test_cycle84_arguments_are_numeric_and_ordered`, `test_cycle84_rigid_tapping_fields`, `test_string_case_and_escaped_quotes` |  |
 | [ENGINE-021](#engine-021) | 0eb3cef | `test_right_count_beyond_the_string_returns_the_whole_string` |  |
 | [DESIGN-002](#design-002) | 3e0c345 | `test_homed_rotary_rapid_returns_xy_then_z` | `tests/test_post_homing_reposition.py` |
@@ -1528,6 +1529,26 @@ now a regression guard marked `@covers`.
 - Guarded by (`@covers`):
   - `tests/test_rotary_modulo_range.py::FullTurnBaselineTests::test_fourth_axis_and_offset_change_resets_are_not_cutting_turns`
   - `tests/test_rotary_modulo_range.py::FullTurnBaselineTests::test_post_reset_of_a_is_not_a_cutting_turn`
+
+### PP-062
+
+**Cutter compensation left on runs through the post homing, index, M0/M1, tool change or M30 (no linear block carries the G40)**
+
+- Severity: medium
+- Confidence: confirmed
+- Reachability: CAM switches compensation off after the last retract or never (lead-out None, the retract is a rapid); 1128 of 6000 generated runs.
+- Location: GPP @end_of_job and @usr_prep_home_axis (refactoring branch before ad2a22b): no G40 unless a G0/G1 block carried the CAM compensation change
+- Evidence that would settle it: A SolidCAM trace of a compensated profile whose compensation off follows the retract.
+- Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
+- Source findings: owner-review-2026-10-27-3
+- Status: fixed: ad2a22b Compensation left on is deselected at the job end (clearance height) or right after the Z homing.
+- Tests of the fix: tests/test_cutter_compensation.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_cutter_compensation.py::CompensationAtPostHomingTests::test_compensation_left_on_at_a_tool_change_is_deselected_after_the_z_homing`
+  - `tests/test_cutter_compensation.py::CompensationAtPostHomingTests::test_compensation_left_on_at_an_index_is_deselected_before_the_index`
+  - `tests/test_cutter_compensation.py::CompensationAtPostHomingTests::test_compensation_left_on_at_program_end_is_deselected_after_the_z_homing`
+  - `tests/test_cutter_compensation.py::CompensationAtPostHomingTests::test_compensation_left_on_at_the_job_end_is_deselected_at_the_clearance_height`
 
 ### ENGINE-004
 

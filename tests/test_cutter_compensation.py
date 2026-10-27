@@ -19,6 +19,7 @@ from pp_tests.engine import Engine, UnsupportedGPPL
 from test_history_regressions import history_engine
 from test_offline import PP
 from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
+from support import covers
 from test_post_homing_reposition import Session
 
 
@@ -299,6 +300,7 @@ class CompensationAtPostHomingTests(unittest.TestCase):
     tool stands at or above the clearance plane, else right after the Z homing, above the part and
     before the XY homing ('G0 G40' with the last X and Y: a plane axis, module oracle)."""
 
+    @covers('PP-062')
     def test_compensation_left_on_at_the_job_end_is_deselected_at_the_clearance_height(self):
         """INDEPENDENT: module oracle; G40 before any G75, index, M1 or tool change of the next job."""
         program = compensation_left_on(self)
@@ -309,6 +311,7 @@ class CompensationAtPostHomingTests(unittest.TestCase):
         self.assertEqual(index[:2], ['M1', 'G75 Z1=0.'])
         self.assertNotIn('G40', ' '.join(index))
 
+    @covers('PP-062')
     def test_compensation_left_on_at_an_index_is_deselected_before_the_index(self):
         """INDEPENDENT: module oracle; the index (M1, G75, A word) runs with compensation off."""
         program = compensation_left_on(self)
@@ -317,6 +320,7 @@ class CompensationAtPostHomingTests(unittest.TestCase):
         self.assertEqual(index[:5], ['M1', 'G75 Z1=0.', 'G0 G40 X30 Y30', 'G75 Y1=0 X1=0', 'G54 A=ACP(90)'])
         self.assertEqual(program.ev('move_5x', xpos=10, ypos=10, zpos=5), ['X10 Y10', 'Z5'])
 
+    @covers('PP-062')
     def test_compensation_left_on_at_a_tool_change_is_deselected_after_the_z_homing(self):
         """INDEPENDENT: TRC must be off at a tool change; G40 after the Z homing, before the XY homing and M1."""
         program = compensation_left_on(self)
@@ -328,6 +332,7 @@ class CompensationAtPostHomingTests(unittest.TestCase):
         self.assertEqual(change[z:z + 3], ['G75 Z1=0.', 'G0 G40 X30 Y30', 'G75 Y1=0 X1=0'])
         self.assertLess(z, change.index('M1'))
 
+    @covers('PP-062')
     def test_compensation_left_on_at_program_end_is_deselected_after_the_z_homing(self):
         """INDEPENDENT: module oracle; M30 runs with compensation off."""
         program = compensation_left_on(self)

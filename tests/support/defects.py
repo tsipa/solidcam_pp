@@ -209,6 +209,8 @@ RESOLUTIONS = {
     'PP-060': ('fixed', 'd8f71e8 A feed move or a rotary rapid at the cutting height stops when the A word would turn A '
                         'another way than CAM.'),
     'PP-061': ('fixed', "d8f71e8 The full-turn stop counts CAM's own A step; the post's apos = 0 no longer trips it."),
+    'PP-062': ('fixed', 'ad2a22b Compensation left on is deselected at the job end (clearance height) or right after '
+                        'the Z homing.'),
     'PP-044': ('fixed', 'f5c74cd @call_proc, @proc and @end_proc stop the post with a POST ERROR (VMID GenProc=0).'),
     'PP-045': ('fixed', 'f5c74cd @change_ref_point stops the post with a POST ERROR instead of writing G10 L2.'),
     'DESIGN-002': ('fixed', '3e0c345 Split XY and Z when returning from post-inserted homing (owner decision; '
@@ -246,6 +248,7 @@ FIX_TESTS = {
     'PP-046': ('tests/test_rotary.py',),
     'PP-060': ('tests/test_rotary_direction_guard.py',),
     'PP-061': ('tests/test_rotary_modulo_range.py',),
+    'PP-062': ('tests/test_cutter_compensation.py',),
     'PP-045': ('tests/test_unsupported_features.py',),
     'DESIGN-002': ('tests/test_post_homing_reposition.py',),
 }
@@ -693,6 +696,13 @@ _ENTRIES = [
        'confirmed',
        'A SolidCAM trace of a multi-turn wrap job followed by a tool change.',
        ['owner-review-2026-10-27-2'], 'B'),
+    _d('PP-062', 'Cutter compensation left on runs through the post homing, index, M0/M1, tool change or M30 '
+       '(no linear block carries the G40)', 'medium',
+       'CAM switches compensation off after the last retract or never (lead-out None, the retract is a rapid); '
+       '1128 of 6000 generated runs.',
+       'confirmed',
+       'A SolidCAM trace of a compensated profile whose compensation off follows the retract.',
+       ['owner-review-2026-10-27-3'], 'D'),
     # -------------------------------------------------------------- ENGINE
     _d('ENGINE-001', 'Change-flag rule for equal-value assignment is unverified (engine: only a value change '
        'raises a flag, nothing clears it)', 'medium',
@@ -966,6 +976,8 @@ LOCATIONS = {
               'word followed dir5a or angle_4x_around_x_dir whatever the two positions were',
     'PP-061': "GPP @usr_line (refactoring branch before d8f71e8): 'abs(nR1posstep) >= 359.9995' with nPR1postemp "
               'taken after the post zeroed apos',
+    'PP-062': 'GPP @end_of_job and @usr_prep_home_axis (refactoring branch before ad2a22b): no G40 unless a G0/G1 '
+              'block carried the CAM compensation change',
     'ENGINE-001': 'pp_tests/gppl/legacy.py Engine.call assignment branch (a flag is raised only when the value changes '
                   'and never cleared)',
     'ENGINE-002': "pp_tests/gppl/legacy.py Engine._render (nb/nl always start a new block; 'skipline' is a plain variable)",
