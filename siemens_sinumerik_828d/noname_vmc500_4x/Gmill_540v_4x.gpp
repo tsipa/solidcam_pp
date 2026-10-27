@@ -10,12 +10,12 @@
 @init_post
 
     global string sUS_date sUS_time sUsrmsg sHomestr sHomestrbegin sHomestrtc sHomestrend sHomestrstpdiff sHomestrstpsame sHomeline
-    global string cWo cPb cPe cG84 cG84p cCycs cHomep cTCcodep cTCcodes fG84spin cDr cCb cCe cOMb cOMe
+    global string cWo cPb cPe cHomep cTCcodep cTCcodes cCb cCe cOMb cOMe
     global logical bStartFile bTlchg bWorkoffsettc bFirstMove bFirstRapid
     global logical bTlist bTlseperation bTcseperation bDateTimeOutput bStopM00difftool bToolPreselect bToolChangeAtEnd
     global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a bR1forceOutput
     global logical bOptstpbegin bOptstptc bOptstpend bUseprogname bCoolspinaftertc
-    global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bTmatrixIndexPending
+    global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bTmatrixIndexPending
     ; bPostHomed: the post homed the axes after the last positioning move (usr_home_axis); the next
     ; move reprograms X/Y/Z. usr_rapid_xyz keeps it set to its end as the homed-return marker.
     global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid bFeedPrevValid
@@ -30,7 +30,7 @@
     global integer iMplane iAbsincmode iWorkoffset iStopmode iMotionmode iPworkoffset
     global integer iDiametercomp iDrillmode iTcnumber iSpindleDir iR1dirMode
     global integer iDiameteroffset
-    global integer iHomingmode iProgendmode iPal1 iPal2
+    global integer iHomingmode iProgendmode
     global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
     global integer iCoolantM1ON iCoolantM2ON iCoolantM3ON iCoolantM4ON iCoolantM5ON iCoolantM6ON iCoolantM7ON iCoolantM8ON
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
@@ -41,7 +41,6 @@
     global numeric nPtool_start_plane nPtool_z_level
     global string  cR1 cR2 sHomestrrot sHomestrrotv sHomestrroth nR1pos_f bpos_f
     global integer i4xIndexMode i4xIndexClearanceMode i4xFeedMode
-    global integer iGear1 iGear2 iGear3 iGear4
     global string P_Dwell_f
     global numeric last_spin spindle_accel
 
@@ -93,13 +92,6 @@ endp
     cCe                   = ''                  ;Sets the ending Character(s) for comments
     cOMb                   = 'MSG("'            ;Sets the begginning Character(s) for operator message
     cOMe                   = '")'               ;Sets the ending Character(s) for operator message
-    ; cDr, cG84, cG84p, bG84spin, fG84spin and cCycs are Fanuc template options: not read by this post.
-    cDr                   = ''                  ;Sets the Character(s) used at the begging of a drill cycle (i.e. G98,G98,or nothing '')
-    cG84                  = ''                  ;Sets the Drill Cycle Character(s) used tapping (i.e. G84, G84.1)
-    cG84p                 = ''                  ;Sets the Preperation Line used for G84 Tapping (i.e. G84.2)**FADAL setting
-    bG84spin              = false               ;True = RPM is output during G84 Tapping Cycles
-    fG84spin              = '5.1'               ;Sets Formatting for RPM used for G84 Tapping Cycles ('5.1' = Decimal point 1 place)
-    cCycs                 = 'L0 '               ;Sets the Suppression Code to ignore Drill Cycles (i.e. LO)
 
     ;Coolant & Spindle Control
     flood_coolant               = 1
@@ -110,11 +102,6 @@ endp
     bCooloffend					= true          ;True = Outputs Coolant off at end of program
     bSpinoffend					= true          ;True = Outputs Spindle off at end of program
     bCoolspinaftertc			= false         ;True = Outputs Coolant&Spindle directly after Tool Change
-    ; iGear1-4 and iPal1/iPal2 are not read by this post.
-    iGear1						= 41            ;Code: M code for low spindle gear
-    iGear2						= 42            ;Code: M code for low spindle gear
-    iGear3						= 43            ;Code: M code for low spindle gear
-    iGear4						= 44            ;Code: M code for low spindle gear
     iCoolantM1ON				= 8             ;Code: Flood Coolant ON
     iCoolantM1OFF				= 9             ;Code: Flood Coolant OFF
     iCoolantM2ON				= 7             ;Code: Mist Coolant ON
@@ -131,8 +118,6 @@ endp
     iCoolantM7OFF				= 9             ;Code: Air Blast OFF
     iCoolantM8ON				= 92            ;Code: Air Through Tool ON
     iCoolantM8OFF				= 9             ;Code: Air Through Tool OFF
-    iPal1						= 911           ;code: pallet in
-    iPal2						= 912           ;code: pallet in
 
     ;User Preferences
     bTlist						= true          ;True = Outputs tool list at beginning of program

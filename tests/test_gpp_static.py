@@ -287,24 +287,26 @@ class OptionTests(unittest.TestCase):
 
     def test_user_options_that_have_no_effect_are_pinned(self):
         """CHARACTERIZATION: user options assigned in @usr_ip_useroptions that no
-        statement reads; editing one changes nothing in the NC program (G84
-        tapping strings, gear and pallet options, the second rotary letter).
-        bCoolofftc/bSpinofftc (PP-010) and i4xFeedMode (PP-049) are registered
-        defects with their own canonical tests and are excluded, as are the
-        blknum* block-numbering settings SolidCAM consumes itself. A new dead
-        option fails; a pinned option that gains a reader must be trimmed."""
-        self.assertEqual(options_without_consumers(pp_source()), {
-            'bg84spin', 'fg84spin', 'cg84', 'cg84p', 'cdr', 'ccycs',
-            'igear1', 'igear2', 'igear3', 'igear4', 'ipal1', 'ipal2', 'cr2',
-        })
+        statement reads; editing one changes nothing in the NC program. Only the
+        second rotary letter is left (the Fanuc G84 strings and the gear and
+        pallet options were deleted). bCoolofftc/bSpinofftc (PP-010) and
+        i4xFeedMode (PP-049) are registered defects with their own canonical tests
+        and are excluded, as are the blknum* block-numbering settings SolidCAM
+        consumes itself. A new dead option fails; a pinned option that gains a
+        reader must be trimmed."""
+        self.assertEqual(options_without_consumers(pp_source()), {'cr2'})
 
     def test_dead_option_pin_detects_a_new_consumer(self):
         """INDEPENDENT: mutation self-check; giving a pinned option a reader
-        (cDr printed in @usr_check_smoothing) must change the computed set."""
+        (cR2 printed in @usr_check_smoothing) must change the computed set, and
+        a new dead option must appear in it."""
         anchor = '\n@usr_check_smoothing\n'
-        mutant = mutate(anchor, anchor + "    {nb, cDr}\n")
-        self.assertNotIn('cdr', options_without_consumers(mutant))
-        self.assertIn('cdr', options_without_consumers(pp_source()))
+        mutant = mutate(anchor, anchor + "    {nb, cR2}\n")
+        self.assertNotIn('cr2', options_without_consumers(mutant))
+        self.assertIn('cr2', options_without_consumers(pp_source()))
+        option = "    cR2                   = 'B'"
+        mutant = mutate(option, option + "\n    cNewDead = 'X'")
+        self.assertIn('cnewdead', options_without_consumers(mutant))
 
 
 class StaticSourceTests(unittest.TestCase):
