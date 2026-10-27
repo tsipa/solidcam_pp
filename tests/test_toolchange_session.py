@@ -37,7 +37,7 @@ INDEX_HOMING = ("            if i4xIndexClearanceMode eq 0\n                if s
                 "                    sHomestr = sHomestrrot\n                    call @usr_prep_home_axis\n"
                 "                endif\n                iMotionmode = 0\n                {nb,")
 START_TOOL_AFTER_TC = ('            skipline = false\n            call @start_tool\n        endif\n    endif\n'
-                       ';    bSkipxyrapid = true')
+                       'endp\n')
 
 
 def listing(blocks):
@@ -384,9 +384,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
     def test_m00_different_tool_mutations_are_detected(self):
         """INDEPENDENT: a live bStopM00difftool or no M5 before M00 fails the guard."""
         sources = {
-            'bStopM00difftool kept alive': mutate('    bSkipxyrapid = false\n    bStopM00difftool = false\n'
-                                                  '    iPworkoffset = iWorkoffset',
-                                                  '    bSkipxyrapid = false\n    iPworkoffset = iWorkoffset'),
+            'bStopM00difftool kept alive': mutate('    bStopM00difftool = false\n    iPworkoffset = iWorkoffset',
+                                                  '    iPworkoffset = iWorkoffset'),
             'no M5 before the different-tool M00': mutate(
                 "        call @usr_coolant_output\n    endif\n    iSpindleDir = 5\n    {nb}\n"
                 "    call @usr_spindle_mcode_output\n    if sHomestrstpdiff",

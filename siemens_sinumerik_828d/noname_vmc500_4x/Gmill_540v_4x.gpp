@@ -11,7 +11,7 @@
 
     global string sUS_date sUS_time sUsrmsg sHomestr sHomestrbegin sHomestrtc sHomestrend sHomestrstpdiff sHomestrstpsame sHomeline sHomestrendsub
     global string sCamfilepath sSubspath cWo cPb cPe cG84 cG84p cCycs cHomep cTCcodep cTCcodes fG84spin cDr cCb cCe cOMb cOMe
-    global logical bStartFile bTlchg bSkipxyrapid bWorkoffsettc bFirstMove bFirstMovetlch bFirstRapid
+    global logical bStartFile bTlchg bWorkoffsettc bFirstMove bFirstRapid
     global logical bSubs bTlist bTlseperation bTcseperation bDateTimeOutput bStopM00difftool bToolPreselect bToolChangeAtEnd
     global logical bFromendprogram bFrombeginchangetool bFromendchangetool bFromendoffile bMultiplefixtures
     global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a bR1forceOutput
@@ -844,7 +844,6 @@ endp
             call @start_tool
         endif
     endif
-;    bSkipxyrapid = true
 endp
 
 @usr_tc_init_gmstates
@@ -1129,7 +1128,6 @@ endp
         change(iWorkoffset) = false
         iMotionmode = 1
         change(iDiameteroffset) = false
-        bSkipxyrapid = false
         spin = spin_rate
         change(spin) = false
         ; X/Y are programmed here and Z after the spindle start below: no extra reposition. The
@@ -1150,7 +1148,6 @@ endp
         if bTlchg
             call @usr_ct
             bTlchg = false
-            bFirstMovetlch = true
         else
             bFirstRapid = true
             {nb, cOMb,job_name,cOMe}
@@ -1175,10 +1172,6 @@ endp
         {nb, 'WHILE [#', var_num, ' LT ', loop_count, '] DO ', loop_level}
         bPrintloop = false
     endif
-    ;Special
-    if job_type eq 'drill_hr' or X5_job or transform_type eq 3
-        bSkipxyrapid = false
-    endif
     call @usr_HSM_mode
     bFirstMove = true
 endp
@@ -1199,7 +1192,6 @@ endp
             call @usr_StopM00_difftool
         endif
     endif
-    bSkipxyrapid = false
     bStopM00difftool = false
     iPworkoffset = iWorkoffset
     ; ---- 4x
@@ -2341,7 +2333,6 @@ endp
 ;----------------
 
 @loop_matrix_info
-    bSkipxyrapid = false
 endp
 
 @loop

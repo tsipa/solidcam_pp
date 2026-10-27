@@ -67,14 +67,15 @@ class WholeGppTests(unittest.TestCase):
         # eq 3 block, which the second one fully overwrote. -1 branch / -2 statements: refactor B7 deleted
         # the never-taken bSkipxyrapid else branch in usr_rapid. -1 branch / -3 statements: round 2 split
         # usr_rapid into stages; the two head-homing copies became usr_head_home and the motion-mode
-        # if/else lost its nested job_type test.
+        # if/else lost its nested job_type test. -1 statement: R2 deleted the dead bSkipxyrapid writes
+        # (one in the bSubs branch, hence 22 statements there).
         self.assertEqual(len(branches), 36)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 154)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 153)
         subs_line = lines_matching(r'^\s*if bSubs\s*$', start='@start_of_job')
         subs = [d for d in branches if d.proc == 'start_of_job' and d.line == subs_line[0]]
         option = lines_matching(r'^\s*bSubs\s*=')[0]
         self.assertIn(f'bsubs=False (L{option})', subs[0].message)
-        self.assertIn('23 statement(s)', subs[0].message)        # + reposition handling (ed07c3f, review round 2)
+        self.assertIn('22 statement(s)', subs[0].message)        # + reposition handling (ed07c3f, review round 2)
 
     def test_policy_sensitive_sites(self):
         codes = {}
