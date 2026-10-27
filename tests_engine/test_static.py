@@ -57,7 +57,8 @@ class WholeGppTests(unittest.TestCase):
         unreachable = {d.proc for d in self.diagnostics if d.code == 'I-UNREACHABLE'}
         self.assertEqual(unreachable, set())                       # usr_heightcomp_on/off deleted (refactor)
         config_dead_procs = {d.proc for d in self.diagnostics if d.code == 'I-CONFIG-DEAD-PROC'}
-        self.assertEqual(config_dead_procs, {'usr_trig_macro_call', 'usr_trig_macro_output'})
+        # usr_soj_subs: the bSubs branch of start_of_job (R13 moved its 22 statements there).
+        self.assertEqual(config_dead_procs, {'usr_trig_macro_call', 'usr_trig_macro_output', 'usr_soj_subs'})
         branches = [d for d in self.diagnostics if d.code == 'I-CONFIG-DEAD']
         # 37 before the review fixes + the iR1posControl eq 3 block split out of 'eq 1 or eq 3' (6228b3d).
         # Dead statements 147 before the fixes: +3 that block, +2 bSubs branch (ed07c3f, review round 2),
@@ -71,14 +72,17 @@ class WholeGppTests(unittest.TestCase):
         # (one in the bSubs branch, hence 22 statements there). -1 branch / -5 statements: R4 moved the
         # duplicated safety block (its dead bNnumtc branch) and the M5 copies into helpers. +3 branches /
         # -35 statements: R5 folded the six index copies (modes 0/1 x clearance 0/1/2) into one
-        # usr_4x_index_rotate with smaller per-clearance branches.
+        # usr_4x_index_rotate with smaller per-clearance branches. -21 statements: R13 moved the bSubs
+        # branch body into usr_soj_subs (a dead procedure; its statements are not counted here).
         self.assertEqual(len(branches), 38)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 113)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 92)
         subs_line = lines_matching(r'^\s*if bSubs\s*$', start='@start_of_job')
         subs = [d for d in branches if d.proc == 'start_of_job' and d.line == subs_line[0]]
         option = lines_matching(r'^\s*bSubs\s*=')[0]
         self.assertIn(f'bsubs=False (L{option})', subs[0].message)
-        self.assertIn('22 statement(s)', subs[0].message)        # + reposition handling (ed07c3f, review round 2)
+        self.assertIn('1 statement(s)', subs[0].message)         # call @usr_soj_subs
+        # The dead bSubs code itself: + reposition handling (ed07c3f, review round 2).
+        self.assertEqual(len(list(self.program.procedures['usr_soj_subs'].statements())), 22)
 
     def test_policy_sensitive_sites(self):
         codes = {}

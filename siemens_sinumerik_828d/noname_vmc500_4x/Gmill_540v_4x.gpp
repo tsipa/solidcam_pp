@@ -1057,8 +1057,9 @@ endp
     bIndexClearancePending = true
     bCamLinkRetract = false
     bJobPositioned = false
-    ; Handle what happens at start of operation(job)
-    ; If using Subs we do not make tool change in @start_of_job
+    ; Start of an operation: work offset and job plane, a pending index, then the tool change
+    ; (usr_ct) or, for the same tool, the job comment and a work-offset change. With bSubs
+    ; (subprogram output) the tool change is not made here.
     call @home_number
     ; Arcs in YZ/ZX leave iMplane at 19/18; restore the job's machining plane for its first motion block.
     call @usr_job_plane
@@ -1074,32 +1075,7 @@ endp
         nTcXnext = 0
     endif
     if bSubs
-        {nb, cOMb,job_name,cOMe}
-        xpos = xnext
-        ypos = ynext
-        change(xpos) = true
-        change(ypos) = true
-        change(zpos) = false
-        change(iAbsincmode) = true
-        change(iWorkoffset) = false
-        iMotionmode = 1
-        change(iDiameteroffset) = false
-        spin = spin_rate
-        change(spin) = false
-        ; X/Y are programmed here and Z after the spindle start below: no extra reposition. The
-        ; tool-change rapid (bTlchg) programs no X/Y, so then the reposition stays pending.
-        if !bTlchg
-            bPostHomed = false
-        endif
-        call @rapid_move
-        call @start_tool
-        if bCoolExist
-            call @usr_coolant
-        endif
-        change(xpos) = false
-        change(ypos) = false
-        change(zpos) = true
-        call @rapid_move
+        call @usr_soj_subs
     else
         if bTlchg
             call @usr_ct
@@ -1128,6 +1104,37 @@ endp
     endif
     call @usr_HSM_mode
     bFirstMove = true
+endp
+
+@usr_soj_subs
+    ; bSubs (subprogram output, Fanuc template): job comment, rapid to the next X/Y, spindle and
+    ; coolant start, then the Z rapid.
+    {nb, cOMb,job_name,cOMe}
+    xpos = xnext
+    ypos = ynext
+    change(xpos) = true
+    change(ypos) = true
+    change(zpos) = false
+    change(iAbsincmode) = true
+    change(iWorkoffset) = false
+    iMotionmode = 1
+    change(iDiameteroffset) = false
+    spin = spin_rate
+    change(spin) = false
+    ; X/Y are programmed here and Z after the spindle start below: no extra reposition. The
+    ; tool-change rapid (bTlchg) programs no X/Y, so then the reposition stays pending.
+    if !bTlchg
+        bPostHomed = false
+    endif
+    call @rapid_move
+    call @start_tool
+    if bCoolExist
+        call @usr_coolant
+    endif
+    change(xpos) = false
+    change(ypos) = false
+    change(zpos) = true
+    call @rapid_move
 endp
 
 ;--------------------
