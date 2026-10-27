@@ -1223,28 +1223,6 @@ endp
     endif
 endp
 
-@usr_rapid_done
-    ; State for the next event.
-    if !bSyncdrapid
-        ; The next feed move reprograms F.
-        bFeedoutput = true
-    endif
-    if bRapidRotaryChanged
-        bIndexClearancePending = false
-    endif
-    ; CAM may split one link into several XYZ and rotary rapid blocks.
-    ; Keep its confirmation until a feed move or an indexing boundary resets it.
-    if bCamLinkRapid
-        bCamLinkRetract = true
-    endif
-    bJobPositioned = true
-    nLastPathZ = zpos
-    nLastPathWorkoffset = iWorkoffset
-    ; The work offset is programmed (or unchanged): no repeat on the next block.
-    change(cWo) = false
-    change(iWorkoffset) = false
-endp
-
 @usr_rapid_head_check
     ; First rapid of a job or of a tool change. The head counts as vertical when the secondary rotation
     ; nR2pos is not 0 (swivel-head template; on this A-axis machine only a CoordSys turned about Z or a
@@ -1388,6 +1366,29 @@ endp
         endif
         bFirstMove = false
     endif
+endp
+
+@usr_rapid_done
+    ; State for the next event.
+    if !bSyncdrapid
+        ; The next feed move reprograms F.
+        bFeedoutput = true
+    endif
+    ; After an index boundary the first A turn goes without a CAM link; later turns may ride one.
+    if bRapidRotaryChanged
+        bIndexClearancePending = false
+    endif
+    ; CAM may split one link into several XYZ and rotary rapid blocks.
+    ; Keep its confirmation until a feed move or an indexing boundary resets it.
+    if bCamLinkRapid
+        bCamLinkRetract = true
+    endif
+    bJobPositioned = true
+    nLastPathZ = zpos
+    nLastPathWorkoffset = iWorkoffset
+    ; The work offset is programmed (or unchanged): no repeat on the next block.
+    change(cWo) = false
+    change(iWorkoffset) = false
 endp
 
 @usr_emulated_rapid_feed
