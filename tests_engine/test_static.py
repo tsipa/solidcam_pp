@@ -68,9 +68,10 @@ class WholeGppTests(unittest.TestCase):
         # the never-taken bSkipxyrapid else branch in usr_rapid. -1 branch / -3 statements: round 2 split
         # usr_rapid into stages; the two head-homing copies became usr_head_home and the motion-mode
         # if/else lost its nested job_type test. -1 statement: R2 deleted the dead bSkipxyrapid writes
-        # (one in the bSubs branch, hence 22 statements there).
-        self.assertEqual(len(branches), 36)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 153)
+        # (one in the bSubs branch, hence 22 statements there). -1 branch / -5 statements: R4 moved the
+        # duplicated safety block (its dead bNnumtc branch) and the M5 copies into helpers.
+        self.assertEqual(len(branches), 35)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 148)
         subs_line = lines_matching(r'^\s*if bSubs\s*$', start='@start_of_job')
         subs = [d for d in branches if d.proc == 'start_of_job' and d.line == subs_line[0]]
         option = lines_matching(r'^\s*bSubs\s*=')[0]

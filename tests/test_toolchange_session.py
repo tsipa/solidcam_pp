@@ -121,7 +121,7 @@ class ToolChangeSequenceTests(unittest.TestCase):
 
     def test_d1_reversions_are_detected(self):
         """INDEPENDENT: removing D1 (420c4ab reverted) or moving it after the first rapid fails."""
-        rapid = "            change(zpos) = false\n            skipline = true\n            call @usr_rapid\n"
+        rapid = "            call @usr_ct_target\n            skipline = true\n            call @usr_rapid\n"
         late = mutate("    {nb, 'D1 '}\n", '')
         late = mutate(rapid, rapid + "            {nb, 'D1 '}\n", source=late)
         sources = {'420c4ab reverted': mutate("    {nb, 'D1 '}\n", ''), 'D1 after the first rapid': late}
@@ -239,8 +239,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
             'no tool-change homing': mutate(TC_HOMING_CALL, "            if sHomestrtc ne ''\n"
                                                             "                sHomestr = sHomestrtc\n"),
             'both tool-change homing calls removed (weird-hunter)': both_homing,
-            'no M5 before M06': mutate("        if bSpinoffend\n            iSpindleDir = 5\n            {nb}\n"
-                                       "            call @usr_spindle_mcode_output\n        endif\n        if bVertical",
+            'no M5 before M06': mutate("        if bSpinoffend\n            call @usr_spindle_stop\n"
+                                       "        endif\n        if bVertical",
                                        "        if bVertical"),
             'no M9 before M06': mutate("    if !bStopM00difftool\n        if bCooloffend and bCoolExist",
                                        "    if !bStopM00difftool\n        if false"),
@@ -387,8 +387,7 @@ class ToolChangeSafetyTests(unittest.TestCase):
             'bStopM00difftool kept alive': mutate('    bStopM00difftool = false\n    iPworkoffset = iWorkoffset',
                                                   '    iPworkoffset = iWorkoffset'),
             'no M5 before the different-tool M00': mutate(
-                "        call @usr_coolant_output\n    endif\n    iSpindleDir = 5\n    {nb}\n"
-                "    call @usr_spindle_mcode_output\n    if sHomestrstpdiff",
+                "        call @usr_coolant_output\n    endif\n    call @usr_spindle_stop\n    if sHomestrstpdiff",
                 "        call @usr_coolant_output\n    endif\n    if sHomestrstpdiff"),
         }
         for label, source in sources.items():
@@ -432,8 +431,7 @@ class ToolChangeSafetyTests(unittest.TestCase):
         """INDEPENDENT: no M5 before M00 or no restart after it fails the guard (pp-region-3, tc-14)."""
         sources = {
             'no M5 before the same-tool M00': mutate(
-                "        call @usr_coolant_output\n    endif\n    iSpindleDir = 5\n    {nb}\n"
-                "    call @usr_spindle_mcode_output\n    if sHomestrstpsame",
+                "        call @usr_coolant_output\n    endif\n    call @usr_spindle_stop\n    if sHomestrstpsame",
                 "        call @usr_coolant_output\n    endif\n    if sHomestrstpsame"),
             'no spindle restart after M00': mutate('    call @m_feed_spin\n    call @usr_spindle_mcode_output\n'
                                                    '    change(xpos) = true',

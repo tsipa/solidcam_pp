@@ -510,9 +510,7 @@ endp
         call @usr_coolant_output
     endif
     if bSpinoffend
-        iSpindleDir = 5
-        {nb}
-        call @usr_spindle_mcode_output
+        call @usr_spindle_stop
     endif
     if sHomestrend ne ''
         sHomestr = sHomestrend
@@ -701,9 +699,7 @@ endp
             call @usr_coolant_output
         endif
         if bSpinoffend
-            iSpindleDir = 5
-            {nb}
-            call @usr_spindle_mcode_output
+            call @usr_spindle_stop
         endif
         if bVertical or bFirstVert
             ; No rapid since the program start (bFirstVert) or the head was vertical: home with the
@@ -723,23 +719,17 @@ endp
     if bTcseperation
         {nl}
     endif
-    bSafetyprep = true
-    call @usr_tc_init_gmstates
-    if bNnumtc
-        {nl,'N'iTcnumber' '}
-        skipline = false
-    else
-        {nb,cCb}
-    endif
-    {nb, 'G17 G40 G64 G90'}
-    ; The safety block cancels cutter compensation on the control: keep the post's state in step.
-    iDiametercomp = 40
-    change(iDiametercomp) = false
-    iCompActive = 40
+    call @usr_ct_safety_block
 endp
 
 @usr_ct_before_firsttool
     ; Handle output before the first tool change
+    call @usr_ct_safety_block
+endp
+
+@usr_ct_safety_block
+    ; Safety block before the T word of every tool change: G17 G40 G64 G90 (after N<iTcnumber>
+    ; with bNnumtc). It also resets the modal states for the new tool.
     bSafetyprep = true
     call @usr_tc_init_gmstates
     if bNnumtc
@@ -800,14 +790,12 @@ endp
             endif
         endw
     endif
-    ; ---- 4x
     if i4xIndexMode eq 2 and !bLimit_3axis ;Trig Macro
         call @usr_r1pos_calc
         call @usr_trig_macro_call
         iWorkoffset = 112
         nR1pos = 9999
     endif
-    ; ---- 4x
     if bCoolspinaftertc
         skipline = true
         call @start_tool
@@ -816,19 +804,13 @@ endp
             call @usr_coolant
         endif
         if !bSubs
-            xpos = nTcXnext
-            ypos = nTcYnext
-            cpos = nTcCnext
-            change(zpos) = false
+            call @usr_ct_target
             call @usr_rapid
 ;	    call @usr_heightcomp_on
         endif
     else
         if !bSubs
-            xpos = nTcXnext
-            ypos = nTcYnext
-            cpos = nTcCnext
-            change(zpos) = false
+            call @usr_ct_target
             skipline = true
             call @usr_rapid
             if bCoolExist
@@ -839,6 +821,15 @@ endp
             call @start_tool
         endif
     endif
+endp
+
+@usr_ct_target
+    ; The rapid after a tool change targets the X/Y/C that @change_tool saved, without a Z move: it
+    ; programs only the work offset and A (usr_rapid_tc_block); X/Y follow on the job's first move.
+    xpos = nTcXnext
+    ypos = nTcYnext
+    cpos = nTcCnext
+    change(zpos) = false
 endp
 
 @usr_tc_init_gmstates
@@ -1942,9 +1933,7 @@ endp
         call @usr_coolant_prep_all_off
         call @usr_coolant_output
     endif
-    iSpindleDir = 5
-    {nb}
-    call @usr_spindle_mcode_output
+    call @usr_spindle_stop
     if sHomestrstpsame ne ''
         sHomestr = sHomestrstpsame
         call @usr_prep_home_axis
@@ -1981,9 +1970,7 @@ endp
         call @usr_coolant_prep_all_off
         call @usr_coolant_output
     endif
-    iSpindleDir = 5
-    {nb}
-    call @usr_spindle_mcode_output
+    call @usr_spindle_stop
     if sHomestrstpdiff ne ''
         sHomestr = sHomestrstpdiff
         call @usr_prep_home_axis
@@ -2220,6 +2207,13 @@ endp
 		{nb}
 	endif
 	last_spin = spin
+endp
+
+@usr_spindle_stop
+    ; M5 in its own block.
+    iSpindleDir = 5
+    {nb}
+    call @usr_spindle_mcode_output
 endp
 
 @usr_spindle_mcode_output
