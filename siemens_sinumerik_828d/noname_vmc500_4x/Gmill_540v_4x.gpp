@@ -2640,82 +2640,22 @@ endp
 endp
 
 @usr_4x_index
-    ; Handle 4x indexing (Rotary moves between operations)
-    ;4x-Indexing control (0=Simple Rotation, 1=New WorkOffset, 2=Trig Macro)
-    ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
-    ; sHomestrrot is the homing string of the last rapid or tool change (sHomestrrotv/roth); it is ''
-    ; before the first one.
+    ; Index A between operations (tmatrix in start_of_job, fourth_axis).
+    ;   i4xIndexMode: 0 = turn A in the current work offset, 1 = also step the work offset by
+    ;   position-1 (G54, G55, ...), 2 = Fanuc trig macro (G65 P777; not for this control).
+    ;   i4xIndexClearanceMode: 0 = home first (sHomestrrot, the homing string of the last rapid or tool
+    ;   change; '' before the first one), 1 = tool Z level, 2 = tool start plane (the previous job's
+    ;   before the rotation, this job's after it).
     call @usr_r1pos_calc
     if change(nR1pos)
         ; Turning A does not move Z. A homing clears bClimbZValid itself; a clearance move sets nLastPathZ.
         ; The index is not a tracked feed start (A and possibly Z moved).
         bFeedPrevValid = false
         call @usr_optionalstop
-        if i4xIndexMode eq 0 ;Simple Rotation
-            if i4xIndexClearanceMode eq 0
-                if sHomestrrot ne ''
-                    sHomestr = sHomestrrot
-                    call @usr_prep_home_axis
-                endif
-                iMotionmode = 0
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-                call @usr_r1_output
-            endif
-            if i4xIndexClearanceMode eq 1
-                if tool_z_level < tool_start_plane
-                    Print 'WARNING!! Tool Z Level is below Tool Start Plane in CoordSys'
-                    {nl,'WARNING!! Tool Z Level is below Tool Start Plane in CoordSys'}
-                endif
-                iMotionmode = 0
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'nPtool_z_level ' '}
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-                call @usr_r1_output
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_z_level ' '}
-                nLastPathZ = tool_z_level
-            endif
-            if i4xIndexClearanceMode eq 2
-                iMotionmode = 0
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'nPtool_start_plane ' '}
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-                call @usr_r1_output
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_start_plane ' '}
-                nLastPathZ = tool_start_plane
-            endif
-        endif
-        if i4xIndexMode eq 1 ;New WorkOffset
-            if i4xIndexClearanceMode eq 0
-                if sHomestrrot ne ''
-                    sHomestr = sHomestrrot
-                    call @usr_prep_home_axis
-                endif
-                iMotionmode = 0
-                iWorkoffset = iWorkoffset + (position-1)
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-                call @usr_r1_output
-            endif
-            if i4xIndexClearanceMode eq 1
-                if tool_z_level < tool_start_plane
-                    Print 'WARNING!! Tool Z Level is below Tool Start Plane in CoordSys'
-                    {nl,'WARNING!! Tool Z Level is below Tool Start Plane in CoordSys'}
-                endif
-                iMotionmode = 0
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'nPtool_z_level ' '}
-                iWorkoffset = iWorkoffset + (position-1)
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-                call @usr_r1_output
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_z_level ' '}
-                nLastPathZ = tool_z_level
-                nLastPathWorkoffset = iWorkoffset
-            endif
-            if i4xIndexClearanceMode eq 2
-                iMotionmode = 0
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'nPtool_start_plane ' '}
-                iWorkoffset = iWorkoffset + (position-1)
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-                call @usr_r1_output
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_start_plane ' '}
-                nLastPathZ = tool_start_plane
-                nLastPathWorkoffset = iWorkoffset
+        if i4xIndexMode eq 0 or i4xIndexMode eq 1
+            ; Another clearance mode value turns nothing.
+            if i4xIndexClearanceMode eq 0 or i4xIndexClearanceMode eq 1 or i4xIndexClearanceMode eq 2
+                call @usr_4x_index_rotate
             endif
         endif
     endif
@@ -2723,15 +2663,46 @@ endp
         ; The macro recomputes the G112 origin: Z before and after are not comparable.
         bClimbZValid = false
         bFeedPrevValid = false
-        if sHomestrrot ne ''
-            sHomestr = sHomestrrot
-            call @usr_prep_home_axis
-        endif
+        call @usr_home_rot
         call @usr_trig_macro_call
         iMotionmode = 0
         iWorkoffset = 112
         {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
         call @usr_r1_output
+    endif
+endp
+
+@usr_4x_index_rotate
+    ; Index modes 0 and 1: clearance, the G0 A block (in mode 1 with the next work offset), clearance.
+    iMotionmode = 0
+    if i4xIndexClearanceMode eq 0
+        call @usr_home_rot
+    endif
+    if i4xIndexClearanceMode eq 1
+        if tool_z_level < tool_start_plane
+            Print 'WARNING!! Tool Z Level is below Tool Start Plane in CoordSys'
+            {nl,'WARNING!! Tool Z Level is below Tool Start Plane in CoordSys'}
+        endif
+        {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'nPtool_z_level ' '}
+    endif
+    if i4xIndexClearanceMode eq 2
+        {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'nPtool_start_plane ' '}
+    endif
+    if i4xIndexMode eq 1
+        iWorkoffset = iWorkoffset + (position-1)
+    endif
+    {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+    call @usr_r1_output
+    if i4xIndexClearanceMode eq 1
+        {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_z_level ' '}
+        nLastPathZ = tool_z_level
+    endif
+    if i4xIndexClearanceMode eq 2
+        {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_start_plane ' '}
+        nLastPathZ = tool_start_plane
+    endif
+    if i4xIndexMode eq 1 and i4xIndexClearanceMode ne 0
+        nLastPathWorkoffset = iWorkoffset
     endif
 endp
 

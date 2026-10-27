@@ -965,28 +965,19 @@ REVERSIONS = [
        '        call @usr_4x_index')],
      IndexHistoryTests, '_check_index_after_feed_moves'),
     ('c03e1b4: index mode 0 does not force G0',
-     [("                    call @usr_prep_home_axis\n                endif\n"
-       "                iMotionmode = 0\n                {nb,['G'iMotionmode:mcode_f ' '],"
-       "['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}\n"
-       "                call @usr_r1_output\n            endif\n            if i4xIndexClearanceMode eq 1\n",
-       "                    call @usr_prep_home_axis\n                endif\n"
-       "                {nb,['G'iMotionmode:mcode_f ' '],"
-       "['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}\n"
-       "                call @usr_r1_output\n            endif\n            if i4xIndexClearanceMode eq 1\n")],
+     [('    iMotionmode = 0\n    if i4xIndexClearanceMode eq 0\n        call @usr_home_rot\n',
+       '    if i4xIndexClearanceMode eq 0\n        call @usr_home_rot\n')],
      IndexHistoryTests, '_check_index_after_feed_moves'),
     ('92e2b23: no optional stop before the index (after feed moves)',
-     [('        call @usr_optionalstop\n        if i4xIndexMode eq 0 ;Simple Rotation',
-       '        if i4xIndexMode eq 0 ;Simple Rotation')],
+     [('        call @usr_optionalstop\n        if i4xIndexMode eq 0 or i4xIndexMode eq 1\n',
+       '        if i4xIndexMode eq 0 or i4xIndexMode eq 1\n')],
      IndexHistoryTests, '_check_index_after_feed_moves'),
     ('92e2b23: no optional stop before the index (between jobs)',
-     [('        call @usr_optionalstop\n        if i4xIndexMode eq 0 ;Simple Rotation',
-       '        if i4xIndexMode eq 0 ;Simple Rotation')],
+     [('        call @usr_optionalstop\n        if i4xIndexMode eq 0 or i4xIndexMode eq 1\n',
+       '        if i4xIndexMode eq 0 or i4xIndexMode eq 1\n')],
      IndexHistoryTests, '_check_index_between_jobs'),
     ('index mode 0 does not home before the rotation',
-     [("            if i4xIndexClearanceMode eq 0\n                if sHomestrrot ne ''\n"
-       "                    sHomestr = sHomestrrot\n                    call @usr_prep_home_axis\n"
-       "                endif\n                iMotionmode = 0\n                {nb",
-       "            if i4xIndexClearanceMode eq 0\n                iMotionmode = 0\n                {nb")],
+     [("    if i4xIndexClearanceMode eq 0\n        call @usr_home_rot\n    endif\n", '')],
      IndexHistoryTests, '_check_index_between_jobs'),
     ('8d6b044: old tmatrix formula',
      [('\tnR1postmatrix = (-angle_4x_around_x) * iR1dir',

@@ -33,9 +33,7 @@ NO_COOLANT = dict(flood_coolant=0, Mist_coolant=0, HP_Flood_coolant=0, LP_Flood_
                   Air_Blast_coolant=0, air_through_coolant=0)
 TC_HOMING_CALL = ("            if sHomestrtc ne ''\n                sHomestr = sHomestrtc\n"
                   "                call @usr_prep_home_axis\n")
-INDEX_HOMING = ("            if i4xIndexClearanceMode eq 0\n                if sHomestrrot ne ''\n"
-                "                    sHomestr = sHomestrrot\n                    call @usr_prep_home_axis\n"
-                "                endif\n                iMotionmode = 0\n                {nb,")
+INDEX_HOMING = "    if i4xIndexClearanceMode eq 0\n        call @usr_home_rot\n    endif\n"
 START_TOOL_AFTER_TC = ('            skipline = false\n            call @start_tool\n        endif\n    endif\n'
                        'endp\n')
 
@@ -468,8 +466,7 @@ class ToolChangeSafetyTests(unittest.TestCase):
     def test_pending_index_mutations_are_detected(self):
         """INDEPENDENT: an index without its G75 Z homing fails the guard."""
         assert_detected(self, self.check_pending_index,
-               mutate(INDEX_HOMING, "            if i4xIndexClearanceMode eq 0\n                iMotionmode = 0\n"
-                                    "                {nb,"), 'index without homing', 'A90 index')
+               mutate(INDEX_HOMING, ''), 'index without homing', 'A90 index')
 
     # -- coolant channels ---------------------------------------------------------------
     def check_coolant_channels(self, source=None):

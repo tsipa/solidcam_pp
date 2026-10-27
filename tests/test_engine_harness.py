@@ -722,9 +722,9 @@ class GpplCompatEngineTests(unittest.TestCase):
         # Print records its argument: the expected message is the literal of the
         # first Print statement of @usr_4x_index (read from the GPP, not pinned).
         prints = [re.fullmatch(r"Print\s+'([^']*)'", line, re.I) for _, line in
-                  fresh_engine().procedures['usr_4x_index']]
+                  fresh_engine().procedures['usr_4x_index_rotate']]
         expected = [match[1] for match in prints if match][:1]
-        self.assertEqual(len(expected), 1, '@usr_4x_index has no Print statement')
+        self.assertEqual(len(expected), 1, '@usr_4x_index_rotate has no Print statement')
         session = Session(options={'i4xIndexClearanceMode': 1}, tool_z_level=20, tool_start_plane=35,
                           nPtool_z_level=40)
         text = event(session.engine, 'usr_4x_index', angle_4x_around_x=90)

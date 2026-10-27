@@ -39,7 +39,7 @@ class WholeGppTests(unittest.TestCase):
     def test_compat_policy_lists_exactly_what_the_legacy_engine_would_reject(self):
         errors = sorted((d.code, d.line) for d in self.program.errors(COMPAT))
         expected = sorted(lines_matching(r"'5\.0\(n\)'") + lines_matching(r'^\s*print\b'))
-        self.assertEqual(len(expected), 5)                                        # 3x '5.0(n)', 2x Print
+        self.assertEqual(len(expected), 4)                     # 3x '5.0(n)', 1x Print (usr_4x_index_rotate)
         self.assertEqual(errors, [('E-POLICY', line) for line in expected])
         format_vars = sorted(d.line for d in self.program.policy_diagnostics(COMPAT) if d.code == 'W-FORMAT-POLICY')
         self.assertEqual(format_vars, lines_matching(r"=\s*'\+8\.5'"))           # newshift_*_f = '+8.5'
@@ -69,9 +69,11 @@ class WholeGppTests(unittest.TestCase):
         # usr_rapid into stages; the two head-homing copies became usr_head_home and the motion-mode
         # if/else lost its nested job_type test. -1 statement: R2 deleted the dead bSkipxyrapid writes
         # (one in the bSubs branch, hence 22 statements there). -1 branch / -5 statements: R4 moved the
-        # duplicated safety block (its dead bNnumtc branch) and the M5 copies into helpers.
-        self.assertEqual(len(branches), 35)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 148)
+        # duplicated safety block (its dead bNnumtc branch) and the M5 copies into helpers. +3 branches /
+        # -35 statements: R5 folded the six index copies (modes 0/1 x clearance 0/1/2) into one
+        # usr_4x_index_rotate with smaller per-clearance branches.
+        self.assertEqual(len(branches), 38)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 113)
         subs_line = lines_matching(r'^\s*if bSubs\s*$', start='@start_of_job')
         subs = [d for d in branches if d.proc == 'start_of_job' and d.line == subs_line[0]]
         option = lines_matching(r'^\s*bSubs\s*=')[0]
