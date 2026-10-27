@@ -30,11 +30,11 @@
     global integer iMplane iAbsincmode iWorkoffset iStopmode iMotionmode iPworkoffset
     global integer iDiametercomp iDrillmode iTcnumber iSpindleDir iR1dirMode
     global integer iDiameteroffset
-    global integer iHomingmode iProgendmode iG187_P_gpp iPal1 iPal2
+    global integer iHomingmode iProgendmode iPal1 iPal2
     global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
     global integer iCoolantM1ON iCoolantM2ON iCoolantM3ON iCoolantM4ON iCoolantM5ON iCoolantM6ON iCoolantM7ON iCoolantM8ON
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
-    global numeric nTcXnext nTcYnext nTcCnext nRapidfeed nG187_E_gpp
+    global numeric nTcXnext nTcYnext nTcCnext nRapidfeed
 
     global numeric nR1pos nR1pos5x nR1postmatrix nR1postransform nR1poscpos iR1dir nPR1pos nR1postemp nPR1postemp
     global numeric nR2pos nR2pos5x nR2postmatrix iR2dir nPR2pos
@@ -355,8 +355,6 @@ endp
     iCoolantM6      = iCoolantM6OFF
     iCoolantM7      = iCoolantM7OFF
     iCoolantM8      = iCoolantM8OFF
-    iG187_P_gpp     = 2
-    nG187_E_gpp     = 0
     nR1pos          = 9999
     bTmatrixIndexPending = false
     bIndexClearancePending = true
@@ -978,28 +976,15 @@ endp
     bskipline = true
 endp
 
-@usr_HSM_mode
-    ; Fanuc/Haas G187 smoothing (P level, E tolerance) from the job's iG187_P / nG187_E: not a
-    ; Sinumerik code. Printed only when a value changes; a default program prints none.
-    if iG187_P eq 0
-        iG187_P = 2 ;Default = 2
-    endif
-    iG187_P_gpp = iG187_P
-    nG187_E_gpp = nG187_E
-    if change(iG187_P_gpp) or change (nG187_E_gpp)
-        if change(nG187_E_gpp) and nG187_E_gpp eq 0
-            {nb,'G187 '}
-            change(nG187_E_gpp) = false
-            change(iG187_P_gpp) = false
-            if (iG187_P_gpp) ne 2
-                change(iG187_P_gpp) = true
-            endif
-        endif
-        if change(iG187_P_gpp) or change (nG187_E_gpp)
-            {nb,'G187 '['P'iG187_P_gpp' ']['E'nG187_E_gpp' ']}
-        endif
-        change(iG187_P_gpp) = false
-        change(nG187_E_gpp) = false
+@usr_check_smoothing
+    ; The job parameters iG187_P / nG187_E (VMID) are the Fanuc/Haas G187 smoothing of the template;
+    ; the 828D has no G187 (it uses CYCLE832). 0 (and P 2, the template default) means not set.
+    local numeric dummy_var
+    if (iG187_P ne 0 and iG187_P ne 2) or nG187_E ne 0
+        dummy_var = 0
+        input '"POST ERROR: G187 smoothing (job parameters iG187_P, nG187_E) is not supported. Set both to 0."'dummy_var
+        {nb,"POST ERROR: G187 smoothing (job parameters iG187_P, nG187_E) is not supported. Set both to 0."}
+        abort
     endif
 endp
 
@@ -1044,7 +1029,7 @@ endp
             call @rapid_move
         endif
     endif
-    call @usr_HSM_mode
+    call @usr_check_smoothing
     ; The job's Z approach is still to come: the first rapid that moves Z splits it from X/Y
     ; (usr_rapid_xy_then_z / usr_rapid_climb_then_xy) and clears bFirstMove; feed moves keep it.
     bFirstMove = true

@@ -213,7 +213,6 @@ class GppStructureTests(unittest.TestCase):
             for match in pattern.finditer(literals):
                 found[proc].add(match.group(0))
         allowed = {
-            'usr_hsm_mode': {'G187'},                   # PP-012 (VMID job parameters iG187_P/nG187_E)
         }
         unexpected = {proc: sorted(words - allowed.get(proc, set())) for proc, words in found.items()
                       if words - allowed.get(proc, set())}
@@ -301,8 +300,8 @@ class OptionTests(unittest.TestCase):
 
     def test_dead_option_pin_detects_a_new_consumer(self):
         """INDEPENDENT: mutation self-check; giving a pinned option a reader
-        (cDr printed in @usr_hsm_mode) must change the computed set."""
-        anchor = '\n@usr_HSM_mode\n'
+        (cDr printed in @usr_check_smoothing) must change the computed set."""
+        anchor = '\n@usr_check_smoothing\n'
         mutant = mutate(anchor, anchor + "    {nb, cDr}\n")
         self.assertNotIn('cdr', options_without_consumers(mutant))
         self.assertIn('cdr', options_without_consumers(pp_source()))

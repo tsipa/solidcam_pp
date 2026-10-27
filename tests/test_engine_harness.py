@@ -107,9 +107,9 @@ class ScopeAndDeclarationGaps(unittest.TestCase):
         """INDEPENDENT: a declared GPPL variable has a change flag, so change(g)
         is defined. c03e1b4 shows a declared global starts with flag false and
         an equal-value assignment does not raise it (the first index lost its G0
-        when iMotionmode = 0 re-assigned the default). @usr_HSM_mode reads
-        change(nG187_E_gpp) exactly like this; the engine raises
-        'change(g) was not supplied'."""
+        when iMotionmode = 0 re-assigned the default). The GPP reads change flags
+        of declared globals this way (the removed @usr_HSM_mode did it for
+        nG187_E_gpp); the engine raises 'change(g) was not supplied'."""
         engine = Engine('@test\nglobal numeric g\ng = 0\nc = change(g)\nendp')
         run_stock(self, engine.call, 'test', gap=r'change\(g\) was not supplied')
         self.assertIs(engine.state['c'], False)
@@ -339,7 +339,8 @@ class EngineSemanticsPins(unittest.TestCase):
         """CHARACTERIZATION (UNVERIFIED rule, ENGINE-001): the engine also keeps a
         stale TRUE flag of a GPP-declared variable across an equal assignment.
         Under this reading every first job of a flags='persist' session prints
-        M8 followed by seven M9 and 'G187 P2' (PP-054). The alternative H5
+        M8 followed by seven M9 (PP-054; also 'G187 P2' until the G187 output was
+        removed). The alternative H5
         ('declared variables: change := new != old') passes the original suite
         and yields a clean program. A first-job SolidCAM trace decides; this pin
         makes the interpreter choice explicit."""
@@ -403,15 +404,16 @@ class PostAbortGuardTests(unittest.TestCase):
         self.assert_post_errors_abort(pp_source())
 
     def test_guard_detects_removed_abort(self):
-        """INDEPENDENT: mutation self-check. Deleting any abort of the nine
+        """INDEPENDENT: mutation self-check. Deleting any abort of the ten
         POST ERROR guards (@usr_arc_check, @usr_r1_output, the ZX arc stop of
         5408e5c in @usr_arc_math, the compensation-on-arc stop of b999f65, the
         full-turn cutting block stop of b94251b in @usr_line, the two option
-        stops of @usr_check_options, @usr_unsupported_event and the homing mode
-        stop of @usr_home_axis) must fail the guard with AssertionError."""
+        stops of @usr_check_options, @usr_unsupported_event, the homing mode
+        stop of @usr_home_axis and the G187 smoothing stop of
+        @usr_check_smoothing) must fail the guard with AssertionError."""
         lines = pp_source().split('\n')
         abort_lines = [index for index, line in enumerate(lines) if line.strip().lower() == 'abort']
-        self.assertEqual(len(abort_lines), 9, 'abort sites changed; review the guard')
+        self.assertEqual(len(abort_lines), 10, 'abort sites changed; review the guard')
         for removed in abort_lines:
             mutant = '\n'.join(line for index, line in enumerate(lines) if index != removed)
             assert_detected(self, self.assert_post_errors_abort, mutant, f'abort at line {removed + 1} removed')

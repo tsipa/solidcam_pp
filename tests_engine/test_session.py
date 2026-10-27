@@ -268,9 +268,9 @@ class CoverageTests(unittest.TestCase):
 
 class SemanticsProbeTests(unittest.TestCase):
     """The same stream under competing change-flag hypotheses. The GPP author relies
-    on four behaviours: arcs print their end point, @compensation's G41 reaches the
-    next move, the first tool gets M8 without M9 right after it, and no G187 (not a
-    Sinumerik code) appears. Only 'clear_user' satisfies all four."""
+    on three behaviours: arcs print their end point, @compensation's G41 reaches the
+    next move, and the first tool gets M8 without M9 right after it. Only 'clear_user'
+    satisfies all three. (A fourth signal, no 'G187 P2', went with the G187 output.)"""
 
     def probe(self, **policy):
         session, report = replay_file(PP, MAIN, vmid=VMID, **policy)
@@ -278,19 +278,18 @@ class SemanticsProbeTests(unittest.TestCase):
         by_index = {event.index: event for event in report.events}
         first_tool = [line.strip() for line in by_index[6].nc]
         return {'m9_after_first_m8': sum(1 for line in first_tool if line.startswith('M9')),
-                'g187': any('G187' in line for line in report.nc_text.splitlines()),
                 'arc_end': any('X50 Y20' in line for line in by_index[11].nc),
                 'g41': any('G41' in line for line in by_index[9].nc)}
 
     def test_hypotheses(self):
         require_vmid(self)
-        self.assertEqual(self.probe(), {'m9_after_first_m8': 7, 'g187': True, 'arc_end': True, 'g41': True})
+        self.assertEqual(self.probe(), {'m9_after_first_m8': 7, 'arc_end': True, 'g41': True})
         self.assertEqual(self.probe(change_on_equal_assign='clear'),
-                         {'m9_after_first_m8': 0, 'g187': False, 'arc_end': False, 'g41': True})
+                         {'m9_after_first_m8': 0, 'arc_end': False, 'g41': True})
         self.assertEqual(self.probe(event_flag_reset='globals_after_event'),
-                         {'m9_after_first_m8': 0, 'g187': False, 'arc_end': True, 'g41': False})
+                         {'m9_after_first_m8': 0, 'arc_end': True, 'g41': False})
         self.assertEqual(self.probe(change_on_equal_assign='clear_user'),
-                         {'m9_after_first_m8': 0, 'g187': False, 'arc_end': True, 'g41': True})
+                         {'m9_after_first_m8': 0, 'arc_end': True, 'g41': True})
 
 
 if __name__ == '__main__':

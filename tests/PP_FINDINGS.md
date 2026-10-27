@@ -46,7 +46,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 60. `@covers` references: 69.
+Canonical `@known_defect` tests: 58. `@covers` references: 71.
 
 ## Index of open entries
 
@@ -59,7 +59,7 @@ Canonical `@known_defect` tests: 60. `@covers` references: 69.
 | [PP-009](#pp-009) | low-medium | confirmed | A | @usr_coolant overwrites the option iCoolantM5ON, so an unlisted pressure inherits the previous job's code instead of the default 77 | `test_through_coolant_code_does_not_leak_between_jobs` |
 | [PP-010](#pp-010) | low | confirmed | A | bCoolofftc/bSpinofftc ('between tool changes') are dead; tool-change M9/M5 follow the end-of-program flags bCooloffend/bSpinoffend | `test_tool_change_options_control_spindle_and_coolant_off` |
 | [PP-011](#pp-011) | low | confirmed | E | Spindle M3/M4 is emitted one block before its S word | `test_spindle_speed_programmed_with_or_before_start` |
-| [PP-012](#pp-012) | low-medium | confirmed | A | Haas G187 HSM codes are emitted for the VMID job parameters iG187_P/nG187_E (828D needs CYCLE832) | `test_hsm_job_parameters_emit_only_sinumerik_g_functions` |
+| [PP-012](#pp-012) | low-medium | confirmed | A | Haas G187 HSM codes are emitted for the VMID job parameters iG187_P/nG187_E (828D needs CYCLE832) | pinned only (@covers) |
 | [PP-014](#pp-014) | medium | confirmed | C | Same-tool work-offset change traverses XY in the new offset at the previous job's machine Z | `test_new_work_offset_is_entered_from_a_machine_z_retract` |
 | [PP-015](#pp-015) | medium | confirmed | C | First-job deferred index with i4xIndexClearanceMode 1/2 retracts to the uninitialised Z0 before rotating A | `test_first_index_tool_level_clearance_never_plunges_to_z0` |
 | [PP-016](#pp-016) | low-medium | confirmed | C | i4xIndexMode=1: the next job at the same index position is machined in G54 | `test_same_index_position_keeps_new_workoffset` |
@@ -89,7 +89,7 @@ Canonical `@known_defect` tests: 60. `@covers` references: 69.
 | [PP-051](#pp-051) | low | uncertain | F | Vericut K word format left at 5.3 while I/J were widened to 8.5 (f88de47) | `test_vericut_arc_center_words_keep_post_precision` |
 | [PP-052](#pp-052) | low | confirmed | F | VMID job parameters M50/M51 appear in every job dialog but the GPP never reads them | `test_every_vmid_user_parameter_is_read_by_the_post` |
 | [PP-053](#pp-053) | low | confirmed | C | First index of a program in default Z-homing mode has no G75 (sHomestrrot assigned lazily) | `test_first_index_in_z_homing_mode_homes_z` |
-| [PP-054](#pp-054) | low | likely-engine-artifact | A | First job under persisting init flags: 'G187 P2' and flood M8 cancelled by seven M9 | `test_flood_coolant_is_not_cancelled_before_the_first_cut` [coolant-burst], `test_no_fanuc_g187_in_a_default_program` [g187-default] |
+| [PP-054](#pp-054) | low | likely-engine-artifact | A | First job under persisting init flags: 'G187 P2' and flood M8 cancelled by seven M9 | `test_flood_coolant_is_not_cancelled_before_the_first_cut` [coolant-burst] |
 | [PP-055](#pp-055) | low | confirmed | E | CYCLE83 first peck depth jumps by SDIS when drill_upper_z crosses 0 (FDPR relative to RFP) | `test_cycle83_first_peck_is_continuous_across_z0` |
 | [PP-056](#pp-056) | low | confirmed | A | bStopM00difftool is set and cleared in the same @end_of_job: the skip path is dead and is what keeps the G75 retract before M06 | pinned only (@covers) |
 | [PP-057](#pp-057) | low | confirmed | F | Dormant option/event paths emit Fanuc/Haas-only code (G65/G112/O777 macros, M98/M99, G20, G43/G49, '#' macros, WHILE[ loop) | pinned only (@covers) |
@@ -239,8 +239,9 @@ Canonical `@known_defect` tests: 60. `@covers` references: 69.
 - Evidence that would settle it: Siemens 828D G-function list (G187 undefined; repository Vericut control has no G187).
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: tc-07, efc-02, pp-weird-hunter-17
-- Reproduced by:
-  - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_hsm_job_parameters_emit_only_sinumerik_g_functions`
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
+- Pinned or exercised by (`@covers`):
+  - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_hsm_job_parameters_stop_the_post`
 
 ### PP-014
 
@@ -671,7 +672,8 @@ Canonical `@known_defect` tests: 60. `@covers` references: 69.
 - Source findings: TSR-12, TSR-13, efc-02, efc-03, tc-06, pp-weird-hunter-06, history-misc-15, engine-impl-critic-07, history-indexing-link-14
 - Reproduced by:
   - `tests/test_session_program.py::FirstJobPersistingFlagTests::test_flood_coolant_is_not_cancelled_before_the_first_cut` (facet `coolant-burst`, confidence likely-engine-artifact)
-  - `tests/test_session_program.py::FirstJobPersistingFlagTests::test_no_fanuc_g187_in_a_default_program` (facet `g187-default`, confidence likely-engine-artifact)
+- Pinned or exercised by (`@covers`):
+  - `tests/test_session_program.py::FirstJobPersistingFlagTests::test_no_fanuc_g187_in_a_default_program`
 
 ### PP-055
 

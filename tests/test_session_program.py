@@ -734,15 +734,14 @@ class FirstJobPersistingFlagTests(unittest.TestCase):
         self.assertEqual(sorted(replayed[cut][1].coolant), [8],
                          f'coolant in effect at the first cut:\n{listing(blocks[:cut + 1])}')
 
-    @known_defect('PP-054', facet='g187-default')
+    @covers('PP-054')
     def test_no_fanuc_g187_in_a_default_program(self):
         """INDEPENDENT: the 828D G-function set of the repository's Vericut control (no G187).
 
         With the VMID default job parameters (iG187_P=0, nG187_E=0) a first job
-        must emit only Sinumerik G functions. UNVERIFIED: only under
-        Session(flags='persist') (ENGINE-001): @usr_init_gmstates assigns
-        iG187_P_gpp = 2 and, if that flag persists, @usr_HSM_mode prints
-        'G187 P2'. The clear policy prints nothing.
+        must emit only Sinumerik G functions, also under Session(flags='persist')
+        (ENGINE-001), where the removed @usr_HSM_mode printed 'G187 P2'.
+        Regression guard of PP-054 facet g187-default.
         """
         defined = g_function_whitelist()
         blocks = persisting_first_job().blocks()

@@ -24,6 +24,7 @@ checks that must fail with AssertionError.
 """
 import unittest
 
+from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
 from support import (Segment, Session, assert_detected, covers, g_function_whitelist, index_of, known_defect,
                      last_index_of, mutate, parse_blocks)
 
@@ -34,6 +35,7 @@ NO_COOLANT = dict(flood_coolant=0, Mist_coolant=0, HP_Flood_coolant=0, LP_Flood_
 TC_HOMING_CALL = "        else\n            sHomestr = sHomestrtc\n"
 INDEX_HOMING = "    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n        call @usr_prep_home_axis\n    endif\n"
 START_TOOL_AFTER_TC = '        skipline = false\n        call @start_tool\n    endif\nendp\n'
+HSM_STOP = 'POST ERROR: G187 smoothing (job parameters iG187_P, nG187_E) is not supported. Set both to 0.'
 
 
 def listing(blocks):
@@ -711,19 +713,24 @@ class ToolChangeDefectTests(unittest.TestCase):
         self.assertIsNone(first, f'tool 2 and tool 3 tool-change blocks differ from block {first} on: '
                                  f'{changes[0][first or 0:]} vs {changes[1][first or 0:]}')
 
-    @known_defect('PP-012')
-    def test_hsm_job_parameters_emit_only_sinumerik_g_functions(self):
-        """INDEPENDENT: the 828D G-function set of vericut/sin840d_special.ctl (no G187; 828D uses CYCLE832).
-
-        VMID job parameters set explicitly (iG187_P=1, nG187_E=0.05), change
-        flags cleared (flags='clear'): every emitted G number must be defined.
-        """
-        defined = g_function_whitelist()
-        s = Session(flags='clear')
-        s.first_tool(iG187_P=1, nG187_E=0.05)
-        s.cut(10, 20, 5, -1)
-        foreign = sorted({code for block in s.blocks() for code in block.g} - defined)
-        self.assertEqual(foreign, [], f'non-828D G functions for HSM job parameters:\n{listing(s.blocks())}')
+    @covers('PP-012')
+    def test_hsm_job_parameters_stop_the_post(self):
+        """INDEPENDENT: the 828D G-function set of vericut/sin840d_special.ctl has no G187
+        (the 828D smooths with CYCLE832). A job with the VMID smoothing parameters set
+        (iG187_P=1, nG187_E=0.05) must stop the post with a POST ERROR and write no G187;
+        the default values (0, and P 2 with E 0) post. Regression guard of PP-012."""
+        require_nc_stream()
+        for values in (dict(iG187_P=1, nG187_E=0.05), dict(iG187_P=0, nG187_E=0.01), dict(iG187_P=3, nG187_E=0)):
+            program = Program(cam=values, policies=scripted_input_policies())
+            with self.assertRaises(post_abort_error(), msg=str(values)):
+                program.start()
+            nc = program.nc()
+            self.assertEqual(nc[-1], HSM_STOP, values)
+            self.assertFalse([line for line in nc[:-1] if 'G187' in line], nc)
+        for values in (dict(iG187_P=0, nG187_E=0), dict(iG187_P=2, nG187_E=0)):
+            program = Program(cam=values, policies=scripted_input_policies())
+            program.start()
+            self.assertFalse([line for line in program.nc() if 'G187' in line or 'POST ERROR' in line], values)
 
     @covers('PP-008')
     def test_through_coolant_pressure_codes_pin(self):
