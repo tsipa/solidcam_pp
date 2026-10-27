@@ -1,0 +1,287 @@
+{
+ "schema": 1,
+ "description": "Synthetic session for machine-definition variants: non-synchronised rapids (G1 F650 for '3-d model'), work offsets from home names (iWorkOffsetmode=2), every homing-string mode 1..7 at tool change, a secondary rotary angle (vertical head branch), negative/shortest rotary position control and an inverse-time style 4x index with clearance to tool_z_level. Needs policy tonum=atof: home_number parses 'G54p4' with tonum(substr(...)) and relies on a non-numeric string giving 0.",
+ "session": {
+  "overrides": {
+   "bSyncdrapid": false,
+   "iWorkOffsetmode": 2,
+   "sHomestrtc": "1::Z0 ;2::Z0 ;3:G0 :Z0 ;4::Z0 ;5::Z0 ;6::Z0 ;7::Z0",
+   "sHomestrend": "4::Z0",
+   "iR1posControl": 3,
+   "i4xIndexClearanceMode": 1,
+   "bR1forceOutput": false,
+   "cWo": "E"
+  },
+  "policies": {
+   "tonum": "atof"
+  }
+ },
+ "events": [
+  {
+   "name": "start_of_file",
+   "parameters": {
+    "part_name": "VAR",
+    "program_number": 3,
+    "date": "09-Sep-2026",
+    "time": "09:09:09",
+    "g_file_name": "VAR.MPF",
+    "full_g_file_name": "VAR.MPF",
+    "stock_x": 10,
+    "stock_y": 10,
+    "stock_z": 10,
+    "stock_x_minus": 0,
+    "stock_y_minus": 0,
+    "stock_z_plus": 0,
+    "stock_z_minus": -10,
+    "target_z_minus": -10,
+    "fourth_axis_used": true
+   }
+  },
+  {
+   "name": "def_tool",
+   "parameters": {
+    "tool_number": 1,
+    "tool_offset": 2,
+    "tool_length": 50,
+    "holder_name": "H",
+    "tool_message": "",
+    "msg_mill_tool1": "",
+    "msg_mill_tool2": "",
+    "msg_mill_tool3": "",
+    "msg_mill_tool4": "",
+    "msg_mill_tool5": ""
+   }
+  },
+  {
+   "name": "def_tool",
+   "parameters": {
+    "tool_number": 2,
+    "tool_offset": 2,
+    "tool_length": 50,
+    "holder_name": "H",
+    "tool_message": "",
+    "msg_mill_tool1": "",
+    "msg_mill_tool2": "",
+    "msg_mill_tool3": "",
+    "msg_mill_tool4": "",
+    "msg_mill_tool5": ""
+   }
+  },
+  {
+   "name": "start_program",
+   "parameters": {}
+  },
+  {
+   "name": "change_tool",
+   "parameters": {
+    "tool_number": 1,
+    "first_tool": true,
+    "last_tool": false,
+    "next_tool_number": 2,
+    "xnext": 0,
+    "ynext": 0,
+    "cnext": 0,
+    "tool_start_plane": 40,
+    "tool_direction": "cw",
+    "spin": 1000,
+    "d_drill_type": "none",
+    "tool_message": "",
+    "tool_offset": 2
+   }
+  },
+  {
+   "name": "start_of_job",
+   "parameters": {
+    "job_name": "MODEL",
+    "job_type": "3-d model",
+    "msg": "",
+    "home_number": 1,
+    "home_user_name": "G54P3",
+    "position": 1,
+    "rot_axis_coord": 0,
+    "x5_job": false,
+    "transform_type": 0,
+    "tool_z_level": 30,
+    "tool_start_plane": 40,
+    "xnext": 0,
+    "ynext": 0,
+    "spin_rate": 1000,
+    "spin": 1000,
+    "tool_direction": "cw",
+    "d_drill_type": "none",
+    "loop_level": 0,
+    "loop_count": 0,
+    "next_job_tool_number": 1,
+    "apos": 0,
+    "bpos": 0,
+    "cpos": 0,
+    "angle": 0,
+    "shift_x": 0,
+    "shift_y": 0,
+    "shift_z": 0,
+    "rotate_angle_x": 0,
+    "rotate_angle_y": 0,
+    "rotate_angle_z": 0,
+    "flood_coolant": 1,
+    "mist_coolant": 0,
+    "hp_flood_coolant": 0,
+    "lp_flood_coolant": 0,
+    "through_ival_coolant": 0,
+    "through_coolant_val": 0,
+    "lp_through_coolant": 0,
+    "air_blast_coolant": 0,
+    "air_through_coolant": 0,
+    "angle_4x_around_x": 0,
+    "angle_4x_around_x_dir": "cw",
+    "x_angle_const_z": 0,
+    "y_angle_const_z": 0,
+    "machine_plane": "xy",
+    "dir5a": "cw",
+    "bstopm00": false
+   }
+  },
+  {
+   "name": "rapid_move",
+   "parameters": {
+    "xpos": 1,
+    "ypos": 1,
+    "zpos": 3
+   }
+  },
+  {
+   "name": "line",
+   "parameters": {
+    "xpos": 2,
+    "ypos": 1,
+    "zpos": 0,
+    "feed": 250,
+    "feed_type": "feed_cut"
+   }
+  },
+  {
+   "name": "rapid_move",
+   "parameters": {
+    "xpos": 2,
+    "ypos": 1,
+    "zpos": 3
+   }
+  },
+  {
+   "name": "end_of_job",
+   "parameters": {
+    "next_job_tool_number": 2,
+    "tool_z_level": 30,
+    "tool_start_plane": 40
+   }
+  },
+  {
+   "name": "tmatrix",
+   "parameters": {
+    "angle_4x_around_x": -30,
+    "angle_4x_around_x_dir": "ccw",
+    "x_angle_const_z": 15,
+    "y_angle_const_z": 0,
+    "shift_x": 0,
+    "shift_y": 0,
+    "shift_z": 0,
+    "rotate_angle_x": 0,
+    "rotate_angle_y": 0,
+    "rotate_angle_z": 0
+   }
+  },
+  {
+   "name": "change_tool",
+   "parameters": {
+    "tool_number": 2,
+    "first_tool": false,
+    "last_tool": true,
+    "next_tool_number": 1,
+    "xnext": 5,
+    "ynext": 5,
+    "cnext": 0,
+    "tool_start_plane": 40,
+    "tool_direction": "cw",
+    "spin": 1200,
+    "d_drill_type": "none",
+    "tool_message": "",
+    "tool_offset": 2
+   }
+  },
+  {
+   "name": "start_of_job",
+   "parameters": {
+    "job_name": "TILTED",
+    "job_type": "contour",
+    "home_user_name": "G54p4",
+    "tool_z_level": 20,
+    "tool_start_plane": 40,
+    "xnext": 5,
+    "ynext": 5,
+    "spin": 1200,
+    "next_job_tool_number": 2
+   }
+  },
+  {
+   "name": "rapid_move",
+   "parameters": {
+    "xpos": 5,
+    "ypos": 5,
+    "zpos": 3
+   }
+  },
+  {
+   "name": "end_of_job",
+   "parameters": {
+    "next_job_tool_number": 2,
+    "tool_z_level": 20,
+    "tool_start_plane": 40
+   }
+  },
+  {
+   "name": "tmatrix",
+   "parameters": {
+    "angle_4x_around_x": -60,
+    "angle_4x_around_x_dir": "ccw",
+    "x_angle_const_z": 0,
+    "y_angle_const_z": 0,
+    "shift_x": 0,
+    "shift_y": 0,
+    "shift_z": 0,
+    "rotate_angle_x": 0,
+    "rotate_angle_y": 0,
+    "rotate_angle_z": 0
+   }
+  },
+  {
+   "name": "start_of_job",
+   "parameters": {
+    "job_name": "INDEX60",
+    "job_type": "contour",
+    "home_user_name": "G58",
+    "position": 6,
+    "tool_z_level": 10,
+    "tool_start_plane": 40,
+    "xnext": 5,
+    "ynext": 5,
+    "spin": 1200,
+    "next_job_tool_number": 2
+   }
+  },
+  {
+   "name": "end_of_job",
+   "parameters": {
+    "next_job_tool_number": 2,
+    "tool_z_level": 10,
+    "tool_start_plane": 40
+   }
+  },
+  {
+   "name": "end_program",
+   "parameters": {}
+  },
+  {
+   "name": "end_of_file",
+   "parameters": {}
+  }
+ ]
+}

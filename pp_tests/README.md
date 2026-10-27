@@ -14,6 +14,24 @@ $env:PP_TEST_SOURCE = 'C:\path\candidate.gpp'
 python -m unittest discover -s tests -v
 ```
 
+## Engine
+
+`pp_tests/engine.py` is a shim over the `pp_tests/gppl/` package (design and
+semantics in [DESIGN.md](DESIGN.md)). `GPPL_ENGINE=legacy` runs the original
+engine (`pp_tests/gppl/legacy.py`) with the same tests. Unverified GPPL semantics
+are policies (`GPPL_POLICY`, see DESIGN.md); the default reproduces the original
+engine. The engine's own tests:
+
+```powershell
+python -m unittest discover -s tests_engine -v
+```
+
+Whole programs: `tests/program_session.py` drives init_post, tool changes and
+CAM events through the real post for tests; `python -m pp_tests.gppl replay
+<post.gpp> <session.json> --vmid <post.vmid>` replays a recorded or synthetic
+session (fixtures in `tests_engine/fixtures/`), and `python -m pp_tests.gppl
+validate <post.gpp> --vmid <post.vmid> --strict` checks the whole post statically.
+
 ## Recording fixtures
 
 SolidCAM is needed only to generate a GPPL debug trace. A plain MPF containing

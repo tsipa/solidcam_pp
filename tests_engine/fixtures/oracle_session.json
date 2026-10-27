@@ -1,0 +1,591 @@
+{
+ "schema": 1,
+ "description": "The main synthetic stream (synthetic_session.json) with inline per-event oracles (blocks/contains/absent/order/count/state) and a final arc whose end point misses the circle, which must raise the GPP's own POST ERROR. Expectations characterise the current GPP under the session policy; they are not a SolidCAM oracle. New session tests need no Python: add events and expectations here.",
+ "session": {
+  "overrides": {},
+  "user_params": {
+   "message1": "SYNTHETIC REPLAY"
+  },
+  "expect": {
+   "order": [
+    ";%_N_DEMO_PART_1_MPF",
+    "T1",
+    "T2",
+    "M30"
+   ],
+   "count": {
+    "M30": 1
+   }
+  }
+ },
+ "events": [
+  {
+   "name": "start_of_file",
+   "parameters": {
+    "part_name": "DEMO-PART-1",
+    "program_number": 1,
+    "date": "26-Oct-2026",
+    "time": "14:05:33",
+    "g_file_name": "DEMO-PART-1.MPF",
+    "full_g_file_name": "C:\\CAM\\DEMO-PART-1.MPF",
+    "stock_x": 100,
+    "stock_y": 60,
+    "stock_z": 30,
+    "stock_x_minus": 0,
+    "stock_y_minus": 0,
+    "stock_z_plus": 0,
+    "stock_z_minus": -30,
+    "target_z_minus": -25,
+    "fourth_axis_used": false
+   },
+   "expect": {
+    "contains": [
+     ";%_N_DEMO_PART_1_MPF",
+     ";SYNTHETIC REPLAY"
+    ]
+   }
+  },
+  {
+   "name": "def_tool",
+   "parameters": {
+    "tool_number": 1,
+    "tool_offset": 5,
+    "tool_length": 45,
+    "holder_name": "BT40-ER32",
+    "tool_message": "",
+    "msg_mill_tool1": "",
+    "msg_mill_tool2": "",
+    "msg_mill_tool3": "",
+    "msg_mill_tool4": "",
+    "msg_mill_tool5": ""
+   }
+  },
+  {
+   "name": "def_tool",
+   "parameters": {
+    "tool_number": 2,
+    "tool_offset": 3,
+    "tool_length": 60.5,
+    "holder_name": "BT40-ER25",
+    "tool_message": "DRILL 6",
+    "msg_mill_tool1": "HSS",
+    "msg_mill_tool2": "",
+    "msg_mill_tool3": "",
+    "msg_mill_tool4": "",
+    "msg_mill_tool5": ""
+   }
+  },
+  {
+   "name": "start_program",
+   "parameters": {}
+  },
+  {
+   "name": "change_tool",
+   "parameters": {
+    "tool_number": 1,
+    "first_tool": true,
+    "last_tool": false,
+    "next_tool_number": 2,
+    "xnext": 10,
+    "ynext": 20,
+    "cnext": 0,
+    "tool_start_plane": 50,
+    "tool_direction": "cw",
+    "spin": 8000,
+    "d_drill_type": "none",
+    "tool_message": "",
+    "tool_offset": 5
+   }
+  },
+  {
+   "name": "start_of_job",
+   "parameters": {
+    "job_name": "F_CONTOUR",
+    "job_type": "contour",
+    "msg": "",
+    "home_number": 1,
+    "home_user_name": "G54",
+    "position": 1,
+    "rot_axis_coord": 0,
+    "x5_job": false,
+    "transform_type": 0,
+    "tool_z_level": 50,
+    "tool_start_plane": 50,
+    "xnext": 10,
+    "ynext": 20,
+    "spin_rate": 8000,
+    "spin": 8000,
+    "tool_direction": "cw",
+    "d_drill_type": "none",
+    "loop_level": 0,
+    "loop_count": 0,
+    "next_job_tool_number": 1,
+    "apos": 0,
+    "bpos": 0,
+    "cpos": 0,
+    "angle": 0,
+    "shift_x": 0,
+    "shift_y": 0,
+    "shift_z": 0,
+    "rotate_angle_x": 0,
+    "rotate_angle_y": 0,
+    "rotate_angle_z": 0,
+    "flood_coolant": 1,
+    "mist_coolant": 0,
+    "hp_flood_coolant": 0,
+    "lp_flood_coolant": 0,
+    "through_ival_coolant": 0,
+    "through_coolant_val": 0,
+    "lp_through_coolant": 0,
+    "air_blast_coolant": 0,
+    "air_through_coolant": 0,
+    "angle_4x_around_x": 0,
+    "angle_4x_around_x_dir": "cw",
+    "x_angle_const_z": 0,
+    "y_angle_const_z": 0,
+    "machine_plane": "xy",
+    "dir5a": "cw"
+   },
+   "expect": {
+    "order": [
+     "T1",
+     "M06",
+     "D1",
+     "MSG(\"F_CONTOUR\")",
+     "G54",
+     "M8",
+     "M3 S8000"
+    ],
+    "count": {
+     "M9": 7
+    },
+    "state": {
+     "bFirstMove": true
+    }
+   }
+  },
+  {
+   "name": "rapid_move",
+   "parameters": {
+    "xpos": 10,
+    "ypos": 20,
+    "zpos": 5
+   },
+   "expect": {
+    "blocks": [
+     "X10 Y20",
+     "Z5"
+    ]
+   }
+  },
+  {
+   "name": "compensation",
+   "parameters": {
+    "side": "left",
+    "tool_side": "left"
+   }
+  },
+  {
+   "name": "line",
+   "parameters": {
+    "xpos": 10,
+    "ypos": 30,
+    "zpos": -5,
+    "feed": 600,
+    "feed_type": "feed_cut"
+   },
+   "expect": {
+    "blocks": [
+     "G1 G41 Y30 Z-5 F600"
+    ]
+   }
+  },
+  {
+   "name": "line",
+   "parameters": {
+    "xpos": 40,
+    "ypos": 30,
+    "zpos": -5,
+    "feed": 600
+   }
+  },
+  {
+   "name": "arc",
+   "parameters": {
+    "xpos": 50,
+    "ypos": 20,
+    "zpos": -5,
+    "xstart": 40,
+    "ystart": 30,
+    "zstart": -5,
+    "xcenter": 40,
+    "ycenter": 20,
+    "zcenter": -5,
+    "xcenter_rel": 0,
+    "ycenter_rel": -10,
+    "zcenter_rel": 0,
+    "arc_size": 90,
+    "arc_direction": "cw",
+    "arc_plane": "xy",
+    "radius": 10,
+    "feed": 600
+   },
+   "expect": {
+    "blocks": [
+     "G2 X50 Y20 I0 J-10"
+    ],
+    "state": {
+     "iMotionmode": 2
+    }
+   }
+  },
+  {
+   "name": "line",
+   "parameters": {
+    "xpos": 50,
+    "ypos": 0,
+    "zpos": -5,
+    "feed": 600
+   }
+  },
+  {
+   "name": "compensation",
+   "parameters": {
+    "side": "off",
+    "tool_side": "left"
+   }
+  },
+  {
+   "name": "rapid_move",
+   "parameters": {
+    "xpos": 50,
+    "ypos": 0,
+    "zpos": 50
+   }
+  },
+  {
+   "name": "end_of_job",
+   "parameters": {
+    "next_job_tool_number": 2,
+    "tool_z_level": 50,
+    "tool_start_plane": 50
+   }
+  },
+  {
+   "name": "change_tool",
+   "parameters": {
+    "tool_number": 2,
+    "first_tool": false,
+    "last_tool": true,
+    "next_tool_number": 1,
+    "xnext": 25,
+    "ynext": 15,
+    "cnext": 0,
+    "tool_start_plane": 50,
+    "tool_direction": "cw",
+    "spin": 2000,
+    "d_drill_type": "none",
+    "tool_message": "DRILL 6",
+    "tool_offset": 3
+   }
+  },
+  {
+   "name": "start_of_job",
+   "parameters": {
+    "job_name": "D_PECK",
+    "job_type": "drill",
+    "msg": "",
+    "home_number": 1,
+    "home_user_name": "G54",
+    "position": 1,
+    "tool_z_level": 50,
+    "tool_start_plane": 50,
+    "xnext": 25,
+    "ynext": 15,
+    "spin_rate": 2000,
+    "spin": 2000,
+    "tool_direction": "cw",
+    "next_job_tool_number": 2
+   }
+  },
+  {
+   "name": "drill",
+   "parameters": {
+    "drill_type": "g83",
+    "drill_clearance_z": 30,
+    "drill_upper_z": 2,
+    "drill_lower_z": -20,
+    "safety": 2,
+    "down_step": 4,
+    "delay": 0,
+    "feed": 120,
+    "spin": 2000,
+    "xpos": 25,
+    "ypos": 15,
+    "zpos": 30
+   },
+   "expect": {
+    "contains": [
+     "MCALL CYCLE83 (30,0,2,-20,,,4,4,,0.5,1,1)"
+    ],
+    "order": [
+     "X25 Y15",
+     "Z30",
+     "MCALL CYCLE83"
+    ]
+   }
+  },
+  {
+   "name": "drill_point",
+   "parameters": {
+    "xpos": 25,
+    "ypos": 15,
+    "zpos": 30
+   },
+   "expect": {
+    "blocks": []
+   }
+  },
+  {
+   "name": "drill_point",
+   "parameters": {
+    "xpos": 45,
+    "ypos": 15,
+    "zpos": 30
+   }
+  },
+  {
+   "name": "end_drill",
+   "parameters": {
+    "drill_type": "g83"
+   },
+   "expect": {
+    "blocks": [
+     "MCALL"
+    ]
+   }
+  },
+  {
+   "name": "end_of_job",
+   "parameters": {
+    "next_job_tool_number": 2,
+    "tool_z_level": 50,
+    "tool_start_plane": 50
+   }
+  },
+  {
+   "name": "tmatrix",
+   "parameters": {
+    "angle_4x_around_x": 90,
+    "angle_4x_around_x_dir": "cw",
+    "x_angle_const_z": 0,
+    "y_angle_const_z": 0,
+    "shift_x": 0,
+    "shift_y": 0,
+    "shift_z": 0,
+    "rotate_angle_x": 0,
+    "rotate_angle_y": 0,
+    "rotate_angle_z": 0
+   }
+  },
+  {
+   "name": "start_of_job",
+   "parameters": {
+    "job_name": "F_SIDE_A90",
+    "job_type": "contour",
+    "home_number": 1,
+    "position": 1,
+    "tool_z_level": 50,
+    "tool_start_plane": 50,
+    "xnext": 30,
+    "ynext": 0,
+    "spin": 2000,
+    "next_job_tool_number": 2,
+    "bstopm00": true,
+    "sstopmessage": "CHECK PART"
+   },
+   "expect": {
+    "contains": [
+     "G54 A=ACN(90)"
+    ],
+    "order": [
+     "M1",
+     "G75 Z1=0.",
+     "A=ACN(90)"
+    ]
+   }
+  },
+  {
+   "name": "rapid_move",
+   "parameters": {
+    "xpos": 30,
+    "ypos": 0,
+    "zpos": 10
+   }
+  },
+  {
+   "name": "line",
+   "parameters": {
+    "xpos": 30,
+    "ypos": 0,
+    "zpos": -2,
+    "feed": 400,
+    "feed_type": "feed_cut"
+   }
+  },
+  {
+   "name": "line",
+   "parameters": {
+    "xpos": 70,
+    "ypos": 0,
+    "zpos": -2,
+    "feed": 400
+   }
+  },
+  {
+   "name": "rapid_move",
+   "parameters": {
+    "xpos": 70,
+    "ypos": 0,
+    "zpos": 50
+   }
+  },
+  {
+   "name": "end_of_job",
+   "parameters": {
+    "next_job_tool_number": 2,
+    "tool_z_level": 50,
+    "tool_start_plane": 50
+   }
+  },
+  {
+   "name": "start_of_job",
+   "parameters": {
+    "job_name": "F_5X",
+    "job_type": "contour",
+    "x5_job": true,
+    "home_number": 1,
+    "position": 1,
+    "tool_z_level": 50,
+    "tool_start_plane": 50,
+    "xnext": 30,
+    "ynext": 0,
+    "spin": 2000,
+    "next_job_tool_number": 2,
+    "bstopm00": false
+   }
+  },
+  {
+   "name": "move_5x",
+   "parameters": {
+    "xpos": 30,
+    "ypos": 0,
+    "zpos": 20,
+    "apos": 10,
+    "bpos": 0,
+    "dir5a": "cw"
+   }
+  },
+  {
+   "name": "line_5x",
+   "parameters": {
+    "xpos": 30,
+    "ypos": 0,
+    "zpos": 5,
+    "apos": 20,
+    "bpos": 0,
+    "dir5a": "ccw",
+    "feed": 300,
+    "feed_type": "feed_cut"
+   }
+  },
+  {
+   "name": "line_5x",
+   "parameters": {
+    "xpos": 30,
+    "ypos": 0,
+    "zpos": 30,
+    "apos": 20,
+    "bpos": 0,
+    "feed": 300,
+    "feed_type": "feed_link"
+   }
+  },
+  {
+   "name": "move_5x",
+   "parameters": {
+    "xpos": 30,
+    "ypos": 0,
+    "zpos": 30,
+    "apos": 30,
+    "bpos": 0,
+    "dir5a": "cw"
+   },
+   "expect": {
+    "blocks": [
+     "G0 A=ACN(120)"
+    ],
+    "absent": [
+     "G75"
+    ]
+   }
+  },
+  {
+   "name": "fourth_axis",
+   "parameters": {
+    "angle": 45
+   }
+  },
+  {
+   "name": "end_of_job",
+   "parameters": {
+    "next_job_tool_number": 2,
+    "tool_z_level": 50,
+    "tool_start_plane": 50
+   }
+  },
+  {
+   "name": "end_program",
+   "parameters": {},
+   "expect": {
+    "order": [
+     "M9",
+     "M5",
+     "G75 Z1=0.",
+     "M30"
+    ]
+   }
+  },
+  {
+   "name": "end_of_file",
+   "parameters": {}
+  },
+  {
+   "name": "arc",
+   "parameters": {
+    "xpos": 50.002,
+    "ypos": 20,
+    "zpos": -5,
+    "xstart": 40,
+    "ystart": 30,
+    "zstart": -5,
+    "xcenter": 40,
+    "ycenter": 20,
+    "zcenter": -5,
+    "xcenter_rel": 0,
+    "ycenter_rel": -10,
+    "zcenter_rel": 0,
+    "arc_size": 90,
+    "arc_direction": "cw",
+    "arc_plane": "xy",
+    "radius": 10,
+    "feed": 600,
+    "feed_type": "feed_cut"
+   },
+   "expect": {
+    "error": "POST ERROR: ARC end mismatch",
+    "blocks": []
+   }
+  }
+ ]
+}
