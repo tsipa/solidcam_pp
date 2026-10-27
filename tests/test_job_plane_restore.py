@@ -13,7 +13,7 @@ from program_session import Program, require_nc_stream
 from test_offline import PP
 from test_post_homing_reposition import Session
 
-YZ_ARC = dict(arc_plane='yz', arc_direction='ccw', arc_size=90, iArcmode=2, radius=10,
+YZ_ARC = dict(arc_plane='yz', arc_direction='ccw', arc_size=90, radius=10,
               xstart=12, ystart=10, zstart=0, xcenter=12, ycenter=0, zcenter=0,
               xcenter_rel=0, ycenter_rel=-10, zcenter_rel=0)
 
@@ -115,9 +115,8 @@ class JobPlaneRestoreTests(unittest.TestCase):
         output = session.step('line_5x', ['ypos'], ypos=40, feed_type='feed_cut')
         self.assertEqual(output, ['G42 Y40'])
 
-    def test_subprogram_first_tool_selection_after_yz_arc_restores_g17(self):
-        # bSubs never runs @usr_ct, so the post's TRC state is still the 9999 start value.
-        program = Program(options=dict(bSubs=True))
+    def test_first_tool_selection_after_yz_arc_restores_g17(self):
+        program = Program()
         program.start()
         program.ev('move_5x', xpos=10, ypos=10, zpos=0)
         program.ev('line_5x', zpos=-1, feed=200)

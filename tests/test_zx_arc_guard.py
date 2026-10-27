@@ -17,7 +17,7 @@ def arc_engine(plane, source=None, policies=None):
     text = PP.read_text(encoding='utf-8-sig') if source is None else source
     engine = Engine(text) if policies is None else Engine(text, policies=policies)
     engine.set(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz', iFeedMode=94, arc_direction='ccw', arc_plane=plane,
-               arc_size=90, iArcmode=2, radius=10, bFeedoutput=False, iDiametercomp=40, iCompActive=40, cWo='G',
+               arc_size=90, radius=10, bFeedoutput=False, iDiametercomp=40, iCompActive=40, cWo='G',
                iWorkoffset=54, iAbsincmode=90, feed=100, mcode_f='2.0(p)', clear_change_after_gen=1,
                xstart=10, ystart=0, zstart=0, xcenter=0, ycenter=0, zcenter=0,
                xcenter_rel=-10, ycenter_rel=0, zcenter_rel=0, xpos=0, ypos=0, zpos=0, bCamLinkRetract=False)

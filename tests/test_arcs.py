@@ -5,8 +5,8 @@ Scope after the area-D port:
 * XY (G17) and YZ (G19) only. Every ZX arc stops the post since 5408e5c (PP-003,
   fixed): tests/test_zx_arc_guard.py and
   tests/test_arc_compensation_plane.py::test_zx_arc_stops_the_post.
-* The shipped iArcmode=2 (incremental I/J/K) only. Modes 1/3/4 emit Fanuc arc
-  words (PP-022, tests/test_arc_compensation_plane.py).
+* Incremental I/J/K only: the other arc modes (iArcmode 1/3/4, PP-022) were
+  removed in the refactor (tests/test_arc_compensation_plane.py).
 * Compensation is unchanged, so no G40/G41/G42 may appear in an arc block (TRC
   in a G2/G3 block was PP-020; b999f65 stops the post instead); the old forced
   change(iDiametercomp) is gone. The harness state includes iCompActive (the
@@ -44,10 +44,10 @@ COORDINATE_TOLERANCE = 0.51e-5
 
 
 def arc_engine(case, plane, axes):
-    """Bare engine in the mid-job state an arc event sees (shipped iArcmode=2)."""
+    """Bare engine in the mid-job state an arc event sees."""
     engine = fresh_engine()
     engine.set(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz', arc_direction=case['direction'],
-               arc_plane=plane, arc_size=case['size'], iArcmode=2, radius=10, bFeedoutput=False,
+               arc_plane=plane, arc_size=case['size'], radius=10, bFeedoutput=False,
                iFeedMode=94, iDiametercomp=40, iCompActive=40, cWo='G', iWorkoffset=54, iAbsincmode=90, feed=100,
                mcode_f='2.0(p)', clear_change_after_gen=1, xpos_f='8.5', ypos_f='8.5', zpos_f='8.5')
     u, v, w = axes
@@ -76,7 +76,7 @@ def call_valid_arc(testcase, engine, procedure, arguments=()):
 
 class ArcTests(unittest.TestCase):
     def test_ambiguous_arcs_all_planes_and_modes(self):
-        """INDEPENDENT: XY (G17) and YZ (G19) with the shipped iArcmode=2. End points come
+        """INDEPENDENT: XY (G17) and YZ (G19) with incremental I/J/K. End points come
         from the fixture geometry (rotation of start-center by +-arc_size); the control
         must sweep arc_size for the written block (DIN 66025 / Siemens 828D, checked with
         support.nc.arc_sweep_degrees); I/J/K are incremental from the start point; the

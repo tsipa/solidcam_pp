@@ -117,7 +117,7 @@ test_program_start_forces_dc`.
 | `test_session_program.py`, `test_toolchange_session.py` | program start/end, header, tool list and WORKPIECE, init_post session, tool change, coolant, M00/M01 stops, HSM, homing strings |
 | `test_rotary.py`, `test_offline.py`, `test_rotary_modulo_range.py`, `test_move_4x_axial_x.py` | A-axis position/direction/output, modulo range and full-turn stop, iR1dir, index direction, move_4x, bLimit_3axis, home_data; recorded Slide angles |
 | `test_indexing_link.py`, `test_work_offsets_fixtures.py`, `test_motion.py`, `test_arc_link_boundary.py` | indexing, the CAM-link state machine, work offsets; recorded shit2 link |
-| `test_unsupported_features.py` | the POST ERROR stops for template features of other controls: multiple fixtures, the trig-macro index mode, subprograms, loops, reference point changes |
+| `test_unsupported_features.py` | the POST ERROR stops for template features of other controls: multiple fixtures, the trig-macro index mode, unknown index clearance modes, subprograms, loops, reference point changes |
 | `test_motion_rapids.py`, `test_post_homing_reposition.py`, `test_job_start_climb.py`, `test_inverse_time_feed.py` | rapids and approach order, return after post-inserted homing, the first-rapid climb, feed emulation, Z precision, G93 inverse-time feed |
 | `test_arc_compensation_plane.py`, `test_cutter_compensation.py`, `test_job_plane_restore.py`, `test_zx_arc_guard.py`, `test_arcs.py` | arcs, the ZX-arc stop, cutter compensation, machining plane |
 | `test_cycles_spindle.py`, `test_tapping_direction.py`, `test_history_regressions.py` | CYCLE81-86, MCALL cancel, tapping, spindle start and dwell; historical fixture cases |
@@ -287,8 +287,8 @@ it shows the open defects as red tests.
 - Surviving mutants (f1803b4 run): 256 of 802. Large groups were `@start_of_job`
   (loop and subroutine branches disabled by the VMID), the `@usr_arc` iArcmode 1/3/4
   branches (deliberately not pinned, because their output is the registered defect
-  PP-022) and parts of `@usr_r1pos_calc` (whole-turn handling, since rewritten by
-  6228b3d). The owner's fixes changed those procedures; the mutation run has not
+  PP-022; both groups removed in the refactor) and parts of `@usr_r1pos_calc`
+  (whole-turn handling, since rewritten by 6228b3d). The owner's fixes changed those procedures; the mutation run has not
   been repeated on the current GPP.
 - Still not executed: `@loop_matrix_info` and `@offset_change` (dormant or
   disabled by the VMID). The Fanuc template paths (subprogram output, loops,
@@ -347,10 +347,10 @@ covered as DESIGN.md lists. `tests/support/engines.py` adapts either engine for 
 post tests without changing `pp_tests/gppl` (see Engines).
 
 Fixture files: `ambiguous_arcs.json` supplies hand-authored XY/YZ arcs for the
-shipped `iArcmode=2` (minor/major arcs sharing endpoints, both semicircle
+incremental I/J/K output (minor/major arcs sharing endpoints, both semicircle
 directions, 179.999/180/180.001 degrees, nonzero centres, CAD endpoint roundoff and
-mismatch errors); ZX arcs stop the post (PP-003, fixed in 5408e5c) and the Fanuc arc
-modes live only in the PP-022 tests. `motion_sequences.json` exercises the
+mismatch errors); ZX arcs stop the post (PP-003, fixed in 5408e5c). The other arc
+modes (`iArcmode` 1/3/4, PP-022) were removed in the refactor. `motion_sequences.json` exercises the
 rapid/line procedures, the homing-string parser and indexing with exact word
 tokens. `history_regressions.json` holds the historical bug-fix cases
 (`tests/HISTORY_COVERAGE.md`). The repeated-G75 defect and its test oracle history

@@ -47,7 +47,7 @@ def motion_engine(source=None):
                feed_type='feed_cut', job_type='contour', bStopM00=False,
                iWorkOffset_Method=0, rotate_angle_x=0, rotate_angle_y=0,
                rotate_angle_z=0, shift_x=0, shift_y=0, shift_z=0, position=1,
-               rot_axis_coord=0, bSubs=False, bPrintloop=False, transform_type=0,
+               rot_axis_coord=0, transform_type=0,
                job_name='fixture_operation', iG187_P=2, nG187_E=0,
                iG187_P_gpp=2, nG187_E_gpp=0,
                bStopM00difftool=False, bTmatrixIndexPending=False,

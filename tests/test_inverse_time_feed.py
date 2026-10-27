@@ -102,7 +102,7 @@ class InverseTimeFeedTests(unittest.TestCase):
         session.step('line_5x', ['apos'], apos=30, feed=300, dir5a='ccw', feed_type='feed_cut')
         session.step('end_of_job')
         session.step('start_of_job')
-        session.engine.set(arc_plane='xy', arc_direction='ccw', arc_size=90, iArcmode=2, radius=10,
+        session.engine.set(arc_plane='xy', arc_direction='ccw', arc_size=90, radius=10,
                            xstart=10, ystart=0, zstart=25, xcenter=0, ycenter=0, zcenter=25,
                            xcenter_rel=-10, ycenter_rel=0, zcenter_rel=0)
         output = session.step('arc', ['xpos', 'ypos'], xpos=0, ypos=10, feed=300)
@@ -117,7 +117,7 @@ class InverseTimeFeedTests(unittest.TestCase):
     def test_arc_after_rotation_leaves_g93_first(self):
         session = start_at(10, 0, 25)
         session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='ccw', feed_type='feed_cut')
-        session.engine.set(arc_plane='xy', arc_direction='ccw', arc_size=90, iArcmode=2, radius=10,
+        session.engine.set(arc_plane='xy', arc_direction='ccw', arc_size=90, radius=10,
                            xstart=10, ystart=0, zstart=25, xcenter=0, ycenter=0, zcenter=25,
                            xcenter_rel=-10, ycenter_rel=0, zcenter_rel=0)
         output = session.step('arc', ['xpos', 'ypos'], xpos=0, ypos=10)

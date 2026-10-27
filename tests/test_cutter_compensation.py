@@ -27,7 +27,7 @@ def engine_with_comp(active, source=None):
     return engine
 
 
-ARC = dict(xy='xy', zx='zx', yz='yz', arc_plane='xy', arc_direction='ccw', arc_size=90, iArcmode=2,
+ARC = dict(xy='xy', zx='zx', yz='yz', arc_plane='xy', arc_direction='ccw', arc_size=90,
            radius=10, xstart=10, ystart=0, zstart=0, xcenter=0, ycenter=0, zcenter=0,
            xcenter_rel=-10, ycenter_rel=0, zcenter_rel=0)
 
@@ -270,7 +270,7 @@ class CompensationProgramTests(unittest.TestCase):
         self.assertEqual(program.ev('move_5x', zpos=4), ['G41 Z4'])
 
 
-YZ_ARC = dict(arc_plane='yz', arc_direction='ccw', arc_size=90, iArcmode=2, radius=10)
+YZ_ARC = dict(arc_plane='yz', arc_direction='ccw', arc_size=90, radius=10)
 
 
 def yz_arc(program, end, start, center, **values):

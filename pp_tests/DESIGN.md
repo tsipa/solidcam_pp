@@ -251,7 +251,10 @@ fixtures under `session,<policy>=<value>`.
   statements never run with them (for example `if bSubs` in `@start_of_job`, 21
   statements, because `bSubs = false` at line 180); `usr_trig_macro_call` and
   `usr_trig_macro_output` are reachable only through such branches;
-  `usr_heightcomp_on/off` were never called (deleted in the refactor).
+  `usr_heightcomp_on/off` were never called (deleted in the refactor). After the
+  refactor 21 branches / 46 statements are left (`tests_engine/test_static.py`);
+  `bSubs` and the trig macro are gone, the POST ERROR stops on unsupported settings
+  are among the remaining ones.
 * **Policy-sensitive sites.** `I-POLICY-INTEGER` at 620/622/629/2620/2622
   (`iWorkoffset = tonum(...)`), `I-POLICY-TONUM` (309, 620, 622, 629, 2104, ...),
   `I-POLICY-STMT` for the 2 inputs and 2 Prints. No `!` over an unparenthesised
@@ -314,7 +317,8 @@ dropped; unexecuted unsupported code invisible; errors re-wrapped per frame;
   whole `@start_of_file` event; `@usr_coolant` with 30 bar through-coolant
   (`07`, line 990), and with it `@start_of_job`; `@Multiple_Fixtures`
   (`tostr(:'5.0(n)')`), and with it `@end_program`, `@end_of_file`, `@call_proc`
-  and `@start_of_job` when `iNumber_of_Fixtures > 1`; the `@usr_4x_index` warning
+  and `@start_of_job` when `iNumber_of_Fixtures > 1` (removed in the refactor:
+  more than one fixture now stops the post); the `@usr_4x_index` warning
   path (`Print`), reached from `@start_of_job`, `@fourth_axis` and `@call_proc`;
   `@home_number`/`@home_data` with home names such as `'G54P4'` (`tonum=atof`).
 * **Coverage.** 57 procedures are never executed by the legacy suite; the
@@ -325,7 +329,8 @@ dropped; unexecuted unsupported code invisible; errors re-wrapped per frame;
   `line`, stops (`usr_forcedstop`, `usr_stopm00_*`), `drill_point`, `end_drill`,
   `m_feed_spin`, `start_tool`, spindle output, `call_proc`/`proc`/`end_proc`/
   loops, `multiple_fixtures`, `move_4x`/`line_4x`, the trig macro and
-  `home_data`. Statements 36.0 % to 93.8 %, branch outcomes 32.9 % to 81.4 %.
+  `home_data` (the subprogram, loop, fixture and trig-macro paths were removed in
+  the refactor). Statements 36.0 % to 93.8 %, branch outcomes 32.9 % to 81.4 %.
 * **What to write next.** The coverage-gap split names the 57 live statements
   still without input and the 23 dead under the shipped configuration;
   `contracts` lists, per event, exactly which inputs and flags a fixture must
