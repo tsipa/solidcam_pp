@@ -380,8 +380,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
             'bStopM00difftool kept alive': mutate('    bStopM00difftool = false\n    iPworkoffset = iWorkoffset',
                                                   '    iPworkoffset = iWorkoffset'),
             'no M5 before the different-tool M00': mutate(
-                "        call @usr_coolant_output\n    endif\n    call @usr_spindle_stop\n    sHomestr = sHomestrstpdiff",
-                "        call @usr_coolant_output\n    endif\n    sHomestr = sHomestrstpdiff"),
+                "    call @usr_spindle_stop\n    call @usr_prep_home_axis\n    call @usr_forcedstop\n",
+                "    call @usr_prep_home_axis\n    call @usr_forcedstop\n"),
         }
         for label, source in sources.items():
             with self.subTest(mutant=label):
@@ -424,8 +424,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
         """INDEPENDENT: no M5 before M00 or no restart after it fails the guard (pp-region-3, tc-14)."""
         sources = {
             'no M5 before the same-tool M00': mutate(
-                "        call @usr_coolant_output\n    endif\n    call @usr_spindle_stop\n    sHomestr = sHomestrstpsame",
-                "        call @usr_coolant_output\n    endif\n    sHomestr = sHomestrstpsame"),
+                "    call @usr_spindle_stop\n    call @usr_prep_home_axis\n    call @usr_forcedstop\n",
+                "    call @usr_prep_home_axis\n    call @usr_forcedstop\n"),
             'no spindle restart after M00': mutate('    call @m_feed_spin\n    call @usr_spindle_mcode_output\n'
                                                    '    change(xpos) = true',
                                                    '    call @m_feed_spin\n    change(xpos) = true'),

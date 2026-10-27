@@ -65,9 +65,9 @@ class WholeGppTests(unittest.TestCase):
         branches = [d for d in self.diagnostics if d.code == 'I-CONFIG-DEAD']
         # Branches the shipped user options never take: 33 branches / 80 statements at 058b0e9, fewer
         # with each removal of template options for other controls.
-        self.assertEqual(len(branches), 21)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 46)
-        # The stops on an unsupported i4xIndexMode or i4xIndexClearanceMode are among them: they run
+        self.assertEqual(len(branches), 22)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 50)
+        # The stops on an unsupported i4xIndexMode, i4xIndexClearanceMode or i4xFeedMode are among them: they run
         # only on a wrong setting.
         guard = lines_matching(r'^\s*if i4xIndexMode ne 0 and i4xIndexMode ne 1\s*$', start='@usr_check_options')
         stop = [d for d in branches if d.proc == 'usr_check_options' and d.line == guard[0]]

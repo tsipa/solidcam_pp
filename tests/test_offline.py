@@ -112,11 +112,10 @@ class PostprocessorTests(unittest.TestCase):
     def test_3axis_suppresses_rotary_change(self):
         """INDEPENDENT: meaning of the VMID machine parameter bLimit_3axis: rotary
         changes are suppressed. (The forced initial DC that still prints is PP-036,
-        test_rotary.)"""
+        test_rotary.) No A word follows a bpos either: nR2pos only selects the head homing."""
         engine = rotary_engine(apos=90, bpos=15, bLimit_3axis=True)
         engine.call('usr_r1pos_calc')
         self.assertFalse(engine.changed['nr1pos'])
-        self.assertFalse(engine.changed['nr2pos'])
 
     def test_tmatrix_invalidates_clearance(self):
         """INDEPENDENT: @tmatrix intent ('Conservatively require clearance even when

@@ -392,8 +392,8 @@ REVERSIONS = [
     # The commented-out template block was deleted (fixup round): inject its four output statements
     # (signs folded into the plain shift values) into the now empty @home_data.
     ('CTRANS frame writes re-enabled', '77c03c6', 'check_home_data_writes_no_frames', [
-        ("    ; printed (77c03c6).\nendp\n",
-         "    ; printed (77c03c6).\n"
+        ("    ; offset comes from @home_number; no frame (CTRANS) is written.\nendp\n",
+         "    ; offset comes from @home_number; no frame (CTRANS) is written.\n"
          "    {nl,'$P_UIFR['(position + home_number + 2)']= CTRANS( X,'shift_x:'5.3'}\n"
          "    {', Y,'shift_y:'5.3'}\n"
          "    {', Z,'shift_z:'5.3'}\n"
@@ -406,7 +406,7 @@ REVERSIONS = [
         ('            call @usr_head_home_select\n            bVertical = true\n',
          "            call @usr_head_home_select\n            zpos_f = '5.4(*-1)'\n            bVertical = true\n", 1)]),
     ('tool change keeps the CAM apos', 'mutation', 'check_toolchange_zeroes_cam_apos', [
-        ('            nR1pos = 9999\n            apos = 0\n', '            nR1pos = 9999\n', 1)]),
+        ('            change(nRapidfeed) = true\n            apos = 0\n', '            change(nRapidfeed) = true\n', 1)]),
     ('4x-transform angle sign flipped', 'mutation', 'check_contributions_compose_modulo_360', [
         ('    nR1postransform = (-angle) * iR1dir', '    nR1postransform = (angle) * iR1dir', 1)]),
     ('cpos contribution dropped', 'mutation', 'check_contributions_compose_modulo_360', [

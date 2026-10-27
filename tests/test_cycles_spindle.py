@@ -664,11 +664,7 @@ GUARDS = {
 
 # (name, guard, old, new, occurrences of old). Each must fail its guard with AssertionError.
 MUTATIONS = (
-    ('end_drill_no_mcall_cancel', 'modal_cycle_cancel', "        {nb, 'MCALL '}\n", '', 1),
-    # Killed only under the default 'clear' flag policy. With 'persist' the init
-    # assignment's flag stays raised and the mutant is equivalent (ENGINE-001;
-    # TSR-15 verifier: the iDrillmode flag is never consumed).
-    ('end_drill_mode_never_changes', 'modal_cycle_cancel', '    iDrillmode = 80\n', '    iDrillmode = 9999\n', 1),
+    ('end_drill_no_mcall_cancel', 'modal_cycle_cancel', "    {nb, 'MCALL '}\n", '', 1),
     ('end_drill_no_g94_after_tap', 'modal_cycle_cancel',
      "    if drill_type eq G84\n        {nb, 'G94'}\n",
      "    if drill_type eq G84\n    endif\n    if false\n        {nb, 'G94'}\n", 1),

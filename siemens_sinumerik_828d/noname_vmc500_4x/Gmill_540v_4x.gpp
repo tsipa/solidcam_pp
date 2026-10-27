@@ -8,30 +8,33 @@
     global logical bToolPreselect bSyncdrapid bUseprogname bTlist bTlseperation bTcseperation bDateTimeOutput
     global logical bToolChangeAtEnd bOptstpbegin bOptstptc bOptstpend bWorkoffsettc bNnumtc bCoolspinaftertc
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend
-    global string cTCcodep cTCcodes cWo cPb cPe cCb cCe cOMb cOMe cR1 cR2
+    global string cTCcodep cTCcodes cWo cPb cPe cCb cCe cOMb cOMe cR1
     global string sHomestrbegin sHomestrtc sHomestrend sHomestrstpsame sHomestrstpdiff sHomestrrotv sHomestrroth
     global integer iProgendmode i4xIndexMode i4xIndexClearanceMode i4xFeedMode
     global integer iCoolantM1ON iCoolantM2ON iCoolantM3ON iCoolantM4ON iCoolantM5ON iCoolantM6ON iCoolantM7ON iCoolantM8ON
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
     global numeric nRapidfeed nMaxInverseFeed iR1dir iR2dir spindle_accel
     global string nR1pos_f nInvFeed_f
-    ; Modal state of the NC program (what the control has active)
-    global integer iMotionmode iMplane iAbsincmode iWorkoffset iPworkoffset iDiametercomp iCompActive iDiameteroffset
-    global integer iDrillmode iFeedMode iStopmode iSpindleDir
+    ; Modal state of the NC program (what the control has active). iDiametercomp is the G40/G41/G42
+    ; CAM asks for, printed on the next G0/G1 block; iCompActive is what the control has active.
+    global integer iMotionmode iMplane iAbsincmode iWorkoffset iPworkoffset iDiametercomp iCompActive
+    global integer iFeedMode iSpindleDir
     global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
     global numeric last_spin
     ; Tool change and job start
     global logical bTlchg bSafetyprep bStopM00difftool bskipline bFirstMove bFirstRapid
     global integer iTcnumber
     global numeric nTcXnext nTcYnext nTcCnext nPtool_start_plane nPtool_z_level
-    global string sUS_date sUS_time sUsrmsg
+    global string sUS_date sUS_time
     ; Homing (usr_prep_home_axis / usr_home_axis)
     global string sHomestr sHomestrrot sHomeline cHomep
     global integer iHomingmode
     ; A axis (usr_r1pos_calc, usr_r1_output) and the template's second rotary axis
     global numeric nR1pos nR1pos5x nR1postmatrix nR1postransform nR1poscpos nPR1pos nR1postemp nPR1postemp nR1posstep
-    global numeric nR2pos nR2pos5x nR2postmatrix nPR2pos
+    global numeric nR2pos nR2pos5x nR2postmatrix
     global integer iR1dirMode
+    ; bVertical: nR2pos was not 0 at the last head check (swivel-head template term; here only a
+    ; CoordSys turned about Z or a CAM bpos). bFirstVert: no head homing yet in this program.
     global logical bR1useDir5a bR1forceOutput bVertical bFirstVert
     ; Position tracking for indexing, CAM links and the first-rapid climb
     global logical bTmatrixIndexPending bIndexClearancePending bCamLinkRetract bJobPositioned bClimbZValid
@@ -48,24 +51,24 @@
     global logical bWorkpieceBuffered bWorkpieceUsesA
     global string sWorkpieceBodyPath sWorkpieceArgs
 
-    ; Non GPPL variables
+    ; Program state
     last_spin = 0
     spindle_accel = 500 ; rpm/s
     bR1forceOutput = true
 
+    ; GPPL settings and formats
     num_user_procs =    1
     remove_blanks = FALSE
     line_labels    = FALSE     ; Jump to N...
     clear_change_after_gen = 1
-
-    ; GPPL variables
     numeric_def_f   = '8.5'
     integer_def_f   = '5.0(p)'
     gcode_f         = '2.0(p)'
     mcode_f         = '2.0(p)'
     xpos_f          = '8.5'
     ypos_f          = '8.5'
-    ; zpos_f becomes '5.4' at the first head homing (usr_head_home_select: first rapid or tool change).
+    ; zpos_f becomes '5.4' at the first head homing (usr_head_home_select), which runs at the first
+    ; rapid, before any Z word: '8.5' is never printed (PP-006).
     zpos_f          = '8.5'
     nR1pos_f        = '7.3'
     apos_f          = '5.3'
@@ -121,12 +124,12 @@ endp
     iCoolantM8OFF         = 9                  ; Code: Air Through Tool OFF
 
     ;NC layout
-    bTlist                = true               ; True = tool list in the header
+    bTlist                = true               ; True = tool list, 'Loading Zeropoints' and WORKPIECE blank in the header
     bTlseperation         = false              ; True = blank lines after the date and after the tool list
     bTcseperation         = false              ; True = blank line before each tool change after the first
     bDateTimeOutput       = true               ; True = date and time in the header
     bToolChangeAtEnd      = false              ; True = change back to the first tool at the end (writes M06 before T)
-    bOptstpbegin          = false              ; True = M1 after the header
+    bOptstpbegin          = false              ; True = M1 after the header (with bTlist)
     bOptstptc             = true               ; True = M1 before each tool change after the first
     bOptstpend            = false              ; True = M1 before the program end
     bWorkoffsettc         = true               ; True = work offset repeated at each tool change
@@ -137,8 +140,8 @@ endp
     blknum_max            = 99999              ; Largest block number
 
     ;Homing: one NC line per '8:prefix:line' entry, entries separated by ';', output in order
-    ;(usr_prep_home_axis). 8 is the only mode (the line as given); prefix is usually empty.
-    ;'' = no homing at that point.
+    ;(usr_prep_home_axis). 8 is the only mode (the line as given); prefix is usually empty. The
+    ;'8:' form is kept so existing homing strings still parse. '' = no homing at that point.
     sHomestrbegin         = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0' ; Program start
     sHomestrtc            = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0' ; Tool change
     sHomestrend           = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0' ; Program end
@@ -150,10 +153,9 @@ endp
     iR1dir                = -1                 ; A direction: 1 = +CCW, -1 = +CW
     iR2dir                = 1                  ; Second rotary axis of the template (none on this machine)
     cR1                   = 'A'                ; Rotary axis letter
-    cR2                   = 'B'                ; Second rotary letter (not read)
     i4xIndexMode          = 0                  ; Index: 0 = turn A, 1 = turn A and step the work offset (G54, G55, ...)
     i4xIndexClearanceMode = 0                  ; Index clearance: 0 = home, 1 = tool Z level, 2 = tool start plane
-    i4xFeedMode           = 1                  ; Rotating G1: 1 = G93 inverse time, 0 or 2 = programmed feed
+    i4xFeedMode           = 1                  ; Rotating G1: 1 = G93 inverse time, 0 = programmed feed (G94)
     nMaxInverseFeed       = 59999.99           ; G93 F limit, 1/min (VMID MaxInverseFeed)
 
 endp
@@ -237,8 +239,14 @@ endp
     endif
     if i4xIndexMode ne 0 and i4xIndexMode ne 1
         dummy_var = 0
-        input '"POST ERROR: i4xIndexMode must be 0 or 1 (2 was a Fanuc trig macro)."'dummy_var
-        {nb,"POST ERROR: i4xIndexMode must be 0 or 1 (2 was a Fanuc trig macro)."}
+        input '"POST ERROR: i4xIndexMode must be 0 or 1."'dummy_var
+        {nb,"POST ERROR: i4xIndexMode must be 0 or 1."}
+        abort
+    endif
+    if i4xFeedMode ne 0 and i4xFeedMode ne 1
+        dummy_var = 0
+        input '"POST ERROR: i4xFeedMode must be 0 or 1."'dummy_var
+        {nb,"POST ERROR: i4xFeedMode must be 0 or 1."}
         abort
     endif
 endp
@@ -308,7 +316,6 @@ endp
     iWorkoffset     = 9999
     iDiametercomp   = 9999
     iCompActive     = 9999
-    iDrillmode      = 9999
     ; Tool change counter (N number of the tool change block with bNnumtc): 2001 for the first tool,
     ; +1 for every later tool.
     iTcnumber       = 2001
@@ -320,7 +327,6 @@ endp
     iCoolantM6      = iCoolantM6OFF
     iCoolantM7      = iCoolantM7OFF
     iCoolantM8      = iCoolantM8OFF
-    nR1pos          = 9999
     bTmatrixIndexPending = false
     bIndexClearancePending = true
     bCamLinkRetract = false
@@ -340,8 +346,6 @@ endp
     nPR1pos         = 0
     nPR1postemp     = 0
     change(cWo)     = false
-    change(cR2)     = false
-    change(cR1)     = false
     bFirstVert      = true
 endp
 
@@ -370,6 +374,7 @@ endp
                 {nl,cCb'---' msg_mill_tool5,cCe}
             endif
         endif
+        ; After the last tool of the header list (a @def_tool after @change_tool is not the header).
         if next_command ne '@def_tool' and bTlchg eq false
             if bTlseperation
                 {nl}
@@ -613,6 +618,8 @@ endp
 
 @usr_ct_before_notfirsttool
     ; Before a tool change after the first: coolant and spindle off, home, optional stop, safety block.
+    ; bStopM00difftool is always false here (PP-056: end_of_job clears it in the same event), so the
+    ; G75 retract before M06 always runs.
     if !bStopM00difftool
         if bCooloffend and bCoolExist
             call @usr_coolant_prep_all_off
@@ -621,9 +628,9 @@ endp
         if bSpinoffend
             call @usr_spindle_stop
         endif
-        if bVertical or bFirstVert
-            ; No rapid since the program start (bFirstVert) or the head was vertical: home with the
-            ; head-orientation homing (sHomestrrotv) instead of the tool-change homing.
+        if bVertical
+            ; The head was vertical: home with the head-orientation homing (sHomestrrotv) instead of
+            ; the tool-change homing.
             call @usr_head_home_select
             bVertical = false
         else
@@ -654,6 +661,7 @@ endp
         {nl,'N'iTcnumber' '}
         skipline = false
     else
+        ; A line with only ';' separates the tool change.
         {nb,cCb}
     endif
     {nb, 'G17 G40 G64 G90'}
@@ -664,7 +672,7 @@ endp
 endp
 
 @usr_ct_toolchange
-    ; T, M06 and D1 of the new tool, the preselected next tool and the operation message.
+    ; T, M06 and D1 of the new tool, the preselected next tool and MSG(job_name).
     {nb, 'T',tool_number,cTCcodes}
     {nb, cTCcodep}
     {nb, 'D1 '}
@@ -678,7 +686,7 @@ endp
 endp
 
 @usr_ct_after
-    ; After the T / M6 / D1 blocks: the operation message, then the spindle start, the coolant and
+    ; After the T / M6 / D1 blocks: the operation comment lines (msg), then the spindle start, the coolant and
     ; the first positioning rapid (usr_rapid_tc_block) in the order bCoolspinaftertc selects.
     call @usr_ct_msg_lines
     if bCoolspinaftertc
@@ -744,7 +752,8 @@ endp
 
 @usr_tc_init_gmstates
     ; Modal states for the new tool. Runs twice per tool change: from usr_ct (full reset) and from
-    ; usr_ct_safety_block with bSafetyprep set (plane, abs/inc and compensation flags only).
+    ; usr_ct_safety_block with bSafetyprep set (plane, abs/inc and compensation flags only); and from
+    ; start_of_job for a same-tool work offset change (full reset).
     ; Known defect PP-027: the first-tool branch never clears bSafetyprep, so the usr_ct call of the
     ; second tool takes the bSafetyprep branch and skips the full reset.
     if first_tool
@@ -754,16 +763,13 @@ endp
         call @machine_plane
         change(iMplane) = true
         change(iWorkoffset) = true
-        change(iDiameteroffset) = false
         change(iDiametercomp) = false
-        iDrillmode = 9999
     else
         if bSafetyprep
             call @machine_plane
             change(iMplane) = true
             change(iAbsincmode) = false
             change(iDiametercomp) = false
-            iDrillmode = 9999
             bSafetyprep = false
         else
             iMotionmode = 9999
@@ -772,10 +778,7 @@ endp
             endif
             change(iAbsincmode) = false
             iDiametercomp = 40
-            change(iDiameteroffset) = false
-            iDrillmode = 9999
             change(nRapidfeed) = true
-            nR1pos = 9999
             apos = 0
             bpos = 0
             cpos = 0
@@ -1027,9 +1030,11 @@ endp
     ; Machine order: homing where needed, A in a block of its own, then X/Y/Z. The rapid after a tool
     ; change or a work-offset change at job start (bTlchg) is one positioning block instead
     ; (usr_rapid_tc_block: work offset and A, plus Y with a vertical head; no X or Z).
-    ; The homings run here and not in the helpers: that keeps the procedure nesting low (start_of_job
-    ; -> usr_ct -> usr_ct_after -> usr_rapid -> usr_prep_home_axis -> usr_home_axis = 6 levels; the
-    ; original post went to 7); the GPPL nesting limit is not known.
+    ; The homings run here and not in the helpers to keep the procedure nesting low. The deepest
+    ; chains are 7 levels (start_of_job or end_of_job -> ... -> usr_rapid -> usr_rapid_xyz ->
+    ; usr_rapid_trc_axes -> usr_job_plane), as deep as the original post went; the GPPL limit is not
+    ; known, so usr_rapid_trc_axes, usr_rapid_climb_then_xy, usr_rapid_xy_then_z, usr_job_plane and
+    ; usr_emulated_rapid_feed call nothing deeper.
     call @usr_rapid_cam_link
     call @usr_rapid_motion_mode
     call @usr_r1pos_calc
@@ -1110,8 +1115,7 @@ endp
 @usr_head_home_select
     ; Select the homing for a head orientation change: sHomestr = sHomestrrotv (also the rotation
     ; homing sHomestrrot from now on); the caller runs usr_prep_home_axis. Z switches to its
-    ; 4-decimal format. The template's head macros ('HVV'/'HVH' blocks) and its inverted Z format
-    ; '5.4(*-1)' stay off (77c03c6).
+    ; 4-decimal format (PP-006).
     sHomestrrot = sHomestrrotv
     sHomestr = sHomestrrot
     zpos_f = '5.4'
@@ -1290,7 +1294,8 @@ endp
 endp
 
 @usr_line
-    ; Feed move (G1). A block that turns A is posted in G93 (inverse time, usr_inverse_feed).
+    ; Feed move (G1). A block that turns A is posted in G93 (inverse time, usr_inverse_feed) when its
+    ; start point is known (bFeedPrevValid; not right after a homing, a tool change or an index).
     local logical bInverseBlock
     local numeric dummy_var
     ; Evaluate CAM input changes before output consumes their change flags.
@@ -1320,6 +1325,7 @@ endp
         iFeedMode = 93
     else
         if iFeedMode eq 93
+            ; G94 joins this G1 block; usr_feedmode_94 handles the other moves.
             iFeedMode = 94
             change(feed) = true
         endif
@@ -1506,8 +1512,8 @@ endp
 
     if dx gt tolerance or dy gt tolerance or dz gt tolerance then
         dummy_var = 0
-        input '"POST ERROR: ARC end mismatch.'dummy_var
-        {"POST ERROR: ARC end mismatch. tolerance=", tolerance, " dX=", dx, " dY=", dy, " dZ=", dz}
+        input '"POST ERROR: ARC end mismatch."'dummy_var
+        {nb,"POST ERROR: ARC end mismatch. tolerance=", tolerance, " dX=", dx, " dY=", dy, " dZ=", dz}
         abort
     endif
 endp
@@ -1653,6 +1659,7 @@ endp
     endif
     {['F'feed ' ']}
     change(nRapidfeed) = true
+    ; The next G93 block starts here; A does not turn on an arc, so its A reference stays.
     nFeedPrevX = xpos
     nFeedPrevY = ypos
     nFeedPrevZ = zpos
@@ -1664,15 +1671,12 @@ endp
     ; SolidCAM event: cutter compensation side (iDiametercomp); the next G0/G1 block prints G40/G41/G42.
     if side eq COMP_LEFT then
         iDiametercomp = 41
-        change(iDiameteroffset) = true
     endif
     if side eq COMP_RIGHT then
         iDiametercomp = 42
-        change(iDiameteroffset) = true
     endif
     if side eq COMP_OFF then
         iDiametercomp = 40
-        change(iDiameteroffset) = false
     endif
 endp
 
@@ -1680,31 +1684,34 @@ endp
 
 @usr_optionalstop
     ; M1 optional stop.
-    iStopmode = 1
-    {nb, 'M'iStopmode:mcode_f' '}
+    {nb, 'M1 '}
 endp
 
 @usr_forcedstop
     ; M0 program stop.
-    iStopmode = 0
-    {nb, 'M'iStopmode:mcode_f' '}
+    {nb, 'M0 '}
 endp
 
-@usr_StopM00_sametool
-    ; M0 between two operations of the same tool (VMID bStopM00): coolant and spindle off, home,
-    ; message, M0, then spindle and coolant back on.
-    local logical bHomedBeforeReturn
-    local numeric nZBeforeReturn
+@usr_stop_m00
+    ; The M0 stop of a job boundary (VMID bStopM00): coolant and spindle off, the homing the caller
+    ; put in sHomestr, M0, then the stop message.
     if bCoolExist
         call @usr_coolant_prep_all_off
         call @usr_coolant_output
     endif
     call @usr_spindle_stop
-    sHomestr = sHomestrstpsame
     call @usr_prep_home_axis
     call @usr_forcedstop
-    sUsrmsg = sStopMessage
     call @usr_message
+endp
+
+@usr_StopM00_sametool
+    ; M0 between two operations of the same tool: the stop, then the spindle back on and the XY
+    ; return. The coolant stays off (PP-024).
+    local logical bHomedBeforeReturn
+    local numeric nZBeforeReturn
+    sHomestr = sHomestrstpsame
+    call @usr_stop_m00
     {nb}
     call @usr_abs_inc_output
     call @m_feed_spin
@@ -1729,24 +1736,16 @@ endp
 endp
 
 @usr_StopM00_difftool
-    ; M0 before a tool change (VMID bStopM00): coolant and spindle off, home, message, M0.
-    if bCoolExist
-        call @usr_coolant_prep_all_off
-        call @usr_coolant_output
-    endif
-    call @usr_spindle_stop
+    ; M0 before a tool change.
     sHomestr = sHomestrstpdiff
-    call @usr_prep_home_axis
-    call @usr_forcedstop
-    sUsrmsg = sStopMessage
-    call @usr_message
+    call @usr_stop_m00
     bStopM00difftool = true
 endp
 
 ;-------------------
 
 @change_ref_point
-    ; SolidCAM reference point change (the template wrote a Fanuc G10 L2 offset): not supported.
+    ; SolidCAM reference point change (a G10 offset write): not supported.
     call @usr_unsupported_event
 endp
 
@@ -1776,7 +1775,6 @@ endp
     else
         position = position + 1
     endif
-    gcode = 0
     apos = 0
     call @usr_4x_index
 endp
@@ -1788,8 +1786,8 @@ endp
 
 @usr_message
     ; The stop message (VMID sStopMessage) as a comment; SolidCAM @message texts are not printed.
-    if sUsrmsg ne ''
-        {nb, cCb,sUsrmsg,cCe}
+    if sStopMessage ne ''
+        {nb, cCb,sStopMessage,cCe}
     endif
 endp
 
@@ -1880,11 +1878,7 @@ endp
 
 @end_drill
     ; Cancel the modal cycle (bare MCALL); G94 back after tapping.
-    iDrillmode = 80
-    if change(iDrillmode)
-        {nb, 'MCALL '}
-        iDrillmode = 9999
-    endif
+    {nb, 'MCALL '}
     if drill_type eq G84
         {nb, 'G94'}
     endif
@@ -1953,8 +1947,7 @@ endp
 ;-------------------
 
 @offset_change
-    ; Cutter radius offset number (D) of the tool.
-    iDiameteroffset = tool_number
+    ; SolidCAM offset change event: not needed, D is always D1 (usr_ct_toolchange).
 endp
 
 ;-------------------
@@ -2071,14 +2064,8 @@ endp
     else
         change(nR1pos) = false
     endif
-    if nPR2pos ne nR2pos
-        change(nR2pos) = TRUE
-    else
-        change(nR2pos) = false
-    endif
     if bLimit_3axis
         change(nR1pos) = false
-        change(nR2pos) = false
     endif
     ; Direction word: DC for a forced A word (program start: the A position is unknown), else the
     ; CAM direction.
@@ -2093,7 +2080,6 @@ endp
     nR1posstep = nR1postemp - nPR1postemp
     nPR1postemp = nR1postemp
     nPR1pos = nR1pos
-    nPR2pos = nR2pos
 endp
 
 @usr_r1_cam_angle
@@ -2159,7 +2145,7 @@ endp
     if iR1dirMode ne 1 and iR1dirMode ne 2 and iR1dirMode ne 3
         dummy_var = 0
         input '"POST ERROR: A-axis output direction mode is not ACP/ACN/DC."'dummy_var
-        {"POST ERROR: A-axis output direction mode is not ACP/ACN/DC. A=", nR1pos}
+        {nb,"POST ERROR: A-axis output direction mode is not ACP/ACN/DC. A=", nR1pos}
         abort
     endif
     ; Track only emitted A words, at their 0.001 degree output resolution.
@@ -2180,11 +2166,11 @@ endp
 endp
 
 @usr_4x_index
-    ; Index A between operations (tmatrix in start_of_job, fourth_axis).
+    ; Index A between operations (tmatrix in start_of_job, fourth_axis): M1, then the turn.
     ;   i4xIndexMode: 0 = turn A in the current work offset, 1 = also step the work offset by
     ;   position-1 (G54, G55, ...).
-    ;   i4xIndexClearanceMode: 0 = home first (sHomestrrot, the homing string of the last rapid or tool
-    ;   change; '' before the first one), 1 = tool Z level, 2 = tool start plane. Modes 1/2: the
+    ;   i4xIndexClearanceMode: 0 = home first (sHomestrrot, the last A-turn or head homing string;
+    ;   '' before the first rapid, PP-053), 1 = tool Z level, 2 = tool start plane. Modes 1/2: the
     ;   previous job's level before the turn, this job's after it.
     call @usr_r1pos_calc
     if change(nR1pos)
@@ -2286,6 +2272,5 @@ endp
 
 @home_data
     ; SolidCAM CoordSys data event (VMID HomeDataAtStart). The post needs none of its data: the work
-    ; offset comes from @home_number, and the CTRANS frame values the template computed here were never
-    ; printed (77c03c6).
+    ; offset comes from @home_number; no frame (CTRANS) is written.
 endp
