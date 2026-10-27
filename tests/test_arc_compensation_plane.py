@@ -14,8 +14,8 @@ ZX (G18) orientation was registered as PP-003. The owner's fix (5408e5c) stops
 the post with a POST ERROR on every ZX arc until SolidCAM's arc_direction
 convention is verified, so the arc guards below run in XY and YZ, and the former
 PP-003 test checks that a ZX arc stops the post (the abort mechanics are in
-tests/test_zx_arc_guard.py). Arc modes other than the shipped iArcmode=2 are
-PP-022 tests only.
+tests/test_zx_arc_guard.py). The template's other arc modes (absolute plain
+I/J, R word; PP-022) were removed.
 
 TRC: PP-019, PP-020 and PP-021 are fixed (b999f65, 264be29, 88695c9, 9767011);
 their former canonical tests are regression guards (@covers).
@@ -30,7 +30,7 @@ import unittest
 
 from pp_tests.engine import UnsupportedGPPL
 from support import (DRILL_DEFAULTS, FIXTURES, Session, arc_center, arc_sweep_degrees, assert_detected,
-                     covers, known_defect, mutate, parse_blocks, replay, state_before)
+                     covers, mutate, parse_blocks, replay, state_before)
 
 # plane: (abscissa, ordinate, applicate, SolidCAM event, G code), DIN 66025 / Siemens 828D.
 PLANES = {
@@ -353,17 +353,20 @@ class ArcGuardTests(unittest.TestCase):
     def test_configured_arc_mode_emits_sinumerik_incremental_ijk(self):
         """INDEPENDENT: Sinumerik 828D reads plain I/J/K as incremental centre offsets
         (absolute needs I=AC(..)) and writes the radius as CR= (R is an arithmetic
-        parameter). The option chosen in usr_ip_useroptions must produce incremental I/J
+        parameter). @usr_arc must produce incremental I/J
         and no radius word (absorbs efc test_configured_arc_mode_is_sinumerik_incremental_ijk)."""
         self.check_configured_arc_mode()
 
-    def test_non_sinumerik_arc_mode_selection_is_detected(self):
-        """INDEPENDENT: selecting iArcmode 1 (absolute plain I/J) or 3 (R word) in
-        usr_ip_useroptions must make the configured-mode check fail with AssertionError."""
-        for mode in (1, 3):
-            with self.subTest(iArcmode=mode):
-                mutant = mutate('    iArcmode              = 2 ', f'    iArcmode              = {mode} ')
-                assert_detected(self, self.check_configured_arc_mode, mutant, f'iArcmode = {mode}')
+    def test_non_sinumerik_arc_words_are_detected(self):
+        """INDEPENDENT: @usr_arc writing the absolute centre as plain I/J (the removed
+        iArcmode 1) or an R word (the removed modes 3/4) must make the configured-mode check
+        fail with AssertionError."""
+        xy_centre = "        {'I'xcenter_rel ' ', 'J'ycenter_rel ' '}\n"
+        mutants = {'absolute I/J': "        {'I'xcenter ' ', 'J'ycenter ' '}\n",
+                   'R word': "        {'I'xcenter_rel ' ', 'J'ycenter_rel ' ', 'R'radius ' '}\n"}
+        for label, words in mutants.items():
+            with self.subTest(label):
+                assert_detected(self, self.check_configured_arc_mode, mutate(xy_centre, words), label)
 
     def test_configured_output_precision_keeps_end_point_on_circle(self):
         """INDEPENDENT: dc916d7 raised XYZ output to 5 decimals so emitted arc end points lie
@@ -382,12 +385,12 @@ class ArcGuardTests(unittest.TestCase):
         self.assertLessEqual(radial_error, 1e-5, block.raw)
 
 
-class ArcModeSyntaxTests(unittest.TestCase):
-    """Arc words of the documented non-default iArcmode options 1, 3 and 4 (PP-022).
+class RemovedArcModeTests(unittest.TestCase):
+    """The template's arc modes 1, 3 and 4 (absolute centre as plain I/J, R word) are removed (PP-022).
 
-    Oracle: Siemens 828D programming manual; the machine's Vericut control
-    (sin840d_special.ctl) defines 'CR=' as 'CIRCLES: Circle radius'. The shipped
-    iArcmode=2 is correct (ArcGuardTests).
+    Oracle: Siemens 828D programming manual (plain I/J/K are incremental from the start point, an
+    absolute centre needs I=AC(..), the radius word is CR=, a bare R is an arithmetic parameter); the
+    machine's Vericut control (sin840d_special.ctl) defines 'CR=' as 'CIRCLES: Circle radius'.
     """
 
     START, CENTER = {'X': 12, 'Y': 23, 'Z': -2}, {'X': 2, 'Y': 23, 'Z': -2}
@@ -401,42 +404,20 @@ class ArcModeSyntaxTests(unittest.TestCase):
         block, before, _ = arc_result(self, session, mark)
         return block, before
 
-    @known_defect('PP-022', facet='absolute-center')
-    def test_mode1_partial_arc_center(self):
-        """INDEPENDENT: on Sinumerik plain I/J are incremental from the start point; an
-        absolute centre must be written I=AC(..) J=AC(..). With iArcmode=1 the centre the
-        control derives from a 90 deg arc must still be the CAM centre (2, 23)."""
-        block, before = self.arc_block(1, 90)
-        self.assertEqual(arc_center('xy', before.xyz(), block), (2, 23), block.raw)
-
-    @known_defect('PP-022', facet='full-circle')
-    def test_full_circle_center_in_modes_1_and_3(self):
-        """INDEPENDENT: same Sinumerik centre rule for full circles, the silent case: modes 1
-        and 3 write the absolute centre as plain I/J for a 360 deg arc, so the control cuts a
-        different full circle without an alarm. Both modes are checked in one assertion.
-        Reachability caveat (UNVERIFIED): the VMID sets SupportGrt180degArcs="0", which
-        likely makes SolidCAM split arcs above 180 deg, full circles included, before the
-        post sees them; the PP itself has explicit 360 deg branches in @usr_arc."""
+    @covers('PP-022')
+    def test_leftover_arc_mode_setting_posts_the_sinumerik_centre(self):
+        """INDEPENDENT: the Sinumerik centre and radius rules above. A leftover iArcmode 1, 3 or 4
+        setting (the removed modes printed the absolute centre as plain I/J, also for full circles,
+        and R for the radius) must give the control the CAM centre (2, 23) for a 90 deg arc and a
+        full circle, with no R or CR word. Regression guard of all three PP-022 facets."""
         problems = {}
-        for mode in (1, 3):
-            block, before = self.arc_block(mode, 360)
-            center = arc_center('xy', before.xyz(), block)
-            if center != (2, 23):
-                problems[mode] = (center, block.raw)
-        self.assertEqual(problems, {}, 'full circle centre seen by the control differs from the CAM centre')
-
-    @known_defect('PP-022', facet='radius-word')
-    def test_radius_modes_use_cr_word(self):
-        """INDEPENDENT: the Sinumerik circle radius word is CR= (negative above 180 deg); a
-        bare R is an arithmetic parameter. Modes 3 and 4 must write CR=10 for a 90 deg arc
-        and no R word."""
-        problems = {}
-        for mode in (3, 4):
-            block, _ = self.arc_block(mode, 90)
-            radius = [(word.address, word.value) for word in block.words if word.address in ('R', 'CR')]
-            if radius != [('CR', 10)]:
-                problems[mode] = block.raw
-        self.assertEqual(problems, {}, 'radius not written as CR=')
+        for mode in (1, 3, 4):
+            for size in (90, 360):
+                block, before = self.arc_block(mode, size)
+                radius = [word.raw for word in block.words if word.address in ('R', 'CR')]
+                if arc_center('xy', before.xyz(), block) != (2, 23) or radius:
+                    problems[(mode, size)] = block.raw
+        self.assertEqual(problems, {}, 'arc words are not the Sinumerik incremental centre')
 
 
 def compensated_job(source=None):

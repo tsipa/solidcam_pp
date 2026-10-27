@@ -3,7 +3,7 @@
  "description": "Synthetic session exercising user options (program number, N-number tool changes with skipline joining, block numbers, coolant/spindle right after tool change, separations, optional stops, tool change at end), new-work-offset indexing (i4xIndexMode=1), every coolant type incl. through-coolant 30 bar (the 07 literal), home_data, ZX/YZ arcs, 4x moves, M00 with a different tool and all drill cycle types.",
  "session": {
   "user_params": {"sworkpcdir": "JOBS", "message2": "SECOND MESSAGE"},
-  "overrides": {"i4xIndexMode": 1, "bNnumtc": true, "bUseprognum": true, "bCoolspinaftertc": true, "bTlseperation": true, "bTcseperation": true, "bOptstpbegin": true, "bToolChangeAtEnd": true, "bOptstpend": true, "blknum_exist": true, "iArcmode": 4}
+  "overrides": {"i4xIndexMode": 1, "bNnumtc": true, "bUseprognum": true, "bCoolspinaftertc": true, "bTlseperation": true, "bTcseperation": true, "bOptstpbegin": true, "bToolChangeAtEnd": true, "bOptstpend": true, "blknum_exist": true}
  },
  "events": [
   {"name": "start_of_file", "parameters": {"part_name": "OPT-1", "program_number": 1234, "date": "01-Jan-2026", "time": "00:30:00", "g_file_name": "OPT-1.MPF", "full_g_file_name": "D:\\NC\\OPT-1.MPF", "stock_x": 80, "stock_y": 80, "stock_z": 80, "stock_x_minus": -40, "stock_y_minus": -40, "stock_z_plus": 40, "stock_z_minus": -40, "target_z_minus": -40, "fourth_axis_used": true}},

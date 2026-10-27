@@ -29,7 +29,7 @@
     global numeric nLastPathZ nLastPathWorkoffset
     global integer iMplane iAbsincmode iWorkoffset iStopmode iMotionmode iPworkoffset
     global integer iDiametercomp iDrillmode iTcnumber iSpindleDir iR1dirMode
-    global integer iDiameteroffset iArcmode
+    global integer iDiameteroffset
     global integer iHomingmode iWorkOffsetmode iProgendmode iG187_P_gpp iPal1 iPal2
     global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
     global integer iCoolantM1ON iCoolantM2ON iCoolantM3ON iCoolantM4ON iCoolantM5ON iCoolantM6ON iCoolantM7ON iCoolantM8ON
@@ -84,9 +84,6 @@ endp
     nRapidfeed            = 650.                ;Set your value for Max Feed in G1 (Used with Non-Sync'd Rapid Moves)
     bUseprognum           = false               ;True = Outputs Program Number
     bUseprogname          = TRUE                ;True = Outputs Program Name
-    iArcmode              = 2                   ;Sets Arc Output Mode (1=AbsIJK, 2=IncIJK, 3=R 360AbsIJK, 4=R 360IncIJK)
-    ; Only iArcmode 2 is Sinumerik syntax: 1/3/4 print Fanuc words (absolute centre as plain I/J/K,
-    ; R instead of CR=), known defect PP-022.
     cTCcodep              = 'M06 '             ;Sets the Prefix Code(s) used for Tool Change (i.e. 'M06')
     cTCcodes              = ''                  ;Sets the Suffix Code(s) used for Tool Change (i.e. 'M06')
     cWo                   = 'G'                 ;Sets the Character(s) used for Work Offset (i.e. G,E,G54.1 P)
@@ -1754,41 +1751,15 @@ endp
     endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
     {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
-    ; Centre words of the arc plane: absolute (iArcmode 1, and 3 for a full circle) or incremental
-    ; (iArcmode 2, and 4 for a full circle).
+    ; Centre words of the arc plane, incremental from the start point (Sinumerik I/J/K default).
     if arc_plane eq XY then
-        if iArcmode eq 1 or (arc_size eq 360 and iArcmode eq 3)
-            {'I'xcenter ' ', 'J'ycenter ' '}
-        endif
-        if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
-            {'I'xcenter_rel ' ', 'J'ycenter_rel ' '}
-        endif
+        {'I'xcenter_rel ' ', 'J'ycenter_rel ' '}
     endif
     if arc_plane eq ZX then
-        if iArcmode eq 1 or (arc_size eq 360 and iArcmode eq 3)
-            {'I'xcenter ' ', 'K'zcenter ' '}
-        endif
-        if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
-            {'I'xcenter_rel ' ', 'K'(zcenter_rel) ' '}
-        endif
+        {'I'xcenter_rel ' ', 'K'zcenter_rel ' '}
     endif
     if arc_plane eq YZ then
-        if iArcmode eq 1 or (arc_size eq 360 and iArcmode eq 3)
-            {'J'ycenter ' ', 'K'zcenter ' '}
-        endif
-        if iArcmode eq 2 or (arc_size eq 360 and iArcmode eq 4)
-            {'J'ycenter_rel ' ', 'K'zcenter_rel ' '}
-        endif
-    endif
-    ; iArcmode 3/4, not a full circle: the radius word, negative from 180 degrees. Known defect PP-022:
-    ; R is the Fanuc word (Sinumerik: CR=), and plain I/J/K above is not an absolute centre (I=AC()).
-    if arc_plane eq XY or arc_plane eq ZX or arc_plane eq YZ
-        if (iArcmode eq 3 or iArcmode eq 4) and arc_size ne 360
-            if arc_size >= 180 then
-                radius = -radius
-            endif
-            {'R'radius' '}
-        endif
+        {'J'ycenter_rel ' ', 'K'zcenter_rel ' '}
     endif
     {['F'feed ' ']}
     change(nRapidfeed) = true

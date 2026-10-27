@@ -46,7 +46,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 66. `@covers` references: 65.
+Canonical `@known_defect` tests: 63. `@covers` references: 66.
 
 ## Index of open entries
 
@@ -65,7 +65,7 @@ Canonical `@known_defect` tests: 66. `@covers` references: 65.
 | [PP-016](#pp-016) | low-medium | confirmed | C | i4xIndexMode=1: the next job at the same index position is machined in G54 | `test_same_index_position_keeps_new_workoffset` |
 | [PP-017](#pp-017) | medium | confirmed | C | i4xIndexMode=1 accumulates position-1 over successive @fourth_axis events (54->55->57->60) | `test_new_workoffset_mode_maps_position_to_offset` |
 | [PP-018](#pp-018) | low | uncertain | C | Straight-retract (CAM-link) check ignores cpos, the rotary input of @line_4x/@move_4x | `test_rotary_4x_link_is_not_a_straight_retract` |
-| [PP-022](#pp-022) | low | confirmed | D | iArcmode 1/3/4 emit Fanuc arc words (absolute centre as plain I/J, R instead of CR=) | `test_mode1_partial_arc_center` [absolute-center], `test_full_circle_center_in_modes_1_and_3` [full-circle], `test_radius_modes_use_cr_word` [radius-word] |
+| [PP-022](#pp-022) | low | confirmed | D | iArcmode 1/3/4 emit Fanuc arc words (absolute centre as plain I/J, R instead of CR=) | pinned only (@covers) |
 | [PP-023](#pp-023) | low | confirmed | D | Feed-emulated rapids write G1 rotary/XY blocks without the rapid feed (stale cutting feed or "feedrate not programmed") | `test_every_g1_block_of_emulated_rapid_moves_at_rapid_feed` |
 | [PP-024](#pp-024) | medium | confirmed | A | M00 between same-tool jobs switches coolant off and never restores it; spindle restart has no ramp dwell | `test_m00_same_tool_restores_coolant_before_next_cut` [coolant], `test_m00_same_tool_waits_for_spindle_ramp` [ramp-dwell] |
 | [PP-025](#pp-025) | low-medium | uncertain | A | Coolant is evaluated only at tool changes: a same-tool job's coolant request is ignored | `test_same_tool_job_applies_its_coolant_request` |
@@ -325,10 +325,9 @@ Canonical `@known_defect` tests: 66. `@covers` references: 65.
 - Evidence that would settle it: Siemens 828D programming manual (I=AC() for absolute centres, CR= for the radius).
 - Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
 - Source findings: pp3-arc-mode-syntax, efc-12, history-misc-13, TSR-18
-- Reproduced by:
-  - `tests/test_arc_compensation_plane.py::ArcModeSyntaxTests::test_mode1_partial_arc_center` (facet `absolute-center`, confidence confirmed)
-  - `tests/test_arc_compensation_plane.py::ArcModeSyntaxTests::test_full_circle_center_in_modes_1_and_3` (facet `full-circle`, confidence confirmed)
-  - `tests/test_arc_compensation_plane.py::ArcModeSyntaxTests::test_radius_modes_use_cr_word` (facet `radius-word`, confidence confirmed)
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
+- Pinned or exercised by (`@covers`):
+  - `tests/test_arc_compensation_plane.py::RemovedArcModeTests::test_leftover_arc_mode_setting_posts_the_sinumerik_centre`
 
 ### PP-023
 
