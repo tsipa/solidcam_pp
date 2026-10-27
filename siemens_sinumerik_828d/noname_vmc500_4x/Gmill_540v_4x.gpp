@@ -2566,7 +2566,7 @@ endp
     ; tmatrix + 4th Transform + cpos + 5xapos
     ; Note: Angular Feed Formula fc = f*(180/(pi*r))
     ; Note: fc=deg/min, f=linear feed
-    local numeric tmpypos tmpzpos dummy_var
+    local numeric tmpypos tmpzpos dummy_var wrapped
 	nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
     ; nR1postmatrix = (-y_angle_const_z - dev_angle_z) * iR1dir         ;Rotary from CoordSys (tmatrix)
     nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
@@ -2578,11 +2578,14 @@ endp
     endif
     if iR1posControl eq 1 ;Positive Angles: modulo axis position range 0 <= A < 360
         nR1posadj = 0
-        while nR1postemp + nR1posadj < 0
+        wrapped = nR1postemp
+        while wrapped < 0
             nR1posadj = nR1posadj + 360
+            wrapped = nR1postemp + nR1posadj
         endw
-        while nR1postemp + nR1posadj >= 360
+        while wrapped >= 360
             nR1posadj = nR1posadj - 360
+            wrapped = nR1postemp + nR1posadj
         endw
     endif
     if iR1posControl eq 3 ;Positive Angles only: Works up to 360deg
@@ -2616,8 +2619,11 @@ endp
         nR1pdir = 1
     endif
     nR1pos = (nR1postemp + nR1posadj) * nR1pdir
-    if iR1posControl eq 1 and nR1pos >= 359.9995 ;prints as 360.000 with nR1pos_f '7.3': same position as 0
-        nR1pos = 0
+    if iR1posControl eq 1
+        ; 360.000 and -0.000 with nR1pos_f '7.3' (sums of angles carry float noise) are the position 0.
+        if nR1pos >= 359.9995 or nR1pos < 0.0005
+            nR1pos = 0
+        endif
     endif
     iR1dirMode = 0
 

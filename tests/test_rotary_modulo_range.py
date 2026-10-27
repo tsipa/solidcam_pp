@@ -4,6 +4,7 @@ Oracle (INDEPENDENT): ACP/ACN/DC address a modulo rotary axis; the programmed po
 0..359.999 degrees and the direction comes from ACP/ACN, not from the sign or size of the value.
 360 is the same position as 0; with the 3-decimal A format any value >= 359.9995 prints as 360.
 """
+import random
 import unittest
 
 from test_offline import rotary_engine
@@ -22,6 +23,29 @@ class RotaryModuloRangeTests(unittest.TestCase):
         for apos, expected in cases:
             with self.subTest(apos=apos):
                 self.assertAlmostEqual(a_position(apos=apos).state['nr1pos'], expected, places=6)
+
+    def test_position_is_inside_the_range_for_any_angle_sum(self):
+        rng = random.Random(828)
+        for _ in range(400):
+            parts = dict(angle_4x_around_x=rng.choice([0, 90, 10.1, -45.5, 300]),
+                         angle=round(rng.uniform(-400, 400), rng.choice([0, 1, 3])),
+                         apos=round(rng.uniform(-800, 800), rng.choice([0, 1, 3, 4])))
+            with self.subTest(**parts):
+                value = a_position(**parts).state['nr1pos']
+                self.assertTrue(0 <= value < 360, value)
+                total = -(parts['angle_4x_around_x'] + parts['angle'] + parts['apos']) * -1
+                offset = (value - total) / 360
+                self.assertAlmostEqual(offset, round(offset), places=6)
+
+    def test_angle_sum_with_float_noise_is_exactly_zero(self):
+        # 10.1 + 20.2 - 30.3 is -3.5e-15 in binary floating point, not 0.
+        value = a_position(angle_4x_around_x=10.1, angle=20.2, apos=-30.3).state['nr1pos']
+        self.assertEqual(value, 0)
+
+    def test_snap_boundary(self):
+        self.assertEqual(a_position(apos=359.9995).state['nr1pos'], 0)
+        self.assertEqual(a_position(apos=0.0004).state['nr1pos'], 0)
+        self.assertAlmostEqual(a_position(apos=0.0006).state['nr1pos'], 0.0006, places=9)
 
     def test_coordinate_system_angle_plus_simultaneous_angle_wraps(self):
         self.assertAlmostEqual(a_position(angle_4x_around_x=300, apos=100).state['nr1pos'], 40)
@@ -46,6 +70,31 @@ class RotaryModuloRangeTests(unittest.TestCase):
         self.assertEqual(a_position(apos=90, iR1posControl=0).state['nr1pos'], 90)
         self.assertEqual(a_position(apos=370, iR1posControl=0).state['nr1pos'], 370)
         self.assertEqual(a_position(apos=90, iR1posControl=2).state['nr1pos'], -270)
+
+    def test_modes_2_and_3_sequences_match_the_pre_fix_post(self):
+        # Recorded from the post before the modulo change (main): the restructured block keeps modes 2/3.
+        sequence = [10, 350, -10, 200, -200, 359, 0, -90, 90, 400]
+        expected = {2: [-350, -10, -10, -160, -200, -1, 0, -90, -270, 400],
+                    3: [10, 350, 350, 200, 160, 359, 0, 270, 90, 400]}
+        for mode, values in expected.items():
+            engine = rotary_engine(iR1posControl=mode)
+            got = []
+            for apos in sequence:
+                engine.set(apos=apos)
+                engine.call('usr_r1pos_calc')
+                got.append(round(engine.state['nr1pos'], 6))
+            self.assertEqual(got, values, f'mode {mode}')
+
+    def test_feed_moves_across_the_wrap_keep_the_direction(self):
+        engine = rotary_engine(apos=350, nPR1pos=350, nPR1postemp=350, dir5a='ccw')
+        posted = []
+        for apos in (355, 360, 365, 370):
+            engine.set(apos=apos)
+            engine.output.clear()
+            engine.call('usr_r1pos_calc')
+            engine.call('usr_r1_output')
+            posted.append(''.join(engine.output).strip())
+        self.assertEqual(posted, ['A=ACP(355)', 'A=ACP(0)', 'A=ACP(5)', 'A=ACP(10)'])
 
 
 if __name__ == '__main__':
