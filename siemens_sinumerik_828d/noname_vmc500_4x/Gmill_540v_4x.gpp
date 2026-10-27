@@ -598,10 +598,17 @@ endp
 
 ;-------------------
 
-@change_tool
+@usr_link_boundary
+    ; A tool change or job boundary ends the CAM link context: the next rotation needs its clearance
+    ; or homing again (usr_rapid_cam_link), no Z retract authorizes the following rapids, and the
+    ; next job is not positioned yet.
     bIndexClearancePending = true
     bCamLinkRetract = false
     bJobPositioned = false
+endp
+
+@change_tool
+    call @usr_link_boundary
     ; Delayed Tool Change handling to @start_of_job to have access to Operation(Job) data
     nTcXnext = xnext
     nTcYnext = ynext
@@ -976,9 +983,7 @@ endp
 ;--------------------
 
 @start_of_job
-    bIndexClearancePending = true
-    bCamLinkRetract = false
-    bJobPositioned = false
+    call @usr_link_boundary
     ; Start of an operation: work offset and job plane, a pending index, then the tool change
     ; (usr_ct) or, for the same tool, the job comment and a work-offset change.
     call @home_number
@@ -1022,9 +1027,7 @@ endp
 
 @end_of_job
     call @usr_feedmode_94
-    bIndexClearancePending = true
-    bCamLinkRetract = false
-    bJobPositioned = false
+    call @usr_link_boundary
     ; End of a job: back to G94, the M00 stop (bStopM00), the job's work offset and Z levels for the next.
     if bStopM00
         if tool_number eq next_job_tool_number
@@ -1148,10 +1151,9 @@ endp
     ; (bR1forceOutput). X/Y stay pending for the first move of the job; Z counts as the tool start plane.
     ; Known defect PP-023: as a feed-emulated rapid (G1) this block has no F.
     zpos = tool_start_plane
+    {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' '}
     if bVertical
-        {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' ','Y'ypos ' '}
-    else
-        {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' '}
+        {'Y'ypos ' '}
     endif
     if change(nR1pos) or bR1forceOutput
         call @usr_r1_output
@@ -1933,12 +1935,8 @@ endp
 ;-------------------
 
 @m_feed_spin
-    ; Handle output for spindle change
-    if tool_direction eq CW then
-        iSpindleDir = 3
-    else
-        iSpindleDir = 4
-    endif
+    ; Spindle speed change within a job.
+    call @usr_spindle_dir
     if change(spin)
         call @usr_spindle_output
     endif
@@ -1946,16 +1944,21 @@ endp
 
 @start_tool
     ; Spindle start (M3/M4 and S). Tapping prints only an empty block: CYCLE84 runs the spindle (SST).
-    if tool_direction eq CW then
-        iSpindleDir = 3
-    else
-        iSpindleDir = 4
-    endif
+    call @usr_spindle_dir
     if d_drill_type ne D_Tapping
         call @usr_spindle_mcode_output
         call @usr_spindle_output
     else
         {nb ' '}
+    endif
+endp
+
+@usr_spindle_dir
+    ; iSpindleDir: M3 for a CW tool, M4 otherwise.
+    if tool_direction eq CW then
+        iSpindleDir = 3
+    else
+        iSpindleDir = 4
     endif
 endp
 

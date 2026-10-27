@@ -682,14 +682,13 @@ MUTATIONS = (
      "{',1,'Step_Down:feed_f ',' VarRetract:feed_f}", "{',1,'Step_Down:feed_f ',' Step_Down:feed_f}", 1),
     ('tapping_tool_starts_spindle', 'spindle_start',
      '    if d_drill_type ne D_Tapping\n', "    if d_drill_type ne 'never'\n", 1),
-    ('start_tool_direction_swapped', 'spindle_start',
-     '(SST).\n    if tool_direction eq CW then\n'
-     '        iSpindleDir = 3\n    else\n        iSpindleDir = 4',
-     '(SST).\n    if tool_direction eq CW then\n'
-     '        iSpindleDir = 4\n    else\n        iSpindleDir = 3', 1),
-    ('m_feed_spin_direction_swapped', 'spindle_start',
-     '@m_feed_spin\n    ; Handle output for spindle change\n    if tool_direction eq CW then\n        iSpindleDir = 3',
-     '@m_feed_spin\n    ; Handle output for spindle change\n    if tool_direction eq CW then\n        iSpindleDir = 4', 1),
+    ('spindle_direction_swapped', 'spindle_start',
+     '    if tool_direction eq CW then\n        iSpindleDir = 3\n    else\n        iSpindleDir = 4',
+     '    if tool_direction eq CW then\n        iSpindleDir = 4\n    else\n        iSpindleDir = 3', 1),
+    ('start_tool_skips_the_direction', 'spindle_start',
+     '(SST).\n    call @usr_spindle_dir\n', '(SST).\n', 1),
+    ('m_feed_spin_skips_the_direction', 'spindle_start',
+     '    ; Spindle speed change within a job.\n    call @usr_spindle_dir\n', '    ; Spindle speed change within a job.\n', 1),
     ('spindle_dwell_threshold_inverted', 'spindle_acceleration_dwell',
      '    if sdiff > spindle_accel\n', '    if sdiff < spindle_accel\n', 1),
 )
