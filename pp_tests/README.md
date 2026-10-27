@@ -70,8 +70,10 @@ bounded while loops, arithmetic/comparisons/boolean logic, degree-based sin/cos,
 assignment-driven changes, optional modal output groups and simple numeric
 precision descriptors. `clear_change_after_gen=1` clears emitted change flags.
 Expressions use a restricted AST
-walker, never Python `eval`. Missing variables, unknown statements, unsupported
-expressions and postprocessor input/abort paths fail with procedure/source line.
+walker, never Python `eval`. Missing variables, unknown statements and unsupported
+expressions fail with procedure/source line. With the default engine `input` stops
+(or, with policy `input_stmt=scripted`, answers and continues) and `abort` raises
+`PostAbort`; the legacy engine fails at both.
 
 The acceptance suite covers `usr_ip_useroptions`, `usr_r1pos_calc`,
 `usr_r1_select_dir`, `usr_r1_output` and `tmatrix`: positive/negative/direct
@@ -108,15 +110,16 @@ second-Slide regression fixture are documented in
 An additional cross-procedure arc/link regression and its PP correction
 are described in [tests/ARC_LINK_FINDING.md](../tests/ARC_LINK_FINDING.md).
 
-This is a partial GPPL runtime, not a complete SolidCAM emulator. Full
-`start_of_file`/end-program session replay is not implemented: file operations,
-many GPPL formatting modifiers and runtime built-ins remain unsupported.
+This is not a complete SolidCAM emulator. The default engine replays whole
+sessions (`start_of_file` to `end_of_file`) from JSON event streams; file
+operations, formatting modifiers and built-ins are covered as DESIGN.md lists.
 Numeric output is normalized to the supplied simple precision, or three decimals
 by default; padding, trailing dots and exact GPPL whitespace are not emulated.
 Tests compare normalized blocks and numeric words. Unsupported constructs in
 unexecuted procedures are allowed; encountering them during execution fails.
-`nb`/`nl` are normalized as line breaks; the special runtime `skipline` switch
-is not emulated. First-move XY/Z separation was checked against the Slide trace;
+In `engine.output`, `nb`/`nl` are line breaks; `engine.nc_lines()` (default
+engine) applies GPPL's one-shot `skipline` joining, which the legacy engine does
+not emulate. First-move XY/Z separation was checked against the Slide trace;
 arbitrary toolchange/coolant/spindle block joining is not certified.
 There is no collision, clearance-distance or machine safety simulation.
 

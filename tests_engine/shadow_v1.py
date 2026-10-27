@@ -42,7 +42,8 @@ def _outcome(fn):
 class ShadowEngine(v2.Engine):
     def __init__(self, source, **kwargs):
         super().__init__(source, **kwargs)
-        self._v1 = v1.Engine(source)
+        # The legacy engine has no policies: mirror only engines built with the compat defaults.
+        self._v1 = v1.Engine(source) if self.policies == v2.Policies() else None
 
     def _sync(self):
         self._v1.state = copy.deepcopy(self.state)
@@ -50,7 +51,7 @@ class ShadowEngine(v2.Engine):
         self._v1.output = []
 
     def call(self, procedure, arguments=()):
-        if self.frames:                              # nested call from inside v2
+        if self.frames or self._v1 is None:          # nested call from inside v2, or not comparable
             return super().call(procedure, arguments)
         STATS['calls'] += 1
         self._sync()

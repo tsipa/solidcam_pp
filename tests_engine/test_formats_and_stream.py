@@ -1,6 +1,7 @@
 """Format engine (legacy and extended grammars) and NC output stream semantics."""
 import unittest
 
+import support  # noqa: F401  (skips this module under GPPL_ENGINE=legacy)
 from pp_tests.engine import Engine, UnsupportedGPPL
 from pp_tests.gppl.formats import parse_format as _parse, render_number
 from pp_tests.gppl.policies import Policies

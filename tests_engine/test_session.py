@@ -220,7 +220,8 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual(summary['total'], sum(statement_kinds_from_text().values()))
         self.assertGreaterEqual(summary['percent'], 87.0)    # ZX arc math after its stop, new POST ERROR paths
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
-        # usr_heightcomp_*: statically dead; arc_zx: a ZX arc stops the post (5408e5c, test_zx_arc_stops_the_session)
+        # usr_heightcomp_*: statically dead. arc_zx: no session has a ZX arc since a ZX arc stops the post
+        # (5408e5c); test_replay_findings.test_zx_arc_stops_the_session runs it.
         self.assertEqual(never, {'usr_heightcomp_on', 'usr_heightcomp_off', 'arc_zx'})
         self.assertIn('Branch gaps', total.markdown(program))
 
@@ -239,6 +240,15 @@ class CoverageTests(unittest.TestCase):
             data = json.loads(cov.read_text())
             self.assertGreater(len(data['programs']), 1)                        # mutants recorded apart
             self.assertGreaterEqual(suite['percent'], 40.0)
+            # A process that runs only a mutant must add nothing to the real program's coverage.
+            mutant_cov = Path(tmp) / 'mutant.json'
+            code = ('from pathlib import Path; from pp_tests.engine import Engine; '
+                    f'src = Path({str(PP)!r}).read_text(encoding="utf-8-sig"); '
+                    'Engine(src.replace("nLastPathZ = zpos", "nLastPathZ = zpos + 1", 1)).call("usr_ip_useroptions")')
+            subprocess.run([sys.executable, '-c', code], cwd=ROOT, env=dict(env, GPPL_COVERAGE_OUT=str(mutant_cov)),
+                           capture_output=True, check=True)
+            self.assertTrue(mutant_cov.exists())
+            self.assertEqual(load_for(program, mutant_cov).summary(program)['hit'], 0)
             for name in SESSIONS:
                 subprocess.run([sys.executable, '-m', 'pp_tests.gppl', 'replay', str(PP),
                                 str(FIXTURES / f'{name}.json'), '--vmid', str(VMID)],

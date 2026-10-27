@@ -1,4 +1,4 @@
-"""Behaviour grafted from the runner-up designs and the judges' findings:
+"""Behaviour grafted from the alternative engine designs and the engine review findings:
 recursion hardening, strict loading, rollback switch, no shared mutable state,
 legacy-equal defaults where the session-emulator prototype silently differed,
 lexer strictness, coverage keyed by source digest, call tracing."""

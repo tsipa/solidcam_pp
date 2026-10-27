@@ -204,11 +204,11 @@ class PostHomingSkiplineTests(unittest.TestCase):
         self.assertEqual(self.rotation_after_cutting()[1:3], ['X50 Y60', 'Z3'])
 
     def test_skipline_false_before_z_would_join_the_lines(self):
+        require_nc_stream()
         source = PP.read_text(encoding='utf-8-sig')
-        anchor = "        if bHomedReposition\n                            ; Coming from the homing position: traverse XY at the homed Z, then plunge in Z.\n                            skipline = true\n"
-        anchor = anchor.replace('        if bHomedReposition', '                        if bHomedReposition')
-        self.assertEqual(source.count(anchor), 1, 'post-homing split changed; review this test')
-        broken = source.replace(anchor, anchor.replace('skipline = true', 'skipline = false'), 1)
+        pattern = re.compile(r"(if bHomedReposition\n(?:\s*;[^\n]*\n)?\s*skipline = )true")
+        self.assertEqual(len(pattern.findall(source)), 1, 'post-homing split changed; review this test')
+        broken = pattern.sub(r"\1false", source, count=1)
         self.assertIn('X50 Y60 Z3', self.rotation_after_cutting(broken))
 
 

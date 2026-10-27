@@ -16,7 +16,7 @@ the engine review; they are not part of the repository.
 | existing 35 tests, test code unchanged | OK, 5.8 to 6.2 s | **OK, 0.69 s** (0.94 s on a busy host) |
 | same suite under `GPPL_POLICY=session` | n/a | OK |
 | rollback switch `GPPL_ENGINE=legacy` (verbatim legacy engine behind the shim) | n/a | OK, 6.2 s |
-| shadow run: every Engine of the legacy suite mirrored by the legacy engine (`tests_engine/shadow_v1.py`) | n/a | **831 top-level calls, 6 expressions, 34 raised in both, 0 mismatches** (also against the repository's own `pp_tests/engine.py` file) |
+| shadow run: every Engine of the legacy suite mirrored by the legacy engine (`tests_engine/shadow_v1.py`) | n/a | **831 top-level calls, 6 expressions, 34 raised in both, 0 mismatches** (also against the pre-adoption `pp_tests/engine.py`, now `pp_tests/gppl/legacy.py`) |
 | historical-fix revert matrix (26 commits, 14 reverse-applicable) | baseline | **identical**: same applicable commits, same per-revert failing tests and error counts (`examples/revert_matrix.txt`) |
 | harness tests (`tests_engine`, 113 tests) | n/a | **OK in 11.3 s** (1 corpus test skipped unless `GPPL_CORPUS` is set; with it: OK) |
 | whole GPP loaded and validated at construction | no (lines are only looked at when executed) | **95 procedures, 1479 statements, 201 globals, 46 entry points; 0 errors under the session policy** (strict load passes); cold load 39 ms, cached 0.02 ms, full lint 18 ms |
@@ -345,8 +345,9 @@ dropped; unexecuted unsupported code invisible; errors re-wrapped per frame;
 
 ## 11. Migration plan (small PRs, suite green and rollback available at every step)
 
-Each PR is reviewable on its own (roughly 150 to 650 lines of code plus tests);
-CI runs the unchanged suite on every step.
+In this repository the package landed as one commit after its review; the plan
+below is kept for reference. Each PR is reviewable on its own (roughly 150 to 650
+lines of code plus tests); CI runs the unchanged suite on every step.
 
 1. **Shim and legacy move (about 40 lines).** Copy `pp_tests/engine.py`
    verbatim to `pp_tests/gppl/legacy.py`; `engine.py` re-exports it. No behaviour

@@ -1,8 +1,11 @@
-"""Shared paths and helpers for the harness tests (run from the scratch root:
+"""Shared paths and helpers for the engine tests (run from the repository root:
 ``python3 -m unittest discover -s tests_engine``)."""
 import os
 import re
 import unittest
+
+if os.environ.get('GPPL_ENGINE', '').strip().lower() == 'legacy':
+    raise unittest.SkipTest('tests_engine tests the default GPPL engine; unset GPPL_ENGINE=legacy')
 from pathlib import Path
 
 from pp_tests.gppl import legacy  # noqa: F401  (verbatim legacy engine: differential oracle)
