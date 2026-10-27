@@ -1755,8 +1755,8 @@ endp
     ; or posts the complementary arc. Stop until the convention is verified (e.g. one ZX arc in Vericut).
     if iMplane eq 18 then
         dummy_var = 0
-        input '"POST ERROR: ZX (G18) arc direction is unverified in this post. Check @usr_arc_math."'dummy_var
-        {"POST ERROR: ZX (G18) arc direction is unverified in this post. Check @usr_arc_math."}
+        input '"POST ERROR: ZX arc direction is unverified in this post. Check usr_arc_math."'dummy_var
+        {"POST ERROR: ZX arc direction is unverified in this post. Check usr_arc_math."}
         abort
     endif
 
@@ -2169,10 +2169,10 @@ endp
             endif
         else
             if drill_upper_z > 0
-                {' (',rtp,','rfp,','sdis,',',dp,',,0.,4,,',''(-FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
+                {' (',rtp,','rfp,','sdis,',',dp,',,0.,4,,',''((0-FEED)/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
             else
                 {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
-                {',0.,4,,',''(-FEED/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
+                {',0.,4,,',''((0-FEED)/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
             endif
         endif
         {',,,1221'}

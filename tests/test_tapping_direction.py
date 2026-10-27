@@ -61,10 +61,16 @@ class TappingDirectionTests(unittest.TestCase):
             self.assertEqual(arguments[-3:], ['1', '3', '1.5'], direction)
             self.assertEqual((arguments[6], arguments[8]), (sdac, pit), direction)
 
+    def test_direction_other_than_cw_taps_left_hand_like_the_spindle_m4(self):
+        # @start_tool posts M4 for any tool_direction that is not CW; the tap follows the same rule.
+        fields = dict(zip(FIELDS, cycle84_arguments(tool_direction='unknown')))
+        self.assertEqual((fields['SDAC'], fields['PIT']), ('4', '-1.25'))
+
     def test_reverting_the_left_hand_branch_is_detected(self):
         source = PP.read_text(encoding='utf-8-sig')
-        self.assertEqual(source.count("''(-FEED/SPIN)"), 2, 'left-hand CYCLE84 branch changed; review this test')
-        reverted = source.replace("''(-FEED/SPIN)", "''(FEED/SPIN)").replace(",0.,4,,'", ",0.,3,,'")
+        branch = '; SDAC = spindle direction after the cycle: 3 for a CW (right-hand) tap, 4 for a CCW (left-hand) tap.\n        if tool_direction eq CW then\n'
+        self.assertEqual(source.count(branch), 1, 'left-hand CYCLE84 branch changed; review this test')
+        reverted = source.replace(branch, branch.replace('if tool_direction eq CW then', 'if true then'))
         self.assert_tap('ccw', RIGHT_HAND_SUFFIX, reverted)  # reverted PP posts a right-hand cycle
         with self.assertRaises(AssertionError):
             self.assert_tap('ccw', LEFT_HAND_SUFFIX, reverted)

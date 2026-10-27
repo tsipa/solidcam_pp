@@ -9,7 +9,7 @@ import unittest
 from pp_tests.engine import Engine, UnsupportedGPPL
 from test_offline import PP
 
-MESSAGE = r'POST ERROR: ZX \(G18\) arc direction is unverified'
+MESSAGE = r'POST ERROR: ZX arc direction is unverified'
 
 
 def arc_engine(plane):

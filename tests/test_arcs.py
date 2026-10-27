@@ -32,7 +32,7 @@ class ArcTests(unittest.TestCase):
                         engine.changed['idiametercomp'] = False  # TRC changes are only legal on linear blocks
                         if plane == 'zx':
                             # G18 direction convention is unverified: the post must stop on every ZX arc.
-                            with self.assertRaisesRegex(UnsupportedGPPL, r'ZX \(G18\) arc direction is unverified'):
+                            with self.assertRaisesRegex(UnsupportedGPPL, r'ZX arc direction is unverified'):
                                 engine.call('arc_zx')
                             continue
                         if 'error' in case:
