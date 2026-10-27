@@ -2181,6 +2181,8 @@ endp
         endif
         {')'}
     endif
+    ; The cycle retracts to RTP after every hole: that is the Z the next move starts from.
+    nLastPathZ = rtp
 
 endp
 
@@ -2703,7 +2705,7 @@ endp
     ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
     call @usr_r1pos_calc
     if change(nR1pos)
-        bClimbZValid = false
+        ; Turning A does not move Z. A homing clears bClimbZValid itself; a clearance move sets nLastPathZ.
         call @usr_optionalstop
         if i4xIndexMode eq 0 ;Simple Rotation
             if i4xIndexClearanceMode eq 0
@@ -2725,6 +2727,7 @@ endp
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
                 call @usr_r1_output
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_z_level ' '}
+                nLastPathZ = tool_z_level
             endif
             if i4xIndexClearanceMode eq 2
                 iMotionmode = 0
@@ -2732,6 +2735,7 @@ endp
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
                 call @usr_r1_output
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'Z'tool_start_plane ' '}
+                nLastPathZ = tool_start_plane
             endif
         endif
         if i4xIndexMode eq 1 ;New WorkOffset
