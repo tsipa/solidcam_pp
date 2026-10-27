@@ -143,10 +143,10 @@ class CutterCompensationTests(unittest.TestCase):
         # Same tool, next job in G55 while the last job left G41 on: the control still has G41.
         session = Session()
         session.engine.set(iDiametercomp=41, iCompActive=41, first_tool=True, bLimit_3axis=False,
-                           bWorkoffsettc=True, iWorkOffsetmode=2, home_user_name='P54')
+                           bWorkoffsettc=True, iWorkOffset_Method=1, home_user_name='54')
         session.step('line_5x', ['xpos'], xpos=20, feed_type='feed_cut')
         session.step('end_of_job')
-        session.engine.set(home_user_name='P55')
+        session.engine.set(home_user_name='55')
         self.assertIn('G55', ' '.join(session.step('start_of_job')))
         output = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=100, ypos=100, zpos=50)
         self.assertIn('G40', ' '.join(output), output)

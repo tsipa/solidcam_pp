@@ -61,9 +61,9 @@ class WorkOffsetTests(unittest.TestCase):
         self.assertEqual(first_job_offsets(source=source, position=1), [54])
 
     def test_shipped_method_selects_g54(self):
-        """INDEPENDENT: shipped iWorkOffset_Method=0 (VMID default) with
-        iWorkOffsetmode=1 maps CoordSys position 1 to the first settable offset
-        G54; every motion of the first job runs in G54."""
+        """INDEPENDENT: shipped iWorkOffset_Method=0 (VMID default) maps CoordSys
+        position 1 to the first settable offset G54; every motion of the first job
+        runs in G54."""
         self._check_shipped_g54()
 
     @covers('DESIGN-006')
@@ -160,8 +160,7 @@ class SameToolWorkOffsetChangeTests(unittest.TestCase):
 # (label, [(old, new, count), ...], holder class, check method)
 REVERSIONS = [
     ('shipped method maps CoordSys to G55',
-     [('        if iWorkOffsetmode eq 1\n            iWorkoffset = 54\n',
-       '        if iWorkOffsetmode eq 1\n            iWorkoffset = 55\n', 1)],
+     [('        iWorkoffset = 54\n', '        iWorkoffset = 55\n', 1)],
      WorkOffsetTests, '_check_shipped_g54'),
     ('user-defined offset number shifted',
      [('    else\n        iWorkoffset = tonum(home_user_name)\n    endif',

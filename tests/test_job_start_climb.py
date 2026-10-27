@@ -154,11 +154,11 @@ class JobStartClimbTests(unittest.TestCase):
     def test_work_offset_change_between_jobs_does_not_climb(self):
         # Z of another fixture offset is not comparable: traverse first as before.
         session = Session()
-        session.engine.set(first_tool=True, bLimit_3axis=False, bWorkoffsettc=True, iWorkOffsetmode=2,
-                           home_user_name='P54')
+        session.engine.set(first_tool=True, bLimit_3axis=False, bWorkoffsettc=True, iWorkOffset_Method=1,
+                           home_user_name='54')
         session.step('line_5x', ['zpos'], zpos=60, feed_type='feed_cut')
         session.step('end_of_job')
-        session.engine.set(home_user_name='P55')
+        session.engine.set(home_user_name='55')
         self.assertIn('G55', ' '.join(session.step('start_of_job')))
         self.assertEqual(session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=100, ypos=100, zpos=70),
                          ['X100 Y100', 'Z70'])

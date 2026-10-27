@@ -258,7 +258,7 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(state['i4xindexmode'], 0, 'i4xIndexMode')
         self.assertEqual(state['cr1'], 'A', 'the rotary axis is A')
         self.assertIs(state['buseprognum'], False, "'O<number>' is not a Sinumerik address")
-        self.assertEqual((state['iworkoffsetmode'], state['cwo']), (1, 'G'), 'G54-style work offsets')
+        self.assertEqual(state['cwo'], 'G', 'G54-style work offsets')
         self.assertIn(state['iprogendmode'], (1, 2), 'any other value silently omits the program end')
         self.assertEqual((state['ccb'], state['cce'], state['comb'], state['come']), (';', '', 'MSG("', '")'),
                          'Sinumerik comment and operator-message syntax')

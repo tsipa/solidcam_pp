@@ -30,7 +30,7 @@
     global integer iMplane iAbsincmode iWorkoffset iStopmode iMotionmode iPworkoffset
     global integer iDiametercomp iDrillmode iTcnumber iSpindleDir iR1dirMode
     global integer iDiameteroffset
-    global integer iHomingmode iWorkOffsetmode iProgendmode iG187_P_gpp iPal1 iPal2
+    global integer iHomingmode iProgendmode iG187_P_gpp iPal1 iPal2
     global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
     global integer iCoolantM1ON iCoolantM2ON iCoolantM3ON iCoolantM4ON iCoolantM5ON iCoolantM6ON iCoolantM7ON iCoolantM8ON
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
@@ -86,8 +86,7 @@ endp
     bUseprogname          = TRUE                ;True = Outputs Program Name
     cTCcodep              = 'M06 '             ;Sets the Prefix Code(s) used for Tool Change (i.e. 'M06')
     cTCcodes              = ''                  ;Sets the Suffix Code(s) used for Tool Change (i.e. 'M06')
-    cWo                   = 'G'                 ;Sets the Character(s) used for Work Offset (i.e. G,E,G54.1 P)
-    iWorkOffsetmode       = 1                   ;Sets the Mode used for Work Offset (1=G54, 2=E1, 3=G54.1 P1)
+    cWo                   = 'G'                 ;Work offset address (G54, G55, ...)
     iProgendmode          = 1                   ;Sets the code for ending a program (1=M30,2=M2)
     cPb                   = ';%_N_'              ;Sets the Character(s) used for the beginning of file (i.e %)
     cPe                   = ''                 ;Sets the Character(s) used for the end of file (i.e %)
@@ -613,20 +612,10 @@ endp
 ;-------------------
 
 @home_number
-    ; Handle setting WorkOffset Gcode
+    ; Work offset of the job: G54 (VMID iWorkOffset_Method 0) or the number of the CoordSys name
+    ; (iWorkOffset_Method 1, e.g. '55').
     if iWorkOffset_Method eq 0
-        if iWorkOffsetmode eq 1
-            iWorkoffset = 54
-        endif
-        if iWorkOffsetmode eq 2 or iWorkOffsetmode eq 3
-            iWorkoffset = tonum(substr(home_user_name,(instr(home_user_name,'P') + 1),2))
-            if iWorkoffset eq 0
-                iWorkoffset = tonum(substr(home_user_name,(instr(home_user_name,'p') + 1),2))
-                if iWorkoffset eq 0
-                    iWorkoffset = position
-                endif
-            endif
-        endif
+        iWorkoffset = 54
     else
         iWorkoffset = tonum(home_user_name)
     endif

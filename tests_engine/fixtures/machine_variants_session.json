@@ -1,10 +1,9 @@
 {
  "schema": 1,
- "description": "Synthetic session for machine-definition variants: non-synchronised rapids (G1 F650 for '3-d model'), work offsets from home names (iWorkOffsetmode=2), homing strings with and without a line prefix at tool change, a secondary rotary angle (vertical head branch) and an inverse-time style 4x index with clearance to tool_z_level. Needs policy tonum=atof: home_number parses 'G54p4' with tonum(substr(...)) and relies on a non-numeric string giving 0.",
+ "description": "Synthetic session for machine-definition variants: non-synchronised rapids (G1 F650 for '3-d model'), homing strings with and without a line prefix at tool change, a secondary rotary angle (vertical head branch) and an inverse-time style 4x index with clearance to tool_z_level. The CoordSys names (G54P3, G54p4, G58) are ignored: the shipped iWorkOffset_Method 0 posts G54.",
  "session": {
   "overrides": {
    "bSyncdrapid": false,
-   "iWorkOffsetmode": 2,
    "sHomestrtc": "8::Z0 ;8:G0 :Z0",
    "sHomestrend": "8::Z0",
    "i4xIndexClearanceMode": 1,
