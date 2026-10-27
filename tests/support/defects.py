@@ -201,6 +201,7 @@ RESOLUTIONS = {
     'PP-034': ('fixed', 'f5c74cd Remove the multiple-fixture scheme: more than one fixture stops the post.'),
     'PP-035': ('fixed', 'f5c74cd Remove the multiple-fixture scheme: no temp files are opened or deleted.'),
     'PP-038': ('fixed', 'f5c74cd Remove the trig macro: i4xIndexMode other than 0/1 stops the post.'),
+    'PP-043': ('fixed', '12db1de @home_data no longer writes shift_y (its only reader, the trig macro, is gone).'),
     'PP-044': ('fixed', 'f5c74cd @call_proc, @proc and @end_proc stop the post with a POST ERROR (VMID GenProc=0).'),
     'PP-045': ('fixed', 'f5c74cd @change_ref_point stops the post with a POST ERROR instead of writing G10 L2.'),
     'DESIGN-002': ('fixed', '3e0c345 Split XY and Z when returning from post-inserted homing (owner decision; '
@@ -232,6 +233,7 @@ FIX_TESTS = {
     'PP-034': ('tests/test_unsupported_features.py',),
     'PP-035': ('tests/test_unsupported_features.py',),
     'PP-038': ('tests/test_unsupported_features.py',),
+    'PP-043': ('tests/test_rotary.py',),
     'PP-044': ('tests/test_unsupported_features.py',),
     'PP-045': ('tests/test_unsupported_features.py',),
     'DESIGN-002': ('tests/test_post_homing_reposition.py',),
