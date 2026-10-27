@@ -692,16 +692,13 @@ endp
     if !bSubs
         if !first_tool
             call @usr_ct_before_notfirsttool
-        endif
-        if first_tool
+        else
             call @usr_ct_before_firsttool
         endif
     endif
     call @usr_ct_toolchange
     if !bSubs
         call @usr_ct_after
-    endif
-    if !bMultiplefixtures
     endif
     if bMultiplefixtures eq True
         bFromendchangetool = True
