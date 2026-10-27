@@ -180,9 +180,9 @@ class PostHomingProgramTests(unittest.TestCase):
 
     def test_tool_change_branch_must_not_consume_the_reposition(self):
         source = PP.read_text(encoding='utf-8-sig')
-        anchor = '        bTlchg = false\n        bFirstRapid = false\n        bClimbZValid = false\n'
+        anchor = '    bTlchg = false\n    bClimbZValid = false\n'
         self.assertEqual(source.count(anchor), 1, 'tool-change rapid branch changed; review this test')
-        program = self.two_tools(source.replace(anchor, anchor + '        bPostHomed = false\n', 1))
+        program = self.two_tools(source.replace(anchor, anchor + '    bPostHomed = false\n', 1))
         self.assertEqual(program.ev('move_5x', xpos=10, ypos=20, zpos=60), ['Z60'])
 
 
@@ -206,7 +206,8 @@ class PostHomingSkiplineTests(unittest.TestCase):
     def test_skipline_false_before_z_would_join_the_lines(self):
         require_nc_stream()
         source = PP.read_text(encoding='utf-8-sig')
-        pattern = re.compile(r"(if bHomedReposition\n(?:\s*;[^\n]*\n)?\s*call @usr_emulated_rapid_feed\n\s*skipline = )true")
+        pattern = re.compile(r"(if bFirstMove or bPostHomed\n\s*if !bFirstMove\n(?:\s*;[^\n]*\n)?"
+                             r"\s*call @usr_emulated_rapid_feed\n\s*endif\n\s*skipline = )true")
         self.assertEqual(len(pattern.findall(source)), 1, 'post-homing split changed; review this test')
         broken = pattern.sub(r"\1false", source, count=1)
         self.assertIn('X50 Y60 Z3', self.rotation_after_cutting(broken))
@@ -236,9 +237,9 @@ class PostHomingApproachOrderTests(unittest.TestCase):
 
     def test_removing_the_split_is_detected(self):
         source = PP.read_text(encoding='utf-8-sig')
-        pattern = re.compile(r"if bHomedReposition\n(\s*;[^\n]*\n)?\s*call @usr_emulated_rapid_feed\n\s*skipline = true\n\s*\{nb,'Z'zpos ' ' \}\n\s*skipline = true\n")
+        pattern = re.compile(r"if bFirstMove or bPostHomed\n")
         self.assertEqual(len(pattern.findall(source)), 1, 'post-homing split changed; review this test')
-        broken = pattern.sub("if bHomedReposition\n{'Z'zpos ' ' }\n", source, count=1)
+        broken = pattern.sub("if bFirstMove\n", source, count=1)
         session = Session(broken)
         session.step('line_5x', ['xpos'], xpos=15, feed_type='feed_cut')
         output = session.step('move_5x', ['apos', 'xpos', 'ypos', 'zpos'], apos=30, xpos=50, ypos=60, zpos=3,
@@ -250,10 +251,17 @@ EMULATED_RAPIDS = dict(options=dict(bSyncdrapid=False), cam=dict(job_type='3-d m
 
 
 def without_emulated_feed_calls(source):
+    """Remove the rapid feed of the FIRST block of a split rapid (climb, homed XY return); the
+    optional F at the end of @usr_rapid_xyz stays."""
     pattern = re.compile(r'\n[ \t]*call @usr_emulated_rapid_feed(?=\n)')
-    if len(pattern.findall(source)) != 2:
-        raise AssertionError('emulated rapid feed calls changed; review this test')
-    return pattern.sub('', source)
+    for name in ('usr_rapid_climb_then_xy', 'usr_rapid_xy_then_z'):
+        start = source.index(f'\n@{name}\n')
+        end = source.index('\nendp\n', start)
+        body = source[start:end]
+        if len(pattern.findall(body)) != 1:
+            raise AssertionError('emulated rapid feed calls changed; review this test')
+        source = source[:start] + pattern.sub('', body) + source[end:]
+    return source
 
 
 class PostHomingEmulatedRapidFeedTests(unittest.TestCase):

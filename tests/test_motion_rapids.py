@@ -158,8 +158,13 @@ class FirstRapidTests(unittest.TestCase):
         """INDEPENDENT: removing 'bFirstRapid = false' (@usr_rapid, after the HVH block) makes
         the first rapid enter the tool-change branch, which drops the X/Y target; the
         guard must fail with AssertionError (pp3-dead-branches mutant)."""
-        mutant = mutate('        bFirstRapid = false\n    endif\n    bRapidRotaryChanged',
-                        '    endif\n    bRapidRotaryChanged')
+        # The refactored @usr_rapid no longer reads bFirstRapid after the head check: revive the old
+        # 'if bTlchg or bFirstRapid' tool-change branch (with its reset) together with the deletion.
+        mutant = mutate('        bFirstRapid = false\n    endif\n    ; The A output clears',
+                        '    endif\n    ; The A output clears')
+        mutant = mutate('    if bTlchg\n        call @usr_rapid_tc_block\n',
+                        '    if bTlchg or bFirstRapid\n        bFirstRapid = false\n'
+                        '        call @usr_rapid_tc_block\n', source=mutant)
         assert_detected(self, self.check_descending_first_rapid, mutant, 'bFirstRapid kept live')
 
     @covers('PP-013')
@@ -251,16 +256,7 @@ class HomingRestoreTests(unittest.TestCase):
 
 
 # @usr_rapid: 3e0c345 put Z in its own block when the rapid returns from post-inserted homing.
-HOMED_RETURN_SPLIT = """                        if bHomedReposition
-                            ; Coming from the homing position: traverse XY at the homed Z, then plunge in Z.
-                            call @usr_emulated_rapid_feed
-                            skipline = true
-                            {nb,'Z'zpos ' ' }
-                            skipline = true
-                        else
-                            {'Z'zpos ' ' }
-                        endif
-"""
+HOMED_RETURN_SPLIT = "        if bFirstMove or bPostHomed\n"
 
 
 class ApproachAfterHomingTests(unittest.TestCase):
@@ -318,7 +314,7 @@ class ApproachAfterHomingTests(unittest.TestCase):
         """INDEPENDENT: negative validation of the DESIGN-002 pin. Reverting 3e0c345 in
         memory (Z stays on the X/Y block after post-inserted homing) must make
         check_homed_return fail with AssertionError in both scenarios."""
-        mutant = mutate(HOMED_RETURN_SPLIT, "                        {'Z'zpos ' ' }\n")
+        mutant = mutate(HOMED_RETURN_SPLIT, "        if bFirstMove\n")
         for name in ('first_link_of_job', 'after_cutting_retract'):
             assert_detected(self, lambda source: self.check_homed_return(name, source), mutant,
                             f'3e0c345 reverted ({name})', match='not A, XY, Z')

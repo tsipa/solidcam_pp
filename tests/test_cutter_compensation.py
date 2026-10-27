@@ -354,9 +354,9 @@ class CompensationPlaneAxisTests(unittest.TestCase):
 
     def test_removing_the_yz_plane_axis_is_detected(self):
         source = without(PP.read_text(encoding='utf-8-sig'),
-                         '                if iMplane eq 19 and !change(ypos) and (!change(zpos) or bFirstMove)\n'
-                         '                    change(ypos) = true\n'
-                         '                endif\n')
+                         '    if iMplane eq 19 and !change(ypos) and (!change(zpos) or bFirstMove)\n'
+                         '        change(ypos) = true\n'
+                         '    endif\n')
         self.assertEqual(self.yz_climb(source)[:2], ['MSG("op2")', 'G0 Z40'])
 
     def null_rapid_after_compensated_cut(self, source=None):
@@ -392,10 +392,11 @@ class CompensationPlaneAxisTests(unittest.TestCase):
 
     def test_compensation_after_the_no_motion_test_is_detected(self):
         source = PP.read_text(encoding='utf-8-sig')
-        start = source.index('\n@usr_rapid\n')
-        test = ('        if !change(nR1pos) and !change(xpos) and !change(ypos) and !change(zpos)  '
-                ';Ignore apos prepositioning, handled at toolchange\n            skipline = false\n        endif\n')
-        trc = source.index('        if !bSkipxyrapid\n            if change(iDiametercomp)\n', start)
+        start = source.index('\n@usr_rapid_xyz\n')
+        test = ('    if !change(nR1pos) and !change(xpos) and !change(ypos) and !change(zpos)\n'
+                '        ; No axis moves: open no NC line for this rapid (its modal words, if any, join the current line).\n'
+                '        skipline = false\n    endif\n')
+        trc = source.index('    if change(iDiametercomp)\n        call @usr_rapid_trc_axes\n', start)
         self.assertEqual(source.count(test), 1, 'no-motion test changed; review this test')
         moved = source.replace(test, '')
         moved = moved[:trc] + test + moved[trc:]
@@ -408,7 +409,9 @@ class CompensationPlaneAxisTests(unittest.TestCase):
         self.assertEqual(program.ev('move_5x', xpos=40, zpos=-3), ['G0 G40 X40 Z-3'])
 
     def test_removing_the_retract_split_is_detected(self):
-        source = without(PP.read_text(encoding='utf-8-sig'), '                    bTrcRetract = true\n')
+        source = without(PP.read_text(encoding='utf-8-sig'),
+                         '        if change(iDiametercomp) and iDiametercomp eq 40 and iMplane eq 17\n'
+                         '            bClimbFirst = true\n        endif\n')
         program = Program(source=source)
         program.start()
         contour_with_compensation(program)

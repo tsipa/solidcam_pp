@@ -499,7 +499,7 @@ class InitPostSessionTests(unittest.TestCase):
         """INDEPENDENT: coarse formats, no initial DC force and no flag clearing fail the guard."""
         sources = {
             'xpos_f coarse': mutate("xpos_f          = '8.5'", "xpos_f          = '8.2'"),
-            'zpos_f coarse (usr_rapid/usr_ct)': mutate("zpos_f = '5.4'", "zpos_f = '5.2'", count=3),
+            'zpos_f coarse (usr_head_home/usr_ct)': mutate("zpos_f = '5.4'", "zpos_f = '5.2'", count=2),
             'nR1pos_f integer': mutate("nR1pos_f        = '7.3'", "nR1pos_f        = '7.0'"),
             'no initial DC': mutate('    bR1forceOutput = true\n', '    bR1forceOutput = false\n'),
             'flags never cleared': mutate('clear_change_after_gen = 1', 'clear_change_after_gen = 0'),

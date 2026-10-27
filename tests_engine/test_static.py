@@ -65,9 +65,11 @@ class WholeGppTests(unittest.TestCase):
         # +2 trig-macro resets (review round 2). +1 branch / +2 statements: @usr_emulated_rapid_feed
         # (bSyncdrapid=false only). -1 branch / -3 statements: refactor B4 deleted the first iR1posControl
         # eq 3 block, which the second one fully overwrote. -1 branch / -2 statements: refactor B7 deleted
-        # the never-taken bSkipxyrapid else branch in usr_rapid.
-        self.assertEqual(len(branches), 37)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 157)
+        # the never-taken bSkipxyrapid else branch in usr_rapid. -1 branch / -3 statements: round 2 split
+        # usr_rapid into stages; the two head-homing copies became usr_head_home and the motion-mode
+        # if/else lost its nested job_type test.
+        self.assertEqual(len(branches), 36)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 154)
         subs_line = lines_matching(r'^\s*if bSubs\s*$', start='@start_of_job')
         subs = [d for d in branches if d.proc == 'start_of_job' and d.line == subs_line[0]]
         option = lines_matching(r'^\s*bSubs\s*=')[0]

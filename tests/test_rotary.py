@@ -355,11 +355,11 @@ REVERSIONS = [
          '    if change(nR1pos)\n        call @usr_r1_select_dir\n    else\n        if bR1forceOutput\n'
          '            iR1dirMode = 3\n        endif\n    endif\n', 1)]),
     ('tool-change rapid emits plain A<pos>', 'bff5ed0', 'check_toolchange_rapid_emits_changed_a', [
-        ("',cWo,iWorkoffset' '}\n            if change(nR1pos)\n                call @usr_r1_output\n",
-         "',cWo,iWorkoffset' '}\n            if change(nR1pos)\n                {cR1,nR1pos ' '}\n", 1)]),
+        ("    if change(nR1pos) or bR1forceOutput\n        call @usr_r1_output\n",
+         "    if change(nR1pos) or bR1forceOutput\n        {cR1,nR1pos ' '}\n", 1)]),
     ('tool-change rapid drops a changed A', 'bff5ed0', 'check_toolchange_rapid_emits_changed_a', [
-        ("',cWo,iWorkoffset' '}\n            if change(nR1pos)\n                call @usr_r1_output\n",
-         "',cWo,iWorkoffset' '}\n            if change(nR1pos)\n                iR1dirMode = 0\n", 1)]),
+        ("    if change(nR1pos) or bR1forceOutput\n        call @usr_r1_output\n",
+         "    if change(nR1pos) or bR1forceOutput\n        iR1dirMode = 0\n", 1)]),
     ('index direction words swapped', 'bff5ed0', 'check_index_direction_ignores_stale_dir5a', [
         ('        if angle_4x_around_x_dir eq cw\n            iR1dirMode = 1\n        else\n'
          '            if angle_4x_around_x_dir eq ccw\n                iR1dirMode = 2',
@@ -395,9 +395,11 @@ REVERSIONS = [
         ("        ;{', Z,'shift_z_sign", "        {', Z,'shift_z_sign", 1),
         ("        ;{', B,0',')',cCb", "        {', B,0',')',cCb", 1)]),
     ('HVV head macro re-enabled', '77c03c6', 'check_secondary_rotation_adds_no_extra_rotation', [
-        (";                {nb, 'HVV'}", "                {nb, 'HVV'}", 1)]),
+        ('            call @usr_head_home\n            bVertical = true\n',
+         "            call @usr_head_home\n            {nb, 'HVV'}\n            bVertical = true\n", 1)]),
     ('Z inversion re-enabled', '77c03c6', 'check_secondary_rotation_adds_no_extra_rotation', [
-        ("                zpos_f = '5.4' ;'5.4(*-1)'", "                zpos_f = '5.4(*-1)'", 1)]),
+        ('            call @usr_head_home\n            bVertical = true\n',
+         "            call @usr_head_home\n            zpos_f = '5.4(*-1)'\n            bVertical = true\n", 1)]),
     ('tool change keeps the CAM apos', 'mutation', 'check_toolchange_zeroes_cam_apos', [
         ('            nR1pos = 9999\n            apos = 0\n', '            nR1pos = 9999\n', 1)]),
     ('4x-transform angle sign flipped', 'mutation', 'check_contributions_compose_modulo_360', [

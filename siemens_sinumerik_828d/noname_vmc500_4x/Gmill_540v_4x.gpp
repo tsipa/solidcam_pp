@@ -18,6 +18,8 @@
     global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTmatrixIndexPending
     global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed bClimbZValid bFeedPrevValid
+    ; Per-rapid decisions of usr_rapid, shared by its stages (set before they are read).
+    global logical bCamLinkRapid bRapidRotaryChanged
     global integer iFeedMode iCompActive
     global numeric nInvFeed nMaxInverseFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA nFeedPrevR1 nR1posstep
     global string nInvFeed_f
@@ -1217,199 +1219,68 @@ endp
 endp
 
 @usr_rapid
-    local logical bCamLinkRapid bRapidRotaryChanged bHomedReposition bTrcRetract bClimbFirst
-    ; A CAM-tagged, straight Z retract authorizes its contiguous rapid link.
+    ; Rapid positioning: G0, or G1 F<nRapidfeed> on '3-d model' jobs when bSyncdrapid is false.
+    ; Machine order: homing where needed, A in a block of its own, then X/Y/Z. The first rapid after
+    ; a tool change is one positioning block instead (work offset and A, no X/Y/Z).
+    call @usr_rapid_cam_link
+    call @usr_rapid_motion_mode
+    call @usr_r1pos_calc
+    if bFirstRapid or bTlchg
+        call @usr_rapid_head_check
+        bFirstRapid = false
+    endif
+    ; The A output clears the change flag: remember whether this rapid turns A.
+    bRapidRotaryChanged = change(nR1pos)
+    if change(nR1pos) and !bCamLinkRapid
+        ; Outside a CAM link CAM planned no clearance for the swing: home first.
+        sHomestrrot = sHomestrroth
+        call @usr_home_rot
+    endif
+    if bTlchg
+        call @usr_rapid_tc_block
+    else
+        if change(nR1pos)
+            ; A turns in its own block, before X/Y/Z move (DESIGN-004).
+            {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+            call @usr_r1_output
+        endif
+        call @usr_rapid_xyz
+    endif
+    call @usr_rapid_done
+endp
+
+@usr_rapid_cam_link
+    ; A rotation inside a CAM link needs no homing: a straight feed_link retract (usr_line sets
+    ; bCamLinkRetract) authorizes the 4x/5x rapids of the same link that follow it. An index, a tool
+    ; change, a job start or another work offset ends the link. Decided before any output.
     bCamLinkRapid = false
-    bHomedReposition = false
-    bTrcRetract = false
     if X5_job and bR1useDir5a and bJobPositioned and bCamLinkRetract
-        if !bIndexClearancePending and !bTlchg and !bFirstRapid
+        if !bIndexClearancePending and !bTlchg and !bFirstRapid and nLastPathWorkoffset eq iWorkoffset
             if prev_command eq '@line_5x' or prev_command eq '@line_4x' or prev_command eq '@move_5x' or prev_command eq '@move_4x'
-                if nLastPathWorkoffset eq iWorkoffset
-                    bCamLinkRapid = true
-                endif
+                bCamLinkRapid = true
             endif
         endif
     endif
+    ; Used up here; usr_rapid_done renews it while the link goes on.
     bCamLinkRetract = false
-    ; Handle output for Rapid Move (G00)
-    ; Note: XYZ not allowed together on a single line
-    ; ---- 4x
-    ;   - Set Rotary Position
-    if !bSyncdrapid
-        if job_type eq '3-d model'
-            iMotionmode = 1
-        else
-            iMotionmode = 0
-        endif
+endp
+
+@usr_rapid_motion_mode
+    ; G0, or G1 at the rapid feed (feed-emulated rapid); a G1 rapid leaves G93 first.
+    ; One assignment per path: a 0-then-1 pair would flag G1 -> G1 as a change and repeat G1.
+    if !bSyncdrapid and job_type eq '3-d model'
+        iMotionmode = 1
+        call @usr_feedmode_94
     else
         iMotionmode = 0
     endif
-    if iMotionmode eq 1
-        call @usr_feedmode_94
-    endif
+endp
 
-    call @usr_r1pos_calc
-    if bFirstRapid or bTlchg
-        if abs(nR2pos) gt 0
-            if !bVertical or bFirstVert
-                sHomestrrot = sHomestrrotv
-                if sHomestrrot ne ''
-                    sHomestr = sHomestrrot
-                    call @usr_prep_home_axis
-                endif
-;                {nb, 'HVV'}
-                zpos_f = '5.4' ;'5.4(*-1)'
-                bVertical = true
-                bFirstVert = false
-            endif
-        else
-            if bVertical or bFirstVert
-                sHomestrrot = sHomestrrotv
-                if sHomestrrot ne ''
-                    sHomestr = sHomestrrot
-                    call @usr_prep_home_axis
-                endif
-                zpos_f = '5.4'
-                bVertical = false
-                bFirstVert = false
-            endif
-        endif
-        bFirstRapid = false
-    endif
-    bRapidRotaryChanged = change(nR1pos)
-    if change(nR1pos) and !bCamLinkRapid
-        sHomestrrot = sHomestrroth
-        if sHomestrrot ne ''
-            sHomestr = sHomestrrot
-            call @usr_prep_home_axis
-        endif
-    endif
-    if change(nR1pos) and !bTlchg and !bFirstRapid
-        {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-        call @usr_r1_output
-    endif
-    if bTlchg or bFirstRapid
-        zpos = tool_start_plane
-        if bVertical
-            {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' ','Y'ypos ' '}
-            if change(nR1pos)
-                call @usr_r1_output
-            else
-                if bR1forceOutput
-                    call @usr_r1_output
-                endif
-            endif
-        else
-            {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' '}
-            if change(nR1pos)
-                call @usr_r1_output
-            else
-                if bR1forceOutput
-                    call @usr_r1_output
-                endif
-            endif
-        endif
-        bTlchg = false
-        bFirstRapid = false
-        bClimbZValid = false
-        bFeedPrevValid = false
-    else
-        if bPostHomed
-            ; The post homed the axes after the last positioning move, so the CAM change flags no longer
-            ; describe the machine position: program X, Y and Z explicitly.
-            change(xpos) = true
-            change(ypos) = true
-            change(zpos) = true
-            bPostHomed = false
-            bHomedReposition = true
-        endif
-        if !bSkipxyrapid
-            if change(iDiametercomp)
-                if iDiametercomp ne 40
-                    ; TRC works in the job plane: a YZ/ZX arc earlier in the job must not leave another one.
-                    call @usr_job_plane
-                endif
-                ; Sinumerik switches cutter compensation only in a G0/G1 block that programs an axis of
-                ; the working plane: give the TRC block one at the current position when CAM sent none.
-                ; In G18/G19 the Z word is one, unless it goes to its own block (first move of a job).
-                if iMplane eq 17 and !change(xpos) and !change(ypos)
-                    change(xpos) = true
-                    change(ypos) = true
-                endif
-                if iMplane eq 18 and !change(xpos) and (!change(zpos) or bFirstMove)
-                    change(xpos) = true
-                endif
-                if iMplane eq 19 and !change(ypos) and (!change(zpos) or bFirstMove)
-                    change(ypos) = true
-                endif
-                if iDiametercomp eq 40 and iMplane eq 17 and change(zpos) and bClimbZValid and !bHomedReposition and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
-                    ; Deselecting while climbing moves the tool toward the wall while it is still low:
-                    ; climb with compensation on, then deselect at the new height.
-                    bTrcRetract = true
-                endif
-                iCompActive = iDiametercomp
-            endif
-        endif
-        if !change(nR1pos) and !change(xpos) and !change(ypos) and !change(zpos)  ;Ignore apos prepositioning, handled at toolchange
-            skipline = false
-        endif
-        ; ---- 4x
-        if !bSkipxyrapid
-            bClimbFirst = bTrcRetract
-            if bFirstMove and change(zpos) and bClimbZValid and !bHomedReposition and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
-                ; Job starts above the current Z (no homing since the last move): climb first, then traverse XY.
-                bClimbFirst = true
-            endif
-            if bClimbFirst
-                bFirstMovetlch = false
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],'Z'zpos ' '}
-                call @usr_emulated_rapid_feed
-                if change(xpos) or change(ypos)
-                    skipline = true
-                    {nb,['G'iDiametercomp' '],['X'xpos ' '],['Y'ypos ' ']}
-                endif
-                bFirstMove = false
-                skipline = true
-            else
-                {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],['X'xpos ' '],['Y'ypos ' ']}
-                if change(zpos)
-                    if bFirstMove
-                        bFirstMovetlch = false
-                        skipline = true
-                        {nb,'Z'zpos ' ' }
-                        bFirstMove = false
-                        skipline = true
-                    else
-                        if bHomedReposition
-                            ; Coming from the homing position: traverse XY at the homed Z, then plunge in Z.
-                            call @usr_emulated_rapid_feed
-                            skipline = true
-                            {nb,'Z'zpos ' ' }
-                            skipline = true
-                        else
-                            {'Z'zpos ' ' }
-                        endif
-                    endif
-                endif
-            endif
-            if !bSyncdrapid
-                if job_type eq '3-d model'
-                    {['F'nRapidfeed' ']}
-                endif
-            endif
-            bSkipxyrapid = false
-        endif
-        bClimbZValid = true
-        nFeedPrevX = xpos
-        nFeedPrevY = ypos
-        nFeedPrevZ = zpos
-        nFeedPrevA = -nR1postemp * iR1dir
-        nFeedPrevR1 = nR1pos
-        bFeedPrevValid = true
-    endif
+@usr_rapid_done
+    ; State for the next event.
     if !bSyncdrapid
-        bFeedoutput        = true
+        ; The next feed move reprograms F.
+        bFeedoutput = true
     endif
     if bRapidRotaryChanged
         bIndexClearancePending = false
@@ -1422,17 +1293,182 @@ endp
     bJobPositioned = true
     nLastPathZ = zpos
     nLastPathWorkoffset = iWorkoffset
+    ; The work offset is programmed (or unchanged): no repeat on the next block.
     change(cWo) = false
     change(iWorkoffset) = false
 endp
 
+@usr_rapid_head_check
+    ; First rapid of a job or of a tool change. The head counts as vertical when the secondary rotation
+    ; nR2pos is not 0 (swivel-head template; on this A-axis machine only a CoordSys turned about Z or a
+    ; CAM bpos gives one). On the first such rapid of the program, and whenever the orientation
+    ; changes, home with sHomestrrotv and switch Z to 4 decimals.
+    if abs(nR2pos) gt 0
+        if !bVertical or bFirstVert
+            call @usr_head_home
+            bVertical = true
+        endif
+    else
+        if bVertical or bFirstVert
+            call @usr_head_home
+            bVertical = false
+        endif
+    endif
+endp
+
+@usr_head_home
+    ; Home for a head orientation change (sHomestrrotv) and switch Z to its 4-decimal format. The
+    ; template's head macros ('HVV'/'HVH' blocks) and its inverted Z format '5.4(*-1)' stay off (77c03c6).
+    sHomestrrot = sHomestrrotv
+    call @usr_home_rot
+    zpos_f = '5.4'
+    bFirstVert = false
+endp
+
+@usr_rapid_tc_block
+    ; The rapid of a tool change (usr_ct_after) or of a work offset change at job start (start_of_job):
+    ; G0 with the work offset and the A position. The first A word of a program is DC
+    ; (bR1forceOutput). X/Y stay pending for the first move of the job; Z counts as the tool start plane.
+    zpos = tool_start_plane
+    if bVertical
+        {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' ','Y'ypos ' '}
+    else
+        {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],'G'iAbsincmode ' ',cWo,iWorkoffset' '}
+    endif
+    if change(nR1pos) or bR1forceOutput
+        call @usr_r1_output
+    endif
+    bTlchg = false
+    bClimbZValid = false
+    bFeedPrevValid = false
+endp
+
+@usr_rapid_xyz
+    ; The X/Y/Z part of a rapid (not the tool-change block), with a pending cutter compensation
+    ; change: one block, or a split into Z then X/Y (climb) or X/Y then Z.
+    local logical bClimbFirst
+    if bPostHomed
+        ; The post homed the axes after the last positioning move, so the CAM change flags no longer
+        ; describe the machine position: program X, Y and Z explicitly. bPostHomed stays set until the
+        ; end of this procedure: the climb test and the XY/Z split below read it.
+        change(xpos) = true
+        change(ypos) = true
+        change(zpos) = true
+    endif
+    if change(iDiametercomp)
+        call @usr_rapid_trc_axes
+    endif
+    if !change(nR1pos) and !change(xpos) and !change(ypos) and !change(zpos)
+        ; No axis moves: open no NC line for this rapid (its modal words, if any, join the current line).
+        skipline = false
+    endif
+    ; Climb first, then traverse X/Y, when the rapid rises from a Z the post knows (same work offset,
+    ; no homing since the last move): at the first move of a job (the job starts above the current Z),
+    ; and when it deselects cutter compensation in G17 (deselecting while still low moves the tool
+    ; toward the wall; climb with compensation on, then deselect at the new height).
+    bClimbFirst = false
+    if change(zpos) and bClimbZValid and !bPostHomed and nLastPathWorkoffset eq iWorkoffset and zpos gt nLastPathZ
+        if bFirstMove
+            bClimbFirst = true
+        endif
+        if change(iDiametercomp) and iDiametercomp eq 40 and iMplane eq 17
+            bClimbFirst = true
+        endif
+    endif
+    if bClimbFirst
+        call @usr_rapid_climb_then_xy
+    else
+        call @usr_rapid_xy_then_z
+    endif
+    ; Feed-emulated rapids: F is modal and printed once after a feed move. A split rapid printed it on
+    ; its first block; otherwise it goes on the last block here.
+    call @usr_emulated_rapid_feed
+    if bPostHomed
+        bPostHomed = false
+    endif
+    bClimbZValid = true
+    call @usr_feed_start_here
+endp
+
+@usr_rapid_trc_axes
+    ; Sinumerik switches cutter compensation only in a G0/G1 block that programs an axis of the
+    ; working plane: give the TRC block one at the current position when CAM sent none. In G18/G19 the
+    ; Z word is one, unless it goes to its own block (first move of a job).
+    if iDiametercomp ne 40
+        ; TRC works in the job plane: a YZ/ZX arc earlier in the job must not leave another one.
+        call @usr_job_plane
+    endif
+    if iMplane eq 17 and !change(xpos) and !change(ypos)
+        change(xpos) = true
+        change(ypos) = true
+    endif
+    if iMplane eq 18 and !change(xpos) and (!change(zpos) or bFirstMove)
+        change(xpos) = true
+    endif
+    if iMplane eq 19 and !change(ypos) and (!change(zpos) or bFirstMove)
+        change(ypos) = true
+    endif
+    iCompActive = iDiametercomp
+endp
+
+@usr_rapid_climb_then_xy
+    ; Z in its own block first, then X/Y with the compensation change at the new height.
+    {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],'Z'zpos ' '}
+    call @usr_emulated_rapid_feed
+    if change(xpos) or change(ypos)
+        skipline = true
+        {nb,['G'iDiametercomp' '],['X'xpos ' '],['Y'ypos ' ']}
+    endif
+    bFirstMove = false
+    skipline = true
+endp
+
+@usr_rapid_xy_then_z
+    ; X/Y with the compensation change; Z joins the block, except at the first move of a job and on
+    ; the return from a post homing: there Z goes in its own block after the XY traverse (DESIGN-002).
+    {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],['X'xpos ' '],['Y'ypos ' ']}
+    if change(zpos)
+        if bFirstMove or bPostHomed
+            if !bFirstMove
+                ; The XY block of the homed return carries the rapid feed (PP-023: not the first move).
+                call @usr_emulated_rapid_feed
+            endif
+            skipline = true
+            {nb,'Z'zpos ' ' }
+            skipline = true
+        else
+            {'Z'zpos ' ' }
+        endif
+        bFirstMove = false
+    endif
+endp
+
 @usr_emulated_rapid_feed
-    ; Feed-emulated rapids (G1 for '3-d model' jobs when bSyncdrapid is false): the first block of a
-    ; rapid that the post splits carries the rapid feed, so the other block does not run at cutting feed.
+    ; F<nRapidfeed> for feed-emulated rapids (G1 on '3-d model' jobs when bSyncdrapid is false). F is
+    ; optional: printed once after a feed move set change(nRapidfeed). A rapid that the post splits
+    ; calls this after its first block, so the other block does not run at cutting feed.
     if !bSyncdrapid
         if job_type eq '3-d model'
             {['F'nRapidfeed' ']}
         endif
+    endif
+endp
+
+@usr_feed_start_here
+    ; The end point of this move is where the next G93 block starts (usr_inverse_feed).
+    nFeedPrevX = xpos
+    nFeedPrevY = ypos
+    nFeedPrevZ = zpos
+    nFeedPrevA = -nR1postemp * iR1dir
+    nFeedPrevR1 = nR1pos
+    bFeedPrevValid = true
+endp
+
+@usr_home_rot
+    ; Home with sHomestrrot, the rotation homing string chosen last ('' = no homing).
+    if sHomestrrot ne ''
+        sHomestr = sHomestrrot
+        call @usr_prep_home_axis
     endif
 endp
 
