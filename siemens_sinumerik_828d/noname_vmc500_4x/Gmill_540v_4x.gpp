@@ -37,7 +37,7 @@
     global string  cR1 cR2 sHomestrrot sHomestrrotv sHomestrroth nR1pos_f nR2pos_f bpos_f ;apos_f
     global integer iFeedType iR1posControl i4xIndexMode i4xIndexClearanceMode i4xFeedMode
     global integer iGear1 iGear2 iGear3 iGear4 iGear iFirst_tool
-    global integer var1 var2 Var3 var4 var5 Var6 macnum ORGXYZ P_Offset
+    global integer var1 var2 var3 var4 var5 var6 macnum ORGXYZ P_Offset
     global numeric newshift_z newshift_y  newshift_x newshift_b
     global string shift_x_sign shift_y_sign shift_z_sign shift_b_sign newshift_z_f newshift_y_f  newshift_x_f P_Dwell_f
 	global numeric last_spin spindle_accel
@@ -692,7 +692,7 @@ endp
     endif
     bStartFile = false
     call @usr_tc_init_gmstates
-    if !bsubs
+    if !bSubs
         if !first_tool
             call @usr_ct_before_notfirsttool
         endif
@@ -702,7 +702,7 @@ endp
         endif
     endif
     call @usr_ct_toolchange
-    if !bsubs
+    if !bSubs
         call @usr_ct_after
     endif
     if !bMultiplefixtures
@@ -808,7 +808,7 @@ endp
             {nb, 'T'next_tool_number' '}
         endif
     endif
-    if !bsubs
+    if !bSubs
         {nb, cOMb,job_name,cOMe}
     endif
 endp
@@ -853,11 +853,11 @@ endp
     if bCoolspinaftertc
         skipline = true
         call @start_tool
-        if bCoolExist and !bsubs
+        if bCoolExist and !bSubs
             skipline = true
             call @usr_coolant
         endif
-        if !bsubs
+        if !bSubs
             xpos = nTcXnext
             ypos = nTcYnext
             cpos = nTcCnext
@@ -866,7 +866,7 @@ endp
 ;	    call @usr_heightcomp_on
         endif
     else
-        if !bsubs
+        if !bSubs
             xpos = nTcXnext
             ypos = nTcYnext
             cpos = nTcCnext
@@ -929,7 +929,7 @@ endp
     ; Handle line to turn on Height Compensation (Typically after tool change)
     iHeightcomp = 43
     {nb, 'G'iHeightcomp, ' H'tool_number' '}
-    if !bsubs
+    if !bSubs
         skipline = false
         zpos = nTcZnext
         change(xpos) = false
@@ -2085,7 +2085,7 @@ endp
     else
         position = position + 1
     endif
-    if bsubs
+    if bSubs
     else
         gcode = 0
         apos = 0
@@ -2306,7 +2306,7 @@ endp
 @call_proc
     ; Handle call to subroutine
 
-    if btlchg
+    if bTlchg
         if !first_tool
             {nb}
             change(iMplane) = true
