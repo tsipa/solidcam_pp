@@ -24,14 +24,14 @@
     global numeric nInvFeed nMaxInverseFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA nFeedPrevR1 nR1posstep
     global string nInvFeed_f
     global numeric nLastPathZ nLastPathWorkoffset
-    global integer iMplane iAbsincmode iWorkoffset iHeightcomp iStopmode iMotionmode iPworkoffset
+    global integer iMplane iAbsincmode iWorkoffset iStopmode iMotionmode iPworkoffset
     global integer iDiametercomp iDrillmode iTcnumber iSpindleDir iR1dirMode
     global integer iSlength_g_file_name iSlength_full_g_file_name iSlengthcampartpath iDiameteroffset iArcmode
     global integer iHomingmode iWorkOffsetmode iProgendmode iG187_P_gpp iPal1 iPal2
     global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
     global integer iCoolantM1ON iCoolantM2ON iCoolantM3ON iCoolantM4ON iCoolantM5ON iCoolantM6ON iCoolantM7ON iCoolantM8ON
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
-    global numeric nTcXnext nTcYnext nTcZnext nTcCnext nRapidfeed nG187_E_gpp
+    global numeric nTcXnext nTcYnext nTcCnext nRapidfeed nG187_E_gpp
 
     global numeric nR1pos nR1pos5x nR1postmatrix nR1postransform nR1poscpos iR1dir nPR1pos nR1posadj nR1postemp nPR1postemp nR1pdir
     global numeric nR2pos nR2pos5x nR2postmatrix iR2dir nPR2pos
@@ -517,10 +517,6 @@ endp
         call @usr_prep_home_axis
     endif
     change(iAbsincmode) = false
-    if change(iAbsincmode)
-        {nb}
-        call @usr_abs_inc_output
-    endif
     if change(iWorkoffset)
         {nb}
         call @usr_homenumber_output
@@ -656,8 +652,6 @@ endp
     ; Delayed Tool Change handling to @start_of_job to have access to Operation(Job) data
     nTcXnext = xnext
     nTcYnext = ynext
-    nTcZnext = tool_start_plane
-
     nTcCnext = cnext
     bTlchg = true
 endp
@@ -806,7 +800,6 @@ endp
         if !bSubs
             call @usr_ct_target
             call @usr_rapid
-;	    call @usr_heightcomp_on
         endif
     else
         if !bSubs
@@ -860,7 +853,6 @@ endp
             change(iAbsincmode) = false
             iDiametercomp = 40
             change(iDiameteroffset) = false
-            iHeightcomp = 9999
             iDrillmode = 9999
             change(nRapidfeed) = true
             ; ---- 4x
@@ -870,27 +862,6 @@ endp
             cpos = 0
             ; ---- 4x
         endif
-    endif
-endp
-
-@usr_heightcomp_on
-    ; Handle line to turn on Height Compensation (Typically after tool change)
-    iHeightcomp = 43
-    {nb, 'G'iHeightcomp, ' H'tool_number' '}
-    if !bSubs
-        skipline = false
-        zpos = nTcZnext
-        change(xpos) = false
-        change(ypos) = false
-        call @rapid_move
-    endif
-endp
-
-@usr_heightcomp_off
-    ; Handle line to turn off Height Compensation (Typically don't use)
-    iHeightcomp = 49
-    if change(iHeightcomp)
-        {nb, 'G'iHeightcomp' '}
     endif
 endp
 
@@ -1137,8 +1108,6 @@ endp
         else
             bFirstRapid = true
             {nb, cOMb,job_name,cOMe}
-            ; ---- 4x
-            ; ---- 4x
             if iPworkoffset ne iWorkoffset and !bLimit_3axis   ; Cannot use multiple MAC offsets with 4x
                 call @usr_tc_init_gmstates
                 if iDiametercomp ne iCompActive

@@ -55,7 +55,7 @@ class WholeGppTests(unittest.TestCase):
 
     def test_dead_code_and_shipped_configuration(self):
         unreachable = {d.proc for d in self.diagnostics if d.code == 'I-UNREACHABLE'}
-        self.assertEqual(unreachable, {'usr_heightcomp_on', 'usr_heightcomp_off'})
+        self.assertEqual(unreachable, set())                       # usr_heightcomp_on/off deleted (refactor)
         config_dead_procs = {d.proc for d in self.diagnostics if d.code == 'I-CONFIG-DEAD-PROC'}
         self.assertEqual(config_dead_procs, {'usr_trig_macro_call', 'usr_trig_macro_output'})
         branches = [d for d in self.diagnostics if d.code == 'I-CONFIG-DEAD']

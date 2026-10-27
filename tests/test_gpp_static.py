@@ -169,7 +169,7 @@ class GppStructureTests(unittest.TestCase):
             match = re.fullmatch(r'change\((\w+)\)\s*=\s*false', c1, re.I)
             if match and re.fullmatch(rf'if\s+change\({match.group(1)}\)', c2, re.I):
                 dead.append((p2, c2))
-        self.assertEqual(dead, [('end_program', 'if change(iAbsincmode)')])
+        self.assertEqual(dead, [])
 
     @covers('PP-057')
     def test_fanuc_only_output_is_pinned_to_legacy_procedures(self):

@@ -220,9 +220,9 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual(summary['total'], sum(statement_kinds_from_text().values()))
         self.assertGreaterEqual(summary['percent'], 87.0)    # ZX arc math after its stop, new POST ERROR paths
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
-        # usr_heightcomp_*: statically dead. arc_zx: no session has a ZX arc since a ZX arc stops the post
-        # (5408e5c); test_replay_findings.test_zx_arc_stops_the_session runs it.
-        self.assertEqual(never, {'usr_heightcomp_on', 'usr_heightcomp_off', 'arc_zx'})
+        # arc_zx: no session has a ZX arc since a ZX arc stops the post (5408e5c);
+        # test_replay_findings.test_zx_arc_stops_the_session runs it.
+        self.assertEqual(never, {'arc_zx'})
         self.assertIn('Branch gaps', total.markdown(program))
 
     def test_coverage_file_merges_across_processes_and_ignores_mutants(self):

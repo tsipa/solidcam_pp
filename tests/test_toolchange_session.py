@@ -563,14 +563,17 @@ class ToolChangeSafetyTests(unittest.TestCase):
         self.check_g_functions()
 
     def test_g_function_mutations_are_detected(self):
-        """INDEPENDENT: re-enabling the Fanuc G43 H height compensation fails the guard."""
+        """INDEPENDENT: re-enabling the Fanuc G43 H height compensation (the block of the deleted
+        template procedure @usr_heightcomp_on) fails the guard."""
         g_function_whitelist()  # skip early when the control file is absent
+        g43 = "            {nb, 'G43 H'tool_number' '}\n"
+        coolant_spindle_path = '            call @usr_ct_target\n            call @usr_rapid\n        endif\n    else\n'
         sources = {
             'height compensation enabled (coolant+spindle path)': mutate(
-                '            call @usr_rapid\n;\t    call @usr_heightcomp_on', '            call @usr_rapid\n\t    call @usr_heightcomp_on'),
+                coolant_spindle_path, coolant_spindle_path.replace('call @usr_rapid\n', 'call @usr_rapid\n' + g43)),
             'height compensation in the default path': mutate(
                 START_TOOL_AFTER_TC, START_TOOL_AFTER_TC.replace(
-                    '            call @start_tool\n', '            call @start_tool\n            call @usr_heightcomp_on\n')),
+                    '            call @start_tool\n', '            call @start_tool\n' + g43)),
         }
         for label, source in sources.items():
             with self.subTest(mutant=label):
