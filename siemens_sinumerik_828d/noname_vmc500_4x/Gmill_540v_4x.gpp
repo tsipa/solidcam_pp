@@ -17,7 +17,7 @@
     global logical bSafetyprep bSyncdrapid bFeedoutput bNnumtc bskipline bVertical bFirstVert bR1useDir5a bR1forceOutput
     global logical bOptstpbegin bOptstptc bOptstpend bUseprognum bUseprogname bCoolspinaftertc
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend bG84spin bPrintloop bTest bTmatrixIndexPending
-    global logical bIndexClearancePending bCamLinkRetract bJobPositioned
+    global logical bIndexClearancePending bCamLinkRetract bJobPositioned bPostHomed
     global numeric nLastPathZ nLastPathWorkoffset
     global integer iMplane iAbsincmode iWorkoffset iHeightcomp iStopmode iMotionmode iPworkoffset
     global integer iDiametercomp iDrillmode iTcnumber iNumpecks iSpindleDir iR1dirMode
@@ -354,6 +354,7 @@ endp
     bIndexClearancePending = true
     bCamLinkRetract = false
     bJobPositioned = false
+    bPostHomed = false
     nLastPathZ = 0
     nLastPathWorkoffset = -9999
     nPR1pos			 = 0
@@ -1315,6 +1316,14 @@ endp
         bFirstRapid = false
 ;        bSkipxyrapid = true
     else
+        if bPostHomed
+            ; The post homed the axes after the last positioning move, so the CAM change flags no longer
+            ; describe the machine position: program X, Y and Z explicitly.
+            change(xpos) = true
+            change(ypos) = true
+            change(zpos) = true
+            bPostHomed = false
+        endif
         if !change(nR1pos) and !change(xpos) and !change(ypos) and !change(zpos)  ;Ignore apos prepositioning, handled at toolchange
             skipline = false
         endif
@@ -1416,6 +1425,13 @@ endp
 ;        change(iMotionmode) = true
 ;        {nb,['G'iFeedType' ']}
 ;    endif
+    if bPostHomed
+        ; A feed move directly after a post-inserted homing must not start from the homing position.
+        change(xpos) = true
+        change(ypos) = true
+        change(zpos) = true
+        bPostHomed = false
+    endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
     {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
     if change(nR1pos)
@@ -2185,6 +2201,9 @@ endp
     if iHomingmode eq 8
         {nb,cHomep,sHomeline}
     endif
+    ; The axes now stand at the homing position: the next positioning move must reprogram X, Y and Z
+    ; even when the CAM values did not change.
+    bPostHomed = true
 endp
 
 ;-------------------

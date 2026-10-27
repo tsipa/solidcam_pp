@@ -10,7 +10,7 @@ from pp_tests.engine import Engine
 def motion_engine():
     engine = rotary_engine()
     engine.call('usr_ip_useroptions')
-    engine.set(X5_job=True, bJobPositioned=True, bCamLinkRetract=False,
+    engine.set(X5_job=True, bJobPositioned=True, bCamLinkRetract=False, bPostHomed=False,
                bIndexClearancePending=False, bTlchg=False, bFirstRapid=False,
                bFirstMove=False, bFirstMovetlch=False, bVertical=False,
                bFirstVert=False, bSkipxyrapid=False, bFeedoutput=False,
