@@ -389,11 +389,15 @@ REVERSIONS = [
     ('line_4x leaks bR1useDir5a=true', 'mutation', 'check_4x_events_take_direction_from_dir5a', [
         ('    bR1useDir5a = true\n    call @usr_line\n    bR1useDir5a = false\nendp\n\n@chng_tool_cnext',
          '    bR1useDir5a = true\n    call @usr_line\nendp\n\n@chng_tool_cnext', 1)]),
+    # The commented-out template block was deleted (fixup round): inject its four output statements
+    # (signs folded into the plain shift values) where it stood, inside 'if position ne 1'.
     ('CTRANS frame writes re-enabled', '77c03c6', 'check_home_data_writes_no_frames', [
-        ("        ;{nl,'$P_UIFR[", "        {nl,'$P_UIFR[", 1),
-        ("        ;{', Y,'shift_y_sign", "        {', Y,'shift_y_sign", 1),
-        ("        ;{', Z,'shift_z_sign", "        {', Z,'shift_z_sign", 1),
-        ("        ;{', B,0',')',cCb", "        {', B,0',')',cCb", 1)]),
+        ("            shift_y = -1 * shift_y\n        endif\n",
+         "            shift_y = -1 * shift_y\n        endif\n"
+         "        {nl,'$P_UIFR['(position + home_number + 2)']= CTRANS( X,'shift_x:'5.3'}\n"
+         "        {', Y,'shift_y:'5.3'}\n"
+         "        {', Z,'shift_z:'5.3'}\n"
+         "        {', B,0',')',cCb,'G',(position + home_number + 502)}\n", 1)]),
     ('HVV head macro re-enabled', '77c03c6', 'check_secondary_rotation_adds_no_extra_rotation', [
         ('            call @usr_head_home_select\n            bVertical = true\n',
          "            call @usr_head_home_select\n            {nb, 'HVV'}\n            bVertical = true\n", 1)]),

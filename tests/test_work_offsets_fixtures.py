@@ -163,7 +163,8 @@ class WorkOffsetTests(unittest.TestCase):
 
         A second CoordSys (position 2 with its own shift, MAC CoordSys number
         home_number=2) still runs in G54: the MAC CoordSys number is ignored and
-        newshift_x/y/z / ORGXYZ are computed but never output.
+        the template's newshift_x/y/z / ORGXYZ were computed but never output (deleted in the
+        fixup round).
         Alternatives: map the MAC number to G(53+home_number) as standard
         SolidCAM templates do, or output the shift (TRANS); the owner must
         confirm that all CoordSys share one origin. The refuted
@@ -409,8 +410,8 @@ class MultipleFixtureIndexTests(unittest.TestCase):
 # (label, [(old, new, count), ...], holder class, check method)
 REVERSIONS = [
     ('shipped method maps CoordSys to G55',
-     [('            iWorkoffset = 54\n            ORGXYZ = position',
-       '            iWorkoffset = 55\n            ORGXYZ = position', 1)],
+     [('        if iWorkOffsetmode eq 1\n            iWorkoffset = 54\n',
+       '        if iWorkOffsetmode eq 1\n            iWorkoffset = 55\n', 1)],
      WorkOffsetTests, '_check_shipped_g54'),
     ('user-defined offset number shifted',
      [('    else\n        iWorkoffset = tonum(home_user_name)\n    endif',

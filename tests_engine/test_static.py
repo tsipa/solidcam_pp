@@ -42,7 +42,10 @@ class WholeGppTests(unittest.TestCase):
         self.assertEqual(len(expected), 4)                     # 3x '5.0(n)', 1x Print (usr_4x_index_rotate)
         self.assertEqual(errors, [('E-POLICY', line) for line in expected])
         format_vars = sorted(d.line for d in self.program.policy_diagnostics(COMPAT) if d.code == 'W-FORMAT-POLICY')
-        self.assertEqual(format_vars, lines_matching(r"=\s*'\+8\.5'"))           # newshift_*_f = '+8.5'
+        # The only policy-sensitive formats were newshift_*_f = '+8.5', deleted with the dead
+        # @home_data code (fixup round): none are left.
+        self.assertEqual(format_vars, lines_matching(r"=\s*'\+8\.5'"))
+        self.assertEqual(format_vars, [])
         with self.assertRaisesRegex(UnsupportedGPPL, 'GPP validation failed'):
             Engine(source(), policies=Policies(load_errors='raise'))
 

@@ -229,7 +229,7 @@ class OutputGaps(unittest.TestCase):
     @known_defect('ENGINE-018')
     def test_historical_formats_and_trace_statements_are_accepted(self):
         """INDEPENDENT: constructs shipped in GPP revisions that ran in SolidCAM
-        must not stop the interpreter: '+8.5' (newshift_*_f, current GPP),
+        must not stop the interpreter: '+8.5' (newshift_*_f, until the fixup round),
         tostr(...:'5.0(n)') ('5.0(n)', current @Multiple_Fixtures),
         '<(>5.3<)>' (nR1pos_f before c03e1b4), '5.4(*-1)' (zpos_f before
         6294822) and `trace "all":5` (active in bff5ed0..ab853be). Where the

@@ -41,9 +41,7 @@
     global string  cR1 cR2 sHomestrrot sHomestrrotv sHomestrroth nR1pos_f bpos_f
     global integer iR1posControl i4xIndexMode i4xIndexClearanceMode i4xFeedMode
     global integer iGear1 iGear2 iGear3 iGear4
-    global integer var1 var2 var3 var4 var5 var6 macnum ORGXYZ
-    global numeric newshift_z newshift_y  newshift_x newshift_b
-    global string shift_x_sign shift_y_sign shift_z_sign shift_b_sign newshift_z_f newshift_y_f  newshift_x_f P_Dwell_f
+    global string P_Dwell_f
     global numeric last_spin spindle_accel
 
     ; Non GPPL variables
@@ -71,9 +69,6 @@
     feed_f          = '4.4(P)'
     nInvFeed_f      = '5.3'
     P_Dwell_f       = '4.4(P)'
-    newshift_z_f    = '+8.5'
-    newshift_y_f    = '+8.5'
-    newshift_x_f    = '+8.5'
     blknum_f        = '5.0(p)'
     blknum_gen      = true
     call @usr_ip_useroptions
@@ -617,7 +612,6 @@ endp
     if iWorkOffset_Method eq 0
         if iWorkOffsetmode eq 1
             iWorkoffset = 54
-            ORGXYZ = position
         endif
         if iWorkOffsetmode eq 2 or iWorkOffsetmode eq 3
             iWorkoffset = tonum(substr(home_user_name,(instr(home_user_name,'P') + 1),2))
@@ -2806,47 +2800,13 @@ endp
 endp
 
 @home_data
-    macnum = tonum(substr(home_user_name,(instr(home_user_name,'P') + 1),2))
-    if macnum eq 0
-        macnum = tonum(substr(home_user_name,(instr(home_user_name,'p') + 1),2))
-    endif
+    ; SolidCAM CoordSys data event (VMID HomeDataAtStart). The template computed CTRANS frame values
+    ; here and never printed them (77c03c6). One effect is left: for position ne 1 a negative shift_y
+    ; turns positive, so the Y word of the trig-macro call (G65 P777, index mode 2) is positive. Kept
+    ; so the NC stays the same (known defect PP-043: it overwrites a CAM input).
     if position ne 1
-        var1 = 5161 + (20 * (position + home_number))
-        var2 = 5162 + (20 * (position + home_number))
-        var3 = 5163 + (20 * (position + home_number))
-        var4 = 7161
-        var5 = 7162
-        var6 = 7163
-        newshift_z = shift_z*cos(-y_angle_const_z) - shift_x*sin(-y_angle_const_z)
-        newshift_x = shift_z*sin(-y_angle_const_z)  + shift_x*cos(-y_angle_const_z)
-        if y_angle_const_z eq 0
-            newshift_b = y_angle_const_z
-        else
-            newshift_b = (-y_angle_const_z)
-        endif
-        shift_x_sign = ''
-        shift_y_sign = ''
-        shift_z_sign = ''
-        shift_b_sign = ''
-        if newshift_x < 0
-            newshift_x = -1 * newshift_x
-            shift_x_sign = '-'
-        endif
         if shift_y < 0
             shift_y = -1 * shift_y
-            shift_y_sign = '-'
         endif
-        if newshift_z < 0
-            newshift_z = -1 * newshift_z
-            shift_z_sign = '-'
-        endif
-        if newshift_b < 0
-            newshift_b = -1 * newshift_b
-            shift_b_sign = '-'
-        endif
-        ;{nl,'$P_UIFR['(position + home_number + 2)']= CTRANS( X,'shift_x_sign,newshift_x:'5.3'}
-        ;{', Y,'shift_y_sign,shift_y:'5.3'}
-        ;{', Z,'shift_z_sign,newshift_z:'5.3'}
-        ;{', B,0',')',cCb,'G',(position + home_number + 502)}
     endif
 endp
