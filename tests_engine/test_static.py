@@ -64,9 +64,10 @@ class WholeGppTests(unittest.TestCase):
         # +2 index mode 0 clearance Z tracking (fc664ce), +4 index mode 1 clearance Z tracking and
         # +2 trig-macro resets (review round 2). +1 branch / +2 statements: @usr_emulated_rapid_feed
         # (bSyncdrapid=false only). -1 branch / -3 statements: refactor B4 deleted the first iR1posControl
-        # eq 3 block, which the second one fully overwrote.
-        self.assertEqual(len(branches), 38)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 159)
+        # eq 3 block, which the second one fully overwrote. -1 branch / -2 statements: refactor B7 deleted
+        # the never-taken bSkipxyrapid else branch in usr_rapid.
+        self.assertEqual(len(branches), 37)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 157)
         subs_line = lines_matching(r'^\s*if bSubs\s*$', start='@start_of_job')
         subs = [d for d in branches if d.proc == 'start_of_job' and d.line == subs_line[0]]
         option = lines_matching(r'^\s*bSubs\s*=')[0]

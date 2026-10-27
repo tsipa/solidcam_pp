@@ -1409,19 +1409,6 @@ endp
                 endif
             endif
             bSkipxyrapid = false
-        else
-            if bVertical
-                {nb,'X'xpos ' ','Z'zpos ' ' }
-            else
-                {nb,'X'xpos ' ','Y'ypos ' '}
-                {nb,'Z'zpos ' ' }
-            endif
-            if !bSyncdrapid
-                if job_type eq '3-d model'
-                    {['F'nRapidfeed' ']}
-                endif
-            endif
-            bSkipxyrapid = false
         endif
         bClimbZValid = true
         nFeedPrevX = xpos
