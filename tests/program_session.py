@@ -9,9 +9,30 @@ Engine conveniences, the same for every PP version: `Print` is a recorded no-op 
 integer literals (`07`) are read as numbers.
 """
 import re
+import unittest
 
 from pp_tests.engine import Engine
 from test_offline import PP
+
+# The default engine (pp_tests.gppl) joins NC lines on a one-shot skipline and runs `input` and
+# `abort` as separate statements; GPPL_ENGINE=legacy does neither, so tests of those skip there.
+ENGINE_HAS_NC_STREAM = hasattr(Engine, 'nc_lines')
+
+
+def require_nc_stream():
+    if not ENGINE_HAS_NC_STREAM:
+        raise unittest.SkipTest('needs the default GPPL engine (skipline joining, input/abort)')
+
+
+def scripted_input_policies():
+    """`input` answers 0 and continues, so a following `abort` is what stops the post."""
+    from pp_tests.gppl.policies import Policies
+    return Policies(input_stmt='scripted')
+
+
+def post_abort_error():
+    from pp_tests.gppl.errors import PostAbort
+    return PostAbort
 
 MOTION_KEYS = ('xpos', 'ypos', 'zpos', 'apos', 'bpos', 'cpos', 'feed', 'spin')
 
@@ -71,9 +92,9 @@ class ProgramEngine(Engine):
 class Program:
     """One NC program. `options` override user options after init_post, `cam` the CAM defaults."""
 
-    def __init__(self, options=None, cam=None, source=None):
+    def __init__(self, options=None, cam=None, source=None, policies=None):
         text = program_source(source)
-        engine = ProgramEngine(text)
+        engine = ProgramEngine(text) if policies is None else ProgramEngine(text, policies=policies)
         for name, value in declared_globals(text).items():
             engine.state[name] = value
         engine.state.update(CONSTANTS)
@@ -110,6 +131,10 @@ class Program:
         engine.call(name)
         self.prev = '@' + name
         return [block.strip() for block in ''.join(engine.output[start:]).splitlines() if block.strip()]
+
+    def nc(self):
+        """The whole NC program as the control reads it (skipline joining applied)."""
+        return [line.strip() for line in self.engine.nc_lines() if line.strip()]
 
     def start(self, tool=1, next_tool=2, **cam):
         """start_program, then the first tool change and start_of_job of tool `tool`."""

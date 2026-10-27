@@ -7,13 +7,15 @@ a ZX arc must not be posted silently.
 import unittest
 
 from pp_tests.engine import Engine, UnsupportedGPPL
+from program_session import post_abort_error, require_nc_stream, scripted_input_policies
 from test_offline import PP
 
 MESSAGE = r'POST ERROR: ZX arc direction is unverified'
 
 
-def arc_engine(plane):
-    engine = Engine.from_path(PP)
+def arc_engine(plane, source=None, policies=None):
+    text = PP.read_text(encoding='utf-8-sig') if source is None else source
+    engine = Engine(text) if policies is None else Engine(text, policies=policies)
     engine.set(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz', iFeedMode=94, arc_direction='ccw', arc_plane=plane,
                arc_size=90, iArcmode=2, radius=10, bFeedoutput=False, iDiametercomp=40, iCompActive=40, cWo='G',
                iWorkoffset=54, iAbsincmode=90, feed=100, mcode_f='2.0(p)', clear_change_after_gen=1,
@@ -37,6 +39,26 @@ class ZxArcGuardTests(unittest.TestCase):
         engine.set(zpos=-10)
         with self.assertRaisesRegex(UnsupportedGPPL, MESSAGE):
             engine.call('arc')
+
+    def test_abort_stops_the_post_after_the_prompt(self):
+        # With the prompt answered, the post must still stop: no G18 arc block after the error line.
+        require_nc_stream()
+        engine = arc_engine('zx', policies=scripted_input_policies())
+        engine.set(zpos=10)
+        with self.assertRaises(post_abort_error()):
+            engine.call('arc_zx')
+        self.assertTrue(engine.nc_lines()[-1].startswith('POST ERROR: ZX arc direction is unverified'))
+
+    def test_removing_the_abort_is_detected(self):
+        require_nc_stream()
+        source = PP.read_text(encoding='utf-8-sig')
+        anchor = '{"POST ERROR: ZX arc direction is unverified in this post. Check usr_arc_math."}\n        abort\n'
+        self.assertEqual(source.count(anchor), 1, 'ZX stop changed; review this test')
+        engine = arc_engine('zx', source.replace(anchor, anchor.replace('        abort\n', ''), 1),
+                            scripted_input_policies())
+        engine.set(zpos=10)
+        engine.call('arc_zx')
+        self.assertTrue(any(line.startswith('G') for line in engine.nc_lines()))
 
     def test_xy_arc_is_still_posted(self):
         engine = arc_engine('xy')

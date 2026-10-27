@@ -8,7 +8,7 @@ import re
 import unittest
 
 from pp_tests.engine import Engine
-from program_session import Program
+from program_session import Program, require_nc_stream
 from test_motion import motion_engine
 from test_offline import PP
 
@@ -176,6 +176,32 @@ class PostHomingProgramTests(unittest.TestCase):
         self.assertEqual(source.count(anchor), 1, 'tool-change rapid branch changed; review this test')
         program = self.two_tools(source.replace(anchor, anchor + '        bPostHomed = false\n', 1))
         self.assertEqual(program.ev('move_5x', xpos=10, ypos=20, zpos=60), ['Z60'])
+
+
+class PostHomingSkiplineTests(unittest.TestCase):
+    """The XY/Z split relies on `skipline = true` before the Z block: check the joined NC lines."""
+
+    def rotation_after_cutting(self, source=None):
+        require_nc_stream()
+        program = Program(source=source)
+        program.start()
+        program.ev('move_5x', xpos=10, ypos=20, zpos=50)
+        program.ev('line_5x', xpos=15, feed=200)
+        program.ev('move_5x', apos=30, xpos=50, ypos=60, zpos=3, prev_command='@line_5x')
+        nc = program.nc()
+        last_homing = len(nc) - 1 - nc[::-1].index(HOME_XY)
+        return nc[last_homing + 1:]
+
+    def test_xy_and_z_are_separate_nc_lines(self):
+        self.assertEqual(self.rotation_after_cutting()[1:3], ['X50 Y60', 'Z3'])
+
+    def test_skipline_false_before_z_would_join_the_lines(self):
+        source = PP.read_text(encoding='utf-8-sig')
+        anchor = "        if bHomedReposition\n                            ; Coming from the homing position: traverse XY at the homed Z, then plunge in Z.\n                            skipline = true\n"
+        anchor = anchor.replace('        if bHomedReposition', '                        if bHomedReposition')
+        self.assertEqual(source.count(anchor), 1, 'post-homing split changed; review this test')
+        broken = source.replace(anchor, anchor.replace('skipline = true', 'skipline = false'), 1)
+        self.assertIn('X50 Y60 Z3', self.rotation_after_cutting(broken))
 
 
 class PostHomingApproachOrderTests(unittest.TestCase):

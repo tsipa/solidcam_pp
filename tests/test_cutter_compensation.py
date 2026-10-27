@@ -12,6 +12,7 @@ import unittest
 from pp_tests.engine import Engine, UnsupportedGPPL
 from test_history_regressions import history_engine
 from test_offline import PP
+from program_session import post_abort_error, require_nc_stream, scripted_input_policies
 from test_post_homing_reposition import Session
 
 
@@ -89,6 +90,19 @@ class CutterCompensationTests(unittest.TestCase):
                 event(engine, 'compensation', side=side)
                 with self.assertRaisesRegex(UnsupportedGPPL, 'Cutter compensation change on an arc'):
                     event(engine, 'arc', ['xpos', 'ypos'], xpos=0, ypos=10)
+
+    def test_abort_stops_the_post_after_the_prompt(self):
+        require_nc_stream()
+        engine = history_engine()
+        scripted = Engine(PP.read_text(encoding='utf-8-sig'), policies=scripted_input_policies())
+        scripted.set(**engine.state)
+        scripted.changed.update(engine.changed)
+        scripted.set(iDiametercomp=40, iCompActive=40, **ARC)
+        scripted.changed['idiametercomp'] = False
+        event(scripted, 'compensation', side='left')
+        with self.assertRaises(post_abort_error()):
+            event(scripted, 'arc', ['xpos', 'ypos'], xpos=0, ypos=10)
+        self.assertFalse(any(line.startswith('G3') for line in scripted.nc_lines()), scripted.nc_lines())
 
     def test_compensation_switched_back_before_an_arc_does_not_stop_the_post(self):
         engine = engine_with_comp(40)

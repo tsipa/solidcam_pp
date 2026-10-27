@@ -8,7 +8,7 @@ hitting clamps or the part; standard order is climb, traverse, descend. When the
 import re
 import unittest
 
-from program_session import Program
+from program_session import Program, require_nc_stream
 from test_offline import PP
 from test_post_homing_reposition import Session
 
@@ -132,6 +132,18 @@ class JobStartClimbTests(unittest.TestCase):
         self.assertIn('G55', ' '.join(session.step('start_of_job')))
         self.assertEqual(session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=100, ypos=100, zpos=70),
                          ['X100 Y100', 'Z70'])
+
+    def test_climb_and_traverse_are_separate_nc_lines(self):
+        require_nc_stream()
+        program = Program()
+        program.start()
+        program.ev('move_5x', xpos=10, ypos=10, zpos=5)
+        program.ev('line_5x', zpos=-1, feed=100)
+        program.ev('end_of_job')
+        program.ev('start_of_job', job_name='op2')
+        program.ev('move_5x', xpos=100, ypos=100, zpos=50)
+        nc = program.nc()
+        self.assertEqual(nc[-2:], ['G0 Z50', 'X100 Y100'])
 
     def test_removing_the_climb_branch_is_detected(self):
         source = PP.read_text(encoding='utf-8-sig')
