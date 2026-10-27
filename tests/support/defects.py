@@ -185,6 +185,17 @@ RESOLUTIONS = {
     'PP-028': ('fixed', 'a38f158 Post left-hand tapping with a negative CYCLE84 pitch (follow-up 595df73).'),
     'PP-049': ('fixed', '9f48a3a Post rotating G1 blocks in G93 inverse time (follow-ups f0ffada: F reprogrammed '
                         'after G93, control A travel; b94251b: indexes and M00 invalidate the G93 start).'),
+    'PP-002[negative-mode]': ('fixed', '3441c5f Keep only the modulo A range: the iR1posControl 0/2 modes are '
+                                       'removed.'),
+    'PP-012': ('fixed', 'c06b190 A job that sets the G187 smoothing parameters stops the post; no G187 is written.'),
+    'PP-022': ('fixed', 'd9fe31f Keep only Sinumerik arc words (incremental I/J/K): iArcmode 1/3/4 are removed.'),
+    'PP-037': ('fixed', '3441c5f Keep only the modulo A range: the shortest-distance mode is removed.'),
+    'PP-040': ('fixed', 'a2cb528 The homing parser splits entries on ; and :, the prefix is optional.'),
+    'PP-041': ('fixed', 'a2cb528 Homing modes 1-7 (G53 among them) stop the post; only mode 8 is left.'),
+    'PP-042': ('fixed', 'a2cb528 Homing modes 1-7 (mode 7 G90 G54 among them) stop the post; only mode 8 is left.'),
+    'PP-054[g187-default]': ('fixed', 'c06b190 No G187 output exists any more.'),
+    'PP-057': ('fixed', 'f5c74cd Remove the Fanuc template paths (follow-ups a2cb528 homing modes, 9d519d7 '
+                        'O number, c06b190 G187): the post writes no Fanuc/Haas-only words.'),
     'PP-033': ('fixed', 'f5c74cd Remove the multiple-fixture scheme (owner decision 2026-10-27): more than one '
                         'fixture stops the post with a POST ERROR.'),
     'PP-034': ('fixed', 'f5c74cd Remove the multiple-fixture scheme: more than one fixture stops the post.'),
@@ -209,6 +220,12 @@ FIX_TESTS = {
     'PP-021': ('tests/test_job_plane_restore.py',),
     'PP-028': ('tests/test_tapping_direction.py',),
     'PP-049': ('tests/test_inverse_time_feed.py',),
+    'PP-012': ('tests/test_toolchange_session.py',),
+    'PP-022': ('tests/test_arc_compensation_plane.py',),
+    'PP-037': ('tests/test_rotary.py',),
+    'PP-040': ('tests/test_session_program.py',),
+    'PP-041': ('tests/test_session_program.py',),
+    'PP-042': ('tests/test_session_program.py',),
     'PP-033': ('tests/test_unsupported_features.py',),
     'PP-034': ('tests/test_unsupported_features.py',),
     'PP-035': ('tests/test_unsupported_features.py',),

@@ -40,7 +40,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 42 | 15 | 1 | 1 |
+| pp | 35 | 22 | 1 | 2 |
 | engine | 20 | 1 | 0 | 0 |
 | design | 6 | 1 | 0 | 0 |
 
@@ -59,13 +59,11 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
 | [PP-009](#pp-009) | low-medium | confirmed | A | @usr_coolant overwrites the option iCoolantM5ON, so an unlisted pressure inherits the previous job's code instead of the default 77 | `test_through_coolant_code_does_not_leak_between_jobs` |
 | [PP-010](#pp-010) | low | confirmed | A | bCoolofftc/bSpinofftc ('between tool changes') are dead; tool-change M9/M5 follow the end-of-program flags bCooloffend/bSpinoffend | `test_tool_change_options_control_spindle_and_coolant_off` |
 | [PP-011](#pp-011) | low | confirmed | E | Spindle M3/M4 is emitted one block before its S word | `test_spindle_speed_programmed_with_or_before_start` |
-| [PP-012](#pp-012) | low-medium | confirmed | A | Haas G187 HSM codes are emitted for the VMID job parameters iG187_P/nG187_E (828D needs CYCLE832) | pinned only (@covers) |
 | [PP-014](#pp-014) | medium | confirmed | C | Same-tool work-offset change traverses XY in the new offset at the previous job's machine Z | `test_new_work_offset_is_entered_from_a_machine_z_retract` |
 | [PP-015](#pp-015) | medium | confirmed | C | First-job deferred index with i4xIndexClearanceMode 1/2 retracts to the uninitialised Z0 before rotating A | `test_first_index_tool_level_clearance_never_plunges_to_z0` |
 | [PP-016](#pp-016) | low-medium | confirmed | C | i4xIndexMode=1: the next job at the same index position is machined in G54 | `test_same_index_position_keeps_new_workoffset` |
 | [PP-017](#pp-017) | medium | confirmed | C | i4xIndexMode=1 accumulates position-1 over successive @fourth_axis events (54->55->57->60) | `test_new_workoffset_mode_maps_position_to_offset` |
 | [PP-018](#pp-018) | low | uncertain | C | Straight-retract (CAM-link) check ignores cpos, the rotary input of @line_4x/@move_4x | `test_rotary_4x_link_is_not_a_straight_retract` |
-| [PP-022](#pp-022) | low | confirmed | D | iArcmode 1/3/4 emit Fanuc arc words (absolute centre as plain I/J, R instead of CR=) | pinned only (@covers) |
 | [PP-023](#pp-023) | low | confirmed | D | Feed-emulated rapids write G1 rotary/XY blocks without the rapid feed (stale cutting feed or "feedrate not programmed") | `test_every_g1_block_of_emulated_rapid_moves_at_rapid_feed` |
 | [PP-024](#pp-024) | medium | confirmed | A | M00 between same-tool jobs switches coolant off and never restores it; spindle restart has no ramp dwell | `test_m00_same_tool_restores_coolant_before_next_cut` [coolant], `test_m00_same_tool_waits_for_spindle_ramp` [ramp-dwell] |
 | [PP-025](#pp-025) | low-medium | uncertain | A | Coolant is evaluated only at tool changes: a same-tool job's coolant request is ignored | `test_same_tool_job_applies_its_coolant_request` |
@@ -76,11 +74,7 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
 | [PP-031](#pp-031) | low | confirmed | E | Unsupported drill_type falls through to a stale 'MCALL CYCLE<gcode>' without arguments | `test_unknown_drill_type_is_rejected` |
 | [PP-032](#pp-032) | medium | confirmed | C | home_number with iWorkOffset_Method=1 emits any operator number as the work offset (G1, G500, G58, ...) | `test_user_defined_offset_must_be_a_settable_offset` |
 | [PP-036](#pp-036) | medium | confirmed | B | bLimit_3axis still emits A=DC(...) at the first rapid after a tool change | `test_limit_3axis_never_outputs_rotary` |
-| [PP-037](#pp-037) | low | confirmed | B | iR1posControl=3 ('shortest distance') negates the target angle | pinned only (@covers) |
 | [PP-039](#pp-039) | low | confirmed | C | Index clearance warning is written into the NC file as a bare text block (no comment prefix) | `test_index_clearance_warning_is_a_comment` |
-| [PP-040](#pp-040) | low | confirmed | A | Homing parser merges lines after ';' when the optional prep string is omitted | pinned only (@covers) |
-| [PP-041](#pp-041) | low | confirmed | A | G53 homing with iWorkOffsetmode=2 prints cWo+0, i.e. 'G0 Z0' in work coordinates | pinned only (@covers) |
-| [PP-042](#pp-042) | low | confirmed | A | Homing mode 7 hard-codes G54 instead of the active work offset | pinned only (@covers) |
 | [PP-043](#pp-043) | very-low | confirmed | B | @home_data overwrites the CAM input shift_y (its output is commented out) | `test_home_data_does_not_modify_cam_inputs` |
 | [PP-046](#pp-046) | low | uncertain | B | Exact float compare on A triggers a full G75 Z+XY homing for sub-resolution angle changes | `test_sub_resolution_rotary_change_does_not_home` |
 | [PP-047](#pp-047) | medium | uncertain | F | @rotate/@mirror are empty while the VMID delegates transformations to the post (SoftwareTransform="0") | `test_mirror_event_changes_the_frame_or_stops` [mirror], `test_rotate_event_changes_the_frame_or_stops` [rotate] |
@@ -92,7 +86,6 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
 | [PP-054](#pp-054) | low | likely-engine-artifact | A | First job under persisting init flags: 'G187 P2' and flood M8 cancelled by seven M9 | `test_flood_coolant_is_not_cancelled_before_the_first_cut` [coolant-burst] |
 | [PP-055](#pp-055) | low | confirmed | E | CYCLE83 first peck depth jumps by SDIS when drill_upper_z crosses 0 (FDPR relative to RFP) | `test_cycle83_first_peck_is_continuous_across_z0` |
 | [PP-056](#pp-056) | low | confirmed | A | bStopM00difftool is set and cleared in the same @end_of_job: the skip path is dead and is what keeps the G75 retract before M06 | pinned only (@covers) |
-| [PP-057](#pp-057) | low | confirmed | F | Dormant option/event paths emit Fanuc/Haas-only code (G65/G112/O777 macros, M98/M99, G20, G43/G49, '#' macros, WHILE[ loop) | pinned only (@covers) |
 | [PP-058](#pp-058) | low | uncertain | F | Mach3 4x post (6efcad8): the feed re-statement remedy is missing on @line_5x and @arc | `test_line_5x_and_arc_feed_changes_are_restated_too` |
 | [ENGINE-001](#engine-001) | medium | uncertain | F | Change-flag rule for equal-value assignment is unverified (engine: only a value change raises a flag, nothing clears it) | pinned only (@covers) |
 | [ENGINE-002](#engine-002) | low-medium | confirmed | F | skipline block joining is not emulated (nb/nl always start a new block) | `test_skipline_false_joins_the_next_block` |
@@ -136,6 +129,7 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
 - Source findings: TSR-11, efc-07, history-rotary-07, pp-region-4-cycles-rotary-05, pp-region-4-cycles-rotary-06, pp-weird-hunter-03
 - Facet `rounding`: fixed: 6228b3d Keep A positions inside 0 <= A < 360 (values that print as 360.000 post 0; follow-up 9c89feb snaps float noise below 0.0005 to 0).
 - Facet `whole-turn`: fixed: 6228b3d Keep A positions inside 0 <= A < 360 (mode 1 wraps into [0, 360); b94251b stops the post on a cutting block that turns A by 360 degrees or more).
+- Facet `negative-mode`: fixed: 3441c5f Keep only the modulo A range: the iR1posControl 0/2 modes are removed.
 - Tests of the fix: tests/test_rotary_modulo_range.py
 - Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
 - Pinned or exercised by (`@covers`):
@@ -228,21 +222,6 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
 - Reproduced by:
   - `tests/test_cycles_spindle.py::SpindleTests::test_spindle_speed_programmed_with_or_before_start`
 
-### PP-012
-
-**Haas G187 HSM codes are emitted for the VMID job parameters iG187_P/nG187_E (828D needs CYCLE832)**
-
-- Severity: low-medium
-- Confidence: confirmed
-- Reachability: Non-default VMID job parameters iG187_P != 0 or nG187_E != 0 (fail-safe: unknown G function alarm).
-- Location: GPP @usr_HSM_mode L1077-1099 (G187 output L1086/L1094), called from @start_of_job L1173; VMID ParamJobs iG187_P/nG187_E
-- Evidence that would settle it: Siemens 828D G-function list (G187 undefined; repository Vericut control has no G187).
-- Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
-- Source findings: tc-07, efc-02, pp-weird-hunter-17
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_hsm_job_parameters_stop_the_post`
-
 ### PP-014
 
 **Same-tool work-offset change traverses XY in the new offset at the previous job's machine Z**
@@ -314,21 +293,6 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
   - `tests/test_indexing_link.py::CamLinkTransitionTests::test_rotary_4x_link_is_not_a_straight_retract`
 - Pinned or exercised by (`@covers`):
   - `tests/test_indexing_link.py::CamLinkTransitionTests::test_straight_4x_link_keeps_authorization`
-
-### PP-022
-
-**iArcmode 1/3/4 emit Fanuc arc words (absolute centre as plain I/J, R instead of CR=)**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Non-default iArcmode 1, 3 or 4 (default 2 is correct); silent hazard only for full circles in mode 1/3. The full-circle facet also needs SolidCAM to send 360-degree arcs although the VMID has SupportGrt180degArcs="0" (UNVERIFIED).
-- Location: GPP @usr_arc L1587-1628 (absolute centre L1589/L1603/L1617, R word L1594-1627); option iArcmode L82
-- Evidence that would settle it: Siemens 828D programming manual (I=AC() for absolute centres, CR= for the radius).
-- Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
-- Source findings: pp3-arc-mode-syntax, efc-12, history-misc-13, TSR-18
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_arc_compensation_plane.py::RemovedArcModeTests::test_leftover_arc_mode_setting_posts_the_sinumerik_centre`
 
 ### PP-023
 
@@ -471,21 +435,6 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
 - Reproduced by:
   - `tests/test_rotary.py::KnownRotaryDefects::test_limit_3axis_never_outputs_rotary`
 
-### PP-037
-
-**iR1posControl=3 ('shortest distance') negates the target angle**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Non-default iR1posControl=3.
-- Location: GPP @usr_r1pos_calc L2296-2312 (nR1pdir = -1 multiplies the position); option doc L170
-- Evidence that would settle it: None needed; a static guard that the shipped option is 1 is the practical protection.
-- Owner area: B (rotary: r1pos/select_dir/output, modulo range, iR1dir, index direction, move_4x, 3-axis limit, home_data)
-- Source findings: pp-region-4-cycles-rotary-11
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_rotary.py::KnownRotaryDefects::test_shortest_distance_mode_keeps_target_angle`
-
 ### PP-039
 
 **Index clearance warning is written into the NC file as a bare text block (no comment prefix)**
@@ -499,51 +448,6 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
 - Source findings: pp-region-4-cycles-rotary-18, efc-14
 - Reproduced by:
   - `tests/test_indexing_link.py::FourthAxisIndexTests::test_index_clearance_warning_is_a_comment`
-
-### PP-040
-
-**Homing parser merges lines after ';' when the optional prep string is omitted**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Non-default user-edited homing string without the prep colon in a multi-line definition.
-- Location: GPP @usr_prep_home_axis L2108-2113 (second ':' searched across the whole remainder)
-- Evidence that would settle it: None needed (string parsing in @usr_prep_home_axis L2108-2113).
-- Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
-- Source findings: pp-region-4-cycles-rotary-14
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_session_program.py::HomingStringTests::test_homing_lines_without_prep_string`
-
-### PP-041
-
-**G53 homing with iWorkOffsetmode=2 prints cWo+0, i.e. 'G0 Z0' in work coordinates**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Non-default homing mode with G53 and iWorkOffsetmode=2.
-- Location: GPP @usr_home_axis L2159-2161 (iWorkOffsetmode 2: cWo + 0)
-- Evidence that would settle it: None needed (@usr_home_axis L2159-2161).
-- Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
-- Source findings: pp-region-4-cycles-rotary-17
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_session_program.py::HomingStringTests::test_fanuc_homing_modes_stop_the_post`
-
-### PP-042
-
-**Homing mode 7 hard-codes G54 instead of the active work offset**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Non-default homing definition using mode 7.
-- Location: GPP @usr_home_axis L2182-2184 (mode 7: 'G90 G54 ' literal)
-- Evidence that would settle it: None needed; owner decides the intended offset for mode 7.
-- Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
-- Source findings: pp-region-4-cycles-rotary(missed)
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_session_program.py::HomingStringTests::test_fanuc_homing_modes_stop_the_post`
 
 ### PP-043
 
@@ -670,6 +574,7 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
 - Evidence that would settle it: grep any MPF generated by HEAD for 'G187' and for M8 followed by M9 before the first cut; or a SolidCAM trace "all":5 of a first job showing change(iCoolantM2) and change(iG187_P_gpp).
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: TSR-12, TSR-13, efc-02, efc-03, tc-06, pp-weird-hunter-06, history-misc-15, engine-impl-critic-07, history-indexing-link-14
+- Facet `g187-default`: fixed: c06b190 No G187 output exists any more.
 - Reproduced by:
   - `tests/test_session_program.py::FirstJobPersistingFlagTests::test_flood_coolant_is_not_cancelled_before_the_first_cut` (facet `coolant-burst`, confidence likely-engine-artifact)
 - Pinned or exercised by (`@covers`):
@@ -703,23 +608,6 @@ Canonical `@known_defect` tests: 58. `@covers` references: 71.
 - Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
 - Pinned or exercised by (`@covers`):
   - `tests/test_toolchange_session.py::ToolChangeSafetyTests::test_m00_with_different_tool_still_retracts_before_m06`
-
-### PP-057
-
-**Dormant option/event paths emit Fanuc/Haas-only code (G65/G112/O777 macros, M98/M99, G20, G43/G49, '#' macros, WHILE[ loop)**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Only with non-default options (i4xIndexMode=2, bUseprognum, iProgendmode) or VMID-disabled events (subroutines, loops).
-- Location: GPP @call_proc L2015/L2036-2037, @proc/@end_proc L2043-2061, @end_loop L2080-2087, @start_of_job L1163-1168, @usr_trig_macro_* L2551-2614, @usr_4x_index L2483
-- Evidence that would settle it: None needed; static allowlist pins the legacy procedures and VMID guards keep them disabled.
-- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
-- Source findings: TSR-18, history-misc-16, R1-06, tc-13, tc-17, pp-weird-hunter-17, pp-region-4-cycles-rotary-19
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_gpp_static.py::GppStructureTests::test_fanuc_only_output_is_pinned_to_legacy_procedures`
-  - `tests/test_machine_definition.py::ConfigurationGuards::test_vmid_keeps_subroutines_and_loops_disabled`
-  - `tests/test_unsupported_features.py::UnsupportedEventTests::test_subprogram_loop_and_reference_point_events_stop_the_post`
 
 ### PP-058
 
@@ -1183,20 +1071,29 @@ now a regression guard marked `@covers`.
 | [PP-001](#pp-001) | 345cb49 | `test_xy_reestablished_after_homing_in_rotary_rapid`, `test_y_reestablished_after_job_start_index_homing` | `tests/test_post_homing_reposition.py` |
 | [PP-002 [rounding]](#pp-002) | 6228b3d | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-002 [whole-turn]](#pp-002) | 6228b3d | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
+| [PP-002 [negative-mode]](#pp-002) | 3441c5f | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-003](#pp-003) | 5408e5c | `test_zx_arc_stops_the_post` | `tests/test_zx_arc_guard.py` |
 | [PP-007](#pp-007) | ca63502 | `test_move_4x_preserves_axial_x` | `tests/test_move_4x_axial_x.py` |
+| [PP-012](#pp-012) | c06b190 | `test_hsm_job_parameters_stop_the_post` | `tests/test_toolchange_session.py` |
 | [PP-013](#pp-013) | 49f8b80 | `test_same_tool_job_climbs_before_xy_traverse` | `tests/test_job_start_climb.py` |
 | [PP-019](#pp-019) | b999f65 | `test_compensation_off_before_retract_reaches_controller_before_next_tool_cuts`, `test_compensation_off_emitted_on_following_rapid`, `test_compensation_on_emitted_on_following_rapid` | `tests/test_cutter_compensation.py` |
 | [PP-020](#pp-020) | b999f65 | `test_compensation_not_activated_in_circular_block`, `test_compensation_not_deactivated_in_circular_block` | `tests/test_cutter_compensation.py` |
 | [PP-021](#pp-021) | 88695c9 | `test_drill_cycle_after_yz_arc_runs_in_g17`, `test_xy_compensation_after_yz_arc_runs_in_g17` | `tests/test_job_plane_restore.py` |
+| [PP-022](#pp-022) | d9fe31f | `test_leftover_arc_mode_setting_posts_the_sinumerik_centre` | `tests/test_arc_compensation_plane.py` |
 | [PP-028](#pp-028) | a38f158 | `test_left_hand_tap_uses_negative_pitch` | `tests/test_tapping_direction.py` |
 | [PP-033](#pp-033) | f5c74cd | `test_several_fixtures_stop_the_post` | `tests/test_unsupported_features.py` |
 | [PP-034](#pp-034) | f5c74cd | `test_several_fixtures_stop_the_post` | `tests/test_unsupported_features.py` |
 | [PP-035](#pp-035) | f5c74cd | `test_several_fixtures_stop_the_post` | `tests/test_unsupported_features.py` |
+| [PP-037](#pp-037) | 3441c5f | `test_shortest_distance_mode_keeps_target_angle` | `tests/test_rotary.py` |
 | [PP-038](#pp-038) | f5c74cd | `test_trig_macro_index_mode_stops_the_post` | `tests/test_unsupported_features.py` |
+| [PP-040](#pp-040) | a2cb528 | `test_homing_lines_without_prep_string` | `tests/test_session_program.py` |
+| [PP-041](#pp-041) | a2cb528 | `test_fanuc_homing_modes_stop_the_post` | `tests/test_session_program.py` |
+| [PP-042](#pp-042) | a2cb528 | `test_fanuc_homing_modes_stop_the_post` | `tests/test_session_program.py` |
 | [PP-044](#pp-044) | f5c74cd | `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` | `tests/test_unsupported_features.py` |
 | [PP-045](#pp-045) | f5c74cd | `test_change_ref_point_emits_no_fanuc_data_setting`, `test_subprogram_loop_and_reference_point_events_stop_the_post` | `tests/test_unsupported_features.py` |
 | [PP-049](#pp-049) | 9f48a3a | `test_rotary_feed_moves_use_the_documented_inverse_time_mode` | `tests/test_inverse_time_feed.py` |
+| [PP-054 [g187-default]](#pp-054) | c06b190 | `test_no_fanuc_g187_in_a_default_program` |  |
+| [PP-057](#pp-057) | f5c74cd | `test_fanuc_only_output_is_pinned_to_legacy_procedures`, `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` |  |
 | [ENGINE-021](#engine-021) | 0eb3cef | `test_right_count_beyond_the_string_returns_the_whole_string` |  |
 | [DESIGN-002](#design-002) | 3e0c345 | `test_homed_rotary_rapid_returns_xy_then_z` | `tests/test_post_homing_reposition.py` |
 
@@ -1251,6 +1148,23 @@ now a regression guard marked `@covers`.
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_rotary.py::FixedRotaryDefectGuards::test_move_4x_preserves_axial_x`
+
+### PP-012
+
+**Haas G187 HSM codes are emitted for the VMID job parameters iG187_P/nG187_E (828D needs CYCLE832)**
+
+- Severity: low-medium
+- Confidence: confirmed
+- Reachability: Non-default VMID job parameters iG187_P != 0 or nG187_E != 0 (fail-safe: unknown G function alarm).
+- Location: GPP @usr_HSM_mode L1077-1099 (G187 output L1086/L1094), called from @start_of_job L1173; VMID ParamJobs iG187_P/nG187_E
+- Evidence that would settle it: Siemens 828D G-function list (G187 undefined; repository Vericut control has no G187).
+- Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
+- Source findings: tc-07, efc-02, pp-weird-hunter-17
+- Status: fixed: c06b190 A job that sets the G187 smoothing parameters stops the post; no G187 is written.
+- Tests of the fix: tests/test_toolchange_session.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_hsm_job_parameters_stop_the_post`
 
 ### PP-013
 
@@ -1324,6 +1238,23 @@ now a regression guard marked `@covers`.
   - `tests/test_arc_compensation_plane.py::PlaneModalityTests::test_drill_cycle_after_yz_arc_runs_in_g17`
   - `tests/test_arc_compensation_plane.py::PlaneModalityTests::test_xy_compensation_after_yz_arc_runs_in_g17`
 
+### PP-022
+
+**iArcmode 1/3/4 emit Fanuc arc words (absolute centre as plain I/J, R instead of CR=)**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Non-default iArcmode 1, 3 or 4 (default 2 is correct); silent hazard only for full circles in mode 1/3. The full-circle facet also needs SolidCAM to send 360-degree arcs although the VMID has SupportGrt180degArcs="0" (UNVERIFIED).
+- Location: GPP @usr_arc L1587-1628 (absolute centre L1589/L1603/L1617, R word L1594-1627); option iArcmode L82
+- Evidence that would settle it: Siemens 828D programming manual (I=AC() for absolute centres, CR= for the radius).
+- Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
+- Source findings: pp3-arc-mode-syntax, efc-12, history-misc-13, TSR-18
+- Status: fixed: d9fe31f Keep only Sinumerik arc words (incremental I/J/K): iArcmode 1/3/4 are removed.
+- Tests of the fix: tests/test_arc_compensation_plane.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_arc_compensation_plane.py::RemovedArcModeTests::test_leftover_arc_mode_setting_posts_the_sinumerik_centre`
+
 ### PP-028
 
 **Left-hand tap (CCW tool) gets a positive CYCLE84 pitch, i.e. right-hand tapping**
@@ -1392,6 +1323,23 @@ now a regression guard marked `@covers`.
 - Guarded by (`@covers`):
   - `tests/test_unsupported_features.py::UnsupportedOptionTests::test_several_fixtures_stop_the_post`
 
+### PP-037
+
+**iR1posControl=3 ('shortest distance') negates the target angle**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Non-default iR1posControl=3.
+- Location: GPP @usr_r1pos_calc L2296-2312 (nR1pdir = -1 multiplies the position); option doc L170
+- Evidence that would settle it: None needed; a static guard that the shipped option is 1 is the practical protection.
+- Owner area: B (rotary: r1pos/select_dir/output, modulo range, iR1dir, index direction, move_4x, 3-axis limit, home_data)
+- Source findings: pp-region-4-cycles-rotary-11
+- Status: fixed: 3441c5f Keep only the modulo A range: the shortest-distance mode is removed.
+- Tests of the fix: tests/test_rotary.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_rotary.py::KnownRotaryDefects::test_shortest_distance_mode_keeps_target_angle`
+
 ### PP-038
 
 **i4xIndexMode=2 (trig macro) emits Haas macro code and aborts on unchanged angles**
@@ -1408,6 +1356,57 @@ now a regression guard marked `@covers`.
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_unsupported_features.py::UnsupportedOptionTests::test_trig_macro_index_mode_stops_the_post`
+
+### PP-040
+
+**Homing parser merges lines after ';' when the optional prep string is omitted**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Non-default user-edited homing string without the prep colon in a multi-line definition.
+- Location: GPP @usr_prep_home_axis L2108-2113 (second ':' searched across the whole remainder)
+- Evidence that would settle it: None needed (string parsing in @usr_prep_home_axis L2108-2113).
+- Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
+- Source findings: pp-region-4-cycles-rotary-14
+- Status: fixed: a2cb528 The homing parser splits entries on ; and :, the prefix is optional.
+- Tests of the fix: tests/test_session_program.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_session_program.py::HomingStringTests::test_homing_lines_without_prep_string`
+
+### PP-041
+
+**G53 homing with iWorkOffsetmode=2 prints cWo+0, i.e. 'G0 Z0' in work coordinates**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Non-default homing mode with G53 and iWorkOffsetmode=2.
+- Location: GPP @usr_home_axis L2159-2161 (iWorkOffsetmode 2: cWo + 0)
+- Evidence that would settle it: None needed (@usr_home_axis L2159-2161).
+- Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
+- Source findings: pp-region-4-cycles-rotary-17
+- Status: fixed: a2cb528 Homing modes 1-7 (G53 among them) stop the post; only mode 8 is left.
+- Tests of the fix: tests/test_session_program.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_session_program.py::HomingStringTests::test_fanuc_homing_modes_stop_the_post`
+
+### PP-042
+
+**Homing mode 7 hard-codes G54 instead of the active work offset**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Non-default homing definition using mode 7.
+- Location: GPP @usr_home_axis L2182-2184 (mode 7: 'G90 G54 ' literal)
+- Evidence that would settle it: None needed; owner decides the intended offset for mode 7.
+- Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
+- Source findings: pp-region-4-cycles-rotary(missed)
+- Status: fixed: a2cb528 Homing modes 1-7 (mode 7 G90 G54 among them) stop the post; only mode 8 is left.
+- Tests of the fix: tests/test_session_program.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_session_program.py::HomingStringTests::test_fanuc_homing_modes_stop_the_post`
 
 ### PP-044
 
@@ -1461,6 +1460,24 @@ now a regression guard marked `@covers`.
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_motion_rapids.py::RotaryFeedModeTests::test_rotary_feed_moves_use_the_documented_inverse_time_mode`
+
+### PP-057
+
+**Dormant option/event paths emit Fanuc/Haas-only code (G65/G112/O777 macros, M98/M99, G20, G43/G49, '#' macros, WHILE[ loop)**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Only with non-default options (i4xIndexMode=2, bUseprognum, iProgendmode) or VMID-disabled events (subroutines, loops).
+- Location: GPP @call_proc L2015/L2036-2037, @proc/@end_proc L2043-2061, @end_loop L2080-2087, @start_of_job L1163-1168, @usr_trig_macro_* L2551-2614, @usr_4x_index L2483
+- Evidence that would settle it: None needed; static allowlist pins the legacy procedures and VMID guards keep them disabled.
+- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
+- Source findings: TSR-18, history-misc-16, R1-06, tc-13, tc-17, pp-weird-hunter-17, pp-region-4-cycles-rotary-19
+- Status: fixed: f5c74cd Remove the Fanuc template paths (follow-ups a2cb528 homing modes, 9d519d7 O number, c06b190 G187): the post writes no Fanuc/Haas-only words.
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_gpp_static.py::GppStructureTests::test_fanuc_only_output_is_pinned_to_legacy_procedures`
+  - `tests/test_machine_definition.py::ConfigurationGuards::test_vmid_keeps_subroutines_and_loops_disabled`
+  - `tests/test_unsupported_features.py::UnsupportedEventTests::test_subprogram_loop_and_reference_point_events_stop_the_post`
 
 ### ENGINE-021
 

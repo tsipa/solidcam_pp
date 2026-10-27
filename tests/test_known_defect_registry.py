@@ -389,8 +389,8 @@ class DecoratorSemanticsTests(unittest.TestCase):
 
     def test_facet_appears_in_the_skip_reason(self):
         """INDEPENDENT: facet labels identify the canonical test of one facet."""
-        result = _synthetic_case(_fails, defect_id='PP-002', facet='negative-mode')
-        self.assertTrue(result.skipped[0][1].startswith('known defect PP-002[negative-mode] reproduced'))
+        result = _synthetic_case(_fails, defect_id='PP-054', facet='coolant-burst')
+        self.assertTrue(result.skipped[0][1].startswith('known defect PP-054[coolant-burst] reproduced'))
 
     def test_fixed_and_accepted_entries_are_rejected(self):
         """INDEPENDENT: rule 11 at import time; resolved entries take @covers."""
