@@ -68,9 +68,9 @@ class TappingDirectionTests(unittest.TestCase):
 
     def test_reverting_the_left_hand_branch_is_detected(self):
         source = PP.read_text(encoding='utf-8-sig')
-        branch = '; SDAC = spindle direction after the cycle: 3 for a CW (right-hand) tap, 4 for a CCW (left-hand) tap.\n        if tool_direction eq CW then\n'
-        self.assertEqual(source.count(branch), 1, 'left-hand CYCLE84 branch changed; review this test')
-        reverted = source.replace(branch, branch.replace('if tool_direction eq CW then', 'if true then'))
+        branch = re.compile(r'(if drill_type eq G84 then[^\n]*\n(?:\s*;[^\n]*\n)*\s*)if tool_direction eq CW then')
+        self.assertEqual(len(branch.findall(source)), 1, 'left-hand CYCLE84 branch changed; review this test')
+        reverted = branch.sub(r'\1if true then', source, count=1)
         self.assert_tap('ccw', RIGHT_HAND_SUFFIX, reverted)  # reverted PP posts a right-hand cycle
         with self.assertRaises(AssertionError):
             self.assert_tap('ccw', LEFT_HAND_SUFFIX, reverted)

@@ -32,12 +32,16 @@ class RotaryModuloRangeTests(unittest.TestCase):
             parts = dict(angle_4x_around_x=rng.choice([0, 90, 10.1, -45.5, 300]),
                          angle=round(rng.uniform(-400, 400), rng.choice([0, 1, 3])),
                          apos=round(rng.uniform(-800, 800), rng.choice([0, 1, 3, 4])))
+            if rng.random() < 0.25:     # land within a few 0.0001 of a whole turn
+                parts['apos'] = round(360 * rng.randint(-2, 2) + rng.uniform(-0.0008, 0.0008)
+                                      - parts['angle_4x_around_x'] - parts['angle'], 4)
             with self.subTest(**parts):
                 value = a_position(**parts).state['nr1pos']
                 self.assertTrue(0 <= value < 360, value)
-                total = -(parts['angle_4x_around_x'] + parts['angle'] + parts['apos']) * -1
-                offset = (value - total) / 360
-                self.assertAlmostEqual(offset, round(offset), places=6)
+                expected = (parts['angle_4x_around_x'] + parts['angle'] + parts['apos']) % 360
+                if expected >= 359.9995 or expected < 0.0005:      # prints as 0.000/360.000: position 0
+                    expected = 0
+                self.assertAlmostEqual(value, expected, places=6)
 
     def test_angle_sum_with_float_noise_is_exactly_zero(self):
         # 10.1 + 20.2 - 30.3 is -3.5e-15 in binary floating point, not 0.

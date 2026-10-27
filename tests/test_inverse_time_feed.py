@@ -197,6 +197,16 @@ class InverseTimeFeedTests(unittest.TestCase):
         self.assertEqual(output[0], 'G0 X40 Y15')
         self.assertNotIn('G93', ' '.join(output))
 
+    def test_drill_cycle_after_rotation_leaves_g93_with_its_feed(self):
+        program = Program()
+        program.start()
+        program.ev('move_5x', xpos=12, ypos=0, zpos=25)
+        program.ev('line_5x', xpos=14, apos=30, feed=200)
+        output = program.ev('drill', xpos=30, ypos=0, zpos=30, drill_type='g81', drill_clearance_z=30,
+                            drill_upper_z=0, drill_lower_z=-10, feed=80)
+        self.assertIn('G94 F80', output)
+        self.assertLess(output.index('G94 F80'), next(i for i, b in enumerate(output) if 'CYCLE81' in b), output)
+
     def test_part_frame_sign_straightens_the_recorded_link(self):
         # Oracle for the sign itself: SolidCAM's rotary link is a straight, evenly stepped line on the part.
         steps = json.loads((ROOT / 'tests/fixtures/shit2_contiguous_link.json').read_text())['steps']

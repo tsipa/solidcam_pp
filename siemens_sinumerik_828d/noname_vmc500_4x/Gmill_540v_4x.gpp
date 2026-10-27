@@ -1507,7 +1507,7 @@ endp
         ; so a cutting block that turns A by 360 degrees or more would lose whole turns.
         dummy_var = 0
         input '"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."'dummy_var
-        {"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."}
+        {nb,"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."}
         abort
     endif
 ;    Do not pre-apply upcoming compensation here.
@@ -1773,7 +1773,7 @@ endp
     if iMplane eq 18 then
         dummy_var = 0
         input '"POST ERROR: ZX arc direction is unverified in this post. Check usr_arc_math."'dummy_var
-        {"POST ERROR: ZX arc direction is unverified in this post. Check usr_arc_math."}
+        {nb,"POST ERROR: ZX arc direction is unverified in this post. Check usr_arc_math."}
         abort
     endif
 
@@ -1851,7 +1851,7 @@ endp
             ; Sinumerik selects/deselects cutter compensation only in G0/G1 blocks; G41/G42/G40 on G2/G3 alarms.
             dummy_var = 0
             input '"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."'dummy_var
-            {"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."}
+            {nb,"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."}
             abort
         endif
     endif
