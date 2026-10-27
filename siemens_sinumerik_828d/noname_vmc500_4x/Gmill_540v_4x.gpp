@@ -1428,19 +1428,11 @@ endp
 endp
 
 @usr_line
+    ; Feed move (G1). A block that turns A is posted in G93 (inverse time, usr_inverse_feed).
     local logical bInverseBlock
     local numeric dummy_var
     ; Evaluate CAM input changes before output consumes their change flags.
-    bCamLinkRetract = false
-    ; A straight Z retract tagged feed_link by CAM (no X/Y/A/B motion, rising, same work offset)
-    ; authorizes the rapids of the same link that follow it (usr_rapid: no homing for their rotation).
-    if X5_job and bR1useDir5a and bJobPositioned and !bIndexClearancePending and nLastPathWorkoffset eq iWorkoffset
-        if feed_type eq 'feed_link' and zpos gt nLastPathZ
-            if !change(xpos) and !change(ypos) and !change(apos) and !change(bpos)
-                bCamLinkRetract = true
-            endif
-        endif
-    endif
+    call @usr_line_cam_link
     nLastPathZ = zpos
     nLastPathWorkoffset = iWorkoffset
     bClimbZValid = true
@@ -1483,16 +1475,7 @@ endp
         iCompActive = iDiametercomp
     endif
     if bPostHomed
-        ; A feed move directly after a post-inserted homing: return over the target at the homed Z in
-        ; rapid (carrying a TRC change, it has X and Y), then feed down in Z, instead of one diagonal
-        ; feed move from the homing position.
-        iMotionmode = 0
-        {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'X'xpos ' ','Y'ypos ' '}
-        iMotionmode = 1
-        change(xpos) = false
-        change(ypos) = false
-        change(zpos) = true
-        bPostHomed = false
+        call @usr_line_homed_return
     endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iFeedMode' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
     {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
@@ -1506,6 +1489,33 @@ endp
     endif
     change(nRapidfeed) = true
     call @usr_feed_start_here
+endp
+
+@usr_line_cam_link
+    ; A straight Z retract tagged feed_link by CAM (no X/Y/A/B motion, rising, same work offset)
+    ; authorizes the rapids of the same link that follow it (usr_rapid_cam_link: no homing for their
+    ; rotation). Any other feed move ends the authorization.
+    bCamLinkRetract = false
+    if X5_job and bR1useDir5a and bJobPositioned and !bIndexClearancePending and nLastPathWorkoffset eq iWorkoffset
+        if feed_type eq 'feed_link' and zpos gt nLastPathZ
+            if !change(xpos) and !change(ypos) and !change(apos) and !change(bpos)
+                bCamLinkRetract = true
+            endif
+        endif
+    endif
+endp
+
+@usr_line_homed_return
+    ; A feed move directly after a post-inserted homing: return over the target at the homed Z in
+    ; rapid (carrying a TRC change, it has X and Y), then feed down in Z, instead of one diagonal
+    ; feed move from the homing position.
+    iMotionmode = 0
+    {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'X'xpos ' ','Y'ypos ' '}
+    iMotionmode = 1
+    change(xpos) = false
+    change(ypos) = false
+    change(zpos) = true
+    bPostHomed = false
 endp
 
 @usr_inverse_feed
