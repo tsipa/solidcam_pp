@@ -61,7 +61,7 @@
     mcode_f         = '2.0(p)'
     xpos_f          = '8.5'
     ypos_f          = '8.5'
-    ; zpos_f becomes '5.4' at the first rapid or tool change (usr_rapid, usr_ct_before_notfirsttool).
+    ; zpos_f becomes '5.4' at the first head homing (usr_head_home_select: first rapid or tool change).
     zpos_f          = '8.5'
     nR1pos_f        = '7.3'
     apos_f          = '5.3'
@@ -486,10 +486,8 @@ endp
 
 @start_program
     ; Handle any safety G/M codes for top of program
-    if sHomestrbegin ne ''
-        sHomestr = sHomestrbegin
-        call @usr_prep_home_axis
-    endif
+    sHomestr = sHomestrbegin
+    call @usr_prep_home_axis
 endp
 
 ;-------------------
@@ -508,10 +506,8 @@ endp
     if bSpinoffend
         call @usr_spindle_stop
     endif
-    if sHomestrend ne ''
-        sHomestr = sHomestrend
-        call @usr_prep_home_axis
-    endif
+    sHomestr = sHomestrend
+    call @usr_prep_home_axis
     change(iAbsincmode) = false
     if change(iWorkoffset)
         {nb}
@@ -694,14 +690,12 @@ endp
         if bVertical or bFirstVert
             ; No rapid since the program start (bFirstVert) or the head was vertical: home with the
             ; head-orientation homing (sHomestrrotv) instead of the tool-change homing.
-            call @usr_head_home
+            call @usr_head_home_select
             bVertical = false
         else
-            if sHomestrtc ne ''
-                sHomestr = sHomestrtc
-                call @usr_prep_home_axis
-            endif
+            sHomestr = sHomestrtc
         endif
+        call @usr_prep_home_axis
         if bOptstptc
             call @usr_optionalstop
         endif
@@ -1171,13 +1165,19 @@ endp
 
 @usr_rapid
     ; Rapid positioning: G0, or G1 F<nRapidfeed> on '3-d model' jobs when bSyncdrapid is false.
-    ; Machine order: homing where needed, A in a block of its own, then X/Y/Z. The first rapid after
-    ; a tool change is one positioning block instead (work offset and A, no X/Y/Z).
+    ; Machine order: homing where needed, A in a block of its own, then X/Y/Z. The rapid after a tool
+    ; change or a work-offset change at job start (bTlchg) is one positioning block instead
+    ; (usr_rapid_tc_block: work offset and A; no X or Z word).
+    ; The homings run here and not in the helpers: that keeps the procedure nesting of the original
+    ; post (start_of_job -> usr_ct -> usr_ct_after -> usr_rapid -> usr_prep_home_axis -> usr_home_axis
+    ; -> usr_abs_inc_output = 7 levels); the GPPL nesting limit is not known.
     call @usr_rapid_cam_link
     call @usr_rapid_motion_mode
     call @usr_r1pos_calc
     if bFirstRapid or bTlchg
+        ; First rapid of a job or of a tool change: home if the head orientation changes.
         call @usr_rapid_head_check
+        call @usr_prep_home_axis
         bFirstRapid = false
     endif
     ; The A output clears the change flag: remember whether this rapid turns A.
@@ -1185,7 +1185,8 @@ endp
     if change(nR1pos) and !bCamLinkRapid
         ; Outside a CAM link CAM planned no clearance for the swing: home first.
         sHomestrrot = sHomestrroth
-        call @usr_home_rot
+        sHomestr = sHomestrrot
+        call @usr_prep_home_axis
     endif
     if bTlchg
         call @usr_rapid_tc_block
@@ -1228,28 +1229,31 @@ endp
 endp
 
 @usr_rapid_head_check
-    ; First rapid of a job or of a tool change. The head counts as vertical when the secondary rotation
-    ; nR2pos is not 0 (swivel-head template; on this A-axis machine only a CoordSys turned about Z or a
-    ; CAM bpos gives one). On the first such rapid of the program, and whenever the orientation
-    ; changes, home with sHomestrrotv and switch Z to 4 decimals.
+    ; First rapid of a job or of a tool change: sets sHomestr to the head homing that usr_rapid runs
+    ; next ('' = none). The head counts as vertical when the secondary rotation nR2pos is not 0
+    ; (swivel-head template; on this A-axis machine only a CoordSys turned about Z or a CAM bpos gives
+    ; one). Home on the first such rapid of the program and whenever the orientation changes.
+    sHomestr = ''
     if abs(nR2pos) gt 0
         if !bVertical or bFirstVert
-            call @usr_head_home
+            call @usr_head_home_select
             bVertical = true
         endif
     else
         if bVertical or bFirstVert
-            call @usr_head_home
+            call @usr_head_home_select
             bVertical = false
         endif
     endif
 endp
 
-@usr_head_home
-    ; Home for a head orientation change (sHomestrrotv) and switch Z to its 4-decimal format. The
-    ; template's head macros ('HVV'/'HVH' blocks) and its inverted Z format '5.4(*-1)' stay off (77c03c6).
+@usr_head_home_select
+    ; Select the homing for a head orientation change: sHomestr = sHomestrrotv (also the rotation
+    ; homing sHomestrrot from now on); the caller runs usr_prep_home_axis. Z switches to its
+    ; 4-decimal format. The template's head macros ('HVV'/'HVH' blocks) and its inverted Z format
+    ; '5.4(*-1)' stay off (77c03c6).
     sHomestrrot = sHomestrrotv
-    call @usr_home_rot
+    sHomestr = sHomestrrot
     zpos_f = '5.4'
     bFirstVert = false
 endp
@@ -1414,14 +1418,6 @@ endp
     nFeedPrevA = -nR1postemp * iR1dir
     nFeedPrevR1 = nR1pos
     bFeedPrevValid = true
-endp
-
-@usr_home_rot
-    ; Home with sHomestrrot, the rotation homing string chosen last ('' = no homing).
-    if sHomestrrot ne ''
-        sHomestr = sHomestrrot
-        call @usr_prep_home_axis
-    endif
 endp
 
 ;-------------------
@@ -1917,10 +1913,8 @@ endp
         call @usr_coolant_output
     endif
     call @usr_spindle_stop
-    if sHomestrstpsame ne ''
-        sHomestr = sHomestrstpsame
-        call @usr_prep_home_axis
-    endif
+    sHomestr = sHomestrstpsame
+    call @usr_prep_home_axis
     call @usr_forcedstop
     sUsrmsg = sStopMessage
     call @usr_message
@@ -1954,10 +1948,8 @@ endp
         call @usr_coolant_output
     endif
     call @usr_spindle_stop
-    if sHomestrstpdiff ne ''
-        sHomestr = sHomestrstpdiff
-        call @usr_prep_home_axis
-    endif
+    sHomestr = sHomestrstpdiff
+    call @usr_prep_home_axis
     call @usr_forcedstop
     sUsrmsg = sStopMessage
     call @usr_message
@@ -2237,10 +2229,8 @@ endp
             skipline = false
             call @end_drill
             {'G20 '}
-            if sHomestrbegin ne ''
-                sHomestr = sHomestrbegin
-                call @usr_prep_home_axis
-            endif
+            sHomestr = sHomestrbegin
+            call @usr_prep_home_axis
         endif
         call @usr_ct
         bTlchg = false
@@ -2277,10 +2267,8 @@ endp
 @end_proc
     ; Handle end of subroutine
     call @usr_coolant
-    if sHomestrendsub ne ''
-        sHomestr = sHomestrendsub
-        call @usr_prep_home_axis
-    endif
+    sHomestr = sHomestrendsub
+    call @usr_prep_home_axis
     {nb, 'M99'}
 endp
 
@@ -2306,52 +2294,59 @@ endp
 ;-------------------
 
 @usr_prep_home_axis
-    ; Handle parsing of homing string and preping of output for homing
+    ; Home with the homing string sHomestr ('' = no homing). Format (usr_ip_useroptions):
+    ;   mode:prep:line[;mode:prep:line...]   e.g. '8::G75 Z1=0. ;8::G75 Y1=0 X1=0' (prep empty)
+    ; Each line goes to usr_home_axis as iHomingmode / cHomep / sHomeline, in string order.
+    ; At most 49 lines (i = 50 ends the loop after the last one).
     local integer i l mode p1
     local string s s1 l1 pstr
-    s = sHomestr                               ;Original String
-    s1 = s                                     ;Temp String
-    l = strlen(s1)                             ;Get string length of Temp String
-    ;*Pull out Homing mode
-    i = 1
-    while i < 50
-        i = i + 1
-        p1 = instr(s1,':')                         ;Find the position of first ":"
-        l1 = left(s1,p1-1)                         ;Pull out the left of first ":"
-        mode = tonum(l1)                           ;Convert string into Integer for "Mode" variable
-        s1 = substr(s1,p1+1,l)                     ;Remove Homing mode from Temp String
-        l = strlen(s1)                             ;Get string length of Temp String
-        ;*Pull out Preperation String
-        p1 = instr(s1,':')                         ;Find the position of second ":"
-        if p1 ne 0                                 ;Check if PrepStr is defined
-            pstr = left(s1,p1-1)                   ;Pull out the left of second ":"
-            s1 = substr(s1,p1+1,l)                 ;Remove PrepString from Temp String
-            l = strlen(s1)                         ;Get string length of Temp String
-        endif
-        ;*Pull out homing lines and send to output procedure
-        p1 = instr(s1,';')                      ;Find the position of ";"
-        if p1 ne 0
-            l1 = left(s1,p1-1)                  ;Pull out the left of ";"
-            iHomingmode = mode                  ;Send Homing Mode
-            cHomep = pstr                       ;Send Preperation String
-            sHomeline = l1                      ;Send Homing Line
-            call @usr_home_axis
-        else
-            iHomingmode = mode                  ;Send Homing Mode
-            cHomep = pstr                       ;Send Preperation String
-            sHomeline = s1                      ;Send Homing Line
-            call @usr_home_axis
-            i = 50                              ;Force end of While-Loop
-        endif
-        if i ne 50
-            s1 = substr(s1,p1+1,l)              ;Remove Homing mode from Temp String
-            l = strlen(s1)                      ;Get string length of Temp String
-        endif
-    endw
+    if sHomestr ne ''
+        s = sHomestr
+        s1 = s
+        l = strlen(s1)
+        i = 1
+        while i < 50
+            i = i + 1
+            ; s1 = 'mode:prep:line;...': cut off the mode, then the prep string.
+            p1 = instr(s1,':')
+            l1 = left(s1,p1-1)
+            mode = tonum(l1)
+            s1 = substr(s1,p1+1,l)
+            l = strlen(s1)
+            p1 = instr(s1,':')
+            if p1 ne 0
+                pstr = left(s1,p1-1)
+                s1 = substr(s1,p1+1,l)
+                l = strlen(s1)
+            endif
+            ; The homing line runs to the next ';', or to the end for the last line.
+            p1 = instr(s1,';')
+            if p1 ne 0
+                l1 = left(s1,p1-1)
+                iHomingmode = mode
+                cHomep = pstr
+                sHomeline = l1
+                call @usr_home_axis
+            else
+                iHomingmode = mode
+                cHomep = pstr
+                sHomeline = s1
+                call @usr_home_axis
+                i = 50
+            endif
+            if i ne 50
+                ; Drop the line just output; s1 starts with the next line's mode.
+                s1 = substr(s1,p1+1,l)
+                l = strlen(s1)
+            endif
+        endw
+    endif
 endp
 
 @usr_home_axis
-    ; Handle output for homing the X-axis
+    ; Output one homing line (sHomeline with prefix cHomep) in mode iHomingmode: 1/2 = Fanuc G28
+    ; (2 incremental), 3/4 = G53 (WorkOffsetmode 2: offset 0), 5/6 = G30, 7 = G90 G54, 8 = the line as
+    ; given (Sinumerik G75). Then mark the axes as homed (bPostHomed).
     local integer sav_iWorkOffset
     sav_iWorkOffset = iWorkOffset
     if iHomingmode eq 1
@@ -2658,7 +2653,8 @@ endp
         ; The macro recomputes the G112 origin: Z before and after are not comparable.
         bClimbZValid = false
         bFeedPrevValid = false
-        call @usr_home_rot
+        sHomestr = sHomestrrot
+        call @usr_prep_home_axis
         call @usr_trig_macro_call
         iMotionmode = 0
         iWorkoffset = 112
@@ -2671,7 +2667,8 @@ endp
     ; Index modes 0 and 1: clearance, the G0 A block (in mode 1 with the next work offset), clearance.
     iMotionmode = 0
     if i4xIndexClearanceMode eq 0
-        call @usr_home_rot
+        sHomestr = sHomestrrot
+        call @usr_prep_home_axis
     endif
     if i4xIndexClearanceMode eq 1
         if tool_z_level < tool_start_plane

@@ -31,9 +31,8 @@ SPINDLE_ACCEL_DOC = 500   # @init_post: spindle_accel = 500 ; rpm/s
 NO_COOLANT = dict(flood_coolant=0, Mist_coolant=0, HP_Flood_coolant=0, LP_Flood_coolant=0,
                   through_ival_coolant=0, through_coolant_val=0, LP_Through_coolant=0,
                   Air_Blast_coolant=0, air_through_coolant=0)
-TC_HOMING_CALL = ("            if sHomestrtc ne ''\n                sHomestr = sHomestrtc\n"
-                  "                call @usr_prep_home_axis\n")
-INDEX_HOMING = "    if i4xIndexClearanceMode eq 0\n        call @usr_home_rot\n    endif\n"
+TC_HOMING_CALL = "        else\n            sHomestr = sHomestrtc\n"
+INDEX_HOMING = "    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n        call @usr_prep_home_axis\n    endif\n"
 START_TOOL_AFTER_TC = ('            skipline = false\n            call @start_tool\n        endif\n    endif\n'
                        'endp\n')
 
@@ -226,16 +225,12 @@ class ToolChangeSafetyTests(unittest.TestCase):
 
     def test_next_tool_change_mutations_are_detected(self):
         """INDEPENDENT: tc-14 and weird-hunter tool-change mutants fail the guard."""
-        # usr_ct_before_notfirsttool: usr_head_home without its homing (sHomestrrot, zpos_f, bFirstVert kept)
-        both_homing = mutate("instead of the tool-change homing.\n            call @usr_head_home\n",
-                             "instead of the tool-change homing.\n            sHomestrrot = sHomestrrotv\n"
-                             "            zpos_f = '5.4'\n            bFirstVert = false\n")
-        both_homing = mutate("        else\n            if sHomestrtc ne ''\n                sHomestr = sHomestrtc\n"
-                             "                call @usr_prep_home_axis\n            endif\n        endif",
-                             "        else\n        endif", source=both_homing)
+        # usr_ct_before_notfirsttool: neither the head homing nor the tool-change homing runs (the head
+        # homing selection, sHomestrrot, zpos_f and bFirstVert, is kept)
+        both_homing = mutate("            sHomestr = sHomestrtc\n        endif\n        call @usr_prep_home_axis\n",
+                             "            sHomestr = sHomestrtc\n        endif\n")
         sources = {
-            'no tool-change homing': mutate(TC_HOMING_CALL, "            if sHomestrtc ne ''\n"
-                                                            "                sHomestr = sHomestrtc\n"),
+            'no tool-change homing': mutate(TC_HOMING_CALL, "        else\n            sHomestr = ''\n"),
             'both tool-change homing calls removed (weird-hunter)': both_homing,
             'no M5 before M06': mutate("        if bSpinoffend\n            call @usr_spindle_stop\n"
                                        "        endif\n        if bVertical",
@@ -298,9 +293,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
     def test_first_tool_change_mutations_are_detected(self):
         """INDEPENDENT: missing start homing, early preselect, no spindle start or no DC force fail."""
         sources = {
-            'no start homing': mutate("    if sHomestrbegin ne ''\n        sHomestr = sHomestrbegin\n"
-                                      "        call @usr_prep_home_axis\n    endif\nendp",
-                                      "    if sHomestrbegin ne ''\n        sHomestr = sHomestrbegin\n    endif\nendp"),
+            'no start homing': mutate("    sHomestr = sHomestrbegin\n    call @usr_prep_home_axis\nendp",
+                                      "    sHomestr = sHomestrbegin\nendp"),
             'preselect before M06': mutate("    {nb, 'T',tool_number,cTCcodes}\n    {nb, cTCcodep}",
                                            "    {nb, 'T',tool_number,cTCcodes}\n    {nb, 'T'next_tool_number' '}\n"
                                            "    {nb, cTCcodep}"),
@@ -385,8 +379,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
             'bStopM00difftool kept alive': mutate('    bStopM00difftool = false\n    iPworkoffset = iWorkoffset',
                                                   '    iPworkoffset = iWorkoffset'),
             'no M5 before the different-tool M00': mutate(
-                "        call @usr_coolant_output\n    endif\n    call @usr_spindle_stop\n    if sHomestrstpdiff",
-                "        call @usr_coolant_output\n    endif\n    if sHomestrstpdiff"),
+                "        call @usr_coolant_output\n    endif\n    call @usr_spindle_stop\n    sHomestr = sHomestrstpdiff",
+                "        call @usr_coolant_output\n    endif\n    sHomestr = sHomestrstpdiff"),
         }
         for label, source in sources.items():
             with self.subTest(mutant=label):
@@ -429,8 +423,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
         """INDEPENDENT: no M5 before M00 or no restart after it fails the guard (pp-region-3, tc-14)."""
         sources = {
             'no M5 before the same-tool M00': mutate(
-                "        call @usr_coolant_output\n    endif\n    call @usr_spindle_stop\n    if sHomestrstpsame",
-                "        call @usr_coolant_output\n    endif\n    if sHomestrstpsame"),
+                "        call @usr_coolant_output\n    endif\n    call @usr_spindle_stop\n    sHomestr = sHomestrstpsame",
+                "        call @usr_coolant_output\n    endif\n    sHomestr = sHomestrstpsame"),
             'no spindle restart after M00': mutate('    call @m_feed_spin\n    call @usr_spindle_mcode_output\n'
                                                    '    change(xpos) = true',
                                                    '    call @m_feed_spin\n    change(xpos) = true'),

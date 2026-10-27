@@ -395,11 +395,11 @@ REVERSIONS = [
         ("        ;{', Z,'shift_z_sign", "        {', Z,'shift_z_sign", 1),
         ("        ;{', B,0',')',cCb", "        {', B,0',')',cCb", 1)]),
     ('HVV head macro re-enabled', '77c03c6', 'check_secondary_rotation_adds_no_extra_rotation', [
-        ('            call @usr_head_home\n            bVertical = true\n',
-         "            call @usr_head_home\n            {nb, 'HVV'}\n            bVertical = true\n", 1)]),
+        ('            call @usr_head_home_select\n            bVertical = true\n',
+         "            call @usr_head_home_select\n            {nb, 'HVV'}\n            bVertical = true\n", 1)]),
     ('Z inversion re-enabled', '77c03c6', 'check_secondary_rotation_adds_no_extra_rotation', [
-        ('            call @usr_head_home\n            bVertical = true\n',
-         "            call @usr_head_home\n            zpos_f = '5.4(*-1)'\n            bVertical = true\n", 1)]),
+        ('            call @usr_head_home_select\n            bVertical = true\n',
+         "            call @usr_head_home_select\n            zpos_f = '5.4(*-1)'\n            bVertical = true\n", 1)]),
     ('tool change keeps the CAM apos', 'mutation', 'check_toolchange_zeroes_cam_apos', [
         ('            nR1pos = 9999\n            apos = 0\n', '            nR1pos = 9999\n', 1)]),
     ('4x-transform angle sign flipped', 'mutation', 'check_contributions_compose_modulo_360', [

@@ -74,8 +74,11 @@ class WholeGppTests(unittest.TestCase):
         # -35 statements: R5 folded the six index copies (modes 0/1 x clearance 0/1/2) into one
         # usr_4x_index_rotate with smaller per-clearance branches. -21 statements: R13 moved the bSubs
         # branch body into usr_soj_subs (a dead procedure; its statements are not counted here).
-        self.assertEqual(len(branches), 38)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 92)
+        # -3 branches / -5 statements: the fixup round moved the "homing string not ''" test into
+        # usr_prep_home_axis; the call-site tests of sHomestrstpsame/stpdiff/endsub ('' as shipped) were
+        # dead branches, and the trig-macro index homing gained its 'sHomestr = sHomestrrot' (+1).
+        self.assertEqual(len(branches), 35)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 87)
         subs_line = lines_matching(r'^\s*if bSubs\s*$', start='@start_of_job')
         subs = [d for d in branches if d.proc == 'start_of_job' and d.line == subs_line[0]]
         option = lines_matching(r'^\s*bSubs\s*=')[0]

@@ -167,6 +167,31 @@ class FirstRapidTests(unittest.TestCase):
                         '        call @usr_rapid_tc_block\n', source=mutant)
         assert_detected(self, self.check_descending_first_rapid, mutant, 'bFirstRapid kept live')
 
+    def check_link_rotation_in_same_tool_job(self, source=None):
+        # Same-tool job 2: homed first rotation (index boundary), cut, straight feed_link retract, then a
+        # rotary rapid of the same CAM link: no homing before it (d5952a2).
+        session = first_job(source)
+        session.cut(10, 20, 5, -1)
+        session.same_tool_job(job_name='op2')
+        session.ev('move_5x', ['apos'], apos=5)
+        session.ev('move_5x', XYZ, xpos=10, ypos=20, zpos=5)
+        session.ev('line_5x', ['zpos', 'feed'], zpos=-1, feed_type='feed_cut')
+        session.ev('line_5x', ['zpos'], zpos=20, feed_type='feed_link')
+        blocks = parse_blocks(session.ev('move_5x', ['apos'], apos=10))
+        self.assertEqual([block.rotary('A') for block in blocks if block.rotary('A')], [('ACN', 10.0)],
+                         [block.raw for block in blocks])
+        self.assertEqual([block.raw for block in blocks if 75 in block.g], [],
+                         f'homing inside a confirmed CAM link of a same-tool job: {[b.raw for b in blocks]}')
+
+    def test_first_rapid_flag_is_cleared_by_the_first_rapid(self):
+        """INDEPENDENT: deleting the real 'bFirstRapid = false' of @usr_rapid (one edit) keeps every
+        later rapid of a same-tool job a 'first rapid', so a rotary rapid inside a confirmed CAM link
+        (d5952a2) is homed. The CAM-link guard (no G75, one A=ACN(10)) must fail with AssertionError."""
+        self.check_link_rotation_in_same_tool_job()
+        mutant = mutate('        call @usr_prep_home_axis\n        bFirstRapid = false\n    endif\n',
+                        '        call @usr_prep_home_axis\n    endif\n')
+        assert_detected(self, self.check_link_rotation_in_same_tool_job, mutant, 'bFirstRapid never cleared')
+
     @covers('PP-013')
     def test_same_tool_job_climbs_before_xy_traverse(self):
         """INDEPENDENT: a rapid going UP must climb before it traverses (machining practice:

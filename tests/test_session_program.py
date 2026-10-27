@@ -131,8 +131,8 @@ class ProgramEndTests(unittest.TestCase):
             'a03b38e reverted (M2)': (mutate("{nb, 'M2'}", "{nb, 'M2 '}"), 2),
             'XY homed before Z': (mutate("sHomestrend           = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'",
                                          "sHomestrend           = '8::G75 Y1=0 X1=0;8::G75 Z1=0. '"), 30),
-            'no end homing': (mutate("    if sHomestrend ne ''\n        sHomestr = sHomestrend\n        call @usr_prep_home_axis\n",
-                                     "    if sHomestrend ne ''\n        sHomestr = sHomestrend\n"), 30),
+            'no end homing': (mutate("    sHomestr = sHomestrend\n    call @usr_prep_home_axis\n",
+                                     "    sHomestr = sHomestrend\n"), 30),
             'spindle not stopped': (mutate('bSpinoffend\t\t\t\t\t= true', 'bSpinoffend\t\t\t\t\t= false'), 30),
             'coolant not stopped': (mutate('bCooloffend\t\t\t\t\t= true', 'bCooloffend\t\t\t\t\t= false'), 30),
         }
@@ -170,8 +170,8 @@ class ProgramStartTests(unittest.TestCase):
             'XY before Z': mutate(anchor, "sHomestrbegin         = '8::G75 Y1=0 X1=0;8::G75 Z1=0. '"),
             'empty start homing': mutate(anchor, "sHomestrbegin         = ''"),
             'start homing not called': mutate(
-                "    if sHomestrbegin ne ''\n        sHomestr = sHomestrbegin\n        call @usr_prep_home_axis\n",
-                "    if sHomestrbegin ne ''\n        sHomestr = sHomestrbegin\n"),
+                "    sHomestr = sHomestrbegin\n    call @usr_prep_home_axis\n",
+                "    sHomestr = sHomestrbegin\n"),
         }
         for label, source in sources.items():
             with self.subTest(mutant=label):
@@ -576,7 +576,7 @@ class RealisticSessionTests(unittest.TestCase):
                 '            skipline = false\n            call @start_tool\n        endif\n    endif\nendp\n',
                 '            skipline = false\n        endif\n    endif\nendp\n'), 'spindle must be started'),
             'no homing before an index': (mutate(
-                "    if i4xIndexClearanceMode eq 0\n        call @usr_home_rot\n    endif\n", ''),
+                "    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n        call @usr_prep_home_axis\n    endif\n", ''),
                 'without preceding Z homing'),
             'no initial DC force': (mutate('    bR1forceOutput = true\n', '    bR1forceOutput = false\n'), 'must be DC'),
             'D1 removed (420c4ab reverted)': (mutate("    {nb, 'D1 '}\n", ''), 'D1'),
