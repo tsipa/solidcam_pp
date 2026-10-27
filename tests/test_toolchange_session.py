@@ -33,7 +33,8 @@ NO_COOLANT = dict(flood_coolant=0, Mist_coolant=0, HP_Flood_coolant=0, LP_Flood_
                   through_ival_coolant=0, through_coolant_val=0, LP_Through_coolant=0,
                   Air_Blast_coolant=0, air_through_coolant=0)
 TC_HOMING_CALL = "        else\n            sHomestr = sHomestrtc\n"
-INDEX_HOMING = "    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n        call @usr_prep_home_axis\n    endif\n"
+INDEX_HOMING = "            sHomestr = sHomestrrotv\n        endif\n        call @usr_prep_home_axis\n    endif\n"
+INDEX_NO_HOMING = "            sHomestr = sHomestrrotv\n        endif\n    endif\n"
 START_TOOL_AFTER_TC = '        skipline = false\n        call @start_tool\n    endif\nendp\n'
 HSM_STOP = 'POST ERROR: G187 smoothing (job parameters iG187_P, nG187_E) is not supported. Set both to 0.'
 
@@ -228,8 +229,7 @@ class ToolChangeSafetyTests(unittest.TestCase):
         """INDEPENDENT: tc-14 and weird-hunter tool-change mutants fail the guard."""
         # usr_ct_before_notfirsttool: neither the head homing nor the tool-change homing runs (the head
         # homing selection, sHomestrrot, zpos_f and bFirstVert, is kept)
-        both_homing = mutate("            sHomestr = sHomestrtc\n        endif\n        if bHometc\n            call @usr_prep_home_axis\n        endif\n",
-                             "            sHomestr = sHomestrtc\n        endif\n")
+        both_homing = mutate("        if bHometc\n            call @usr_prep_home_axis\n        endif\n", "")
         sources = {
             'no tool-change homing': mutate(TC_HOMING_CALL, "        else\n            sHomestr = ''\n"),
             'both tool-change homing calls removed (weird-hunter)': both_homing,
@@ -461,7 +461,7 @@ class ToolChangeSafetyTests(unittest.TestCase):
     def test_pending_index_mutations_are_detected(self):
         """INDEPENDENT: an index without its G75 Z homing fails the guard."""
         assert_detected(self, self.check_pending_index,
-               mutate(INDEX_HOMING, ''), 'index without homing', 'A90 index')
+               mutate(INDEX_HOMING, INDEX_NO_HOMING), 'index without homing', 'A90 index')
 
     # -- coolant channels ---------------------------------------------------------------
     def check_coolant_channels(self, source=None):

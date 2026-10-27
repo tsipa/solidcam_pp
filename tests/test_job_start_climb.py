@@ -52,7 +52,9 @@ def index_job_then(next_z, clearance, homing=None, source=None, options=None):
     program.ev('tmatrix', angle_4x_around_x=90)
     program.engine.state['btmatrixindexpending'] = True
     if homing is not None:
+        # The index homes with sHomestrrot, or with sHomestrrotv while that is still empty (PP-053).
         program.engine.state['shomestrrot'] = homing
+        program.engine.state['shomestrrotv'] = homing
     index = program.ev('start_of_job', job_name='op2', tool_z_level=40, tool_start_plane=45)
     return index, program.ev('move_5x', xpos=100, ypos=100, zpos=next_z)
 

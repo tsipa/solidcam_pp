@@ -50,7 +50,7 @@ def motion_engine(source=None):
                rot_axis_coord=0, transform_type=0,
                job_name='fixture_operation', iG187_P=0, nG187_E=0,
                iG187_P_gpp=2, nG187_E_gpp=0,
-               bStopM00difftool=False, bTmatrixIndexPending=False,
+               bStopM00difftool=False, bTmatrixIndexPending=False, bBoundaryStop=False, bStopSinceMotion=False,
                sHomestrrot=engine.state['shomestrroth'],
                mcode_f='2.0(p)', clear_change_after_gen=1,
                xpos_f='8.5', ypos_f='8.5', zpos_f='8.5')

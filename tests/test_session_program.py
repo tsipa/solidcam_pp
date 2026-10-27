@@ -579,7 +579,8 @@ class RealisticSessionTests(unittest.TestCase):
                 '        skipline = false\n        call @start_tool\n    endif\nendp\n',
                 '        skipline = false\n    endif\nendp\n'), 'spindle must be started'),
             'no homing before an index': (mutate(
-                "    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n        call @usr_prep_home_axis\n    endif\n", ''),
+                "            sHomestr = sHomestrrotv\n        endif\n        call @usr_prep_home_axis\n    endif\n",
+                "            sHomestr = sHomestrrotv\n        endif\n    endif\n"),
                 'without preceding Z homing'),
             'no initial DC force': (mutate('    bR1forceOutput = true\n', '    bR1forceOutput = false\n'), 'must be DC'),
             'D1 removed (420c4ab reverted)': (mutate("    {nb, 'D1 '}\n", ''), 'D1'),

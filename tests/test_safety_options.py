@@ -4,7 +4,8 @@ Owner rule 2026-10-27: the G75 homings and the M1 optional stops are safety; eac
 on by default (bHomebegin, bHometc, bHomeend, bHomerotv, bHomeroth; bOptstptc, bOptstpjob,
 bOptstpindex). Switching one off removes exactly that point and nothing else. The M1 between two
 operations of the same tool (bOptstpjob) is not repeated where the boundary already stopped
-(the M0 of bStopM00, the M1 of an A index).
+(the M0 of bStopM00, the M1 of an A index), and an index right after the job M1 adds no second M1.
+Without a Z homing at a tool change, compensation still on would run through M06: the post stops.
 
 The tests read the blocks each event returns (no skipline joining), so they run on both engines.
 """
@@ -209,6 +210,99 @@ class OptionalStopOptionTests(unittest.TestCase):
         """INDEPENDENT: mutation self-check; a job M1 that ignores the boundary stop fails the guard."""
         mutant = mutate('        if bOptstpjob and !bBoundaryStop\n', '        if bOptstpjob\n')
         assert_detected(self, self.check_no_m1_after_m0, mutant, 'M1 after M0', match='second stop')
+
+
+class ToolChangeCompensationTests(unittest.TestCase):
+    """Only a Z homing deselects compensation still on at a tool change (usr_prep_home_axis); the
+    safety block's G40 has no axis, so M06 would run with it on. Oracle (INDEPENDENT): Sinumerik
+    deselects TRC only in a G0/G1 block with an axis of the working plane."""
+
+    @staticmethod
+    def tool_change_with_compensation_on(**options):
+        p = program(**options)
+        p.start(tool=1, next_tool=2, next_job_tool_number=2)
+        p.ev('rapid_move', xpos=10, ypos=10, zpos=5)
+        p.ev('line', zpos=-1, feed=200)
+        p.ev('compensation', side='left')
+        p.ev('line', xpos=40, feed=200)
+        p.ev('line', zpos=20, feed=200)          # below tool_start_plane 50: end_of_job keeps G41
+        p.ev('end_of_job', next_job_tool_number=2)
+        p.ev('change_tool', tool_number=2, next_tool_number=1, first_tool=False, last_tool=True, xnext=0, ynext=0)
+        return p.ev('start_of_job', job_name='op2', next_job_tool_number=0)
+
+    def test_z_homing_deselects_compensation_before_m06(self):
+        """INDEPENDENT: the default tool-change homing deselects it at the homed Z (PP-062)."""
+        blocks = self.tool_change_with_compensation_on()
+        self.assertLess(blocks.index('G75 Z1=0.'), blocks.index('G0 G40 X40 Y10'))
+        self.assertLess(blocks.index('G0 G40 X40 Y10'), blocks.index('M06'))
+
+    def test_tool_change_without_z_homing_stops_the_post(self):
+        """INDEPENDENT: bHometc off, or a tool-change homing without Z: POST ERROR before M06."""
+        require_nc_stream()
+        from program_session import post_abort_error, scripted_input_policies
+        for options in (dict(bHometc=False), dict(sHomestrtc='8::G75 Y1=0 X1=0')):
+            with self.subTest(**options):
+                p = Program(options=options, policies=scripted_input_policies())
+                p.start(tool=1, next_tool=2, next_job_tool_number=2)
+                p.ev('rapid_move', xpos=10, ypos=10, zpos=5)
+                p.ev('line', zpos=-1, feed=200)
+                p.ev('compensation', side='left')
+                p.ev('line', xpos=40, feed=200)
+                p.ev('line', zpos=20, feed=200)
+                p.ev('end_of_job', next_job_tool_number=2)
+                p.ev('change_tool', tool_number=2, next_tool_number=1, first_tool=False, last_tool=True,
+                     xnext=0, ynext=0)
+                with self.assertRaises(post_abort_error()):
+                    p.ev('start_of_job', job_name='op2', next_job_tool_number=0)
+                self.assertTrue(p.nc()[-1].startswith('POST ERROR: Cutter compensation is still on at a tool change'))
+                self.assertEqual(p.nc().count('M06'), 1, 'the second tool change must not be posted')
+
+    def test_compensation_off_tool_change_without_homing_posts(self):
+        """INDEPENDENT: with compensation off the option only drops the homing."""
+        p, _ = first_job(bHometc=False)
+        p.ev('end_of_job', next_job_tool_number=2)
+        p.ev('change_tool', tool_number=2, next_tool_number=1, first_tool=False, last_tool=True, xnext=0, ynext=0)
+        self.assertIn('M06', p.ev('start_of_job', job_name='op2', next_job_tool_number=0))
+
+
+class IndexStopTests(unittest.TestCase):
+    def test_index_right_after_the_job_stop_adds_no_second_stop(self):
+        """INDEPENDENT: a @fourth_axis right after the start of a same-tool job: one M1, before the
+        homing and the turn."""
+        p, _ = first_job()
+        p.ev('end_of_job', next_job_tool_number=1)
+        start = p.ev('start_of_job', job_name='op2', next_job_tool_number=0)
+        index = p.ev('fourth_axis', angle=45, angle_4x_around_x_dir='ccw')
+        self.assertEqual(start, ['MSG("op2")', 'M1'])
+        self.assertEqual(index, [*HOMING, 'A=ACP(45)'])
+
+    def test_index_after_motion_keeps_its_stop(self):
+        """INDEPENDENT: an index after the job has moved stops again before the turn."""
+        p, _ = first_job()
+        p.ev('end_of_job', next_job_tool_number=1)
+        p.ev('start_of_job', job_name='op2', next_job_tool_number=0)
+        p.ev('rapid_move', xpos=20, ypos=10, zpos=50)
+        self.assertEqual(p.ev('fourth_axis', angle=45, angle_4x_around_x_dir='ccw'), ['M1', *HOMING, 'A=ACP(45)'])
+
+    def test_index_after_a_feed_move_keeps_its_stop(self):
+        """INDEPENDENT: a feed move after the job M1 is motion too: the index stops again."""
+        p, _ = first_job()
+        p.ev('end_of_job', next_job_tool_number=1)
+        p.ev('start_of_job', job_name='op2', next_job_tool_number=0)
+        p.ev('line', zpos=40, feed=200)
+        self.assertEqual(p.ev('fourth_axis', angle=45, angle_4x_around_x_dir='ccw'), ['M1', *HOMING, 'G0 A=ACP(45)'])
+
+    def test_first_index_homes_without_the_program_start_homing(self):
+        """INDEPENDENT: an index before the first rapid homes after its M1 (i4xIndexClearanceMode 0)
+        also with bHomebegin off: the tool stands wherever the last program left it (PP-053)."""
+        p = program(bHomebegin=False)
+        self.assertEqual(p.ev('start_program'), [])
+        p.ev('change_tool', tool_number=1, next_tool_number=2)
+        p.ev('tmatrix', angle_4x_around_x=90, angle_4x_around_x_dir='ccw')
+        blocks = p.ev('start_of_job', job_name='op1', next_job_tool_number=0)
+        turn = next(i for i, block in enumerate(blocks) if 'A=' in block)
+        self.assertEqual(blocks[:3], ['M1', *HOMING])
+        self.assertLess(2, turn)
 
 
 def representative(source=None, **options):

@@ -325,15 +325,16 @@ class FirstIndexClearanceTests(unittest.TestCase):
         self.assertEqual(problems, {}, 'first index: Z programmed with the previous tool or A rotated '
                                        'below the job clearance')
 
-    @known_defect('PP-053', match='no Z homing of its own')
+    @covers('PP-053')
     def test_first_index_in_z_homing_mode_homes_z(self):
         """INDEPENDENT: PP header '0=Z-Homing' for i4xIndexClearanceMode: every
         index homes Z after its optional stop, as all later indexes do
         ('M1 / G75 Z1=0. / G75 Y1=0 X1=0 / A').
 
-        The first index of a program has no G75 because sHomestrrot is still
-        empty; it relies on @start_program having homed earlier (safe in
-        practice, low severity).
+        The first index of a program, before any rapid, homes with the head
+        homing string (sHomestrrot is still empty there): the axes may have
+        moved during the M1 and the program start homing may be off
+        (bHomebegin). Regression guard of PP-053.
         """
         session = Session()
         session.first_tool(tmatrix=90)
@@ -900,13 +901,14 @@ REVERSIONS = [
        '    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n')],
      IndexHistoryTests, '_check_index_after_feed_moves'),
     ('92e2b23: no optional stop before the index (after feed moves)',
-     [('        if bOptstpindex\n            call @usr_optionalstop\n        endif\n        call @usr_4x_index_rotate\n', '        call @usr_4x_index_rotate\n')],
+     [('        if bOptstpindex and !bStopSinceMotion\n            ; Not right after another stop with no motion since (the job M1 of a same-tool job).\n            call @usr_optionalstop\n        endif\n        call @usr_4x_index_rotate\n', '        call @usr_4x_index_rotate\n')],
      IndexHistoryTests, '_check_index_after_feed_moves'),
     ('92e2b23: no optional stop before the index (between jobs)',
-     [('        if bOptstpindex\n            call @usr_optionalstop\n        endif\n        call @usr_4x_index_rotate\n', '        call @usr_4x_index_rotate\n')],
+     [('        if bOptstpindex and !bStopSinceMotion\n            ; Not right after another stop with no motion since (the job M1 of a same-tool job).\n            call @usr_optionalstop\n        endif\n        call @usr_4x_index_rotate\n', '        call @usr_4x_index_rotate\n')],
      IndexHistoryTests, '_check_index_between_jobs'),
     ('index mode 0 does not home before the rotation',
-     [("    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n        call @usr_prep_home_axis\n    endif\n", '')],
+     [("            sHomestr = sHomestrrotv\n        endif\n        call @usr_prep_home_axis\n    endif\n",
+       "            sHomestr = sHomestrrotv\n        endif\n    endif\n")],
      IndexHistoryTests, '_check_index_between_jobs'),
     ('8d6b044: old tmatrix formula',
      [('    nR1postmatrix = (-angle_4x_around_x) * iR1dir',

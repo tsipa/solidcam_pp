@@ -26,7 +26,9 @@
     global logical bTlchg bSafetyprep bStopM00difftool bskipline bFirstMove bFirstRapid
     ; bBoundaryStop: an M0/M1 was printed since the last end_of_job (usr_optionalstop, usr_forcedstop);
     ; the M1 between two operations of the same tool (bOptstpjob) is then not repeated.
-    global logical bBoundaryStop
+    ; bStopSinceMotion: an M0/M1 was printed and no axis has moved since; the index M1 is then not
+    ; repeated (a @fourth_axis right after the job M1).
+    global logical bBoundaryStop bStopSinceMotion
     global integer iTcnumber
     global numeric nTcXnext nTcYnext nTcCnext nPtool_start_plane nPtool_z_level
     global string sUS_date sUS_time
@@ -162,8 +164,8 @@ endp
     ;for these moves: switched off, the next move starts wherever the tool stands (CAM's last
     ;position, or where M06 left it) and the post programs only the axes CAM changes. The A index
     ;clearance is i4xIndexClearanceMode (0 = home with the last head or A-turn homing string).
-    bHomebegin            = true               ; True = sHomestrbegin at the program start. False: an A index before the
-                                               ; first rapid of the program turns with no clearance (PP-053)
+    bHomebegin            = true               ; True = sHomestrbegin at the program start. False: an A
+                                               ; index before the first rapid still homes (i4xIndexClearanceMode 0)
     bHometc               = true               ; True = sHomestrtc (sHomestrrotv for a vertical head) before each tool change
                                                ; after the first. False: the new tool's first X/Y move runs at the height M06
                                                ; leaves it; compensation still on is deselected only by the safety block G40
@@ -396,6 +398,7 @@ endp
     change(cWo)     = false
     bFirstVert      = true
     bBoundaryStop   = false
+    bStopSinceMotion = false
 endp
 
 ;-------------------
@@ -673,6 +676,7 @@ endp
     ; Before a tool change after the first: coolant and spindle off, home (bHometc), optional stop, safety block.
     ; bStopM00difftool is always false here (PP-056: end_of_job clears it in the same event), so the
     ; G75 retract before M06 runs whenever bHometc is set.
+    local numeric dummy_var
     if !bStopM00difftool
         if bCooloffend and bCoolExist
             call @usr_coolant_prep_all_off
@@ -688,6 +692,14 @@ endp
             bVertical = false
         else
             sHomestr = sHomestrtc
+        endif
+        if (iCompActive eq 41 or iCompActive eq 42) and (!bHometc or instr(sHomestr,'Z') eq 0)
+            ; Only a Z homing deselects compensation still on here (usr_prep_home_axis); the safety
+            ; block's G40 has no axis, so M06 would run with it on.
+            dummy_var = 0
+            input '"POST ERROR: Cutter compensation is still on at a tool change without a Z homing. Switch it off in CAM before the job ends."'dummy_var
+            {nb,"POST ERROR: Cutter compensation is still on at a tool change without a Z homing. Switch it off in CAM before the job ends."}
+            abort
         endif
         if bHometc
             call @usr_prep_home_axis
@@ -1352,6 +1364,7 @@ endp
     ; The work offset is programmed (or unchanged): no repeat on the next block.
     change(cWo) = false
     change(iWorkoffset) = false
+    bStopSinceMotion = false
 endp
 
 @usr_emulated_rapid_feed
@@ -1452,6 +1465,7 @@ endp
         {['F'feed ' ']}
     endif
     change(nRapidfeed) = true
+    bStopSinceMotion = false
     call @usr_feed_start_here
 endp
 
@@ -1756,6 +1770,7 @@ endp
     endif
     {['F'feed ' ']}
     change(nRapidfeed) = true
+    bStopSinceMotion = false
     ; The next G93 block starts here; A does not turn on an arc, so its A reference stays.
     nFeedPrevX = xpos
     nFeedPrevY = ypos
@@ -1783,12 +1798,14 @@ endp
     ; M1 optional stop.
     {nb, 'M1 '}
     bBoundaryStop = true
+    bStopSinceMotion = true
 endp
 
 @usr_forcedstop
     ; M0 program stop.
     {nb, 'M0 '}
     bBoundaryStop = true
+    bStopSinceMotion = true
 endp
 
 @usr_stop_m00
@@ -1966,6 +1983,7 @@ endp
     {')'}
     ; The cycle retracts to RTP after every hole: that is the Z the next move starts from.
     nLastPathZ = rtp
+    bStopSinceMotion = false
 endp
 
 ;-------------------
@@ -1976,6 +1994,7 @@ endp
     {nb,['X'xpos ' '], ['Y'ypos ' '], ['Z'zpos ' ']}
     nFeedPrevX = xpos
     nFeedPrevY = ypos
+    bStopSinceMotion = false
 endp
 
 ;-------------------
@@ -2153,6 +2172,7 @@ endp
     {nb,'G0 G40 X'nFeedPrevX:xpos_f ' ','Y'nFeedPrevY:ypos_f ' '}
     ; The control is in G0 now: the caller's next motion block prints its G code again.
     change(iMotionmode) = true
+    bStopSinceMotion = false
     iCompActive = 40
     if iDiametercomp eq 40
         change(iDiametercomp) = false
@@ -2182,6 +2202,7 @@ endp
     bPostHomed = true
     bClimbZValid = false
     bFeedPrevValid = false
+    bStopSinceMotion = false
 endp
 
 ;-------------------
@@ -2400,14 +2421,15 @@ endp
     ;   i4xIndexMode: 0 = turn A in the current work offset, 1 = also step the work offset by
     ;   position-1 (G54, G55, ...).
     ;   i4xIndexClearanceMode: 0 = home first (sHomestrrot, the last A-turn or head homing string;
-    ;   '' before the first rapid, PP-053), 1 = tool Z level, 2 = tool start plane. Modes 1/2: the
+    ;   sHomestrrotv before the first rapid), 1 = tool Z level, 2 = tool start plane. Modes 1/2: the
     ;   previous job's level before the turn, this job's after it.
     call @usr_r1pos_calc
     if change(nR1pos)
         ; Turning A does not move Z. A homing clears bClimbZValid itself; a clearance move sets nLastPathZ.
         ; The index is not a tracked feed start (A and possibly Z moved).
         bFeedPrevValid = false
-        if bOptstpindex
+        if bOptstpindex and !bStopSinceMotion
+            ; Not right after another stop with no motion since (the job M1 of a same-tool job).
             call @usr_optionalstop
         endif
         call @usr_4x_index_rotate
@@ -2419,6 +2441,12 @@ endp
     iMotionmode = 0
     if i4xIndexClearanceMode eq 0
         sHomestr = sHomestrrot
+        if sHomestr eq ''
+            ; An index before the first rapid of the program: no head or A-turn homing string is
+            ; chosen yet. Home with the head homing string, like every later index after its M1 (the
+            ; axes may have moved during the stop, the program start homing may be off; PP-053).
+            sHomestr = sHomestrrotv
+        endif
         call @usr_prep_home_axis
     endif
     if i4xIndexClearanceMode eq 1
