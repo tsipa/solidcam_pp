@@ -187,6 +187,7 @@ RESOLUTIONS = {
                         'after G93, control A travel; b94251b: indexes and M00 invalidate the G93 start).'),
     'DESIGN-002': ('fixed', '3e0c345 Split XY and Z when returning from post-inserted homing (owner decision; '
                             'follow-up ed07c3f).'),
+    'ENGINE-021': ('fixed', '0eb3cef Clamp right() to the whole string when the count exceeds its length.'),
 }
 
 # Test files that came with the fixing commits (git show <commit> --stat).

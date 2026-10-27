@@ -41,7 +41,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
 | pp | 48 | 9 | 1 | 1 |
-| engine | 21 | 0 | 0 | 0 |
+| engine | 20 | 1 | 0 | 0 |
 | design | 6 | 1 | 0 | 0 |
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
@@ -120,7 +120,6 @@ Canonical `@known_defect` tests: 78. `@covers` references: 55.
 | [ENGINE-018](#engine-018) | low | confirmed | F | Historical-revision constructs are unsupported: active trace statements and numeric formats '<(>5.3<)>', '(*k)', '+8.5', '(n)' | `test_historical_formats_and_trace_statements_are_accepted` |
 | [ENGINE-019](#engine-019) | low | confirmed | F | Text outside procedures is silently ignored by the parser | `test_code_outside_procedures_is_reported` |
 | [ENGINE-020](#engine-020) | low | uncertain | F | Identifiers inside '(expr)' output tokens get their change flags cleared | `test_expression_output_token_keeps_operand_change_flags` |
-| [ENGINE-021](#engine-021) | very-low | confirmed | F | GPPL engine right(s, n) with n > strlen(s) returns a Python slice ('bc' for right('abc', 5)) instead of the whole string | pinned only (@covers) |
 | [DESIGN-001](#design-001) | low | uncertain | C | CAM-link trust: a rapid that descends inside a confirmed link keeps the authorization, and any positive Z step (0.001 mm) authorizes an unhomed rotation | pinned only (@covers) |
 | [DESIGN-003](#design-003) | low | confirmed | C | A deferred tmatrix index runs before the tool change (old tool, spindle and coolant on, double M1) | pinned only (@covers) |
 | [DESIGN-004](#design-004) | low | confirmed | C | In confirmed CAM links the rotary block always precedes the XYZ block, even when Z rises in the same event | pinned only (@covers) |
@@ -1172,23 +1171,6 @@ Canonical `@known_defect` tests: 78. `@covers` references: 55.
 - Reproduced by:
   - `tests/test_engine_harness.py::OutputGaps::test_expression_output_token_keeps_operand_change_flags`
 
-### ENGINE-021
-
-**GPPL engine right(s, n) with n > strlen(s) returns a Python slice ('bc' for right('abc', 5)) instead of the whole string**
-
-- Severity: very-low
-- Confidence: confirmed
-- Reachability: Latent: no GPP call passes a count above the string length (@usr_sof_progname passes at most strlen - 1, @usr_US_date right(date, 4)).
-- Location: pp_tests/gppl/builtins.py f_right (text[len(text) - count:] without an upper clamp)
-- Evidence that would settle it: None needed (right() returns the last n characters; LegacyCompatEngine already clamps).
-- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
-- Source findings: integration-review
-- Engine scope: every facet reproduces only on gppl (gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)
-- GPPL engine: GPPL engine only (pp_tests/gppl/builtins.py f_right); the legacy engine has no right() (ENGINE-007) and LegacyCompatEngine clamps.
-- Reproduced by: none (an unverified engine rule; pinned by the CHARACTERIZATION tests below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_right_count_beyond_the_string_returns_the_whole_string`
-
 ## Design questions for the owner (DESIGN-xxx)
 
 ### DESIGN-001
@@ -1299,6 +1281,7 @@ now a regression guard marked `@covers`.
 | [PP-021](#pp-021) | 88695c9 | `test_drill_cycle_after_yz_arc_runs_in_g17`, `test_xy_compensation_after_yz_arc_runs_in_g17` | `tests/test_job_plane_restore.py` |
 | [PP-028](#pp-028) | a38f158 | `test_left_hand_tap_uses_negative_pitch` | `tests/test_tapping_direction.py` |
 | [PP-049](#pp-049) | 9f48a3a | `test_rotary_feed_moves_use_the_documented_inverse_time_mode` | `tests/test_inverse_time_feed.py` |
+| [ENGINE-021](#engine-021) | 0eb3cef | `test_right_count_beyond_the_string_returns_the_whole_string` |  |
 | [DESIGN-002](#design-002) | 3e0c345 | `test_homed_rotary_rapid_returns_xy_then_z` | `tests/test_post_homing_reposition.py` |
 
 ### PP-001
@@ -1458,6 +1441,24 @@ now a regression guard marked `@covers`.
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_motion_rapids.py::RotaryFeedModeTests::test_rotary_feed_moves_use_the_documented_inverse_time_mode`
+
+### ENGINE-021
+
+**GPPL engine right(s, n) with n > strlen(s) returns a Python slice ('bc' for right('abc', 5)) instead of the whole string**
+
+- Severity: very-low
+- Confidence: confirmed
+- Reachability: Latent: no GPP call passes a count above the string length (@usr_sof_progname passes at most strlen - 1, @usr_US_date right(date, 4)).
+- Location: pp_tests/gppl/builtins.py f_right (text[len(text) - count:] without an upper clamp)
+- Evidence that would settle it: None needed (right() returns the last n characters; LegacyCompatEngine already clamps).
+- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
+- Source findings: integration-review
+- Status: fixed: 0eb3cef Clamp right() to the whole string when the count exceeds its length.
+- Engine scope: every facet reproduces only on gppl (gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)
+- GPPL engine: GPPL engine only (pp_tests/gppl/builtins.py f_right); the legacy engine has no right() (ENGINE-007) and LegacyCompatEngine clamps.
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_right_count_beyond_the_string_returns_the_whole_string`
 
 ### DESIGN-002
 
