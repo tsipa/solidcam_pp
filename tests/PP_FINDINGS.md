@@ -1501,7 +1501,7 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: A SolidCAM trace of a 4x/5x job across 180 degrees and of the first move after the third tool change.
 - Owner area: B (rotary: r1pos/select_dir/output, modulo range, iR1dir, index direction, move_4x, 3-axis limit, home_data)
 - Source findings: owner-review-2026-10-27-1
-- Status: fixed: d8f71e8 A feed move or a rotary rapid at the cutting height stops when the A word would turn A another way than CAM.
+- Status: fixed: d8f71e8 A feed move or a rotary rapid at the cutting height stops when the A word would turn A another way than CAM; ae19fa3 extends it to every rapid not at a Z homing.
 - Tests of the fix: tests/test_rotary_direction_guard.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
@@ -1525,7 +1525,7 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: A SolidCAM trace of a multi-turn wrap job followed by a tool change.
 - Owner area: B (rotary: r1pos/select_dir/output, modulo range, iR1dir, index direction, move_4x, 3-axis limit, home_data)
 - Source findings: owner-review-2026-10-27-2
-- Status: fixed: d8f71e8 The full-turn stop counts CAM's own A step; the post's apos = 0 no longer trips it.
+- Status: fixed: d8f71e8 The full-turn stop counts CAM's own A step; the post's apos = 0 no longer trips it (ae19fa3: cpos/apos references, cnext, 3-axis events keep them).
 - Tests of the fix: tests/test_rotary_modulo_range.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
@@ -1543,7 +1543,7 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: A SolidCAM trace of a compensated profile whose compensation off follows the retract.
 - Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
 - Source findings: owner-review-2026-10-27-3
-- Status: fixed: ad2a22b Compensation left on is deselected at the job end (clearance height) or right after the Z homing.
+- Status: fixed: ad2a22b Compensation left on is deselected at the job end (clearance height) or right after the Z homing; ae19fa3 adds index modes 1/2 and stops at a combined Z+X/Y homing line.
 - Tests of the fix: tests/test_cutter_compensation.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):

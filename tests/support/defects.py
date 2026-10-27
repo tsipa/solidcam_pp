@@ -207,10 +207,11 @@ RESOLUTIONS = {
     'PP-046': ('fixed', 'd8f71e8 nR1pos is rounded to the output step: a sub-step A change is no rotation (no A word, '
                         'no homing).'),
     'PP-060': ('fixed', 'd8f71e8 A feed move or a rotary rapid at the cutting height stops when the A word would turn A '
-                        'another way than CAM.'),
-    'PP-061': ('fixed', "d8f71e8 The full-turn stop counts CAM's own A step; the post's apos = 0 no longer trips it."),
+                        'another way than CAM; ae19fa3 extends it to every rapid not at a Z homing.'),
+    'PP-061': ('fixed', "d8f71e8 The full-turn stop counts CAM's own A step; the post's apos = 0 no longer trips it "
+                        '(ae19fa3: cpos/apos references, cnext, 3-axis events keep them).'),
     'PP-062': ('fixed', 'ad2a22b Compensation left on is deselected at the job end (clearance height) or right after '
-                        'the Z homing.'),
+                        'the Z homing; ae19fa3 adds index modes 1/2 and stops at a combined Z+X/Y homing line.'),
     'PP-044': ('fixed', 'f5c74cd @call_proc, @proc and @end_proc stop the post with a POST ERROR (VMID GenProc=0).'),
     'PP-045': ('fixed', 'f5c74cd @change_ref_point stops the post with a POST ERROR instead of writing G10 L2.'),
     'DESIGN-002': ('fixed', '3e0c345 Split XY and Z when returning from post-inserted homing (owner decision; '
