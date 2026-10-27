@@ -170,7 +170,6 @@ endp
     sHomestrrotv           = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'                     ;Between Rotations
     sHomestrroth           = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'                     ;Between Rotations
 
-    ; ---- 4x
     iR1dir                = -1         ;Rotary 1 direction 1=+CCW -1=+CW
     iR2dir                = 1         ;Rotary 2 direction 1=+CCW -1=+CW
     cR1                   = 'A'       ;Rotary 1 Axis
@@ -180,7 +179,6 @@ endp
     i4xIndexClearanceMode = 0         ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
     i4xFeedMode           = 1         ;4x-Simultanious control (0=Programed feedRate, 1=Inverse Time FeedRate, 2=Deg. per Minute)
     nMaxInverseFeed       = 59999.99  ;G93 F limit, 1/min (VMID MaxInverseFeed)
-    ; ---- 4x
 
 endp
 
@@ -355,7 +353,6 @@ endp
     iCoolantM8      = iCoolantM8OFF
     iG187_P_gpp     = 2
     nG187_E_gpp     = 0
-    ; ---- 4x
     nR1pos          = 9999
     bTmatrixIndexPending = false
     bIndexClearancePending = true
@@ -379,7 +376,6 @@ endp
     change(cR2)		 = false
     change(cR1)		 = false
     bFirstVert      = true
-    ; ---- 4x
 endp
 
 ;-------------------
@@ -863,23 +859,18 @@ endp
             change(iDiameteroffset) = false
             iDrillmode = 9999
             change(nRapidfeed) = true
-            ; ---- 4x
             nR1pos = 9999
             apos = 0
             bpos = 0
             cpos = 0
-            ; ---- 4x
         endif
     endif
 endp
 
 @usr_coolant
-    ; Handle setting of coolant variable
-    ; When GlobalCode = 0, we use UserOption for thier default CoolantCode
-    ;  *Note: PartOptions default to 0 in SolidCAM
-    ;  *Note: Some customers default with M8(coolant), but some use M7(air) or M9(nothing)
-    ; We use GlobalCode for coolant unless
-    ;  the user inputs a number for LocalCode (Misc Params--Operation)
+    ; Coolant M codes from the operation's coolant fields (1 = on, 0 or 2 = off; other values keep the
+    ; last code). bskipline, set by the last field read (on = false), makes usr_coolant_output join
+    ; the next block to the coolant line.
     if flood_coolant eq 1
         iCoolantM1 = iCoolantM1ON
         bskipline = false
@@ -1127,7 +1118,7 @@ endp
             endif
         endif
     endif
-    ;Special
+    ; Loop header after @loop (Fanuc macro WHILE; this template does not support loops).
     local integer var_num
     if bPrintloop
         var_num = loop_level + 20
@@ -1157,10 +1148,8 @@ endp
     endif
     bStopM00difftool = false
     iPworkoffset = iWorkoffset
-    ; ---- 4x
     nPtool_z_level = tool_z_level
     nPtool_start_plane = tool_start_plane
-    ; ---- 4x
 endp
 
 ;-------------------
@@ -1677,7 +1666,6 @@ endp
     ;                             ; orthogonal axis kept "as-is" from CAD end point
     ;   iMotionmode              ; 3 = G3 (CCW), 2 = G2 (CW)
     ;   iMplane                  ; 17 / 18 / 19
-    ;   i_rel / j_rel / k_rel    ; center rel to start for I/J/K reuse
     local numeric cx, cy, cz
     local numeric vx, vy, vz
     local numeric rx, ry, rz
@@ -2016,6 +2004,9 @@ endp
 ;-------------------
 
 @drill
+    ; Sinumerik drilling cycle MCALL CYCLE8x(RTP, RFP, SDIS, DP, DPR, ...), modal on the following
+    ; drill_point blocks until @end_drill. RTP = clearance Z, DP = hole bottom. Hole top above Z0:
+    ; RFP = top - safety and SDIS = safety; otherwise RFP = top, SDIS empty and DPR 0.
     local numeric rtp rfp sdis dp
     rtp = drill_clearance_z
     rfp = (drill_upper_z - safety)
@@ -2042,7 +2033,7 @@ endp
     {nb,' F'feed }
     {nb,'MCALL CYCLE',gcode}
 
-    if drill_type eq G81 then ;---------------------
+    if drill_type eq G81 then
         if drill_upper_z > 0
             {' (',rtp,','rfp,','sdis,',',dp,','}
         else
@@ -2051,8 +2042,7 @@ endp
         {')'}
     endif
 
-
-    if drill_type eq G82 then ;-------------------------
+    if drill_type eq G82 then
         if drill_upper_z > 0
             {' (',rtp,','rfp,','sdis,',',dp,','}
         else
@@ -2061,9 +2051,7 @@ endp
         {','delay,')'}
     endif
 
-
-
-    if drill_type eq G83 then ;--------------------------
+    if drill_type eq G83 then
         ; CYCLE83(RTP,RFP,SDIS,DP,DPR,FDEP,FDPR,DAM,DTB,DTS,FRF,VARI)
         ; DTB = dwell at final drilling depth, DTS = dwell at start point during swarf removal.
         ; Current G83 output uses DTB empty/0, DTS 0.5 sec, FRF 1, VARI 1 (swarf removal).
@@ -2076,8 +2064,7 @@ endp
         endif
     endif
 
-
-    if drill_type eq G84 then ;---------------------------
+    if drill_type eq G84 then
         ; CYCLE84(RTP,RFP,SDIS,DP,DPR,DTB,SDAC,MPIT,PIT,POSS,SST,SST1,...)
         ; The sign of PIT selects the thread hand: positive = right-hand (M3), negative = left-hand (M4).
         ; SDAC = spindle direction after the cycle: 3 for a CW (right-hand) tap, 4 for a CCW (left-hand) tap.
@@ -2109,7 +2096,7 @@ endp
         {')'}
     endif
 
-    if drill_type eq G86 then ;--------------------------
+    if drill_type eq G86 then
         if drill_upper_z > 0
             {' (',rtp,','rfp,','sdis,',',dp,',,,3'}
         else
