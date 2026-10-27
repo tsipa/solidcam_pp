@@ -577,34 +577,24 @@ class RotaryDesignPins(RotaryChecks, unittest.TestCase):
         self.check_secondary_rotation_adds_no_extra_rotation()
 
 
-# @usr_r1pos_calc, positive mode: 6228b3d replaced the one-step adjustment with a wrap
-# into [0, 360) and added the snap of values that print as 360.000 (or -0.000) to 0.
-R1_MODE1_WRAP = """    if iR1posControl eq 1 ;Positive Angles: modulo axis position range 0 <= A < 360
-        nR1posadj = 0
-        wrapped = nR1postemp
-        while wrapped < 0
-            nR1posadj = nR1posadj + 360
-            wrapped = nR1postemp + nR1posadj
-        endw
-        while wrapped >= 360
-            nR1posadj = nR1posadj - 360
-            wrapped = nR1postemp + nR1posadj
-        endw
+# @usr_r1_range: 6228b3d replaced the one-step adjustment with a wrap into [0, 360) and added
+# the snap of values that print as 360.000 (or -0.000) to 0.
+R1_MODE1_WRAP = """    while nR1pos < 0
+        nShift = nShift + 360
+        nR1pos = nR1postemp + nShift
+    endw
+    while nR1pos >= 360
+        nShift = nShift - 360
+        nR1pos = nR1postemp + nShift
+    endw
+"""
+R1_MODE1_BEFORE_6228B3D = """    if nR1postemp < 0 and nR1postemp > -360
+        nR1pos = nR1postemp + 360
     endif
 """
-R1_MODE1_BEFORE_6228B3D = """    if iR1posControl eq 1 ;Positive Angles only: Works up to 360deg
-        if nR1postemp < 0 and nR1postemp > -360
-            nR1posadj = 360
-        else
-            nR1posadj = 0
-        endif
-    endif
-"""
-R1_SNAP_TO_ZERO = """    if iR1posControl eq 1
-        ; 360.000 and -0.000 with nR1pos_f '7.3' (sums of angles carry float noise) are the position 0.
-        if nR1pos >= 359.9995 or nR1pos < 0.0005
-            nR1pos = 0
-        endif
+R1_SNAP_TO_ZERO = """    ; 360.000 and -0.000 with nR1pos_f '7.3' (sums of angles carry float noise) are the position 0.
+    if nR1pos >= 359.9995 or nR1pos < 0.0005
+        nR1pos = 0
     endif
 """
 
@@ -693,14 +683,13 @@ class FixedRotaryDefectGuards(unittest.TestCase):
 
 
 class KnownRotaryDefects(unittest.TestCase):
-    @known_defect('PP-002', facet='negative-mode')
+    @covers('PP-002')
     def test_negative_position_control_posts_valid_modulo_positions(self):
         """INDEPENDENT: Siemens modulo-axis program range 0 <= A < 360 (alarm 16830)
-        holds whatever the post option. Depends on non-default options:
-        iR1posControl=2 ('Negative', GPP L170) subtracts 360 on (0, 360) and prints
-        A=ACN(-270) for a 90 deg target; iR1posControl=0 ('SolidCAM Direct') prints
-        a negative CAM angle as is (A=ACN(-90)). Replaces the old mode 2 -> -270 pin
-        in test_offline."""
+        holds whatever the post option. iR1posControl=2 ('Negative') printed
+        A=ACN(-270) for a 90 deg target and iR1posControl=0 ('SolidCAM Direct') a
+        negative CAM angle as is (A=ACN(-90)); the option is gone, so a leftover
+        setting must change nothing. Regression guard of PP-002 facet negative-mode."""
         bad = []
         for control, apos in ((2, 90), (2, 10), (0, -90)):
             words = r1_output(rotary_engine(iR1posControl=control, apos=apos, nPR1pos=123))
@@ -709,13 +698,12 @@ class KnownRotaryDefects(unittest.TestCase):
         if bad:
             self.fail('non-default position control posts negative directed positions: ' + '; '.join(bad))
 
-    @known_defect('PP-037')
+    @covers('PP-037')
     def test_shortest_distance_mode_keeps_target_angle(self):
-        """INDEPENDENT: a direction strategy ('Shortest Distance', iR1posControl=3,
-        GPP L170) may change the direction word, never the target position: each
-        posted value must denote apos modulo 360. A100 -> A30 is posted as ACP(-30).
-        The GPP labels the mode 'Not Working yet'; the practical guard is the pin of
-        the shipped iR1posControl=1 (test_offline.test_actual_user_options)."""
+        """INDEPENDENT: a direction strategy may change the direction word, never the
+        target position: each posted value must denote apos modulo 360. The removed
+        'Shortest Distance' mode (iR1posControl=3) posted A100 -> A30 as ACP(-30); a
+        leftover setting must change nothing. Regression guard of PP-037."""
         engine = rotary_engine(iR1posControl=3, dir5a='ccw')
         bad = []
         for apos in (100, 30):

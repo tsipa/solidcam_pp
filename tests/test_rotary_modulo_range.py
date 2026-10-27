@@ -95,25 +95,6 @@ class RotaryModuloRangeTests(unittest.TestCase):
         engine = a_position(apos=360, nPR1pos=0)
         self.assertFalse(engine.changed['nr1pos'])
 
-    def test_negative_and_direct_modes_are_unchanged(self):
-        self.assertEqual(a_position(apos=90, iR1posControl=0).state['nr1pos'], 90)
-        self.assertEqual(a_position(apos=370, iR1posControl=0).state['nr1pos'], 370)
-        self.assertEqual(a_position(apos=90, iR1posControl=2).state['nr1pos'], -270)
-
-    def test_modes_2_and_3_sequences_match_the_pre_fix_post(self):
-        # Recorded from the post before the modulo change (main): the restructured block keeps modes 2/3.
-        sequence = [10, 350, -10, 200, -200, 359, 0, -90, 90, 400]
-        expected = {2: [-350, -10, -10, -160, -200, -1, 0, -90, -270, 400],
-                    3: [10, 350, 350, 200, 160, 359, 0, 270, 90, 400]}
-        for mode, values in expected.items():
-            engine = rotary_engine(iR1posControl=mode)
-            got = []
-            for apos in sequence:
-                engine.set(apos=apos)
-                engine.call('usr_r1pos_calc')
-                got.append(round(engine.state['nr1pos'], 6))
-            self.assertEqual(got, values, f'mode {mode}')
-
     def test_feed_moves_across_the_wrap_keep_the_direction(self):
         engine = rotary_engine(apos=350, nPR1pos=350, nPR1postemp=350, dir5a='ccw')
         posted = []

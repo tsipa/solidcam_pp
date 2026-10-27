@@ -36,11 +36,11 @@
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
     global numeric nTcXnext nTcYnext nTcCnext nRapidfeed nG187_E_gpp
 
-    global numeric nR1pos nR1pos5x nR1postmatrix nR1postransform nR1poscpos iR1dir nPR1pos nR1posadj nR1postemp nPR1postemp nR1pdir
+    global numeric nR1pos nR1pos5x nR1postmatrix nR1postransform nR1poscpos iR1dir nPR1pos nR1postemp nPR1postemp
     global numeric nR2pos nR2pos5x nR2postmatrix iR2dir nPR2pos
     global numeric nPtool_start_plane nPtool_z_level
     global string  cR1 cR2 sHomestrrot sHomestrrotv sHomestrroth nR1pos_f bpos_f
-    global integer iR1posControl i4xIndexMode i4xIndexClearanceMode i4xFeedMode
+    global integer i4xIndexMode i4xIndexClearanceMode i4xFeedMode
     global integer iGear1 iGear2 iGear3 iGear4
     global string P_Dwell_f
     global numeric last_spin spindle_accel
@@ -176,8 +176,6 @@ endp
     iR2dir                = 1         ;Rotary 2 direction 1=+CCW -1=+CW
     cR1                   = 'A'       ;Rotary 1 Axis
     cR2                   = 'B'       ;Rotary 2 Axis
-    iR1posControl         = 1         ;Rotary Position Control (0=SolidCAM Direct, 1=Positive, 2=Negative, 3=Shortest Distance)
-    ; iR1posControl 1 is the modulo range 0 <= A < 360 of this machine; 3 is not implemented (usr_r1_range).
     i4xIndexMode          = 0         ;4x-Indexing control (0=Simple Rotation, 1=New WorkOffset)
     i4xIndexClearanceMode = 0         ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
     i4xFeedMode           = 1         ;4x-Simultanious control (0=Programed feedRate, 1=Inverse Time FeedRate, 2=Deg. per Minute)
@@ -1397,7 +1395,7 @@ endp
     nLastPathWorkoffset = iWorkoffset
     bClimbZValid = true
     call @usr_r1pos_calc
-    if iR1posControl eq 1 and !bLimit_3axis and feed_type ne 'feed_link' and abs(nR1posstep) >= 359.9995
+    if !bLimit_3axis and feed_type ne 'feed_link' and abs(nR1posstep) >= 359.9995
         ; The CAM A axis is unlimited; on the modulo axis ACP/ACN turn less than one revolution per block,
         ; so a cutting block that turns A by 360 degrees or more would lose whole turns.
         ; 359.9995 is 360 at the A output resolution (nR1pos_f '7.3').
@@ -2281,7 +2279,7 @@ endp
 
 @usr_r1pos_calc
     ; A position (nR1pos) of the current CAM state: the CAM angle nR1postemp (tmatrix + 4x transform +
-    ; C-axis cutting + 4/5x apos, in the machine direction iR1dir) wrapped per iR1posControl. Also sets
+    ; C-axis cutting + 4/5x apos, in the machine direction iR1dir) wrapped into 0 <= A < 360. Also sets
     ; change(nR1pos) (A moves), iR1dirMode (the A word's ACN/ACP/DC) and the CAM step nR1posstep.
     call @usr_r1_cam_angle
     call @usr_r1_range
@@ -2333,55 +2331,22 @@ endp
 endp
 
 @usr_r1_range
-    ; nR1pos: the CAM angle nR1postemp placed in the A range that iR1posControl selects (1 = the
-    ; modulo range 0 <= A < 360 of this machine).
-    local numeric wrapped
-    if iR1posControl eq 0 ;SolidCAM Angles
-        nR1posadj = 0
-    endif
-    if iR1posControl eq 1 ;Positive Angles: modulo axis position range 0 <= A < 360
-        nR1posadj = 0
-        wrapped = nR1postemp
-        while wrapped < 0
-            nR1posadj = nR1posadj + 360
-            wrapped = nR1postemp + nR1posadj
-        endw
-        while wrapped >= 360
-            nR1posadj = nR1posadj - 360
-            wrapped = nR1postemp + nR1posadj
-        endw
-    endif
-    if iR1posControl eq 2 ;Negative Angles only: Works up to 360deg
-        if nR1postemp > 0 and nR1postemp < 360
-            nR1posadj = -360
-        else
-            nR1posadj = 0
-        endif
-    endif
-    ; Shortest Distance (option 3) is not implemented: A in (-360, 0) gets +360, and nR1pdir negates A
-    ; while it decreases above 0.
-    if iR1posControl eq 3
-        if nR1postemp < 0 and nR1postemp > -360
-            nR1posadj = 360
-        else
-            nR1posadj = 0
-        endif
-        if nPR1postemp ne nR1postemp
-            if nPR1postemp gt nR1postemp and nR1postemp gt 0
-                nR1pdir = -1
-            else
-                nR1pdir = 1
-            endif
-        endif
-    else
-        nR1pdir = 1
-    endif
-    nR1pos = (nR1postemp + nR1posadj) * nR1pdir
-    if iR1posControl eq 1
-        ; 360.000 and -0.000 with nR1pos_f '7.3' (sums of angles carry float noise) are the position 0.
-        if nR1pos >= 359.9995 or nR1pos < 0.0005
-            nR1pos = 0
-        endif
+    ; nR1pos: the CAM angle nR1postemp in the position range 0 <= A < 360 of the modulo A axis
+    ; (whole turns added or removed).
+    local numeric nShift
+    nShift = 0
+    nR1pos = nR1postemp
+    while nR1pos < 0
+        nShift = nShift + 360
+        nR1pos = nR1postemp + nShift
+    endw
+    while nR1pos >= 360
+        nShift = nShift - 360
+        nR1pos = nR1postemp + nShift
+    endw
+    ; 360.000 and -0.000 with nR1pos_f '7.3' (sums of angles carry float noise) are the position 0.
+    if nR1pos >= 359.9995 or nR1pos < 0.0005
+        nR1pos = 0
     endif
 endp
 

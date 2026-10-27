@@ -258,9 +258,6 @@ class OptionTests(unittest.TestCase):
         # incremental, absolute needs I=AC()); 3/4 print R (the 828D radius
         # word is CR=, R is an arithmetic parameter). Only 2 is valid (PP-022).
         self.assertEqual(state['iarcmode'], 2, 'iArcmode')
-        # 0 passes raw CAM angles; 2 emits negative directed positions on the
-        # modulo A axis (PP-002); 3 is documented 'Not Working yet' (PP-037).
-        self.assertEqual(state['ir1poscontrol'], 1, 'iR1posControl')
         # 1 accumulates work offsets (PP-016/PP-017); 2 (the Fanuc trig macro) stops the post in
         # @usr_check_options.
         self.assertEqual(state['i4xindexmode'], 0, 'i4xIndexMode')
@@ -276,10 +273,10 @@ class OptionTests(unittest.TestCase):
     def test_safety_relevant_user_options(self):
         """INDEPENDENT: Sinumerik 828D syntax and the GPP's own option
         documentation: the shipped options select the only modes that are
-        valid for this control (iArcmode 2, iR1posControl 1, i4xIndexMode 0,
+        valid for this control (iArcmode 2, i4xIndexMode 0,
         G54 offsets, M30/M2 program end, ';' comments and MSG() messages, no
         O-number, no tool change at end). The alternative modes are registered
-        defects (PP-022, PP-002, PP-037, PP-016/017) or stop the post
+        defects (PP-022, PP-016/017) or stop the post
         (i4xIndexMode 2); this static guard is their practical protection."""
         self.assert_safe_options()
 
@@ -289,8 +286,6 @@ class OptionTests(unittest.TestCase):
         mutants = {
             'iArcmode 1': ('    iArcmode              = 2 ', '    iArcmode              = 1 '),
             'iArcmode 4': ('    iArcmode              = 2 ', '    iArcmode              = 4 '),
-            'iR1posControl 2': ('    iR1posControl         = 1 ', '    iR1posControl         = 2 '),
-            'iR1posControl 3': ('    iR1posControl         = 1 ', '    iR1posControl         = 3 '),
             'i4xIndexMode 1': ('    i4xIndexMode          = 0 ', '    i4xIndexMode          = 1 '),
             'i4xIndexMode 2': ('    i4xIndexMode          = 0 ', '    i4xIndexMode          = 2 '),
             'bUseprognum true': ('    bUseprognum           = false', '    bUseprognum           = true'),

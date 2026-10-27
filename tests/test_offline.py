@@ -41,18 +41,17 @@ def rotary_words(engine):
 class PostprocessorTests(unittest.TestCase):
     def test_actual_user_options(self):
         """CHARACTERIZATION of the shipped rotary options every rotary test assumes:
-        iR1dir=-1, cR1='A', iR1posControl=1 (GPP @usr_ip_useroptions). iR1dir=-1
-        agrees with the recorded shit2 data (apos 3.035 posted as A=ACP(3.035)).
-        This pin is also the practical guard against shipping the non-default
-        options behind PP-004 (iR1dir=+1) and PP-037 (iR1posControl=3)."""
+        iR1dir=-1, cR1='A' (GPP @usr_ip_useroptions). iR1dir=-1 agrees with the
+        recorded shit2 data (apos 3.035 posted as A=ACP(3.035)). This pin is also
+        the practical guard against shipping the non-default option behind PP-004
+        (iR1dir=+1)."""
         engine = fresh_engine()
         engine.call('usr_ip_useroptions')
         self.assertEqual(engine.state['ir1dir'], -1)
         self.assertEqual(engine.state['cr1'], 'A')
-        self.assertEqual(engine.state['ir1poscontrol'], 1)
 
     def test_positive_angles_and_boundaries(self):
-        """INDEPENDENT: modulo arithmetic for iR1posControl=1 ('Positive') with
+        """INDEPENDENT: modulo arithmetic of the modulo A axis with
         iR1dir=-1: the machine A is apos reduced into [0, 360), so whole turns
         (+/-360) post 0 (fixed in 6228b3d, PP-002 facet whole-turn; the guards
         for every emitted A word are in tests/test_rotary.py and
@@ -74,19 +73,15 @@ class PostprocessorTests(unittest.TestCase):
         engine.call('usr_r1pos_calc')
         self.assertEqual(engine.state['nr1pos'], 65)
 
-    def test_negative_and_direct_modes(self):
-        """INDEPENDENT: option doc iR1posControl 0 = 'SolidCAM Direct' (GPP L170): the
-        target is the CAM angle itself, without the +360 of the positive mode. For a
-        negative CAM angle only the position modulo 360 is asserted, because the
-        representation of negative directed positions is PP-002: mode 2 ('Negative',
-        -270 for 90) and the mode-0 negative output (A=ACN(-90)) are PP-002 facet
-        negative-mode in test_rotary."""
-        engine = rotary_engine(apos=90, iR1posControl=0)
-        engine.call('usr_r1pos_calc')
-        self.assertEqual(engine.state['nr1pos'], 90)
-        engine = rotary_engine(apos=-90, iR1posControl=0)
-        engine.call('usr_r1pos_calc')
-        self.assertAlmostEqual((engine.state['nr1pos'] - (-90)) % 360, 0)
+    def test_removed_position_modes_change_nothing(self):
+        """INDEPENDENT: the A axis is modulo (program range 0 <= A < 360); the post has
+        no other position mode. A leftover iR1posControl setting of the removed modes
+        (0 SolidCAM direct, 2 negative, 3 shortest) must post the modulo position."""
+        for control in (0, 2, 3):
+            for apos, expected in ((90, 90), (-90, 270), (370, 10)):
+                engine = rotary_engine(apos=apos, iR1posControl=control)
+                engine.call('usr_r1pos_calc')
+                self.assertAlmostEqual(engine.state['nr1pos'], expected, msg=f'iR1posControl={control} apos={apos}')
 
     def test_first_rotation_dc_then_direction_and_unchanged(self):
         """INDEPENDENT: ab853be (the first A word after a forced output is DC and

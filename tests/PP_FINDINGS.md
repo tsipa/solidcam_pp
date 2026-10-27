@@ -46,13 +46,13 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 68. `@covers` references: 63.
+Canonical `@known_defect` tests: 66. `@covers` references: 65.
 
 ## Index of open entries
 
 | id | severity | confidence | area | title | reproduced by |
 |---|---|---|---|---|---|
-| [PP-002](#pp-002) | low-medium | confirmed | B | Directed A positions outside the modulo range 0 <= A < 360 (A=ACP(360), ACN(-360), ACP(400)) | `test_negative_position_control_posts_valid_modulo_positions` [negative-mode] |
+| [PP-002](#pp-002) | low-medium | confirmed | B | Directed A positions outside the modulo range 0 <= A < 360 (A=ACP(360), ACN(-360), ACP(400)) | pinned only (@covers) |
 | [PP-004](#pp-004) | low | confirmed | B | ACP/ACN direction selection ignores iR1dir; with iR1dir=+1 short moves become near full turns | `test_direction_matches_machine_motion_reversed_sign` |
 | [PP-005](#pp-005) | medium | uncertain | C | A tmatrix index adds the previous simultaneous job's apos (stale apos carry-over) | `test_tmatrix_index_ignores_previous_job_apos` |
 | [PP-006](#pp-006) | low | confirmed | D | zpos_f becomes '5.4' after the first rapid / tool-change rapid: Z has 4 decimals, X/Y 5 | `test_z_keeps_coordinate_precision_after_first_rapid` [first-rapid], `test_z_keeps_coordinate_precision_after_tool_change` [tool-change] |
@@ -76,7 +76,7 @@ Canonical `@known_defect` tests: 68. `@covers` references: 63.
 | [PP-031](#pp-031) | low | confirmed | E | Unsupported drill_type falls through to a stale 'MCALL CYCLE<gcode>' without arguments | `test_unknown_drill_type_is_rejected` |
 | [PP-032](#pp-032) | medium | confirmed | C | home_number with iWorkOffset_Method=1 emits any operator number as the work offset (G1, G500, G58, ...) | `test_user_defined_offset_must_be_a_settable_offset` |
 | [PP-036](#pp-036) | medium | confirmed | B | bLimit_3axis still emits A=DC(...) at the first rapid after a tool change | `test_limit_3axis_never_outputs_rotary` |
-| [PP-037](#pp-037) | low | confirmed | B | iR1posControl=3 ('shortest distance') negates the target angle | `test_shortest_distance_mode_keeps_target_angle` |
+| [PP-037](#pp-037) | low | confirmed | B | iR1posControl=3 ('shortest distance') negates the target angle | pinned only (@covers) |
 | [PP-039](#pp-039) | low | confirmed | C | Index clearance warning is written into the NC file as a bare text block (no comment prefix) | `test_index_clearance_warning_is_a_comment` |
 | [PP-040](#pp-040) | low | confirmed | A | Homing parser merges lines after ';' when the optional prep string is omitted | `test_homing_lines_without_prep_string` |
 | [PP-041](#pp-041) | low | confirmed | A | G53 homing with iWorkOffsetmode=2 prints cWo+0, i.e. 'G0 Z0' in work coordinates | `test_g53_homing_stays_in_machine_coordinates_for_every_offset_mode` |
@@ -137,11 +137,11 @@ Canonical `@known_defect` tests: 68. `@covers` references: 63.
 - Facet `rounding`: fixed: 6228b3d Keep A positions inside 0 <= A < 360 (values that print as 360.000 post 0; follow-up 9c89feb snaps float noise below 0.0005 to 0).
 - Facet `whole-turn`: fixed: 6228b3d Keep A positions inside 0 <= A < 360 (mode 1 wraps into [0, 360); b94251b stops the post on a cutting block that turns A by 360 degrees or more).
 - Tests of the fix: tests/test_rotary_modulo_range.py
-- Reproduced by:
-  - `tests/test_rotary.py::KnownRotaryDefects::test_negative_position_control_posts_valid_modulo_positions` (facet `negative-mode`, confidence confirmed)
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
 - Pinned or exercised by (`@covers`):
   - `tests/test_rotary.py::FixedRotaryDefectGuards::test_directed_a_positions_stay_in_modulo_range`
   - `tests/test_rotary.py::FixedRotaryDefectGuards::test_emitted_a_positions_are_valid_modulo_positions`
+  - `tests/test_rotary.py::KnownRotaryDefects::test_negative_position_control_posts_valid_modulo_positions`
 
 ### PP-004
 
@@ -482,7 +482,8 @@ Canonical `@known_defect` tests: 68. `@covers` references: 63.
 - Evidence that would settle it: None needed; a static guard that the shipped option is 1 is the practical protection.
 - Owner area: B (rotary: r1pos/select_dir/output, modulo range, iR1dir, index direction, move_4x, 3-axis limit, home_data)
 - Source findings: pp-region-4-cycles-rotary-11
-- Reproduced by:
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
+- Pinned or exercised by (`@covers`):
   - `tests/test_rotary.py::KnownRotaryDefects::test_shortest_distance_mode_keeps_target_angle`
 
 ### PP-039
@@ -1176,8 +1177,8 @@ now a regression guard marked `@covers`.
 | id | fixing commit | guarded by (`@covers`) | tests of the fix |
 |---|---|---|---|
 | [PP-001](#pp-001) | 345cb49 | `test_xy_reestablished_after_homing_in_rotary_rapid`, `test_y_reestablished_after_job_start_index_homing` | `tests/test_post_homing_reposition.py` |
-| [PP-002 [rounding]](#pp-002) | 6228b3d | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
-| [PP-002 [whole-turn]](#pp-002) | 6228b3d | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
+| [PP-002 [rounding]](#pp-002) | 6228b3d | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
+| [PP-002 [whole-turn]](#pp-002) | 6228b3d | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-003](#pp-003) | 5408e5c | `test_zx_arc_stops_the_post` | `tests/test_zx_arc_guard.py` |
 | [PP-007](#pp-007) | ca63502 | `test_move_4x_preserves_axial_x` | `tests/test_move_4x_axial_x.py` |
 | [PP-013](#pp-013) | 49f8b80 | `test_same_tool_job_climbs_before_xy_traverse` | `tests/test_job_start_climb.py` |

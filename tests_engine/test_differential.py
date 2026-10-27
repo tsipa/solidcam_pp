@@ -14,7 +14,7 @@ from pp_tests.gppl import legacy
 from support import source
 
 BASE = dict(angle_4x_around_x=0, angle=0, cpos=0, apos=0, bpos=0, x_angle_const_z=0, iR1dir=-1, iR2dir=1,
-            iR1posControl=1, nPR1postemp=0, nPR1pos=0, nPR2pos=0, bLimit_3axis=False, bR1forceOutput=False,
+            nPR1postemp=0, nPR1pos=0, nPR2pos=0, bLimit_3axis=False, bR1forceOutput=False,
             bR1useDir5a=True, dir5a='cw', angle_4x_around_x_dir='cw', cw='cw', ccw='ccw', cR1='A')
 
 
@@ -46,7 +46,7 @@ class GppDifferentialTests(unittest.TestCase):
             state = dict(BASE, angle_4x_around_x=rng.choice([0, 30, 90, -90, 180]),
                          angle=rng.choice([0, 15, -45]), cpos=rng.uniform(-400, 400),
                          apos=rng.uniform(-400, 400), bpos=rng.choice([0, 10]),
-                         iR1posControl=rng.choice([0, 1, 2, 3]), nPR1pos=rng.choice([0, 90]),
+                         nPR1pos=rng.choice([0, 90]),
                          nPR1postemp=rng.choice([0, 90]), bLimit_3axis=rng.random() < .2,
                          bR1forceOutput=rng.random() < .3, bR1useDir5a=rng.random() < .5,
                          dir5a=rng.choice(['cw', 'ccw']), angle_4x_around_x_dir=rng.choice(['cw', 'ccw', 'x']))
