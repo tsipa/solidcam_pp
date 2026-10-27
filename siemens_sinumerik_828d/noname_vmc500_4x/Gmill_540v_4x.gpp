@@ -59,6 +59,7 @@
     mcode_f         = '2.0(p)'
     xpos_f          = '8.5'
     ypos_f          = '8.5'
+    ; zpos_f becomes '5.4' at the first rapid or tool change (usr_rapid, usr_ct_before_notfirsttool).
     zpos_f          = '8.5'
     nR1pos_f        = '7.3'
     apos_f          = '5.3'
@@ -90,7 +91,7 @@ endp
     iWorkOffsetmode       = 1                   ;Sets the Mode used for Work Offset (1=G54, 2=E1, 3=G54.1 P1)
     iProgendmode          = 1                   ;Sets the code for ending a program (1=M30,2=M2)
     cPb                   = ';%_N_'              ;Sets the Character(s) used for the beginning of file (i.e %)
-    cPe                   = ''                 ;Sets the Character(s) used for the beginning of file (i.e %)
+    cPe                   = ''                 ;Sets the Character(s) used for the end of file (i.e %)
     cCb                   = ';'                 ;Sets the begginning Character(s) for comments
     cCe                   = ''                  ;Sets the ending Character(s) for comments
     cOMb                   = 'MSG("'            ;Sets the begginning Character(s) for operator message
@@ -107,6 +108,7 @@ endp
     bCoolExist					= true          ;True = Outputs Coolant codes (Coolant,Air,Mist,etc)
     bCoolofftc					= true          ;True = Outputs Coolant off between Tool Changes
     bSpinofftc					= true          ;True = Outputs Spindle off between Tool Changes
+    ; bCoolofftc and bSpinofftc are not read: tool changes use bCooloffend and bSpinoffend.
     bCooloffend					= true          ;True = Outputs Coolant off at end of program
     bSpinoffend					= true          ;True = Outputs Spindle off at end of program
     bCoolspinaftertc			= false         ;True = Outputs Coolant&Spindle directly after Tool Change
@@ -136,7 +138,7 @@ endp
     ;User Preferences
     bTlist						= true          ;True = Outputs tool list at beginning of program
     bTlseperation				= false         ;True = Seperates Tool List by blank line(s)
-    bTcseperation				= false         ;True = Seperates Tool List by blank line(s)
+    bTcseperation				= false         ;True = Outputs a blank line before every tool change after the first
     bDateTimeOutput             = true          ;True = Outputs Date & Time
     bToolChangeAtEnd			= false         ;True = Tool Change for First Tool at end of program
     bOptstpbegin				= false         ;True = Outputs Optional Stop at beginning of program
@@ -333,10 +335,13 @@ endp
     nLlabel         = 0
     iMplane         = 17
     iAbsincmode     = 90
+    ; 9999 is no code output yet: the first real value differs from it, so its change flag forces the output.
     iWorkoffset     = 9999
     iDiametercomp   = 9999
     iCompActive     = 9999
     iDrillmode      = 9999
+    ; Tool change counter (N number with bNnumtc, TEMPFILE name with multiple fixtures): 2001 for the
+    ; first tool, +1 for every later tool.
     iTcnumber       = 2001
     iCoolantM1      = iCoolantM1OFF
     iCoolantM2      = iCoolantM2OFF
@@ -980,6 +985,8 @@ endp
         iCoolantM4 = iCoolantM4OFF
         bskipline = true
     endif
+    ; Through-spindle coolant: the pressure value selects the M code. A value not in the list keeps the
+    ; last selected code (iCoolantM5ON is not reset). 07 is a leading-zero literal of 7.
     if through_ival_coolant eq 1
         if through_coolant_val eq 5
             iCoolantM5ON = 77
@@ -1073,6 +1080,8 @@ endp
         {nb,['M'iCoolantM8:mcode_f' ']}
         skipline = bskipline
     endif
+    ; With clear_change_after_gen on, this is always true: every changed code was output above, which
+    ; cleared its flag.
     if  !change(iCoolantM1) or  !change(iCoolantM2) or !change(iCoolantM3) or  !change(iCoolantM4) or !change(iCoolantM5) or  !change(iCoolantM6) or !change(iCoolantM7) or !change(iCoolantM8)
         skipline = TRUE
     endif
@@ -1220,7 +1229,7 @@ endp
     ; Handle GPP direct call to Rapid Move (G00)
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we may...
-    ;   Sync with @rapid_move, @move_5x, @move_4x, @move4x_polar, @move4x_cartesian
+    ;   Sync with @rapid_move, @move_5x, @move_4x
     call @usr_rapid
 endp
 
@@ -1382,7 +1391,7 @@ endp
             else
                 {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],['X'xpos ' '],['Y'ypos ' ']}
                 if change(zpos)
-                    if bFirstMove  ;!@#$% clear change
+                    if bFirstMove
                         bFirstMovetlch = false
                         skipline = true
                         {nb,'Z'zpos ' ' }
@@ -1463,7 +1472,7 @@ endp
     ; Handle GPP direct call to Line Movement (G01)
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we may...
-    ;   Sync with @line, @line_5x, @line_4x, @line4x_polar, @line4x_cartesian
+    ;   Sync with @line, @line_5x, @line_4x
     call @usr_line
 endp
 
@@ -1491,6 +1500,7 @@ endp
     if iR1posControl eq 1 and !bLimit_3axis and feed_type ne 'feed_link' and abs(nR1posstep) >= 359.9995
         ; The CAM A axis is unlimited; on the modulo axis ACP/ACN turn less than one revolution per block,
         ; so a cutting block that turns A by 360 degrees or more would lose whole turns.
+        ; 359.9995 is 360 at the A output resolution (nR1pos_f '7.3').
         dummy_var = 0
         input '"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."'dummy_var
         {nb,"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."}
@@ -2179,6 +2189,7 @@ endp
                 {',0.,4,,',''((0-FEED)/SPIN),',0,''',SPIN:INTEGER_DEF_F,','(SPIN*2):INTEGER_DEF_F}
             endif
         endif
+        ; AXN and PTAB empty, TECHNO = 1221; with Step_Down: VARI = 1 (chip breaking), DAM, VRT.
         {',,,1221'}
         if Step_Down ne 0
             if VarRetract ne 0
@@ -2258,6 +2269,8 @@ endp
 @usr_spindle_output
     ; Handle output for spindle
     {nb,'S'spin:integer_def_f ' '}
+	; Keep the integer sdiff and the literal 500: spindle_accel or a numeric would change the dwell if
+	; GPPL divides integers as integers (unverified).
 	local integer sdiff
 	sdiff = abs(last_spin-spin)
 	if sdiff > spindle_accel
@@ -2596,7 +2609,8 @@ endp
             nR1posadj = 0
         endif
     endif
-    if iR1posControl eq 3 ;Shortest Distance: Not Working yet
+    if iR1posControl eq 3 ;Shortest Distance (option 3) is not implemented: A in (-360, 0) gets +360,
+        ; and nR1pdir negates A while it decreases above 0.
         if nR1postemp < 0 and nR1postemp > -360
             nR1posadj = 360
         else
@@ -2703,6 +2717,8 @@ endp
     ; Handle 4x indexing (Rotary moves between operations)
     ;4x-Indexing control (0=Simple Rotation, 1=New WorkOffset, 2=Trig Macro)
     ;4x-Index Clearance control (0=Z-Homing, 1=Z-Tool_Z_Level, 2=Z-Tool_start_plane)
+    ; sHomestrrot is the homing string of the last rapid or tool change (sHomestrrotv/roth); it is ''
+    ; before the first one.
     call @usr_r1pos_calc
     if change(nR1pos)
         ; Turning A does not move Z. A homing clears bClimbZValid itself; a clearance move sets nLastPathZ.
@@ -2793,22 +2809,22 @@ endp
     endif
 endp
 
-@move_4x ; !@#$%
+@move_4x
     ; Handle GPP direct call to Rapid Move (G00)
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we may...
-    ;   Sync with @rapid_move, @move_5x, @move_4x, @move4x_polar, @move4x_cartesian
+    ;   Sync with @rapid_move, @move_5x, @move_4x
     ; A rotates around X on this machine: X is the axial coordinate and is posted as given.
     bR1useDir5a = true
     call @usr_rapid
     bR1useDir5a = false
 endp
 
-@line_4x ; !@#$%
+@line_4x
     ; Handle GPP direct call to Line Movement (G01)
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we may...
-    ;   Sync with @line, @line_5x, @line_4x, @line4x_polar, @line4x_cartesian
+    ;   Sync with @line, @line_5x, @line_4x
     bR1useDir5a = true
     call @usr_line
     bR1useDir5a = false
@@ -2827,21 +2843,21 @@ endp
     bTmatrixIndexPending = true
 endp
 
-@move_5x ; !@#$%
+@move_5x
     ; Handle GPP direct call to Rapid Move (G00)
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we may...
-    ;   Sync with @rapid_move, @move_5x, @move_4x, @move4x_polar, @move4x_cartesian
+    ;   Sync with @rapid_move, @move_5x, @move_4x
     bR1useDir5a = true
     call @usr_rapid
     bR1useDir5a = false
 endp
 
-@line_5x ; !@#$%
+@line_5x
     ; Handle GPP direct call to Line Movement (G01)
     ; We not use this procedure to output code
     ; We create our own procedure for this so that we may...
-    ;   Sync with @line, @line_5x, @line_4x, @line4x_polar, @line4x_cartesian
+    ;   Sync with @line, @line_5x, @line_4x
     bR1useDir5a = true
     call @usr_line
     bR1useDir5a = false
