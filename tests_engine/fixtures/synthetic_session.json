@@ -402,7 +402,7 @@
     "zpos": 20,
     "apos": 10,
     "bpos": 0,
-    "dir5a": "cw"
+    "dir5a": "ccw"
    }
   },
   {
@@ -438,7 +438,7 @@
     "zpos": 30,
     "apos": 30,
     "bpos": 0,
-    "dir5a": "cw"
+    "dir5a": "ccw"
    }
   },
   {

@@ -483,7 +483,7 @@
     "zpos": 20,
     "apos": 10,
     "bpos": 0,
-    "dir5a": "cw"
+    "dir5a": "ccw"
    }
   },
   {
@@ -519,11 +519,11 @@
     "zpos": 30,
     "apos": 30,
     "bpos": 0,
-    "dir5a": "cw"
+    "dir5a": "ccw"
    },
    "expect": {
     "blocks": [
-     "G0 A=ACN(120)"
+     "G0 A=ACP(120)"
     ],
     "absent": [
      "G75"

@@ -7,7 +7,7 @@
     "changed": ["xpos", "ypos", "zpos"]
   },
   "link": {"call": "line_5x", "set": {"zpos": 20, "feed_type": "feed_link"}, "changed": ["zpos"]},
-  "rotation": {"call": "move_5x", "set": {"apos": 10, "prev_command": "@line_5x"}, "changed": ["apos"]},
+  "rotation": {"call": "move_5x", "set": {"apos": 10, "dir5a": "ccw", "prev_command": "@line_5x"}, "changed": ["apos"]},
   "expected_last_z_after_arc": 30,
   "required_output_before_rotation": "G75 Z1=0."
 }

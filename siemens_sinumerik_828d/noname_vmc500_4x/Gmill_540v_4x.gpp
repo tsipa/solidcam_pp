@@ -31,11 +31,12 @@
     global integer iHomingmode
     ; A axis (usr_r1pos_calc, usr_r1_output) and the template's second rotary axis
     global numeric nR1pos nR1pos5x nR1postmatrix nR1postransform nR1poscpos nPR1pos nR1postemp nPR1postemp nR1posstep
+    global numeric nR1from nR1travel nR1camstep nPR1poscam
     global numeric nR2pos nR2pos5x nR2postmatrix
     global integer iR1dirMode
     ; bVertical: nR2pos was not 0 at the last head check (swivel-head template term; here only a
     ; CoordSys turned about Z or a CAM bpos). bFirstVert: no head homing yet in this program.
-    global logical bR1useDir5a bR1forceOutput bVertical bFirstVert
+    global logical bR1useDir5a bR1forceOutput bVertical bFirstVert bR1wrongWay bR1turnDropped bR1StepReset
     ; Position tracking for indexing, CAM links and the first-rapid climb
     global logical bTmatrixIndexPending bIndexClearancePending bCamLinkRetract bJobPositioned bClimbZValid
     global numeric nLastPathZ nLastPathWorkoffset
@@ -346,6 +347,13 @@ endp
     nLastPathWorkoffset = -9999
     nPR1pos         = 0
     nPR1postemp     = 0
+    nPR1poscam      = 0
+    nR1from         = 0
+    nR1travel       = 0
+    nR1camstep      = 0
+    bR1wrongWay     = false
+    bR1turnDropped  = false
+    bR1StepReset    = false
     change(cWo)     = false
     bFirstVert      = true
 endp
@@ -783,6 +791,8 @@ endp
             apos = 0
             bpos = 0
             cpos = 0
+            ; The post zeroed the CAM A, CAM did not: keep the CAM-side reference (usr_r1pos_calc).
+            bR1StepReset = true
         endif
     endif
 endp
@@ -1038,7 +1048,16 @@ endp
     ; usr_emulated_rapid_feed call nothing deeper.
     call @usr_rapid_cam_link
     call @usr_rapid_motion_mode
+    if !bTlchg
+        ; A CAM rapid: CAM's A turns again from here (usr_r1pos_calc: CAM-side step).
+        bR1StepReset = false
+    endif
     call @usr_r1pos_calc
+    if bR1wrongWay and bR1useDir5a and (bCamLinkRapid or sHomestrroth eq '')
+        ; A turns at the cutting height (CAM link, or rotation homing switched off) another way than CAM:
+        ; stop. A homed turn follows the word like an index: the tool stands at the homing height.
+        call @usr_r1_wrong_way_stop
+    endif
     if bFirstRapid or bTlchg
         ; First rapid of a job or of a tool change: home if the head orientation changes.
         call @usr_rapid_head_check
@@ -1297,20 +1316,25 @@ endp
     ; start point is known (bFeedPrevValid; not right after a homing, a tool change or an index).
     local logical bInverseBlock
     local numeric dummy_var
+    ; CAM's A turns again from here (usr_r1pos_calc: CAM-side step).
+    bR1StepReset = false
     ; Evaluate CAM input changes before output consumes their change flags.
     call @usr_line_cam_link
     nLastPathZ = zpos
     nLastPathWorkoffset = iWorkoffset
     bClimbZValid = true
     call @usr_r1pos_calc
-    if !bLimit_3axis and feed_type ne 'feed_link' and abs(nR1posstep) >= 359.9995
+    if feed_type ne 'feed_link' and bR1turnDropped and abs(nR1camstep) >= 359.9985
         ; The CAM A axis is unlimited; on the modulo axis ACP/ACN turn less than one revolution per block,
-        ; so a cutting block that turns A by 360 degrees or more would lose whole turns.
-        ; 359.9995 is 360 at the A output resolution (nR1pos_f '7.3').
+        ; so a cutting block that turns A by 360 degrees or more loses whole turns. Not when only the
+        ; post put A back to 0 since the last CAM A (tool change, @fourth_axis): CAM's own step decides.
         dummy_var = 0
         input '"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."'dummy_var
         {nb,"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."}
         abort
+    endif
+    if bR1wrongWay
+        call @usr_r1_wrong_way_stop
     endif
     ; Do not pre-apply upcoming compensation here (next_command): CAM emits @compensation before the
     ; move where it must become active; a look-ahead corrupts lead-out/zigzag side changes (2aa6df0).
@@ -1396,7 +1420,7 @@ endp
     ; DC shortest), in the CAM angle sense. The CAM angle difference can be off by turns of 360 degrees.
     dm = nR1pos - nFeedPrevR1
     if abs(dm) < 0.0005
-        ; Below the A output resolution (nR1pos_f '7.3') the control sees no rotation.
+        ; Both are printed positions (steps of 0.001): only float noise is left here.
         dm = 0
     endif
     if iR1dirMode eq 2
@@ -1774,6 +1798,8 @@ endp
     else
         position = position + 1
     endif
+    ; The post zeroes the CAM A, CAM does not: keep the CAM-side reference (usr_r1pos_calc).
+    bR1StepReset = true
     apos = 0
     call @usr_4x_index
 endp
@@ -2067,7 +2093,8 @@ endp
         change(nR1pos) = false
     endif
     ; Direction word: DC for a forced A word (program start: the A position is unknown), else the
-    ; CAM direction.
+    ; CAM direction. nR1pos and nPR1pos are printed positions (usr_r1_range), so a CAM change below
+    ; the output step prints no A word.
     if bR1forceOutput
         iR1dirMode = 3
     else
@@ -2075,8 +2102,16 @@ endp
             call @usr_r1_select_dir
         endif
     endif
-    ; The CAM step of this move (usr_line full-turn check), then the references for the next one.
+    ; The CAM step of this move and the control's turn for it (usr_line, usr_rapid stop on a mismatch).
     nR1posstep = nR1postemp - nPR1postemp
+    call @usr_r1_check_travel
+    ; The CAM-side step: CAM's own A (apos, cpos) from the last CAM A. A post reset of apos (tool
+    ; change, @fourth_axis: bR1StepReset) does not move this reference (usr_line full-turn check).
+    nR1camstep = nR1poscpos + nR1pos5x - nPR1poscam
+    if !bR1StepReset
+        nPR1poscam = nR1poscpos + nR1pos5x
+    endif
+    ; The references for the next move.
     nPR1postemp = nR1postemp
     nPR1pos = nR1pos
 endp
@@ -2093,8 +2128,9 @@ endp
 
 @usr_r1_range
     ; nR1pos: the CAM angle nR1postemp in the position range 0 <= A < 360 of the modulo A axis
-    ; (whole turns added or removed).
-    local numeric nShift
+    ; (whole turns added or removed), rounded to the output step 0.001 (nR1pos_f '7.3'): the position
+    ; the A word prints and the control receives.
+    local numeric nShift nTarget nSteps nWeight
     nShift = 0
     nR1pos = nR1postemp
     while nR1pos < 0
@@ -2109,6 +2145,69 @@ endp
     if nR1pos >= 359.9995 or nR1pos < 0.0005
         nR1pos = 0
     endif
+    ; GPPL has no round(): count the 0.001 steps with powers of two (2^18 + ... + 1 > 360000).
+    nTarget = nR1pos * 1000 + 0.5
+    nSteps = 0
+    nWeight = 262144
+    while nWeight >= 1
+        if nSteps + nWeight <= nTarget
+            nSteps = nSteps + nWeight
+        endif
+        nWeight = nWeight / 2
+    endw
+    nR1pos = nSteps / 1000
+endp
+
+@usr_r1_check_travel
+    ; How the control turns A for this move, against CAM's turn nR1posstep. nR1travel: the A word's
+    ; turn from the printed previous position to the printed new one (ACP positive, ACN negative; 0
+    ; without an A word). CAM may turn whole turns more in the same direction: the control drops
+    ; them (bR1turnDropped; usr_line stops a cutting block). Any other difference is bR1wrongWay: the
+    ; control would turn A another way than CAM. Tolerance: the rounding of the two positions.
+    ; Not checked: a DC word (program start, the control's A is unknown), 3-axis jobs (no A words)
+    ; and a missing direction (usr_r1_output stops).
+    local numeric camstep
+    bR1wrongWay = false
+    bR1turnDropped = false
+    nR1from = nPR1pos
+    nR1travel = 0
+    if change(nR1pos)
+        nR1travel = nR1pos - nPR1pos
+        if iR1dirMode eq 1
+            while nR1travel > 0
+                nR1travel = nR1travel - 360
+            endw
+        endif
+        if iR1dirMode eq 2
+            while nR1travel < 0
+                nR1travel = nR1travel + 360
+            endw
+        endif
+    endif
+    if !bLimit_3axis and iR1dirMode ne 3 and (iR1dirMode ne 0 or !change(nR1pos))
+        camstep = nR1posstep
+        while abs(nR1travel - camstep) > 0.0015 and abs(camstep) >= 359.9985
+            if camstep > 0
+                camstep = camstep - 360
+            else
+                camstep = camstep + 360
+            endif
+            bR1turnDropped = true
+        endw
+        if abs(nR1travel - camstep) > 0.0015
+            bR1wrongWay = true
+        endif
+    endif
+endp
+
+@usr_r1_wrong_way_stop
+    ; ACP/ACN would turn A another way than CAM (usr_r1_check_travel): stop instead of cutting or
+    ; swinging through angles CAM did not check.
+    local numeric dummy_var
+    dummy_var = 0
+    input '"POST ERROR: A would turn another way than in CAM (ACP/ACN). Check the A angles of this move."'dummy_var
+    {nb,"POST ERROR: A would turn another way than in CAM (ACP/ACN): A", nR1from, " to A", nR1pos, ", CAM ", nR1posstep, " deg, control ", nR1travel, " deg."}
+    abort
 endp
 
 @usr_r1_select_dir
@@ -2139,7 +2238,8 @@ endp
     ; printed. Callers and their condition:
     ;   usr_rapid A block: change(nR1pos); usr_rapid_tc_block: change(nR1pos) or bR1forceOutput;
     ;   usr_line: change(nR1pos); usr_4x_index_rotate: change(nR1pos) tested in usr_4x_index.
-    ; No 'last printed A' is kept: usr_r1pos_calc updates nPR1pos on every call, printed or not.
+    ; No 'last printed A' is kept: usr_r1pos_calc updates nPR1pos on every call, printed or not; it
+    ; changes only with the printed value (both are rounded to the output step).
     local numeric dummy_var
     if iR1dirMode ne 1 and iR1dirMode ne 2 and iR1dirMode ne 3
         dummy_var = 0

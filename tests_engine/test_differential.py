@@ -14,7 +14,8 @@ from pp_tests.gppl import legacy
 from support import source
 
 BASE = dict(angle_4x_around_x=0, angle=0, cpos=0, apos=0, bpos=0, x_angle_const_z=0, iR1dir=-1, iR2dir=1,
-            nPR1postemp=0, nPR1pos=0, nPR2pos=0, bLimit_3axis=False, bR1forceOutput=False,
+            nPR1postemp=0, nPR1poscam=0, bR1StepReset=False, nPR1pos=0, nPR2pos=0, bLimit_3axis=False,
+            bR1forceOutput=False,
             bR1useDir5a=True, dir5a='cw', angle_4x_around_x_dir='cw', cw='cw', ccw='ccw', cR1='A')
 
 

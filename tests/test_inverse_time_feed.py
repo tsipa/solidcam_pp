@@ -147,29 +147,34 @@ class InverseTimeFeedTests(unittest.TestCase):
         self.assertTrue(output[-1].endswith('F200'), output)
 
     def test_negative_direction_uses_the_travel_the_control_makes(self):
-        # Increasing CAM angle posted as ACN: the control turns 330 degrees the other way.
+        # 0 -> -30 posted as ACN(330): the control turns 30 degrees negative, not the 330 between the positions.
         session = start_at(12, 0, 25)
-        output = session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='cw', feed_type='feed_cut')
-        self.assertIn('A=ACN(30)', output[0])
-        self.assertAlmostEqual(feed_word(output[0]), 200 / (25 * math.radians(330)), delta=0.0006)
+        output = session.step('line_5x', ['apos'], apos=-30, feed=200, dir5a='cw', feed_type='feed_cut')
+        self.assertIn('A=ACN(330)', output[0])
+        self.assertAlmostEqual(feed_word(output[0]), 200 / (25 * math.radians(30)), delta=0.0006)
 
     def test_crossing_180_uses_modulo_travel_not_the_cam_difference(self):
-        # CAM angles wrapped to +-180: 179 -> -179 counter-clockwise is 2 degrees of travel, not 358.
+        # A link 179 -> 541 counter-clockwise: the control drops the whole turn (ACP(181), 2 degrees of
+        # travel), so F is for 2 degrees, not for CAM's 362. A cutting block would stop (full turn).
         session = start_at(12, 0, 25, apos=179)
-        output = session.step('line_5x', ['xpos', 'apos'], xpos=13, apos=-179, feed=200, dir5a='ccw', feed_type='feed_cut')
+        output = session.step('line_5x', ['xpos', 'apos'], xpos=13, apos=541, feed=200, dir5a='ccw', feed_type='feed_link')
         self.assertIn('A=ACP(181)', output[0])
         length = path_length((12, 0, 25, 179), (13, 0, 25, 181))
         self.assertAlmostEqual(feed_word(output[0]), 200 / length, delta=0.01)
 
     def test_sub_resolution_a_change_is_no_rotation(self):
-        # 30 -> 29.99999 -> 30.00001 prints A=30 every time: the control does not turn, F is the linear one.
+        # 30 -> 29.99999 -> 30.00001 prints A=30 every time: the control does not turn, so no A word,
+        # no G93 and the programmed feed.
         session = start_at(12, 0, 25, apos=30)
-        first = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=20, apos=29.99999, feed=300, dir5a='ccw',
+        first = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=20, apos=29.99999, feed=300, dir5a='cw',
                              feed_type='feed_cut')
-        second = session.step('line_5x', ['xpos', 'apos'], xpos=28, apos=30.00001, feed=300, dir5a='cw',
+        second = session.step('line_5x', ['xpos', 'apos'], xpos=28, apos=30.00001, feed=300, dir5a='ccw',
                               feed_type='feed_cut')
-        self.assertAlmostEqual(feed_word(first[0]), 300 / 8, delta=0.001)
-        self.assertAlmostEqual(feed_word(second[0]), 300 / 8, delta=0.001)
+        for output in (first, second):
+            self.assertEqual(len(output), 1, output)
+            self.assertNotIn('A=', output[0])
+            self.assertNotIn('G93', output[0])
+        self.assertEqual(feed_word(first[0]), 300)
 
     def test_index_without_homing_leaves_no_known_feed_start(self):
         # Clearance mode 1 moves Z and A without homing: the next rotating G1 falls back to G94.
@@ -181,9 +186,9 @@ class InverseTimeFeedTests(unittest.TestCase):
         program.ev('tmatrix', angle_4x_around_x=90)
         program.engine.state['btmatrixindexpending'] = True
         program.ev('start_of_job', job_name='op2', tool_z_level=50)
-        output = program.ev('line_5x', xpos=16, apos=10, feed=200)
+        output = program.ev('line_5x', xpos=16, apos=10, feed=200, dir5a='cw')   # A 120 -> 100
         self.assertNotIn('G93', ' '.join(output))
-        self.assertIn('A=ACP(100)', ' '.join(output))
+        self.assertIn('A=ACN(100)', ' '.join(output))
 
     def test_m00_homing_leaves_no_known_feed_start(self):
         program = Program(options=dict(sHomestrstpsame='8::G75 Z1=0. ;8::G75 Y1=0 X1=0'),

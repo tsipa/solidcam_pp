@@ -221,7 +221,8 @@ class V1DefectTests(unittest.TestCase):
             engine = Engine.from_path(PP, policies=policies)
             engine.call('usr_ip_useroptions')
             engine.set(angle_4x_around_x=90, angle=0, cpos=0, apos=0, bpos=0, x_angle_const_z=0,
-                       nPR1postemp=0, nPR1pos=0, nPR2pos=0, bLimit_3axis=False, bR1forceOutput=True,
+                       nPR1postemp=0, nPR1poscam=0, bR1StepReset=False, nPR1pos=0, nPR2pos=0,
+                       bLimit_3axis=False, bR1forceOutput=True,
                        i4xIndexClearanceMode=1, tool_z_level=10, tool_start_plane=40, nPtool_z_level=10,
                        iMplane=17, cWo='G', iWorkoffset=54, iAbsincmode=90, iMotionmode=1, position=1,
                        mcode_f='2.0(p)', clear_change_after_gen=1)

@@ -123,6 +123,14 @@ class RotaryChecks:
             run()
         self.assertIn('POST ERROR', str(stop.exception) + ''.join(engine.output[start:]), context)
 
+    def posted(self, run, context=''):
+        """run()'s NC text. The moves here turn A the way CAM does (dir5a from the step sign), so
+        a stop of the post (wrong-way guard, test_rotary_direction_guard) fails the check."""
+        try:
+            return run()
+        except UnsupportedGPPL as stop:
+            self.fail(f'{context}: the post stopped on a CAM-consistent move: {stop}')
+
     # ab853be + ad2537a (+ the efc initial-DC session check and the TSR A=DC check)
     def check_program_start_forces_dc(self, source=None):
         session = Session(source=source)
@@ -169,10 +177,10 @@ class RotaryChecks:
 
     # bff5ed0: index moves take their direction from the index, never from a stale dir5a
     def check_index_direction_ignores_stale_dir5a(self, source=None):
-        for index_dir, stale_dir5a, mode in (('ccw', 'cw', 'ACP'), ('cw', 'ccw', 'ACN')):
+        for index_dir, stale_dir5a, cut_apos, mode in (('ccw', 'cw', -10, 'ACP'), ('cw', 'ccw', 10, 'ACN')):
             engine = motion_engine(source)
             engine.set(bR1forceOutput=False, opposite_z_angle_const_y=0)
-            cut = event(engine, 'line_5x', ('apos',), apos=10, dir5a=stale_dir5a)
+            cut = event(engine, 'line_5x', ('apos',), apos=cut_apos, dir5a=stale_dir5a)
             self.assertEqual(len(rotary_words(cut)), 1, cut)
             event(engine, 'end_of_job')   # the 5x job ends; the next job starts with an index
             text = event(engine, 'fourth_axis', angle=90, angle_4x_around_x_dir=index_dir)
@@ -190,17 +198,19 @@ class RotaryChecks:
 
     # 8966d35 contract, guaranteed since bff5ed0
     def check_half_turn_moves_have_explicit_direction(self, source=None):
+        # (procedure, previous CAM A, CAM A, dir5a, word): CAM turns A by +-180 in dir5a's direction.
         cases = [
             ('move_5x', 0, 180, 'ccw', ('ACP', 180.0)),
-            ('move_5x', 0, 180, 'cw', ('ACN', 180.0)),
+            ('move_5x', 0, -180, 'cw', ('ACN', 180.0)),
             ('line_5x', 10, 190, 'ccw', ('ACP', 190.0)),
-            ('line_5x', 350, -190, 'cw', ('ACN', 170.0)),  # crosses 0: -190 deg is position 170
+            ('line_5x', -10, -190, 'cw', ('ACN', 170.0)),  # below 0: -190 deg is position 170
             ('line_5x', 90, -90, 'cw', ('ACN', 270.0)),
         ]
         for procedure, previous, apos, direction, expected in cases:
             engine = motion_engine(source)
-            engine.set(bR1forceOutput=False, nPR1pos=previous)
-            text = event(engine, procedure, ('apos',), apos=apos, dir5a=direction)
+            engine.set(bR1forceOutput=False, nPR1pos=previous % 360, nPR1postemp=previous)
+            text = self.posted(lambda: event(engine, procedure, ('apos',), apos=apos, dir5a=direction),
+                               repr((procedure, previous, apos, direction)))
             self.assertEqual(rotary_words(text), [expected], (procedure, previous, apos, direction, text))
         engine = motion_engine(source)
         engine.set(bR1forceOutput=False, bR1useDir5a=False, nPR1pos=0, opposite_z_angle_const_y=0)
@@ -216,13 +226,13 @@ class RotaryChecks:
     # bff5ed0: 4x events select ACP/ACN from dir5a and restore bR1useDir5a
     def check_4x_events_take_direction_from_dir5a(self, source=None):
         for procedure in ('line_4x', 'move_4x'):
-            for dir5a, index_dir, mode in (('ccw', 'cw', 'ACP'), ('cw', 'ccw', 'ACN')):
+            for dir5a, index_dir, cpos, word in (('ccw', 'cw', 30, ('ACP', 30.0)), ('cw', 'ccw', -30, ('ACN', 330.0))):
                 engine = motion_engine(source)
                 # Outside the 4x/5x wrappers the post keeps bR1useDir5a false.
                 engine.set(bR1useDir5a=False, bR1forceOutput=False)
-                text = event(engine, procedure, ('cpos',), cpos=30, dir5a=dir5a,
-                             angle_4x_around_x_dir=index_dir)
-                self.assertEqual(rotary_words(text), [(mode, 30.0)], f'{procedure} dir5a={dir5a}: {text!r}')
+                text = self.posted(lambda: event(engine, procedure, ('cpos',), cpos=cpos, dir5a=dir5a,
+                                                 angle_4x_around_x_dir=index_dir), f'{procedure} dir5a={dir5a}')
+                self.assertEqual(rotary_words(text), [word], f'{procedure} dir5a={dir5a}: {text!r}')
                 self.assertFalse(engine.state['br1usedir5a'], f'{procedure} must restore bR1useDir5a=false')
 
     # 77c03c6: @home_data must not write settable frames
@@ -268,7 +278,11 @@ class RotaryChecks:
                 continue  # stay inside one turn (whole turns: FixedRotaryDefectGuards)
             cam = round(cam + step, 3)
             steps += 1
-            text = event(engine, 'line_5x', ('apos',), apos=cam, dir5a='ccw' if step > 0 else 'cw')
+            try:
+                text = event(engine, 'line_5x', ('apos',), apos=cam, dir5a='ccw' if step > 0 else 'cw')
+            except UnsupportedGPPL as stop:
+                mismatches.append(f'step {step_number}: CAM step {step} stopped the post: {stop}')
+                break
             words = rotary_words(text)
             if len(words) != 1 or words[0][0] not in ('ACP', 'ACN'):
                 mismatches.append(f'step {step_number}: {text!r}')
@@ -511,7 +525,7 @@ class RotaryPropertyTests(RotaryChecks, unittest.TestCase):
     def test_unchanged_position_is_not_reemitted(self):
         """INDEPENDENT: geometry and the GPP change rule (change(nR1pos) against the
         previously programmed position): a repeated A target needs no A word, a
-        changed one exactly one. Sub-resolution changes are PP-046 and not used here."""
+        changed one exactly one. Sub-resolution changes: test_sub_resolution_rotary_change_does_not_home (PP-046)."""
         self.check_unchanged_position_is_not_reemitted()
 
 
@@ -739,13 +753,14 @@ class KnownRotaryDefects(unittest.TestCase):
         state = session.state
         self.assertEqual((state['shift_x'], state['shift_y'], state['shift_z']), (10, -5, 3))
 
-    @known_defect('PP-046')
+    @covers('PP-046')
     def test_sub_resolution_rotary_change_does_not_home(self):
         """INDEPENDENT: VMID RotaryAxisPrecision=0.001 and nR1pos_f '7.3': a target
         that formats to the current A (270) is no rotation, so the rapid needs no
-        G75 clearance and no A word. The exact compare 'nPR1pos ne nR1pos' turns a
-        1e-9 difference into G75 Z + XY homing plus a no-op A=ACN(270). UNVERIFIED:
-        GPPL numeric compare semantics (exact or tolerance/format based)."""
+        G75 clearance and no A word. The exact compare 'nPR1pos ne nR1pos' used to
+        turn a 1e-9 difference into G75 Z + XY homing plus a no-op A=ACN(270);
+        usr_r1_range now rounds nR1pos to the output step, so the compare sees the
+        printed positions. Regression guard of PP-046."""
         engine = motion_engine()
         engine.set(nPR1pos=270, nPR1postemp=-90, apos=-90)   # A already at 270
         text = event(engine, 'move_5x', ('xpos',), apos=-90 - 1e-9, xpos=50)

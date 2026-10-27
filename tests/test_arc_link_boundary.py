@@ -57,7 +57,7 @@ class ArcLinkBoundaryTests(unittest.TestCase):
         blocks = parse_blocks(text)
         rotation = index_of(blocks, lambda block: block.rotary('A') is not None)
         self.assertGreaterEqual(rotation, 0, f'no rotary output: {text!r}')
-        self.assertEqual(blocks[rotation].rotary('A'), ('ACN', 10.0), text)
+        self.assertEqual(blocks[rotation].rotary('A'), ('ACP', 10.0), text)
         required = parse_block(self.fixture['required_output_before_rotation']).homing_axes
         self.assertGreaterEqual(last_index_of(blocks, lambda block: required <= block.homing_axes, 0, rotation), 0,
                                 f'Descending Z30->20 after the arc was mistaken for a retract from stale Z10: {text!r}')
@@ -65,7 +65,7 @@ class ArcLinkBoundaryTests(unittest.TestCase):
     def test_descending_link_after_arc_does_not_bypass_homing(self):
         """INDEPENDENT: geometry and the d5952a2 link contract: the feed_link
         from the arc endpoint Z30 down to Z20 is a descent, so the following
-        rotation to A10 must home Z first (G75 Z1=0. before A=ACN(10))."""
+        rotation to A10 must home Z first (G75 Z1=0. before A=ACP(10))."""
         self.check_descending_link_after_arc()
 
     def test_arc_invalidates_previous_link_and_tracks_workoffset(self):

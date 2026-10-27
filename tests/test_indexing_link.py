@@ -109,8 +109,10 @@ def link_retract(session, z=20, call='line_5x', **values):
 
 
 def rotate(session, a=10):
-    """A rotary-only rapid (move_5x); prev_command is tracked by the Session."""
-    return session.ev('move_5x', ['apos'], apos=a)
+    """A rotary-only rapid (move_5x) turning A the way CAM does (dir5a from the
+    apos step); prev_command is tracked by the Session."""
+    direction = 'ccw' if a > session.engine.state['apos'] else 'cw'
+    return session.ev('move_5x', ['apos'], apos=a, dir5a=direction)
 
 
 class LinkOracle:
@@ -654,7 +656,7 @@ class CamLinkTransitionTests(LinkOracle, unittest.TestCase):
         for axis, value in (('xpos', 15), ('ypos', 30), ('apos', 8), ('bpos', 5)):
             with self.subTest(axis=axis):
                 session = rotated_job(source)
-                session.ev('line_5x', ['zpos', axis], zpos=20, feed_type='feed_link', **{axis: value})
+                session.ev('line_5x', ['zpos', axis], zpos=20, feed_type='feed_link', dir5a='ccw', **{axis: value})
                 self.assertFalse(session.state['bcamlinkretract'], axis)
                 self.assert_rotation_after_homing(rotate(session, a=12), axis)
 
@@ -719,7 +721,7 @@ class CamLinkTransitionTests(LinkOracle, unittest.TestCase):
         session = rotated_4x_job(source)
         link_retract(session, call='line_4x')
         self.assertTrue(session.state['bcamlinkretract'], 'straight 4x link not confirmed')
-        self.assert_rotation_without_homing(session.ev('move_4x', ['cpos'], cpos=10), ('ACN', 10.0))
+        self.assert_rotation_without_homing(session.ev('move_4x', ['cpos'], cpos=10, dir5a='ccw'), ('ACP', 10.0))
 
     @covers('PP-018')
     def test_straight_4x_link_keeps_authorization(self):
@@ -736,7 +738,7 @@ class CamLinkTransitionTests(LinkOracle, unittest.TestCase):
     @known_defect('PP-018', match='accepted as a straight retract|A rotated without Z homing')
     def test_rotary_4x_link_is_not_a_straight_retract(self):
         """INDEPENDENT: usr_rapid contract 'a CAM-tagged, straight Z retract':
-        the 4x link block itself rotates A (A=ACN(8)), so it is not straight
+        the 4x link block itself rotates A (A=ACP(8)), so it is not straight
         and the next rotation must home.
 
         UNVERIFIED: whether SolidCAM 4x feed links carry the rotation in cpos
@@ -744,9 +746,9 @@ class CamLinkTransitionTests(LinkOracle, unittest.TestCase):
         apos/bpos but not cpos.
         """
         session = rotated_4x_job()
-        session.ev('line_4x', ['zpos', 'cpos'], zpos=20, cpos=8, feed_type='feed_link')
+        session.ev('line_4x', ['zpos', 'cpos'], zpos=20, cpos=8, feed_type='feed_link', dir5a='ccw')
         self.assertFalse(session.state['bcamlinkretract'], 'rotating 4x link accepted as a straight retract')
-        self.assert_rotation_after_homing(session.ev('move_4x', ['cpos'], cpos=10))
+        self.assert_rotation_after_homing(session.ev('move_4x', ['cpos'], cpos=10, dir5a='ccw'))
 
 
 class CamLinkGuardTests(LinkOracle, unittest.TestCase):
@@ -771,7 +773,7 @@ class CamLinkGuardTests(LinkOracle, unittest.TestCase):
                 link_retract(session)
                 self.assertTrue(session.state['bcamlinkretract'], 'precondition: confirmed retract')
                 session.engine.set(**state)
-                self.assert_rotation_after_homing(session.ev(call, ['apos'], apos=10), name)
+                self.assert_rotation_after_homing(session.ev(call, ['apos'], apos=10, dir5a='ccw'), name)
 
     def test_each_rapid_precondition_blocks_authorization(self):
         """INDEPENDENT: the d5952a2 usr_rapid preconditions (5x/4x event, 5x job,
@@ -812,14 +814,14 @@ class DesignPinTests(LinkOracle, unittest.TestCase):
         session = rotated_job(source)                        # last path Z = -1
         link_retract(session, z=-0.999)
         self.assertTrue(session.state['bcamlinkretract'], '0.001 mm feed_link step')
-        self.assert_rotation_without_homing(rotate(session), ('ACN', 10.0), 'after a 0.001 mm retract')
+        self.assert_rotation_without_homing(rotate(session), ('ACP', 10.0), 'after a 0.001 mm retract')
         # (b) a rapid that descends inside the confirmed link keeps the authorization.
         session = rotated_job(source)
         link_retract(session, z=20)
         descent = parse_blocks(session.ev('move_5x', ['xpos', 'zpos'], xpos=40, zpos=2))
         self.assertEqual([block.axes for block in descent], [{'X': 40.0, 'Z': 2.0}])
         self.assertTrue(session.state['bcamlinkretract'], 'descending link rapid')
-        self.assert_rotation_without_homing(rotate(session), ('ACN', 10.0), 'at Z2 after a descending rapid')
+        self.assert_rotation_without_homing(rotate(session), ('ACP', 10.0), 'at Z2 after a descending rapid')
 
     @covers('DESIGN-001')
     def test_cam_link_trusts_any_positive_z_step_and_descending_rapids(self):

@@ -174,12 +174,12 @@ class FirstRapidTests(unittest.TestCase):
         session = first_job(source)
         session.cut(10, 20, 5, -1)
         session.same_tool_job(job_name='op2')
-        session.ev('move_5x', ['apos'], apos=5)
+        session.ev('move_5x', ['apos'], apos=5, dir5a='ccw')
         session.ev('move_5x', XYZ, xpos=10, ypos=20, zpos=5)
         session.ev('line_5x', ['zpos', 'feed'], zpos=-1, feed_type='feed_cut')
         session.ev('line_5x', ['zpos'], zpos=20, feed_type='feed_link')
         blocks = parse_blocks(session.ev('move_5x', ['apos'], apos=10))
-        self.assertEqual([block.rotary('A') for block in blocks if block.rotary('A')], [('ACN', 10.0)],
+        self.assertEqual([block.rotary('A') for block in blocks if block.rotary('A')], [('ACP', 10.0)],
                          [block.raw for block in blocks])
         self.assertEqual([block.raw for block in blocks if 75 in block.g], [],
                          f'homing inside a confirmed CAM link of a same-tool job: {[b.raw for b in blocks]}')
@@ -187,7 +187,7 @@ class FirstRapidTests(unittest.TestCase):
     def test_first_rapid_flag_is_cleared_by_the_first_rapid(self):
         """INDEPENDENT: deleting the real 'bFirstRapid = false' of @usr_rapid (one edit) keeps every
         later rapid of a same-tool job a 'first rapid', so a rotary rapid inside a confirmed CAM link
-        (d5952a2) is homed. The CAM-link guard (no G75, one A=ACN(10)) must fail with AssertionError."""
+        (d5952a2) is homed. The CAM-link guard (no G75, one A=ACP(10)) must fail with AssertionError."""
         self.check_link_rotation_in_same_tool_job()
         mutant = mutate('        call @usr_prep_home_axis\n        bFirstRapid = false\n    endif\n',
                         '        call @usr_prep_home_axis\n    endif\n')
@@ -571,8 +571,8 @@ class RotaryFeedModeTests(unittest.TestCase):
         session.ev('move_5x', XYZ, xpos=10, ypos=0, zpos=50)
         session.ev('line_5x', ('zpos', 'feed'), zpos=20, feed=200, feed_type='feed_cut')
         mark = session.mark()
-        session.ev('line_4x', ('apos', 'feed'), apos=30, feed=200, feed_type='feed_cut')
-        session.ev('line_4x', ('xpos', 'apos'), xpos=22, apos=60, feed_type='feed_cut')
+        session.ev('line_4x', ('apos', 'feed'), apos=30, feed=200, feed_type='feed_cut', dir5a='ccw')
+        session.ev('line_4x', ('xpos', 'apos'), xpos=22, apos=60, feed_type='feed_cut', dir5a='ccw')
         replayed, first = program_replay(session, mark)
         missing = [block.raw for block, state in replayed[first:]
                    if block.rotary('A') is not None and state.motion == 1 and state.feed_mode != 93]

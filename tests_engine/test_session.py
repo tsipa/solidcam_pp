@@ -52,8 +52,8 @@ class SessionReplayTests(unittest.TestCase):
                              'G1 G41 Y30 Z-5 F600', 'X40', 'G2 X50 Y20 I0 J-10', 'G1 Y0', 'G0 Z50', 'G40 X50 Y0',
                              'M9', 'M5', 'M1', 'T2', 'MSG("D_PECK")', 'X25 Y15', 'MCALL CYCLE83 (30,0,2,-20,,,4,4,,0.5,1,1)',
                              'X45', 'MCALL', 'G54 A=ACN(90)', 'MSG("F_SIDE_A90")', 'M0', ';CHECK PART',
-                             'MSG("F_5X")', 'G0 A=ACN(100)', 'G1 G93 Z5 A=ACP(110) F19.769', 'G94 Z30 F300',
-                             'G0 A=ACN(120)',
+                             'MSG("F_5X")', 'G0 A=ACP(100)', 'G1 G93 Z5 A=ACP(110) F19.769', 'G94 Z30 F300',
+                             'G0 A=ACP(120)',
                              'A=ACN(135)', 'M30']
         position = 0
         for token in expected_in_order:
@@ -61,7 +61,7 @@ class SessionReplayTests(unittest.TestCase):
             self.assertIsNotNone(found, f'{token!r} missing/out of order after line {position}')
             position = found + 1
         self.assertEqual(lines[-1], 'M30')
-        rotation = lines.index('G0 A=ACN(120)')
+        rotation = lines.index('G0 A=ACP(120)')
         self.assertEqual(lines[rotation - 1], 'G94 Z30 F300')   # CAM-link retract authorises the rotary rapid
 
     def test_inline_per_event_oracles(self):
@@ -225,8 +225,10 @@ class CoverageTests(unittest.TestCase):
         # test_replay_findings.test_zx_arc_stops_the_session runs it. The unsupported events stop the post
         # (tests/test_unsupported_features.py). usr_line_homed_return: a feed move right after a post homing,
         # which only the removed subprogram session recorded (tests/test_post_homing_reposition.py runs it).
+        # usr_r1_wrong_way_stop: every session turns A the way CAM does (tests/test_rotary_direction_guard.py
+        # runs it).
         unsupported = {'call_proc', 'proc', 'end_proc', 'loop', 'end_loop', 'change_ref_point', 'usr_unsupported_event'}
-        self.assertEqual(never, {'arc_zx', 'usr_line_homed_return'} | unsupported)
+        self.assertEqual(never, {'arc_zx', 'usr_line_homed_return', 'usr_r1_wrong_way_stop'} | unsupported)
         self.assertIn('Branch gaps', total.markdown(program))
 
     def test_coverage_file_merges_across_processes_and_ignores_mutants(self):
