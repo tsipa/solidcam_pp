@@ -164,7 +164,8 @@ class PostHomingProgramTests(unittest.TestCase):
         source = PP.read_text(encoding='utf-8-sig')
         anchor = '    bTlchg = false\n    bClimbZValid = false\n'
         self.assertEqual(source.count(anchor), 1, 'tool-change rapid branch changed; review this test')
-        program = self.two_tools(source.replace(anchor, anchor + '    bPostHomed = false\n', 1))
+        # The tool change also marks the position unknown (bTcReprogram): the mutant clears both.
+        program = self.two_tools(source.replace(anchor, anchor + '    bPostHomed = false\n    bTcReprogram = false\n', 1))
         self.assertEqual(program.ev('move_5x', xpos=10, ypos=20, zpos=60), ['Z60'])
 
 

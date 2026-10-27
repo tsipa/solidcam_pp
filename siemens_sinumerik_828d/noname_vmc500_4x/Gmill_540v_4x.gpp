@@ -53,7 +53,9 @@
     ; move reprograms X/Y/Z. usr_rapid_xyz keeps it set to its end as the homed-return marker.
     ; bCamLinkRapid / bRapidRotaryChanged: per-rapid decisions of usr_rapid, shared by its stages.
     ; bPostHomedZ: Z is among the axes homed since the last positioning move (with bPostHomed).
-    global logical bPostHomed bPostHomedZ bCamLinkRapid bRapidRotaryChanged
+    ; bTcReprogram: M06/D1 ran since the last positioning move; the next move programs X, Y and Z
+    ; also when no post homing ran (bHometc, or bHomebegin and bHomerotv, switched off).
+    global logical bPostHomed bPostHomedZ bCamLinkRapid bRapidRotaryChanged bTcReprogram
     ; WORKPIECE header: the program body is buffered in a file until the end of the file
     ; (usr_workpiece_begin / usr_workpiece_flush), so the blank is clamped on A only when a non-zero
     ; A word was printed (usr_r1_output sets bWorkpieceUsesA; A=DC(0) of the first tool does not).
@@ -374,6 +376,7 @@ endp
     bJobPositioned = false
     bPostHomed = false
     bPostHomedZ = false
+    bTcReprogram = false
     bClimbZValid = false
     iFeedMode = 94
     change(iFeedMode) = false
@@ -669,6 +672,9 @@ endp
         call @usr_ct_before_firsttool
     endif
     call @usr_ct_toolchange
+    ; M06 moves the axes and D1 changes the tool length: the CAM change flags no longer describe the
+    ; machine position, homed or not.
+    bTcReprogram = true
     call @usr_ct_after
 endp
 
@@ -1247,14 +1253,16 @@ endp
     ; The X/Y/Z part of a rapid (not the tool-change block), with a pending cutter compensation
     ; change: one block, or a split into Z then X/Y (climb) or X/Y then Z.
     local logical bClimbFirst
-    if bPostHomed
-        ; The post homed the axes after the last positioning move, so the CAM change flags no longer
-        ; describe the machine position: program X, Y and Z explicitly. bPostHomed stays set until the
-        ; end of this procedure: the climb test and the XY/Z split below read it.
+    if bPostHomed or bTcReprogram
+        ; The post homed the axes, or a tool change ran, after the last positioning move, so the CAM
+        ; change flags no longer describe the machine position: program X, Y and Z explicitly.
+        ; bPostHomed stays set until the end of this procedure: the climb test and the XY/Z split
+        ; below read it.
         change(xpos) = true
         change(ypos) = true
         change(zpos) = true
     endif
+    bTcReprogram = false
     if change(iDiametercomp)
         call @usr_rapid_trc_axes
     endif
@@ -1451,8 +1459,11 @@ endp
         endif
         iCompActive = iDiametercomp
     endif
-    if bPostHomed
+    if bPostHomed or bTcReprogram
+        ; Also a feed move straight after a tool change without a homing: X/Y in rapid at the height
+        ; M06 left the tool, then the feed in Z.
         call @usr_line_homed_return
+        bTcReprogram = false
     endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iFeedMode' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
     {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
@@ -1484,9 +1495,9 @@ endp
 endp
 
 @usr_line_homed_return
-    ; A feed move directly after a post-inserted homing: return over the target at the homed Z in
-    ; rapid (carrying a TRC change, it has X and Y), then feed down in Z, instead of one diagonal
-    ; feed move from the homing position.
+    ; A feed move directly after a post-inserted homing (or a tool change, bTcReprogram): return over
+    ; the target at the current Z in rapid (carrying a TRC change, it has X and Y), then feed down in
+    ; Z, instead of one diagonal feed move from the homing position.
     iMotionmode = 0
     {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'X'xpos ' ','Y'ypos ' '}
     iMotionmode = 1

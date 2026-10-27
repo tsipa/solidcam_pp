@@ -305,6 +305,35 @@ class IndexStopTests(unittest.TestCase):
         self.assertLess(2, turn)
 
 
+class RepositionWithoutHomingTests(unittest.TestCase):
+    """M06 moves the axes and D1 changes the tool length: the first move after a tool change programs
+    X, Y and Z whether or not a homing ran (bTcReprogram). Oracle (INDEPENDENT): absolute G90 words
+    that are left out keep whatever position the control has, which after M06 is not CAM's."""
+
+    def test_first_rapid_after_a_tool_change_without_homing_programs_all_axes(self):
+        """INDEPENDENT: bHometc off, the new tool starts over the old tool's last X/Y/Z."""
+        p, _ = first_job(bHometc=False)
+        p.ev('end_of_job', next_job_tool_number=2)
+        p.ev('change_tool', tool_number=2, next_tool_number=1, first_tool=False, last_tool=True, xnext=10, ynext=10)
+        p.ev('start_of_job', job_name='op2', next_job_tool_number=0)
+        self.assertEqual(p.ev('rapid_move', xpos=10, ypos=10, zpos=50), ['X10 Y10', 'Z50'])
+        self.assertEqual(p.ev('rapid_move', zpos=5), ['Z5'])
+
+    def test_first_rapid_of_the_program_without_homing_programs_all_axes(self):
+        """INDEPENDENT: bHomebegin and bHomerotv off, the first rapid has CAM X 0 (the initial value)."""
+        p = program(bHomebegin=False, bHomerotv=False)
+        p.start(tool=1, next_tool=2, next_job_tool_number=0)
+        self.assertEqual(p.ev('rapid_move', xpos=0, ypos=20, zpos=50), ['X0 Y20', 'Z50'])
+
+    def test_first_feed_move_after_a_tool_change_without_homing_returns_in_rapid(self):
+        """INDEPENDENT: a feed move first: X/Y in rapid at the current height, then the feed in Z."""
+        p, _ = first_job(bHometc=False)
+        p.ev('end_of_job', next_job_tool_number=2)
+        p.ev('change_tool', tool_number=2, next_tool_number=1, first_tool=False, last_tool=True, xnext=10, ynext=10)
+        p.ev('start_of_job', job_name='op2', next_job_tool_number=0)
+        self.assertEqual(p.ev('line', xpos=10, ypos=10, zpos=5, feed=150), ['G0 X10 Y10', 'G1 Z5 F150'])
+
+
 def representative(source=None, **options):
     """Tool 1: op1, same-tool op2, CoordSys index op3, @fourth_axis index op4; tool 2: op5 with a 5x
     A turn outside a CAM link and a G93 cut, same-tool op6; program end. Returns the NC lines."""
