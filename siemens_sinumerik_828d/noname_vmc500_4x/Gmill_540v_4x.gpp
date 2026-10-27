@@ -6,7 +6,8 @@
     ; Globals by purpose. Keep each type: integer and numeric print and divide differently.
     ; User options (usr_ip_useroptions, usr_ip_postwriteroptions, the rotary block at its end)
     global logical bToolPreselect bSyncdrapid bUseprogname bTlist bTlseperation bTcseperation bDateTimeOutput
-    global logical bToolChangeAtEnd bOptstpbegin bOptstptc bOptstpend bWorkoffsettc bNnumtc bCoolspinaftertc
+    global logical bToolChangeAtEnd bOptstpbegin bOptstptc bOptstpend bOptstpjob bOptstpindex bWorkoffsettc bNnumtc bCoolspinaftertc
+    global logical bHomebegin bHometc bHomeend bHomerotv bHomeroth
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend
     global string cTCcodep cTCcodes cWo cPb cPe cCb cCe cOMb cOMe cR1
     global string sHomestrbegin sHomestrtc sHomestrend sHomestrstpsame sHomestrstpdiff sHomestrrotv sHomestrroth
@@ -23,6 +24,9 @@
     global numeric last_spin
     ; Tool change and job start
     global logical bTlchg bSafetyprep bStopM00difftool bskipline bFirstMove bFirstRapid
+    ; bBoundaryStop: an M0/M1 was printed since the last end_of_job (usr_optionalstop, usr_forcedstop);
+    ; the M1 between two operations of the same tool (bOptstpjob) is then not repeated.
+    global logical bBoundaryStop
     global integer iTcnumber
     global numeric nTcXnext nTcYnext nTcCnext nPtool_start_plane nPtool_z_level
     global string sUS_date sUS_time
@@ -135,6 +139,8 @@ endp
     bOptstpbegin          = false              ; True = M1 after the header (with bTlist)
     bOptstptc             = true               ; True = M1 before each tool change after the first
     bOptstpend            = false              ; True = M1 before the program end
+    bOptstpjob            = true               ; True = M1 between two operations of the same tool (not after an M0 or index M1 there)
+    bOptstpindex          = true               ; True = M1 before each A index turn (CoordSys change, @fourth_axis)
     bWorkoffsettc         = true               ; True = work offset repeated at each tool change
     bNnumtc               = False              ; True = N<2001, 2002, ...> on the safety block of each tool change
     blknum_exist          = False              ; True = block numbers (SolidCAM blknum settings below)
@@ -152,6 +158,15 @@ endp
     sHomestrstpdiff       = ''                 ; M0 before a tool change
     sHomestrrotv          = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0' ; First rapid of the program, head orientation change
     sHomestrroth          = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0' ; Before an A turn outside a CAM link
+    ;Homing on/off per point (the strings above stay as they are). The homings are the clearance
+    ;for these moves: switched off, the tool moves on from where CAM left it. The A index clearance
+    ;is i4xIndexClearanceMode (0 = home with the last head or A-turn homing string).
+    bHomebegin            = true               ; True = sHomestrbegin at the program start
+    bHometc               = true               ; True = sHomestrtc (sHomestrrotv for a vertical head) before each tool change after the first
+    bHomeend              = true               ; True = sHomestrend at the program end
+    bHomerotv             = true               ; True = sHomestrrotv at the first rapid of the program and at a head orientation change
+    bHomeroth             = true               ; True = sHomestrroth before an A turn outside a CAM link. False: A turns at the current
+                                               ; height, in its own block before X/Y/Z of the same rapid (DESIGN-004)
 
     iR1dir                = -1                 ; A direction: 1 = +CCW, -1 = +CW
     iR2dir                = 1                  ; Second rotary axis of the template (none on this machine)
@@ -375,6 +390,7 @@ endp
     bR1StepReset    = false
     change(cWo)     = false
     bFirstVert      = true
+    bBoundaryStop   = false
 endp
 
 ;-------------------
@@ -503,15 +519,17 @@ endp
 ;-------------------
 
 @start_program
-    ; Program start: home (sHomestrbegin).
-    sHomestr = sHomestrbegin
-    call @usr_prep_home_axis
+    ; Program start: home (sHomestrbegin, bHomebegin).
+    if bHomebegin
+        sHomestr = sHomestrbegin
+        call @usr_prep_home_axis
+    endif
 endp
 
 ;-------------------
 
 @end_program
-    ; End of program: coolant and spindle off, homing, optional stop, M30 (or M2).
+    ; End of program: coolant and spindle off, homing (bHomeend), optional stop, M30 (or M2).
     if bCooloffend and bCoolExist
         call @usr_coolant_prep_all_off
         call @usr_coolant_output
@@ -519,8 +537,10 @@ endp
     if bSpinoffend
         call @usr_spindle_stop
     endif
-    sHomestr = sHomestrend
-    call @usr_prep_home_axis
+    if bHomeend
+        sHomestr = sHomestrend
+        call @usr_prep_home_axis
+    endif
     if bOptstpend
         call @usr_optionalstop
     endif
@@ -645,7 +665,7 @@ endp
 endp
 
 @usr_ct_before_notfirsttool
-    ; Before a tool change after the first: coolant and spindle off, home, optional stop, safety block.
+    ; Before a tool change after the first: coolant and spindle off, home (bHometc), optional stop, safety block.
     ; bStopM00difftool is always false here (PP-056: end_of_job clears it in the same event), so the
     ; G75 retract before M06 always runs.
     if !bStopM00difftool
@@ -664,7 +684,9 @@ endp
         else
             sHomestr = sHomestrtc
         endif
-        call @usr_prep_home_axis
+        if bHometc
+            call @usr_prep_home_axis
+        endif
         if bOptstptc
             call @usr_optionalstop
         endif
@@ -1016,10 +1038,15 @@ endp
         call @usr_ct
         bTlchg = false
     else
-        ; Same tool: the job comment and, when the work offset changes (not with the VMID 3-axis
-        ; limit bLimit_3axis), one G0 block with the new offset and A.
+        ; Same tool: the job comment, the M1 (bOptstpjob) and, when the work offset changes (not with
+        ; the VMID 3-axis limit bLimit_3axis), one G0 block with the new offset and A.
         bFirstRapid = true
         {nb, cOMb,job_name,cOMe}
+        if bOptstpjob and !bBoundaryStop
+            ; M1 between the two operations, after the message of the next one (shown during the
+            ; stop), unless this boundary stopped already (M0 of bStopM00, M1 of an A index).
+            call @usr_optionalstop
+        endif
         if iPworkoffset ne iWorkoffset and !bLimit_3axis
             call @usr_tc_init_gmstates
             if iDiametercomp ne iCompActive
@@ -1039,6 +1066,7 @@ endp
 
 @end_of_job
     ; End of a job: back to G94, the M00 stop (bStopM00), the job's work offset and Z levels for the next.
+    bBoundaryStop = false
     call @usr_feedmode_94
     call @usr_link_boundary
     if (iCompActive eq 41 or iCompActive eq 42) and iMplane eq 17 and bClimbZValid and nLastPathZ >= tool_start_plane
@@ -1085,18 +1113,24 @@ endp
     endif
     call @usr_r1pos_calc
     if bFirstRapid or bTlchg
-        ; First rapid of a job or of a tool change: home if the head orientation changes.
+        ; First rapid of a job or of a tool change: home if the head orientation changes (bHomerotv;
+        ; usr_rapid_head_check still selects, so the head state and the Z format follow).
         call @usr_rapid_head_check
-        call @usr_prep_home_axis
+        if bHomerotv
+            call @usr_prep_home_axis
+        endif
         bFirstRapid = false
     endif
     ; The A output clears the change flag: remember whether this rapid turns A.
     bRapidRotaryChanged = change(nR1pos)
     if change(nR1pos) and !bCamLinkRapid
-        ; Outside a CAM link CAM planned no clearance for the swing: home first.
+        ; Outside a CAM link CAM planned no clearance for the swing: home first (bHomeroth). The
+        ; string becomes the index homing (sHomestrrot) also when this homing is switched off.
         sHomestrrot = sHomestrroth
-        sHomestr = sHomestrrot
-        call @usr_prep_home_axis
+        if bHomeroth
+            sHomestr = sHomestrrot
+            call @usr_prep_home_axis
+        endif
     endif
     if bR1wrongWay and !(bPostHomed and bPostHomedZ)
         ; A turns another way than CAM and the tool does not stand at a Z homing (a CAM link, a rotation
@@ -1743,11 +1777,13 @@ endp
 @usr_optionalstop
     ; M1 optional stop.
     {nb, 'M1 '}
+    bBoundaryStop = true
 endp
 
 @usr_forcedstop
     ; M0 program stop.
     {nb, 'M0 '}
+    bBoundaryStop = true
 endp
 
 @usr_stop_m00
@@ -2355,7 +2391,7 @@ endp
 endp
 
 @usr_4x_index
-    ; Index A between operations (tmatrix in start_of_job, fourth_axis): M1, then the turn.
+    ; Index A between operations (tmatrix in start_of_job, fourth_axis): M1 (bOptstpindex), then the turn.
     ;   i4xIndexMode: 0 = turn A in the current work offset, 1 = also step the work offset by
     ;   position-1 (G54, G55, ...).
     ;   i4xIndexClearanceMode: 0 = home first (sHomestrrot, the last A-turn or head homing string;
@@ -2366,7 +2402,9 @@ endp
         ; Turning A does not move Z. A homing clears bClimbZValid itself; a clearance move sets nLastPathZ.
         ; The index is not a tracked feed start (A and possibly Z moved).
         bFeedPrevValid = false
-        call @usr_optionalstop
+        if bOptstpindex
+            call @usr_optionalstop
+        endif
         call @usr_4x_index_rotate
     endif
 endp

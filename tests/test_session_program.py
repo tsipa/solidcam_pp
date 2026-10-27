@@ -133,8 +133,8 @@ class ProgramEndTests(unittest.TestCase):
             'a03b38e reverted (M2)': (mutate("{nb, 'M2'}", "{nb, 'M2 '}"), 2),
             'XY homed before Z': (mutate("sHomestrend           = '8::G75 Z1=0. ;8::G75 Y1=0 X1=0'",
                                          "sHomestrend           = '8::G75 Y1=0 X1=0;8::G75 Z1=0. '"), 30),
-            'no end homing': (mutate("    sHomestr = sHomestrend\n    call @usr_prep_home_axis\n",
-                                     "    sHomestr = sHomestrend\n"), 30),
+            'no end homing': (mutate("        sHomestr = sHomestrend\n        call @usr_prep_home_axis\n",
+                                     "        sHomestr = sHomestrend\n"), 30),
             'spindle not stopped': (mutate('bSpinoffend           = true', 'bSpinoffend           = false'), 30),
             'coolant not stopped': (mutate('bCooloffend           = true', 'bCooloffend           = false'), 30),
         }
@@ -172,8 +172,8 @@ class ProgramStartTests(unittest.TestCase):
             'XY before Z': mutate(anchor, "sHomestrbegin         = '8::G75 Y1=0 X1=0;8::G75 Z1=0. '"),
             'empty start homing': mutate(anchor, "sHomestrbegin         = ''"),
             'start homing not called': mutate(
-                "    sHomestr = sHomestrbegin\n    call @usr_prep_home_axis\n",
-                "    sHomestr = sHomestrbegin\n"),
+                "        sHomestr = sHomestrbegin\n        call @usr_prep_home_axis\n",
+                "        sHomestr = sHomestrbegin\n"),
         }
         for label, source in sources.items():
             with self.subTest(mutant=label):

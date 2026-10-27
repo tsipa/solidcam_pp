@@ -460,7 +460,8 @@ class CompensationPlaneAxisTests(unittest.TestCase):
 
     def yz_climb(self, source=None):
         require_nc_stream()
-        program = same_tool_second_job('yz', source)
+        # Without the M1 between the jobs (bOptstpjob) the climb follows the MSG block directly.
+        program = same_tool_second_job('yz', source, bOptstpjob=False)
         program.ev('compensation', side='left')
         program.ev('move_5x', xpos=10, ypos=10, zpos=40)
         yz_arc(program, (0, 30), (10, 40), (10, 30), feed=200)
@@ -534,7 +535,8 @@ class CompensationPlaneAxisTests(unittest.TestCase):
 
     def test_job_start_rapid_without_motion_is_not_joined_to_the_msg_line(self):
         require_nc_stream()
-        program = Program()
+        # Without the M1 between the jobs (bOptstpjob) the rapid follows the MSG block directly.
+        program = Program(options=dict(bOptstpjob=False))
         program.start()
         program.ev('move_5x', xpos=10, ypos=10, zpos=5)
         program.ev('line_5x', zpos=-1, feed=200)

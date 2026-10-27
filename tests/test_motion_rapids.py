@@ -189,8 +189,8 @@ class FirstRapidTests(unittest.TestCase):
         later rapid of a same-tool job a 'first rapid', so a rotary rapid inside a confirmed CAM link
         (d5952a2) is homed. The CAM-link guard (no G75, one A=ACP(10)) must fail with AssertionError."""
         self.check_link_rotation_in_same_tool_job()
-        mutant = mutate('        call @usr_prep_home_axis\n        bFirstRapid = false\n    endif\n',
-                        '        call @usr_prep_home_axis\n    endif\n')
+        mutant = mutate('            call @usr_prep_home_axis\n        endif\n        bFirstRapid = false\n    endif\n',
+                        '            call @usr_prep_home_axis\n        endif\n    endif\n')
         assert_detected(self, self.check_link_rotation_in_same_tool_job, mutant, 'bFirstRapid never cleared')
 
     @covers('PP-013')
@@ -358,9 +358,11 @@ class RapidWithoutMotionTests(unittest.TestCase):
               "        skipline = false\n    endif\n")
 
     @staticmethod
-    def program(source=None, emulated=False):
+    def program(source=None, emulated=False, **options):
         require_nc_stream()
-        program = Program(source=source, options=dict(bSyncdrapid=False) if emulated else None)
+        if emulated:
+            options['bSyncdrapid'] = False
+        program = Program(source=source, options=options or None)
         program.start(job_type='3-d model' if emulated else 'contour')
         return program
 
@@ -384,7 +386,8 @@ class RapidWithoutMotionTests(unittest.TestCase):
         self.assertIn(cut[-1].strip(), [raw.strip() for raw in program.nc()])
 
     def check_after_job_comment(self, source=None):
-        program = self.program(source)
+        # Without the M1 between the jobs (bOptstpjob) the rapid follows the MSG block directly.
+        program = self.program(source, bOptstpjob=False)
         program.ev('move_5x', xpos=10, ypos=10, zpos=5)
         program.ev('line_5x', zpos=-1, feed=200, feed_type='feed_cut')
         program.ev('line_5x', zpos=5, feed=200, feed_type='feed_cut')

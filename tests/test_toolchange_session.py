@@ -228,7 +228,7 @@ class ToolChangeSafetyTests(unittest.TestCase):
         """INDEPENDENT: tc-14 and weird-hunter tool-change mutants fail the guard."""
         # usr_ct_before_notfirsttool: neither the head homing nor the tool-change homing runs (the head
         # homing selection, sHomestrrot, zpos_f and bFirstVert, is kept)
-        both_homing = mutate("            sHomestr = sHomestrtc\n        endif\n        call @usr_prep_home_axis\n",
+        both_homing = mutate("            sHomestr = sHomestrtc\n        endif\n        if bHometc\n            call @usr_prep_home_axis\n        endif\n",
                              "            sHomestr = sHomestrtc\n        endif\n")
         sources = {
             'no tool-change homing': mutate(TC_HOMING_CALL, "        else\n            sHomestr = ''\n"),
@@ -294,8 +294,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
     def test_first_tool_change_mutations_are_detected(self):
         """INDEPENDENT: missing start homing, early preselect, no spindle start or no DC force fail."""
         sources = {
-            'no start homing': mutate("    sHomestr = sHomestrbegin\n    call @usr_prep_home_axis\nendp",
-                                      "    sHomestr = sHomestrbegin\nendp"),
+            'no start homing': mutate("        sHomestr = sHomestrbegin\n        call @usr_prep_home_axis\n    endif\nendp",
+                                      "        sHomestr = sHomestrbegin\n    endif\nendp"),
             'preselect before M06': mutate("    {nb, 'T',tool_number,cTCcodes}\n    {nb, cTCcodep}",
                                            "    {nb, 'T',tool_number,cTCcodes}\n    {nb, 'T'next_tool_number' '}\n"
                                            "    {nb, cTCcodep}"),
