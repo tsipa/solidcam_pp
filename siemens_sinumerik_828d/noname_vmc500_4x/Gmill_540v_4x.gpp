@@ -817,7 +817,7 @@ endp
     ; Handle output after tool change
     ; *Note: Coolant & job Options need handling
     local integer i poz1 l1b pr1
-    local string msg1 msg1a msg1b
+    local string msg1 msg1b
     if msg ne ''
         i = 1
         while i < 50
@@ -1741,7 +1741,7 @@ endp
     local numeric c, s
 
     local numeric calculated_xpos, calculated_ypos, calculated_zpos
-    local numeric tolerance, dx, dy, dz
+    local numeric dx, dy, dz
     local numeric dummy_var
 
     ; --- motion mode ---
@@ -1837,7 +1837,6 @@ endp
 
 @usr_arc
     ; Handle output for arc movement (G02/G03)
-	local string shit
     local numeric dummy_var
     if change(iDiametercomp)
         if iDiametercomp eq iCompActive
@@ -2390,7 +2389,7 @@ endp
 
 @usr_prep_home_axis
     ; Handle parsing of homing string and preping of output for homing
-    local integer i line l mode p1
+    local integer i l mode p1
     local string s s1 l1 pstr
     s = sHomestr                               ;Original String
     s1 = s                                     ;Temp String
@@ -2414,14 +2413,12 @@ endp
         ;*Pull out homing lines and send to output procedure
         p1 = instr(s1,';')                      ;Find the position of ";"
         if p1 ne 0
-            line = line + 1                     ;Keep track of lines. Not Used!!
             l1 = left(s1,p1-1)                  ;Pull out the left of ";"
             iHomingmode = mode                  ;Send Homing Mode
             cHomep = pstr                       ;Send Preperation String
             sHomeline = l1                      ;Send Homing Line
             call @usr_home_axis
         else
-            line = line + 1                     ;Keep track of lines. Not Used!!
             iHomingmode = mode                  ;Send Homing Mode
             cHomep = pstr                       ;Send Preperation String
             sHomeline = s1                      ;Send Homing Line
@@ -2574,7 +2571,7 @@ endp
     ; tmatrix + 4th Transform + cpos + 5xapos
     ; Note: Angular Feed Formula fc = f*(180/(pi*r))
     ; Note: fc=deg/min, f=linear feed
-    local numeric tmpypos tmpzpos dummy_var wrapped
+    local numeric wrapped
 	nR1postmatrix = (-angle_4x_around_x) * iR1dir                       ;Rotary from CoordSys (tmatrix)
     nR1postransform = (-angle) * iR1dir                                 ;Rotary from 4x-Transform
     nR1poscpos = (-cpos) * iR1dir                                       ;Rotary from C-axis cutting
