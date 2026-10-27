@@ -639,9 +639,6 @@ endp
     ; Handle setting WorkOffset Gcode
     if iWorkOffset_Method eq 0
         if iWorkOffsetmode eq 1
-            newshift_x = ((cos(-rotate_angle_y)*cos(rotate_angle_z)*shift_x) - (sin(rotate_angle_z)*cos(-rotate_angle_y)*shift_y) + (sin(-rotate_angle_y)*shift_z))
-            newshift_y = ((-sin(rotate_angle_x)*sin(-rotate_angle_y)*cos(rotate_angle_z) + cos(rotate_angle_x)*sin(rotate_angle_z))*shift_x) + ((sin(rotate_angle_x)*sin(-rotate_angle_y)*sin(rotate_angle_z) + cos(rotate_angle_x)*cos(rotate_angle_z))*shift_y) - (sin(rotate_angle_x)*cos(-rotate_angle_y)*shift_z)
-            newshift_z = -(((cos(rotate_angle_x)*cos(rotate_angle_z)*sin(-rotate_angle_y) + sin(rotate_angle_x)*sin(rotate_angle_z))*shift_x) + ((-sin(rotate_angle_z)*cos(rotate_angle_x)*sin(-rotate_angle_y) + sin(rotate_angle_x)*cos(rotate_angle_z))*shift_y)  - (cos(rotate_angle_x)*cos(-rotate_angle_y)*shift_z))
             iWorkoffset = 54
             ORGXYZ = position
         endif
