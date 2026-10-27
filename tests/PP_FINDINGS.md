@@ -1285,7 +1285,7 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: What SolidCAM does with !!delete file!! for files that do not exist.
 - Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
 - Source findings: R1-09
-- Status: fixed: f5c74cd Remove the multiple-fixture scheme: no temp files are opened or deleted.
+- Status: fixed: f5c74cd Remove the multiple-fixture scheme: no fixture temp files (TEMPFILE<n>) are opened or deleted. The WORKPIECE body buffer (f004bdf) is a separate, balanced file.
 - Tests of the fix: tests/test_unsupported_features.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):

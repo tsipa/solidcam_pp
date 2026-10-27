@@ -3,7 +3,8 @@
 Oracle (INDEPENDENT): Sinumerik 828D (Siemens mode) has no Fanuc macro B (G65 P777, #-variables,
 WHILE/END loops, G103), no M98/M99 subprogram calls, no G10 L2 data setting, and G112 is polar
 programming, not a work offset. The SolidCAM GPP '!!open/copy/delete file!!' multiple-fixture scheme
-was never verified on this machine (owner decision 2026-10-27: remove it). A post that meets such a
+was never verified on this machine (owner decision 2026-10-27: remove it; the WORKPIECE header buffer
+of f004bdf uses the same directives for one balanced file and is not part of it). A post that meets such a
 setting or event must stop with a POST ERROR (GPPL: input prompts, abort ends generation), not write
 NC for another control.
 """
@@ -42,14 +43,15 @@ class UnsupportedOptionTests(unittest.TestCase):
     def test_several_fixtures_stop_the_post(self):
         nc = stopped_with(self, self.program(iNumber_of_Fixtures=2), 'start_of_file', **HEADER_DEFAULTS)
         self.assertEqual(nc[-1], OPTION_STOP)
-        self.assertFalse([line for line in nc if '!!' in line], nc)
+        self.assertFalse([line for line in nc if '!!' in line and '.workpiece.tmp' not in line], nc)
 
     def test_one_fixture_posts(self):
         for fixtures in (0, 1):
             with self.subTest(fixtures=fixtures):
                 program = self.program(iNumber_of_Fixtures=fixtures)
                 start_of_file(program)
-                self.assertFalse([line for line in program.nc() if 'POST ERROR' in line or '!!' in line])
+                self.assertFalse([line for line in program.nc() if 'POST ERROR' in line
+                                  or ('!!' in line and '.workpiece.tmp' not in line)])
 
     @covers('PP-038')
     def test_trig_macro_index_mode_stops_the_post(self):

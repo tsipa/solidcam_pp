@@ -199,7 +199,8 @@ RESOLUTIONS = {
     'PP-033': ('fixed', 'f5c74cd Remove the multiple-fixture scheme (owner decision 2026-10-27): more than one '
                         'fixture stops the post with a POST ERROR.'),
     'PP-034': ('fixed', 'f5c74cd Remove the multiple-fixture scheme: more than one fixture stops the post.'),
-    'PP-035': ('fixed', 'f5c74cd Remove the multiple-fixture scheme: no temp files are opened or deleted.'),
+    'PP-035': ('fixed', 'f5c74cd Remove the multiple-fixture scheme: no fixture temp files (TEMPFILE<n>) are '
+                        'opened or deleted. The WORKPIECE body buffer (f004bdf) is a separate, balanced file.'),
     'PP-038': ('fixed', 'f5c74cd Remove the trig macro: i4xIndexMode other than 0/1 stops the post.'),
     'PP-043': ('fixed', '12db1de @home_data no longer writes shift_y (its only reader, the trig macro, is gone).'),
     'PP-044': ('fixed', 'f5c74cd @call_proc, @proc and @end_proc stop the post with a POST ERROR (VMID GenProc=0).'),

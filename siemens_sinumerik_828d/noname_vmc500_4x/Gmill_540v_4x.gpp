@@ -46,8 +46,9 @@
     ; move reprograms X/Y/Z. usr_rapid_xyz keeps it set to its end as the homed-return marker.
     ; bCamLinkRapid / bRapidRotaryChanged: per-rapid decisions of usr_rapid, shared by its stages.
     global logical bPostHomed bCamLinkRapid bRapidRotaryChanged
-    ; WORKPIECE header: the program body is buffered in a file until the end of the file, so the blank
-    ; is clamped on A only when an A word was printed (usr_workpiece_begin / usr_workpiece_flush).
+    ; WORKPIECE header: the program body is buffered in a file until the end of the file
+    ; (usr_workpiece_begin / usr_workpiece_flush), so the blank is clamped on A only when a non-zero
+    ; A word was printed (usr_r1_output sets bWorkpieceUsesA; A=DC(0) of the first tool does not).
     global logical bWorkpieceBuffered bWorkpieceUsesA
     global string sWorkpieceBodyPath sWorkpieceArgs
 
