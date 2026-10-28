@@ -1,5 +1,6 @@
 """Input trace extraction preserves CAM data while removing post output."""
 import gzip
+import lzma
 import tempfile
 import unittest
 from pathlib import Path
@@ -45,4 +46,46 @@ class InputTraceTests(unittest.TestCase):
             source.write_bytes(b"(1)@def_tool ==> tool_message:'private_reference'\n")
             with self.assertRaisesRegex(ValueError, 'forbidden identity'):
                 extract(source, destination, forbidden=['private'])
+            self.assertFalse(destination.exists())
+
+    def test_diagnostics_supply_missing_values_in_the_correct_event(self):
+        raw = (b"(1)@start_of_file ==> part_name:'PART'\r\n"
+               b"(2)@usr_header ==> \r\n"
+               b"   aftercodes         > ; CAMDBG start_of_file date:27-OCT-2026 time:17:57:04\r\n"
+               b"(1)@start_of_job ==> job_name:'rough'\r\n"
+               b"                      > ; CAMDBG start_of_job angle:0. cpos:0. apos:0. bpos:0.\r\n"
+               b"                      > ; CAMDBG start_of_job d_drill_type:-1\r\n"
+               b"(1)@arc ==> xpos:15.000T xstart:12.000F\r\n"
+               b"                      > ; CAMDBG arc xstart:99. ystart:5.25 zcenter_rel:0.\r\n"
+               b"(2)@usr_arc ==> G2 X15\r\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            source, destination = Path(tmp) / 'source.mpf', Path(tmp) / 'reference.trace.txt.xz'
+            source.write_bytes(raw)
+            manifest = extract(source, destination)
+            result = lzma.decompress(destination.read_bytes())
+            events = parse_trace(result.decode())
+            self.assertEqual(events[0].parameters['date'], '27-OCT-2026')
+            self.assertEqual(events[0].parameters['time'], '17:57:04')
+            self.assertEqual(events[1].parameters['d_drill_type'], -1)
+            self.assertEqual(events[1].parameters['apos'], 0)
+            self.assertEqual(events[2].parameters['xstart'], 12)
+            self.assertFalse(events[2].changed['xstart'])
+            self.assertEqual(events[2].parameters['ystart'], 5.25)
+            self.assertEqual(events[2].parameters['zcenter_rel'], 0)
+            self.assertNotIn(b'CAMDBG', result)
+            self.assertTrue(all(not event.output for event in events))
+            self.assertEqual(manifest['diagnostic_lines_read'], 4)
+            self.assertNotIn('xstart', manifest['parameters_from_diagnostics'])
+            self.assertEqual(manifest['compression'], 'xz')
+            first = destination.read_bytes()
+            extract(source, destination)
+            self.assertEqual(destination.read_bytes(), first)
+
+    def test_diagnostic_cannot_be_attached_to_an_unrelated_event(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source, destination = Path(tmp) / 'source.mpf', Path(tmp) / 'output.xz'
+            source.write_bytes(b'(1)@line ==> xpos:1\n'
+                               b'                      > ; CAMDBG arc xstart:0.\n')
+            with self.assertRaisesRegex(ValueError, 'current public event'):
+                extract(source, destination)
             self.assertFalse(destination.exists())

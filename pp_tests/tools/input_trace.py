@@ -1,18 +1,28 @@
 """Keep native CAM event inputs, remove post output, neutralize part identities.
 
-Works on bytes: numeric spelling, whitespace, change flags and line endings are
-preserved. The gzip header contains neither the original filename nor a timestamp.
+Works on bytes: native numeric spelling, whitespace, change flags and line endings
+are preserved. Temporary CAMDBG readouts supply missing event parameters without
+inventing flags. XZ/gzip output contains no source filename or timestamp.
 """
 import argparse
 import gzip
 import hashlib
 import json
+import lzma
 import re
 from collections import Counter
 from pathlib import Path
 
 
 HEADER = re.compile(rb'^\((\d+)\)@(\w+)\s*==>')
+DEBUG = re.compile(rb'(?:^.{22}> ?|==>[ \t]*); CAMDBG (\w+) ([^\r\n]*)')
+DEBUG_VALUE = re.compile(rb'([A-Za-z_]\w*):([^ \t\r\n]*)')
+PARAMETER = re.compile(rb'\b([A-Za-z_]\w*)\s*:')
+DEBUG_FIELDS = {
+    b'arc': {b'xstart', b'ystart', b'zcenter_rel'},
+    b'start_of_file': {b'date', b'time'},
+    b'start_of_job': {b'angle', b'cpos', b'apos', b'bpos', b'd_drill_type'},
+}
 QUOTED = re.compile(rb"(\w+)(\s*:\s*)'((?:[^']|'')*)'")
 FIXED = {
     b'g_file_name': b'REFERENCE.MPF',
@@ -64,26 +74,64 @@ def extract(source, destination, forbidden=()):
     source, destination = Path(source), Path(destination)
     if source.resolve() == destination.resolve():
         raise ValueError('source and destination must be different files')
+    compression = destination.suffix.lower().lstrip('.')
+    if compression not in ('gz', 'xz'):
+        raise ValueError('destination must end in .gz or .xz')
     names = NeutralNames()
     events = Counter()
     source_hash, input_hash = hashlib.sha256(), hashlib.sha256()
     source_bytes = input_bytes = parameter_lines = 0
+    debug_lines = 0
+    debug_parameters = Counter()
     public = False
+    current_event, current_fields = None, set()
     forbidden = [word.encode('ascii').lower() for word in forbidden]
     destination.parent.mkdir(parents=True, exist_ok=True)
     try:
         with source.open('rb') as original, destination.open('wb') as compressed:
-            with gzip.GzipFile(fileobj=compressed, mode='wb', filename='', mtime=0) as output:
+            compressor = (lzma.LZMAFile(compressed, 'w', preset=6) if compression == 'xz' else
+                          gzip.GzipFile(fileobj=compressed, mode='wb', filename='', mtime=0))
+            with compressor as output:
                 for line in original:
                     source_hash.update(line)
                     source_bytes += len(line)
                     header = HEADER.match(line)
                     if header:
                         public = int(header[1]) <= 1
+                        if public:
+                            current_event, current_fields = header[2], set()
+                            events[current_event.decode('ascii')] += 1
+                    diagnostic = DEBUG.search(line)
+                    if diagnostic:
+                        event, payload = diagnostic.groups()
+                        if event != current_event or event not in DEBUG_FIELDS:
+                            raise ValueError('diagnostic does not match the current public event')
+                        fields = DEBUG_VALUE.findall(payload)
+                        if not fields or any(key not in DEBUG_FIELDS[event] for key, _ in fields):
+                            raise ValueError('unexpected diagnostic parameter')
+                        additions = []
+                        for key, value in fields:
+                            if key in current_fields:
+                                continue  # retain native data and its change flag
+                            if key in (b'date', b'time') or not value:
+                                value = b"'" + value.replace(b"'", b"''") + b"'"
+                            elif not re.fullmatch(rb'[+-]?(?:\d+(?:\.\d*)?|\.\d+)', value):
+                                raise ValueError('nonnumeric diagnostic value')
+                            additions.append(key + b':' + value)
+                            current_fields.add(key)
+                            debug_parameters[key.decode('ascii')] += 1
+                        debug_lines += 1
+                        if not additions:
+                            continue
+                        ending = b'\r\n' if line.endswith(b'\r\n') else b'\n'
+                        line = b'                    ..> ' + b' '.join(additions) + ending
+                        parameter_lines += 1
+                    elif header:
                         if not public:
                             continue
-                        events[header[2].decode('ascii')] += 1
+                        current_fields.update(PARAMETER.findall(line))
                     elif public and re.match(rb'^\s*\.\.>', line):
+                        current_fields.update(PARAMETER.findall(line))
                         parameter_lines += 1
                     else:
                         continue
@@ -99,16 +147,19 @@ def extract(source, destination, forbidden=()):
         destination.unlink(missing_ok=True)
         raise
     return {
-        'schema': 1,
+        'schema': 2,
         'source_bytes': source_bytes,
         'source_sha256': source_hash.hexdigest(),
         'input_trace_bytes': input_bytes,
         'input_trace_sha256': input_hash.hexdigest(),
-        'gzip_bytes': destination.stat().st_size,
-        'gzip_sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
+        'compression': compression,
+        'compressed_bytes': destination.stat().st_size,
+        'compressed_sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
         'event_count': sum(events.values()),
         'events': dict(sorted(events.items())),
         'parameter_lines': parameter_lines,
+        'diagnostic_lines_read': debug_lines,
+        'parameters_from_diagnostics': dict(sorted(debug_parameters.items())),
         'neutral_identity_counts': dict(sorted(names.counts.items())),
         'renamed_fields': dict(sorted(names.changed.items())),
     }

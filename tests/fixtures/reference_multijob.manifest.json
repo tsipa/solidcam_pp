@@ -1,11 +1,12 @@
 {
-  "schema": 1,
-  "source_bytes": 134280061,
-  "source_sha256": "6612694b941f303ee806674696e528fb328048a16cb11a00fce10beb85579a49",
-  "input_trace_bytes": 103958204,
-  "input_trace_sha256": "ac51ff897165fe8c3ac090bdd5dde0543166bb8d29f285638ba14e865bc6dafc",
-  "gzip_bytes": 8083947,
-  "gzip_sha256": "7d396e3e92219cef460d98a056d68f4215609cd2f23efacecd62ffbfeb3c048c",
+  "schema": 2,
+  "source_bytes": 138550753,
+  "source_sha256": "edc4f32b99801301187475c641680f52dcfc35a78721dbc8a1bba09d1749c16a",
+  "input_trace_bytes": 107576285,
+  "input_trace_sha256": "6c092d670a05a1d935eb595a2b8c23c15142eba813b9d86f27ef377dea74c243",
+  "compression": "xz",
+  "compressed_bytes": 5710892,
+  "compressed_sha256": "1c4c4a940678b2c3272c81dc449f4805d374c88569d2291891ab8fff88dd7f0c",
   "event_count": 154995,
   "events": {
     "absolute_mode": 1,
@@ -35,7 +36,20 @@
     "tool_path_info": 1160,
     "vmid_info": 3
   },
-  "parameter_lines": 1168399,
+  "parameter_lines": 1218598,
+  "diagnostic_lines_read": 50199,
+  "parameters_from_diagnostics": {
+    "angle": 1,
+    "apos": 1,
+    "bpos": 1,
+    "cpos": 1,
+    "d_drill_type": 1,
+    "date": 1,
+    "time": 1,
+    "xstart": 50196,
+    "ystart": 50196,
+    "zcenter_rel": 50196
+  },
   "neutral_identity_counts": {
     "fixture": 1,
     "geometry": 26,
