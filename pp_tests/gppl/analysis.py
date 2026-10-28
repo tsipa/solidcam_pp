@@ -8,12 +8,12 @@
   inventory;
 * lint: unknown identifiers, undeclared assignments, locals/parameters that
   shadow a global, VMID parameter or registry name, globals declared outside
-  @init_post, unreachable/unused code, format and type issues, policy-sensitive
-  sites (doubled quotes, formats, '!' over a comparison, integer assignments,
-  tonum, Print/input/trace), constant conditions,
-  statements after abort, and branches dead under the *shipped configuration*
-  (variables assigned exactly once, unconditionally, to a literal inside
-  @init_post's call closure);
+  @init_post, keywords used as names, unreachable/unused code, format and type
+  issues, policy-sensitive sites (doubled quotes, formats, '!' over a
+  comparison, integer assignments, tonum, Print/input/trace), constant
+  conditions, statements after abort, and branches dead under the *shipped
+  configuration* (variables assigned exactly once, unconditionally, to a literal
+  inside @init_post's call closure);
 * coverage-gap split: never-executed statements -> dead under the shipped
   configuration / procedure unreachable / live code without test input.
 """
@@ -26,6 +26,7 @@ from . import sysvars
 from .builtins import BUILTINS
 from .errors import Diagnostic
 from .policies import Policies
+from .program import SYNTAX_WORDS
 
 UNKNOWN = object()
 _CMP = {'eq': operator.eq, 'ne': operator.ne, 'lt': operator.lt, 'gt': operator.gt,
@@ -165,10 +166,12 @@ def _literal(expr):
 
 
 class Analysis:
-    def __init__(self, program, vmid=None, policies=None):
+    def __init__(self, program, vmid=None, policies=None, keywords=SYNTAX_WORDS):
+        """``keywords``: words W-KEYWORD-NAME reports as declared, parameter or assigned names."""
         self.program = program
         self.vmid = vmid
         self.policies = policies or Policies()
+        self.keywords = frozenset(keywords)
         self.facts = procedure_facts(program)
         self.vmid_params = vmid.all_params() if vmid is not None else {}
         self.vmid_constants = vmid.constants() if vmid is not None else {}
@@ -438,6 +441,9 @@ class Analysis:
                     self.diag('warning', 'W-SHADOW-GLOBAL', name, line,
                               f'{kind} {local!r} shadows the {what} {local}: @{name} reads and writes the {kind}')
                 self._check_registry_name(name, line, kind, local)
+            for word, (kind, line) in self._bound_names(name).items():
+                if word in self.keywords:
+                    self.diag('warning', 'W-KEYWORD-NAME', name, line, f'{kind} {word!r} is a GPPL keyword')
             if name not in INIT_PROCEDURES:
                 for stmt in N.walk_statements(proc.body):
                     if type(stmt) is N.Declare and stmt.scope == 'global':
@@ -464,6 +470,19 @@ class Analysis:
                 self.diag('warning', 'W-NEVER-ASSIGNED', where[0], where[1],
                           f'global {name} is read but never assigned (always its declared default)')
         return self.diagnostics
+
+    def _bound_names(self, proc):
+        """Names ``proc`` declares, takes as parameters or assigns: {name: (kind, first line)}."""
+        fact, procedure = self.facts[proc], self.program.procedures[proc]
+        found = {param: ('parameter', procedure.line) for param in procedure.param_names}
+        for name, (_, owner, line) in self.program.globals.items():
+            if owner == proc:
+                found.setdefault(name, ('global', line))
+        for kind, names in (('local', fact.local_lines), ('assignment target', fact.writes),
+                            ('change()/active() target', fact.flag_writes)):
+            for name, line in names.items():
+                found.setdefault(name, (kind, line))
+        return found
 
     def _check_registry_name(self, proc, line, kind, name):
         """A PP variable named like an entry of the system-variable registry (some registry names, e.g.

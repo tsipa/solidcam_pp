@@ -14,8 +14,9 @@ from pp_tests.engine import Engine, UnsupportedGPPL, uncomment
 from pp_tests.gppl.__main__ import main as cli
 from pp_tests.gppl import sysvars
 from pp_tests.gppl.analysis import Analysis, entry_points
+from pp_tests.gppl.builtins import RESERVED_FUNCTION_NAMES
 from pp_tests.gppl.policies import Policies
-from pp_tests.gppl.program import load_program
+from pp_tests.gppl.program import SYNTAX_WORDS, load_program
 from pp_tests.gppl.vmid import load_vmid, parse_vmid
 from support import COMPAT, PP, SESSION, VMID, declared_global_count, first_statement_line, lines_matching, require_vmid, source, statement_kinds_from_text
 
@@ -191,10 +192,25 @@ class CorpusTests(unittest.TestCase):
                 self.assertEqual(errors, [])
 
 
+def ide_keywords(grammar):
+    """Identifier-like literals of the lexer rules of the reference GPPL.g4 ('Name // type N : body ;'
+    lines whose body is quoted literals, alternatives separated by '|'). Read at test time, never copied."""
+    words = set()
+    text = Path(grammar).read_text(encoding='utf-8')
+    for match in re.finditer(r'^\w+\s*//\s*type\s+\d+\s*:\s*(.*?)\s*;\s*$', text, re.M):
+        for alternative in match.group(1).replace('(', ' ').replace(')', ' ').split('|'):
+            pieces = re.findall(r"'((?:[^'\\]|\\.)*)'(?:/i)?|(\S+)", alternative)
+            word = ''.join(literal for literal, _ in pieces).lower()
+            if not any(other for _, other in pieces) and re.fullmatch(r'[a-z][a-z0-9_]*', word):
+                words.add(word)
+    return words
+
+
 class IdeGrammarTests(unittest.TestCase):
-    """The post against the GPPL IDE's grammar and its undeclared-name check (not in the repository; the
-    engine accepts forms the IDE grammar rejects, e.g. '%', a bare numeric function in an output block,
-    'if 1'). Set GPPL_IDE_REFERENCE=<dir> with GPPL.g4, raw/ (the IDE catalogs) and work/gppl_check.py."""
+    """The post against the GPPL IDE's grammar, its keywords and its undeclared-name check (not in the
+    repository; the engine accepts forms the IDE grammar rejects, e.g. '%', a bare numeric function in an
+    output block, 'if 1'). Set GPPL_IDE_REFERENCE=<dir> with GPPL.g4, raw/ (the IDE catalogs) and
+    work/gppl_check.py."""
 
     def check(self, gpp):
         reference = Path(os.environ.get('GPPL_IDE_REFERENCE', '')).resolve()
@@ -222,6 +238,30 @@ class IdeGrammarTests(unittest.TestCase):
             sem = [line for line in self.check(path) if line.startswith('SEM ')]
         self.assertEqual(len(sem), 1)
         self.assertIn("'trace_level'", sem[0])
+
+    def test_no_variable_is_named_like_an_ide_keyword(self):
+        """W-KEYWORD-NAME with the IDE grammar's keywords instead of the engine's syntax words: function
+        words the engine does not implement (mod, round, int, inc, space, ...) are keywords there."""
+        reference = os.environ.get('GPPL_IDE_REFERENCE')
+        if not reference or not (Path(reference) / 'GPPL.g4').is_file():
+            raise unittest.SkipTest('set GPPL_IDE_REFERENCE to the GPPL IDE reference directory')
+        require_vmid(self)
+        words = ide_keywords(Path(reference) / 'GPPL.g4')
+        # The lint's default words and the function names the loader rejects are all IDE keywords.
+        self.assertLessEqual(SYNTAX_WORDS | RESERVED_FUNCTION_NAMES, words)
+
+        def found(text):
+            analysis = Analysis(load_program(text), load_vmid(VMID), SESSION, keywords=words)
+            return [d.message.split("'")[1] for d in analysis.run() if d.code == 'W-KEYWORD-NAME']
+
+        self.assertEqual(found(source()), [])
+        local, setting = '    local numeric nDbg1\n', '    remove_blanks = FALSE\n'
+        for word, old, new in (('mod', local, '    local numeric nDbg1 mod\n'),
+                               ('inc', local, local + '    local integer inc\n'),
+                               ('round', setting, setting + '    round = 1\n')):
+            with self.subTest(mutant=word):
+                self.assertEqual(source().count(old), 1)
+                self.assertEqual(found(source().replace(old, new)), [word])
 
 
 class SolidCamCatalogTests(unittest.TestCase):

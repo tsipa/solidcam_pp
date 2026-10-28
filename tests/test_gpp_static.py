@@ -106,6 +106,37 @@ class GppStructureTests(unittest.TestCase):
         assert_detected(self, self.assert_valid_variable_names, mutant,
                         'original SolidCAM dist declaration conflict')
 
+    def assert_no_keyword_names(self, source):
+        self.assertEqual(lint(source, ('W-KEYWORD-NAME',)), [])
+
+    def test_no_variable_is_named_like_a_keyword(self):
+        """INDEPENDENT: GPPL syntax: the statement, declaration-type,
+        operator, literal and output words (if, then, numeric, and, true,
+        nl, ...) are keywords, and the GPPL IDE grammar does not accept one
+        as a variable, parameter or assignment target. The engine loads such
+        a name (it rejects only function names, see the dist tests). Function
+        words the engine does not implement (mod, round, inc, ...) are
+        checked against the IDE grammar itself (tests_engine IdeGrammarTests,
+        GPPL_IDE_REFERENCE)."""
+        self.assert_no_keyword_names(pp_source())
+
+    def test_keyword_name_is_detected(self):
+        """INDEPENDENT: mutation self-check; a literal, a statement word, an
+        output word and a type word used as a local, an assignment target or
+        a parameter must each fail the check with AssertionError."""
+        local = '    local numeric nDbg1\n'
+        setting = '    remove_blanks = FALSE\n'
+        mutants = {
+            'true': (local, local + '    local logical true\n'),
+            'then': (local, '    local numeric nDbg1 then\n'),
+            'nl': (setting, setting + '    nl = 1\n'),
+            'string': ('@usr_sqrt(numeric v)', '@usr_sqrt(numeric string)'),
+        }
+        for word, (old, new) in mutants.items():
+            with self.subTest(mutant=word):
+                assert_detected(self, self.assert_no_keyword_names, mutate(old, new), word,
+                                match=f"'{word}' is a GPPL keyword")
+
     def assert_assignments_are_declared(self, source):
         self.assertEqual(lint(source, ('W-UNDECLARED-WRITE',)), [])
 

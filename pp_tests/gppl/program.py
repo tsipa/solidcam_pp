@@ -17,11 +17,16 @@ import re
 from . import nodes as N
 from .builtins import BUILTINS, RESERVED_FUNCTION_NAMES
 from .errors import Diagnostic, GPPLSyntaxError, UnsupportedGPPL
-from .expr import DEFAULT_MAX_DEPTH, Parser, compile_expr, parse_expression
+from .expr import DEFAULT_MAX_DEPTH, KEYWORDS, Parser, compile_expr, parse_expression
 from .formats import check_literal
 from .lexer import strip_comment, tokenize
 
 TYPES = ('numeric', 'integer', 'logical', 'string')
+# Words of the statement, declaration, expression and output syntax this loader parses. Unlike function
+# names (check_variable_name) they load as variable names; lint W-KEYWORD-NAME reports such a name.
+SYNTAX_WORDS = frozenset(TYPES) | frozenset(KEYWORDS) | frozenset({
+    'if', 'then', 'else', 'endif', 'while', 'endw', 'endp', 'call', 'local', 'global', 'abort', 'input',
+    'print', 'trace', 'nb', 'nl'})
 HEADER = re.compile(r'@([A-Za-z0-9_]+)(?:\((.*)\))?')
 BLOCK_WORD = re.compile(r'(if|while)(?![A-Za-z0-9_])', re.I)
 
