@@ -131,7 +131,6 @@ endp
     cOMe                  = '")'               ; Operator message end
 
     ;Coolant & Spindle Control
-    flood_coolant         = 1
     bCoolExist            = true               ; True = coolant codes are output
     bCoolofftc            = true               ; Not read (PP-010)
     bSpinofftc            = true               ; Not read (PP-010)
