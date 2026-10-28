@@ -293,6 +293,7 @@ class Program:
         root = []
         stack = []                 # open _Block objects
         code = []                  # mutable [op, line, stmt, fn, target]
+        declared = dict.fromkeys(proc.param_names)     # local name -> declaration line (None: parameter)
 
         def fail(number, message):
             self.diag('error', 'E-STRUCT', proc.name, number, message)
@@ -356,7 +357,7 @@ class Program:
                     error = GPPLSyntaxError(message, proc.name, number)
                     node = N.Bad(span, text, error)
                     self.diag('error', 'E-SYNTAX', proc.name, number, message)
-                self._declared(node, proc)
+                self._declared(node, proc, declared)
                 code.append([N.EXEC, number, node, None, None])
                 add(node)
         while stack:
@@ -365,7 +366,9 @@ class Program:
         proc.body = tuple(root)
         proc.code = tuple(N.Instr(*instr) for instr in code)
 
-    def _declared(self, node, proc):
+    def _declared(self, node, proc, declared):
+        """Declaration bookkeeping; ``declared`` maps the procedure's parameters and the locals declared
+        so far to their declaration line (None for a parameter)."""
         if type(node) is not N.Declare:
             return
         seen = set()
@@ -373,7 +376,13 @@ class Program:
             if name in seen:
                 self.diag('warning', 'W-DUPLICATE-NAME', proc.name, node.line,
                           f'{name} listed twice in one declaration (names are case-insensitive)')
+            elif node.scope == 'local' and name in declared:
+                earlier = 'a parameter' if declared[name] is None else f'declared at line {declared[name]}'
+                self.diag('warning', 'W-DUPLICATE-NAME', proc.name, node.line,
+                          f'local {name} is already {earlier} of @{proc.name} (names are case-insensitive)')
             seen.add(name)
+            if node.scope == 'local':
+                declared.setdefault(name, node.line)
             if node.scope == 'global':
                 previous = self.globals.get(name)
                 if previous and previous[0] != node.vtype:

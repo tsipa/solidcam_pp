@@ -6,9 +6,11 @@
 * interprocedural definite-assignment flow -> per-event inferred SolidCAM inputs
   and change flags (the fixture-authoring checklist) and the CAM-interface
   inventory;
-* lint: unknown identifiers, undeclared assignments, unreachable/unused code,
-  format and type issues, policy-sensitive sites (doubled quotes, formats, '!'
-  over a comparison, integer assignments, tonum, Print/input/trace), constant conditions,
+* lint: unknown identifiers, undeclared assignments, locals/parameters that
+  shadow a global, VMID parameter or registry name, globals declared outside
+  @init_post, unreachable/unused code, format and type issues, policy-sensitive
+  sites (doubled quotes, formats, '!' over a comparison, integer assignments,
+  tonum, Print/input/trace), constant conditions,
   statements after abort, and branches dead under the *shipped configuration*
   (variables assigned exactly once, unconditionally, to a literal inside
   @init_post's call closure);
@@ -30,6 +32,7 @@ _CMP = {'eq': operator.eq, 'ne': operator.ne, 'lt': operator.lt, 'gt': operator.
         'le': operator.le, 'ge': operator.ge}
 _ARITH = {'+': operator.add, '-': operator.sub, '*': operator.mul, '/': operator.truediv}
 CONFIG_ROOTS = ('init_post',)
+INIT_PROCEDURES = ('init_post', 'init_inc')        # where globals are declared
 
 
 @dataclass
@@ -41,6 +44,7 @@ class Facts:
     flag_writes: dict = field(default_factory=dict)
     calls: dict = field(default_factory=dict)         # proc -> [(line, argc)]
     locals: set = field(default_factory=set)
+    local_lines: dict = field(default_factory=dict)   # local -> first declaration line
     params: set = field(default_factory=set)
     functions: dict = field(default_factory=dict)     # builtin -> first line
     implicit_formats: set = field(default_factory=set)  # '<var>_f' read by bare output values
@@ -79,6 +83,8 @@ def procedure_facts(program):
                 fact.flag_writes.setdefault(stmt.target, stmt.line)
             elif kind is N.Declare and stmt.scope == 'local':
                 fact.locals.update(stmt.names)
+                for local in stmt.names:
+                    fact.local_lines.setdefault(local, stmt.line)
             elif kind is N.CallProc:
                 fact.calls.setdefault(stmt.proc, []).append((stmt.line, len(stmt.args)))
         facts[name] = fact
@@ -426,8 +432,17 @@ class Analysis:
                     self.diag('info', 'I-ASSUMED-BUILTIN', name, line,
                               f'{function}() semantics are assumed, not verified')
             for local in sorted(fact.locals | fact.params):
-                if local in sysvars.SYSTEM_TYPES:
-                    self.diag('info', 'I-SHADOW', name, proc.line, f'local {local!r} shadows a SolidCAM system variable')
+                kind, line = ('parameter', proc.line) if local in fact.params else ('local', fact.local_lines[local])
+                if local in self.pp_globals or local in self.vmid_params:
+                    what = 'global' if local in self.pp_globals else 'VMID parameter'
+                    self.diag('warning', 'W-SHADOW-GLOBAL', name, line,
+                              f'{kind} {local!r} shadows the {what} {local}: @{name} reads and writes the {kind}')
+                self._check_registry_name(name, line, kind, local)
+            if name not in INIT_PROCEDURES:
+                for stmt in N.walk_statements(proc.body):
+                    if type(stmt) is N.Declare and stmt.scope == 'global':
+                        self.diag('warning', 'W-GLOBAL-OUTSIDE-INIT', name, stmt.line,
+                                  f'global {", ".join(stmt.names)} declared outside @init_post (@init_inc)')
             if name not in self.reachable:
                 self.diag('info', 'I-UNREACHABLE', name, proc.line,
                           'procedure is not an event and is not called from any event (dead code)')
@@ -441,6 +456,7 @@ class Analysis:
                 all_reads.setdefault(read, (name, line))
         implicit = set().union(*(fact.implicit_formats for fact in facts.values())) if facts else set()
         for name, (vtype, proc, line) in sorted(program.globals.items()):
+            self._check_registry_name(proc, line, 'global', name)
             if name not in all_reads and name not in self.pp_written and name not in implicit:
                 self.diag('info', 'I-UNUSED-GLOBAL', proc, line, f'global {vtype} {name} is never used')
             elif name in all_reads and name not in self.pp_written and self.classify(name) == 'pp-global':
@@ -448,6 +464,14 @@ class Analysis:
                 self.diag('warning', 'W-NEVER-ASSIGNED', where[0], where[1],
                           f'global {name} is read but never assigned (always its declared default)')
         return self.diagnostics
+
+    def _check_registry_name(self, proc, line, kind, name):
+        """A PP variable named like an entry of the system-variable registry (some registry names, e.g.
+        date and time, are SolidCAM functions rather than variables)."""
+        if name in sysvars.CONSTANTS or name in sysvars.SYSTEM_TYPES:
+            what = 'an enumeration constant' if name in sysvars.CONSTANTS else 'a system variable'
+            self.diag('warning', 'W-SHADOW-SYSTEM', proc, line,
+                      f'{kind} {name!r} reuses the name of {what} of the system-variable registry')
 
     def _policy_sites(self):
         program = self.program

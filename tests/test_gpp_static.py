@@ -66,6 +66,15 @@ def format_descriptors(code):
     return [match.group(1) for match in STRING_OR_DESCRIPTOR.finditer(code) if match.group(1) is not None]
 
 
+def lint(source, codes):
+    """Lint diagnostics with one of ``codes`` (pp_tests.gppl.analysis, with the machine's VMID)."""
+    return [str(d) for d in Analysis(load_program(source), load_vmid(VMID)).run() if d.code in codes]
+
+
+# Declarations that make a name mean two things (GPPL IDE diagnostics GPPL2001-2004 and GPPL2006).
+DECLARATION_CODES = ('W-SHADOW-GLOBAL', 'W-SHADOW-SYSTEM', 'W-DUPLICATE-NAME', 'W-GLOBAL-OUTSIDE-INIT')
+
+
 def option_state(source=None):
     """Post options as @init_post leaves them (stock engine; init_post runs there)."""
     engine = fresh_engine(source)
@@ -98,8 +107,7 @@ class GppStructureTests(unittest.TestCase):
                         'original SolidCAM dist declaration conflict')
 
     def assert_assignments_are_declared(self, source):
-        diagnostics = Analysis(load_program(source), load_vmid(VMID)).run()
-        self.assertEqual([str(d) for d in diagnostics if d.code == 'W-UNDECLARED-WRITE'], [])
+        self.assertEqual(lint(source, ('W-UNDECLARED-WRITE',)), [])
 
     def test_every_assigned_name_is_declared(self):
         """INDEPENDENT: GPPL declarations (the GPPL IDE reports GPPL2007): a
@@ -124,6 +132,44 @@ class GppStructureTests(unittest.TestCase):
             with self.subTest(mutant=name):
                 assert_detected(self, self.assert_assignments_are_declared, mutate(old, new), name,
                                 match=f"'{name}' assigned without a declaration")
+
+    def assert_declarations_are_unambiguous(self, source):
+        self.assertEqual(lint(source, DECLARATION_CODES), [])
+
+    def test_declarations_give_each_name_one_meaning(self):
+        """INDEPENDENT: GPPL declarations (the GPPL IDE reports GPPL2001-2004
+        and GPPL2006): no local or parameter has the name of a global or a
+        VMID parameter (the procedure would read and write its own copy), no
+        local repeats a parameter or an earlier local of its procedure (the
+        engine resets it to its default), no global, local or parameter
+        reuses a name of the system-variable registry (the IDE rejects a
+        redeclared SolidCAM variable), and globals are declared in
+        @init_post."""
+        self.assert_declarations_are_unambiguous(pp_source())
+
+    def test_ambiguous_declaration_is_detected(self):
+        """INDEPENDENT: mutation self-check; each kind of ambiguous
+        declaration must fail the check with AssertionError carrying its own
+        diagnostic."""
+        home = '\n@home_number\n'
+        mutants = {
+            'local shadows a global': (home, home + '    local integer iWorkoffset\n', 'W-SHADOW-GLOBAL'),
+            'local shadows a VMID parameter': (home, home + '    local integer iWorkOffset_Method\n',
+                                               'W-SHADOW-GLOBAL'),
+            'parameter shadows a global': ('@usr_sqrt(numeric v)', '@usr_sqrt(numeric nSqrt)', 'W-SHADOW-GLOBAL'),
+            'local named like a SolidCAM variable': ('    local numeric nDbg1\n', '    local numeric nDbg1 xpos\n',
+                                                     'W-SHADOW-SYSTEM'),
+            'global named like a SolidCAM variable': ('    global logical bToolPreselect ',
+                                                      '    global logical first_tool bToolPreselect ',
+                                                      'W-SHADOW-SYSTEM'),
+            'local declared twice': ('    local numeric nDbg1\n', '    local numeric nDbg1\n    local string sDbg2\n',
+                                     'W-DUPLICATE-NAME'),
+            'local repeats a parameter': ('    local numeric i\n', '    local numeric i v\n', 'W-DUPLICATE-NAME'),
+            'global outside @init_post': (home, home + '    global numeric nHomeSeen\n', 'W-GLOBAL-OUTSIDE-INIT'),
+        }
+        for label, (old, new, code) in mutants.items():
+            with self.subTest(mutant=label):
+                assert_detected(self, self.assert_declarations_are_unambiguous, mutate(old, new), label, match=code)
 
     @covers('ENGINE-019')
     def test_every_statement_is_inside_a_procedure(self):
