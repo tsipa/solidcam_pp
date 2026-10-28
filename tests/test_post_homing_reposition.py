@@ -150,7 +150,7 @@ class PostHomingProgramTests(unittest.TestCase):
         program.ev('move_5x', xpos=30, ypos=10, zpos=5)
         program.ev('line_5x', zpos=-2, feed=200)
         stop = program.ev('end_of_job')
-        self.assertEqual(stop[-3:], ['M0', 'M3', 'G0 X30 Y10'], stop)
+        self.assertEqual(stop[-4:], ['M0', 'M3', 'WAITS', 'G0 X30 Y10'], stop)
         program.ev('start_of_job', job_name='op2')
         self.assertEqual(program.ev('move_5x', xpos=60, ypos=20, zpos=40), ['X60 Y20', 'Z40'])
 

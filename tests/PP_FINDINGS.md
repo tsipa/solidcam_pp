@@ -46,7 +46,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 50. `@covers` references: 98.
+Canonical `@known_defect` tests: 49. `@covers` references: 100.
 
 ## Index of open entries
 
@@ -67,7 +67,7 @@ Canonical `@known_defect` tests: 50. `@covers` references: 98.
 | [PP-023](#pp-023) | low | confirmed | D | Feed-emulated rapids write G1 rotary/XY blocks without the rapid feed (stale cutting feed or "feedrate not programmed") | `test_every_g1_block_of_emulated_rapid_moves_at_rapid_feed` |
 | [PP-024](#pp-024) | medium | confirmed | A | M00 between same-tool jobs switches coolant off and never restores it; spindle restart has no ramp dwell | `test_m00_same_tool_restores_coolant_before_next_cut` [coolant] |
 | [PP-025](#pp-025) | low-medium | uncertain | A | Coolant is evaluated only at tool changes: a same-tool job's coolant request is ignored | `test_same_tool_job_applies_its_coolant_request` |
-| [PP-026](#pp-026) | low | confirmed | E | Spindle ramp dwell divides by the literal 500 instead of spindle_accel | `test_spindle_dwell_uses_configured_acceleration` |
+| [PP-026](#pp-026) | low | confirmed | E | Spindle ramp dwell divides by the literal 500 instead of spindle_accel | pinned only (@covers) |
 | [PP-027](#pp-027) | low | confirmed | A | The second tool change skips the full modal reset because the first-tool path leaves bSafetyprep=true | `test_tool_change_does_not_depend_on_previous_tool_being_first` |
 | [PP-029](#pp-029) | low | confirmed | E | CYCLE86 SDIR is hard-coded to 3 (M3) even for CCW boring tools | `test_left_hand_boring_tool_runs_m4` |
 | [PP-030](#pp-030) | low | uncertain | E | First drill hole may not trigger the modal cycle (empty block after MCALL) | `test_first_drill_point_is_a_motion_block` |
@@ -318,7 +318,8 @@ Canonical `@known_defect` tests: 50. `@covers` references: 98.
 - Reproduced by:
   - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_m00_same_tool_restores_coolant_before_next_cut` (facet `coolant`, confidence confirmed)
 - Pinned or exercised by (`@covers`):
-  - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_m00_same_tool_restart_relies_on_the_spindle_wait`
+  - `tests/test_cycles_spindle.py::SpindleTests::test_spindle_waits`
+  - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_m00_same_tool_restart_waits_for_the_spindle`
 
 ### PP-025
 
@@ -345,8 +346,9 @@ Canonical `@known_defect` tests: 50. `@covers` references: 98.
 - Evidence that would settle it: None needed for the formula; MD35500 on the target 828D for the intended ramp time.
 - Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
 - Source findings: tc-09, history-misc-17
-- Reproduced by:
-  - `tests/test_cycles_spindle.py::SpindleTests::test_spindle_dwell_uses_configured_acceleration`
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
+- Pinned or exercised by (`@covers`):
+  - `tests/test_cycles_spindle.py::SpindleTests::test_spindle_waits`
 
 ### PP-027
 

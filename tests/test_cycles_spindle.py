@@ -307,9 +307,9 @@ def check_spindle_start(tc, source=None):
         blocks = parse_blocks(session.ev('start_tool', tool_direction=direction, spin=1000))
         tc.assertEqual(spindle_codes(blocks), [code], f'start_tool {direction}: {[b.raw for b in blocks]}')
         tc.assertEqual(speeds(blocks), [1000], f'start_tool {direction}')
-        # A mid-job speed change (CAM @m_feed_spin) programs only the new S.
+        # A mid-job speed change (CAM @m_feed_spin) programs only the new S, then WAITS.
         tc.assertEqual(block_texts(session.ev('m_feed_spin', ('spin',), tool_direction=direction, spin=1200)),
-                       ['S1200'], f'm_feed_spin {direction}')
+                       ['S1200', 'WAITS'], f'm_feed_spin {direction}')
         tc.assertEqual(block_texts(session.ev('m_feed_spin', (), tool_direction=direction, spin=1200)), [],
                        f'm_feed_spin {direction} without a speed change')
     # CYCLE84 runs the spindle itself (SST); the tool start must not start it.
@@ -330,32 +330,43 @@ def check_spindle_start(tc, source=None):
         tc.assertEqual(spindle_codes(blocks[stop:]), [code], f'restart after M0, {direction} tool')
 
 
-def check_spindle_acceleration_dwell(tc, source=None):
-    """With bSpinDwell a speed change above one second of ramp gets a dwell of at least
-    dS/spindle_accel; without it (the default) no speed change gets a dwell.
+def check_spindle_wait(tc, source=None):
+    """WAITS on its own block after every spindle start and speed change and after M5 (bSpinWait,
+    default true); never a G04. Without bSpinWait neither WAITS nor G04.
 
-    spindle_accel is the post's declared acceleration (@init_post 'spindle_accel =
-    500 ; rpm/s'); the oracle is the ramp time at the declared value. The default
-    relies on the control: MD35500 SPIND_ON_SPEED_AT_IPO_START = 2 holds the next
-    G1/G2/G3 until the spindle is at speed (machine archive; G1 waiting checked on
-    the machine 2026-10-27).
+    Siemens WAITS after M3/M4 waits until the spindle runs at the programmed speed, after M5 until
+    it stands still (owner request 2026-10-27, replacing the post's timed G04). Feed blocks wait
+    anyway on this 828D (MD35500 SPIND_ON_SPEED_AT_IPO_START = 2); WAITS also holds G0.
     """
-    for previous, target in ((0, 1000), (900, 1000), (8000, 3000)):
-        for dwell_option in (True, False):
-            session = Session(source=source, options=dict(bSpinDwell=dwell_option))
-            if previous:
-                session.ev('start_tool', tool_direction='cw', spin=previous)
-                text = session.ev('m_feed_spin', ('spin',), spin=target)
-            else:
-                text = session.ev('start_tool', tool_direction='cw', spin=target)
-            accel = session.state['spindle_accel']
-            dwell = dwell_seconds(parse_blocks(text))
-            where = f'S{previous} -> S{target} at {accel} rpm/s, bSpinDwell {dwell_option}: {text!r}'
-            if dwell_option and abs(target - previous) > accel:
-                tc.assertGreaterEqual(dwell, abs(target - previous) / accel, where)   # INDEPENDENT: ramp time
-            else:
-                # CHARACTERIZATION: no dwell below 1 s of ramp; none at all without bSpinDwell
-                tc.assertEqual(dwell, 0, where)
+    for wait in (True, False):
+        expected = ['WAITS'] if wait else []
+        session = Session(source=source, options=dict(bSpinWait=wait))
+        start = block_texts(session.ev('start_tool', tool_direction='cw', spin=1000))
+        speed = next((i for i, block in enumerate(start) if 'S1000' in block.split()), None)
+        tc.assertIsNotNone(speed, start)
+        tc.assertEqual(start[speed + 1:], expected, f'start, bSpinWait {wait}: {start}')
+        change = block_texts(session.ev('m_feed_spin', ('spin',), spin=3000))
+        tc.assertEqual(change, ['S3000'] + expected, f'speed change, bSpinWait {wait}')
+        tc.assertEqual(block_texts(session.ev('m_feed_spin', (), spin=3000)), [], 'same speed')
+        stop = block_texts(session.ev('end_program'))
+        m5 = next((i for i, block in enumerate(stop) if 'M5' in block.split()), None)
+        tc.assertIsNotNone(m5, stop)
+        tc.assertEqual(stop[m5 + 1:m5 + 2] == ['WAITS'], wait, f'M5, bSpinWait {wait}: {stop}')
+        tc.assertFalse([block for block in start + change + stop if block.startswith(('G04', 'G4 '))], stop)
+    # Restart after an M0 between two jobs of the same tool: one WAITS after the M3.
+    for wait in (True, False):
+        session = Session(source=source, options=dict(bSpinWait=wait))
+        session.first_tool(next_tool=1)
+        session.cut(10, 20, 5, -1)
+        mark = session.mark()
+        session.ev('end_of_job', bStopM00=True, next_job_tool_number=1)
+        blocks = block_texts(session.text(mark))
+        stop = next((i for i, block in enumerate(blocks) if 'M0' in block.split()), None)
+        tc.assertIsNotNone(stop, blocks)
+        restart = next((i for i in range(stop, len(blocks)) if 'M3' in blocks[i].split()), None)
+        tc.assertIsNotNone(restart, blocks)
+        tc.assertEqual(blocks[restart + 1:restart + 2] == ['WAITS'], wait, blocks)
+        tc.assertEqual(blocks[restart:].count('WAITS'), 1 if wait else 0, blocks)
 
 
 # --------------------------------------------------------------------------- tests
@@ -599,16 +610,12 @@ class SpindleTests(unittest.TestCase):
         """
         check_spindle_start(self)
 
-    def test_spindle_acceleration_dwell(self):
-        """INDEPENDENT: ramp time = dS / spindle_accel; CHARACTERIZATION: no dwell below 1 s.
-
-        With bSpinDwell, S0->S1000 and S8000->S3000 at the post's declared spindle_accel
-        (@init_post, 500 rpm/s) need a G4 of at least 2 s and 10 s; S900->S1000 gets none
-        (PP threshold: one second of ramp). Without it (the default) none of them gets a
-        G4: MD35500 = 2 on this 828D holds the next feed block until the spindle is at
-        speed (checked on the machine 2026-10-27).
-        """
-        check_spindle_acceleration_dwell(self)
+    @covers('PP-024', 'PP-026')
+    def test_spindle_waits(self):
+        """INDEPENDENT: the control, not a timed G04, decides when the spindle is ready (see
+        check_spindle_wait); the M00 restart waits too (PP-024 ramp-dwell) and no dwell formula
+        is left (PP-026)."""
+        check_spindle_wait(self)
 
     @known_defect('PP-011', match='active S')
     def test_spindle_speed_programmed_with_or_before_start(self):
@@ -640,22 +647,6 @@ class SpindleTests(unittest.TestCase):
         self.assertEqual(replayed[start][1].speed, 1000,
                          f'active S at the spindle start block {replayed[start][0].raw!r}')
 
-    @known_defect('PP-026', match='dwell')
-    def test_spindle_dwell_uses_configured_acceleration(self):
-        """INDEPENDENT: ramp time = dS / acceleration, with the post's own spindle_accel.
-
-        With bSpinDwell and spindle_accel = 250 rpm/s the first tool's start to S8000 needs at least
-        8000/250 = 32 s; @usr_spindle_output gates the dwell with spindle_accel but
-        computes it with the literal 500 (0.3 + 8000/500 = 16.3 s). Latent: the shipped
-        spindle_accel is 500.
-        """
-        session = Session(options=dict(spindle_accel=250, bSpinDwell=True))
-        blocks = parse_blocks(session.first_tool(spin=8000, spin_rate=8000))
-        speed = index_of(blocks, lambda b: b.get('S') == 8000)
-        self.assertNotEqual(speed, -1, [b.raw for b in blocks])
-        self.assertGreaterEqual(dwell_seconds(blocks[speed:]), 8000 / 250,
-                                f'dwell after S8000 at 250 rpm/s: {[b.raw for b in blocks[speed:]]}')
-
 
 # --------------------------------------------------------------------------- mutation kills
 
@@ -665,7 +656,7 @@ GUARDS = {
     'tapping_fields': check_tapping_fields,
     'modal_cycle_cancel': check_modal_cycle_cancel,
     'spindle_start': check_spindle_start,
-    'spindle_acceleration_dwell': check_spindle_acceleration_dwell,
+    'spindle_wait': check_spindle_wait,
 }
 
 # (name, guard, old, new, occurrences of old). Each must fail its guard with AssertionError.
@@ -691,11 +682,15 @@ MUTATIONS = (
      '(SST).\n    call @usr_spindle_dir\n', '(SST).\n', 1),
     ('m_feed_spin_skips_the_direction', 'spindle_start',
      '    ; Spindle speed change within a job.\n    call @usr_spindle_dir\n', '    ; Spindle speed change within a job.\n', 1),
-    ('spindle_dwell_threshold_inverted', 'spindle_acceleration_dwell',
-     '    if bSpinDwell and sdiff > spindle_accel\n', '    if bSpinDwell and sdiff < spindle_accel\n', 1),
-    ('spindle_dwell_ignores_the_option', 'spindle_acceleration_dwell',
-     '    if bSpinDwell and sdiff > spindle_accel\n', '    if sdiff > spindle_accel\n', 1),
-    ('spindle_dwell_too_short', 'spindle_acceleration_dwell', '(0.3+(sdiff/500))', '(0.3+(sdiff/5000))', 1),
+    ('spindle_wait_ignores_the_option', 'spindle_wait', '    if bSpinWait\n', '    if true\n', 1),
+    ('spindle_wait_missing_after_a_speed_change', 'spindle_wait',
+     '    if spin ne last_spin\n        call @usr_spindle_wait\n', '    if false\n        call @usr_spindle_wait\n', 1),
+    ('spindle_wait_missing_after_m5', 'spindle_wait',
+     '    call @usr_spindle_mcode_output\n    call @usr_spindle_wait\nendp', '    call @usr_spindle_mcode_output\nendp', 1),
+    ('spindle_wait_missing_after_the_m00_restart', 'spindle_wait',
+     '    call @usr_spindle_wait\n    change(xpos) = true', '    change(xpos) = true', 1),
+    ('spindle_wait_joins_the_previous_block', 'spindle_wait',
+     "        skipline = true\n        {nb, 'WAITS'}\n        {nb}\n", "        {'WAITS'}\n", 1),
 )
 
 

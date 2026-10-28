@@ -67,15 +67,15 @@ class HomingOptionTests(unittest.TestCase):
 
     def test_program_end_homing(self):
         """INDEPENDENT: bHomeend = sHomestrend between M5 and M30; off keeps M9, M5 and M30."""
-        self.assertEqual(self.end_blocks(), ['M9', 'M5', *HOMING, 'M30'])
-        self.assertEqual(self.end_blocks(bHomeend=False), ['M9', 'M5', 'M30'])
+        self.assertEqual(self.end_blocks(), ['M9', 'M5', 'WAITS', *HOMING, 'M30'])
+        self.assertEqual(self.end_blocks(bHomeend=False), ['M9', 'M5', 'WAITS', 'M30'])
 
     def test_tool_change_homing(self):
         """INDEPENDENT: bHometc = sHomestrtc after M5, before M1 and T; off keeps M5, M1 and the change."""
         on = second_tool_change()
-        self.assertEqual(on[:6], ['M9', 'M5', *HOMING, 'M1', ';'])
+        self.assertEqual(on[:7], ['M9', 'M5', 'WAITS', *HOMING, 'M1', ';'])
         off = second_tool_change(bHometc=False)
-        self.assertEqual(off[:4], ['M9', 'M5', 'M1', ';'])
+        self.assertEqual(off[:5], ['M9', 'M5', 'WAITS', 'M1', ';'])
         self.assertEqual(homings(off), [])
         self.assertIn('T2', off)
         self.assertIn('M06', off)
@@ -180,7 +180,7 @@ class OptionalStopOptionTests(unittest.TestCase):
     def test_tool_change_stop_option(self):
         """INDEPENDENT: bOptstptc off removes the M1 before T and adds no job M1 instead."""
         off = second_tool_change(bOptstptc=False)
-        self.assertEqual(off[:5], ['M9', 'M5', *HOMING, ';'])
+        self.assertEqual(off[:6], ['M9', 'M5', 'WAITS', *HOMING, ';'])
         self.assertNotIn('M1', off)
 
     def test_no_job_stop_at_the_first_tool(self):
@@ -375,33 +375,34 @@ def representative(source=None, **options):
 
 # The pre-option post (cd52658) printed exactly this without the two job M1 lines (after MSG("op2")
 # and MSG("op6")), without the M9 before the first tool change (bCooloffend, as before the others)
-# and with a G04 F6.3 spindle dwell after each 'M3 S3000' block (bSpinDwell is off by default since
-# the control holds the first feed block, MD35500); compared old vs new on 2026-10-27.
+# and with a G04 F6.3 spindle dwell after each 'M3 S3000' block; WAITS now follows each spindle
+# start and each M5 (bSpinWait). Compared old vs new on 2026-10-27.
 DEFAULT_NC = [
     'G75 Z1=0.', 'G75 Y1=0 X1=0', 'M9', ';', 'G17 G40 G64 G90', 'T1', 'M06', 'D1', 'T2', 'MSG("op1")',
-    'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G0 G17 G90 G54 A=DC(0) M8 M3 S3000', 'X10 Y10', 'Z50',
+    'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G0 G17 G90 G54 A=DC(0) M8 M3 S3000', 'WAITS', 'X10 Y10', 'Z50',
     'G1 Z-2 F200', 'G0 Z50', 'MSG("op2")', 'M1', 'X20', 'G1 Z-2', 'G0 Z50',
     'M1', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G54 A=ACP(90)', 'MSG("op3")', 'X30 Y10', 'Z50', 'G1 Z-2', 'G0 Z50',
     'M1', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'A=ACP(135)', 'MSG("op4")', 'X40 Y10', 'Z50', 'G1 Z-2', 'G0 Z50',
-    'M9', 'M5', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'M1', ';', 'G17 G40 G64 G90', 'T2', 'M06', 'D1', 'MSG("op5")',
-    'G0 G17 G90 G54 M8 M3 S3000', 'X10 Y0', 'Z40', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G0 A=ACP(225)',
-    'X10 Y0', 'Z40', 'Z25', 'G1 G93 X20 A=ACP(255) F18.212', 'G0 Z50', 'G94 F300',
-    'MSG("op6")', 'M1', 'X50 Y10', 'G1 Z-2 F200', 'G0 Z50', 'M9', 'M5', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'M30',
+    'M9', 'M5', 'WAITS', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'M1', ';', 'G17 G40 G64 G90', 'T2', 'M06', 'D1',
+    'MSG("op5")', 'G0 G17 G90 G54 M8 M3 S3000', 'WAITS', 'X10 Y0', 'Z40', 'G75 Z1=0.', 'G75 Y1=0 X1=0',
+    'G0 A=ACP(225)', 'X10 Y0', 'Z40', 'Z25', 'G1 G93 X20 A=ACP(255) F18.212', 'G0 Z50', 'G94 F300',
+    'MSG("op6")', 'M1', 'X50 Y10', 'G1 Z-2 F200', 'G0 Z50', 'M9', 'M5', 'WAITS', 'G75 Z1=0.', 'G75 Y1=0 X1=0',
+    'M30',
 ]
 
 # Each option switched off, as edits of DEFAULT_NC (difflib opcodes: tag, i1, i2, inserted lines).
 OPTION_OFF_EDITS = {
     'bHomebegin': [('delete', 0, 2, [])],
-    'bHometc': [('delete', 42, 44, [])],
-    'bHomeend': [('delete', 70, 72, [])],
+    'bHometc': [('delete', 44, 46, [])],
+    'bHomeend': [('delete', 74, 76, [])],
     'bHomerotv': [('delete', 10, 12, [])],
     # No homing before the A turn: no X/Y/Z reprogramming after it either.
-    'bHomeroth': [('delete', 54, 56, []), ('delete', 57, 59, [])],
-    'bOptstptc': [('delete', 44, 45, [])],
-    'bOptstpjob': [('delete', 18, 19, []), ('delete', 64, 65, [])],
+    'bHomeroth': [('delete', 57, 59, []), ('delete', 60, 62, [])],
+    'bOptstptc': [('delete', 46, 47, [])],
+    'bOptstpjob': [('delete', 19, 20, []), ('delete', 67, 68, [])],
     # Without the index M1 the boundary has no stop yet: the job M1 follows the next MSG.
-    'bOptstpindex': [('delete', 22, 23, []), ('insert', 27, 27, ['M1']),
-                     ('delete', 31, 32, []), ('insert', 36, 36, ['M1'])],
+    'bOptstpindex': [('delete', 23, 24, []), ('insert', 28, 28, ['M1']),
+                     ('delete', 32, 33, []), ('insert', 37, 37, ['M1'])],
 }
 
 

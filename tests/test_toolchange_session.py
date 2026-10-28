@@ -204,14 +204,15 @@ class ToolChangeSafetyTests(unittest.TestCase):
             # this PP's order (CHARACTERIZATION).
             self.assertEqual(sorted(state.coolant), [8], f'flood coolant not on at the {label}:\n{seg.shown}')
         # CHARACTERIZATION (tc-14): stop-then-retract and M1 between M5 and M06 are
-        # this PP's order (retract-then-stop would be equally safe). No ramp dwell by
-        # default (bSpinDwell): MD35500 = 2 holds the first cut until the spindle is at
-        # speed, so the approach rapids run during the ramp.
+        # this PP's order (retract-then-stop would be equally safe). WAITS right after M5
+        # (standstill) and right after the S3000 start (at speed); no G4 (bSpinWait).
         m5, m9, m1 = seg.find(m_code(5)), seg.find(m_code(9)), seg.find(m_code(1))
         self.assertTrue(0 <= m9 < home and 0 <= m5 < home, f'M9/M5 must precede the retract:\n{seg.shown}')
         self.assertTrue(m5 < m1 < m06, f'M01 (bOptstptc) must be between M5 and M06:\n{seg.shown}')
         speed = seg.find(lambda b: b.has('S', 3000), m06)
-        self.assertEqual(seg.dwell(speed, cut), 0, f'G4 before the first cut without bSpinDwell:\n{seg.shown}')
+        self.assertEqual(seg.dwell(speed, cut), 0, f'G4 before the first cut:\n{seg.shown}')
+        for label, index in (('M5', m5), ('S3000', speed)):
+            self.assertEqual(seg.blocks[index + 1].raw.strip(), 'WAITS', f'WAITS after {label}:\n{seg.shown}')
 
     def test_next_tool_change_stops_retracts_then_changes_then_restarts(self):
         """INDEPENDENT: tool-change safety (retract Z, change, restart) on the replayed modal state.
@@ -222,8 +223,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
         (option docs bSpinofftc/bCoolofftc); S3000 and M3 are in effect at the
         first Z approach and at the first cut, the requested flood M8 at the
         first cut. CHARACTERIZATION (tc-14): M5/M9 before G75 Z, M1 between M5
-        and M06, M8 already at the Z approach, and no ramp dwell (bSpinDwell off:
-        the control holds the first cut, MD35500 = 2).
+        and M06, M8 already at the Z approach. WAITS after M5 and after the
+        spindle start instead of a timed G4 (owner request 2026-10-27).
         """
         self.check_next_tool_change()
 
@@ -250,8 +251,10 @@ class ToolChangeSafetyTests(unittest.TestCase):
             'preselect before M06': mutate("    {nb, 'T',tool_number,cTCcodes}\n    {nb, cTCcodep}",
                                            "    {nb, 'T',tool_number,cTCcodes}\n    {nb, 'T'next_tool_number' '}\n"
                                            "    {nb, cTCcodep}"),
-            'ramp dwell without bSpinDwell': mutate('    if bSpinDwell and sdiff > spindle_accel\n',
-                                                    '    if sdiff > spindle_accel\n'),
+            'no WAITS after the spindle start': mutate('    if spin ne last_spin\n        call @usr_spindle_wait\n',
+                                                       '    if false\n        call @usr_spindle_wait\n'),
+            'no WAITS after M5': mutate('    call @usr_spindle_mcode_output\n    call @usr_spindle_wait\nendp',
+                                        '    call @usr_spindle_mcode_output\nendp'),
         }
         for label, source in sources.items():
             with self.subTest(mutant=label):
@@ -279,9 +282,10 @@ class ToolChangeSafetyTests(unittest.TestCase):
         self.assertGreater(approach, m06, f'no Z approach after M06:\n{seg.shown}')
         state = seg.states[approach]
         self.assertEqual((state.spindle, state.speed), (3, 8000), f'spindle on at S8000 before the approach:\n{seg.shown}')
-        # CHARACTERIZATION: no ramp dwell by default (bSpinDwell; MD35500 holds the first cut).
+        # WAITS right after the spindle start instead of a timed G4 (bSpinWait).
         speed = seg.find(lambda b: b.has('S', 8000), m06)
-        self.assertEqual(seg.dwell(speed, seg.first_feed(m06)), 0, f'G4 without bSpinDwell:\n{seg.shown}')
+        self.assertEqual(seg.dwell(speed, seg.first_feed(m06)), 0, f'G4 after the spindle start:\n{seg.shown}')
+        self.assertEqual(seg.blocks[speed + 1].raw.strip(), 'WAITS', f'WAITS after S8000:\n{seg.shown}')
 
     def test_first_tool_change_is_preceded_by_program_start_retract(self):
         """INDEPENDENT: program start safety and the first tool load.
@@ -289,8 +293,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
         The program-start G75 Z precedes T1/M06 and nothing moves before M06;
         T1 is in effect at M06; D1 and the T2 preselection follow; the first A
         output is DC (ab853be: the A position is unknown at program start);
-        spindle M3 at S8000 is on before the first Z approach. No G4 before the
-        first cut (CHARACTERIZATION: bSpinDwell off, MD35500 = 2 holds the cut).
+        spindle M3 at S8000 is on before the first Z approach, followed by WAITS
+        (no G4).
         """
         self.check_first_tool_change()
 
@@ -430,8 +434,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
                 "    call @usr_spindle_stop\n    call @usr_prep_home_axis\n    call @usr_forcedstop\n",
                 "    call @usr_prep_home_axis\n    call @usr_forcedstop\n"),
             'no spindle restart after M00': mutate('    call @m_feed_spin\n    call @usr_spindle_mcode_output\n'
-                                                   '    change(xpos) = true',
-                                                   '    call @m_feed_spin\n    change(xpos) = true'),
+                                                   '    call @usr_spindle_wait\n',
+                                                   '    call @m_feed_spin\n    call @usr_spindle_wait\n'),
         }
         for label, source in sources.items():
             with self.subTest(mutant=label):
@@ -644,11 +648,10 @@ class ToolChangeDefectTests(unittest.TestCase):
                          f'coolant in effect when cutting resumes after M00:\n{seg.shown}')
 
     @covers('PP-024')
-    def test_m00_same_tool_restart_relies_on_the_spindle_wait(self):
-        """CHARACTERIZATION of PP-024[ramp-dwell], accepted: the restart after an M00 between
-        same-tool jobs (S8000 from standstill) has no G04, like every spindle start by default
-        (bSpinDwell off). The machine holds the first feed block until the spindle is at speed
-        (MD35500 = 2; owner check 2026-10-27, SPINWAIT.MPF).
+    def test_m00_same_tool_restart_waits_for_the_spindle(self):
+        """INDEPENDENT (PP-024[ramp-dwell]): the restart after an M00 between same-tool jobs
+        (S8000 from standstill, no S word: S is modal) waits like every spindle start: WAITS right
+        after the M3, no timed G04.
         """
         s, seg = m00_same_tool_session()
         stop = seg.find(m_code(0))
@@ -657,6 +660,7 @@ class ToolChangeDefectTests(unittest.TestCase):
         cut = seg.first_feed(restart)
         self.assertTrue(stop < restart < cut, f'precondition: M3/M4 restart before the next cut:\n{seg.shown}')
         self.assertEqual(seg.dwell(restart, cut), 0, seg.shown)
+        self.assertEqual(seg.blocks[restart + 1].raw.strip(), 'WAITS', seg.shown)
 
     @known_defect('PP-025', match='coolant in effect at the first cut')
     def test_same_tool_job_applies_its_coolant_request(self):

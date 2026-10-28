@@ -111,7 +111,7 @@ class SessionReplayTests(unittest.TestCase):
         mutant = source().replace("{nb, 'D1 '}", "{nb, 'D2 '}", 1)
         replay = Session(mutant, vmid=VMID).replay(trace, user_params=load_events(MAIN)[1]['user_params'])
         self.assertEqual(compare_with_trace(trace, replay), ['event 5 @start_of_job: line 5: D1 vs D2',
-                                                             'event 16 @start_of_job: line 10: D1 vs D2'])
+                                                             'event 16 @start_of_job: line 11: D1 vs D2'])
 
     def test_cli_replays_a_raw_trace_with_tolerance(self):
         _, original = main_replay()

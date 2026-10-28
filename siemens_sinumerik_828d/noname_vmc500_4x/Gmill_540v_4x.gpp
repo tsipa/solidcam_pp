@@ -14,9 +14,9 @@
     global integer iProgendmode i4xIndexMode i4xIndexClearanceMode i4xFeedMode
     global integer iCoolantM1ON iCoolantM2ON iCoolantM3ON iCoolantM4ON iCoolantM5ON iCoolantM6ON iCoolantM7ON iCoolantM8ON
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
-    global numeric nRapidfeed nMaxInverseFeed iR1dir iR2dir spindle_accel
+    global numeric nRapidfeed nMaxInverseFeed iR1dir iR2dir
     global string nR1pos_f nInvFeed_f
-    global logical bCycle832 bSpinDwell
+    global logical bCycle832 bSpinWait
     global numeric nCycle832RoughAllow nCycle832TolRough nCycle832TolSemi nCycle832TolFinish
     global string nCycle832Tol_f
     ; Modal state of the NC program (what the control has active). iDiametercomp is the G40/G41/G42
@@ -77,7 +77,6 @@
 
     ; Program state
     last_spin = 0
-    spindle_accel = 500 ; rpm/s
     bR1forceOutput = true
 
     ; GPPL settings and formats
@@ -131,9 +130,9 @@ endp
     bCooloffend           = true               ; True = coolant off at each tool change and at the program end
     bSpinoffend           = true               ; True = spindle off at each tool change and at the program end
     bCoolspinaftertc      = false              ; True = spindle and coolant blocks right after the tool change
-    bSpinDwell            = false              ; True = G04 after a speed change of more than spindle_accel rpm (0.3 s + 1 s
-                                               ; per 500 rpm). False: the control holds the next G1/G2/G3 until the spindle
-                                               ; is at speed (MD35500 SPIND_ON_SPEED_AT_IPO_START 2 on this machine)
+    bSpinWait             = true               ; True = WAITS after each spindle start, speed change and M5: the program
+                                               ; waits until the spindle is at speed / stands still, also for G0 and the
+                                               ; cycles (feed blocks wait anyway: MD35500 SPIND_ON_SPEED_AT_IPO_START 2)
     iCoolantM1ON          = 8                  ; Code: Flood Coolant ON
     iCoolantM1OFF         = 9                  ; Code: Flood Coolant OFF
     iCoolantM2ON          = 7                  ; Code: Mist Coolant ON
@@ -2066,8 +2065,11 @@ endp
     call @usr_stop_m00
     {nb}
     call @usr_abs_inc_output
+    ; One WAITS after the M3/M4 of the restart, also when the S word is printed again before it.
+    last_spin = spin
     call @m_feed_spin
     call @usr_spindle_mcode_output
+    call @usr_spindle_wait
     change(xpos) = true
     change(ypos) = true
     change(zpos) = false
@@ -2280,30 +2282,36 @@ endp
 endp
 
 @usr_spindle_output
-    ; S word, then (bSpinDwell) a G04 dwell while the spindle reaches the new speed when the speed
-    ; changes by more than spindle_accel (rpm/s): 0.3 s plus 1 s per 500 rpm of change. Without it
-    ; the control holds the next feed block until the spindle is at speed (MD35500).
+    ; S word, then WAITS (usr_spindle_wait) when the speed changes, also from standstill after M5.
     {nb,'S'spin:integer_def_f ' '}
-    ; Keep the integer sdiff and the literal 500: spindle_accel or a numeric would change the dwell if
-    ; GPPL divides integers as integers (unverified).
-    local integer sdiff
-    sdiff = abs(last_spin-spin)
-    if bSpinDwell and sdiff > spindle_accel
-        {nb, 'G04 F', (0.3+(sdiff/500))}
-        {nb}
+    if spin ne last_spin
+        call @usr_spindle_wait
     endif
     last_spin = spin
 endp
 
+@usr_spindle_wait
+    ; WAITS on a block of its own (bSpinWait): the program goes on when the spindle runs at the
+    ; programmed speed after M3/M4/S, or stands still after M5, instead of a G04 dwell timed by the
+    ; post. Feed blocks wait for the speed anyway (MD35500 = 2); WAITS also holds G0, the cycles and
+    ; the tool change. The trailing new block keeps later words off the WAITS line.
+    if bSpinWait
+        skipline = true
+        {nb, 'WAITS'}
+        {nb}
+    endif
+endp
+
 @usr_spindle_stop
-    ; M5 in its own block.
+    ; M5 in its own block, then WAITS until the spindle stands still (usr_spindle_wait).
     iSpindleDir = 5
     {nb}
     call @usr_spindle_mcode_output
+    call @usr_spindle_wait
 endp
 
 @usr_spindle_mcode_output
-    ; M3/M4/M5. After a stop the next S counts as a start from 0 rpm (dwell in usr_spindle_output).
+    ; M3/M4/M5. After a stop the next S counts as a start from 0 rpm (WAITS in usr_spindle_output).
     if iSpindleDir ne 3 and iSpindleDir ne 4
         last_spin = 0
     endif
