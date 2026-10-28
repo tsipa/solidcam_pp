@@ -40,6 +40,10 @@
 - Use stable neutral aliases for operations and related geometry/setup identities.
   Tool names and tool data may remain unchanged. Preserve numeric machining inputs,
   event order, change flags and native precision.
+- The SolidCAM user account (`user_account` in `start_of_file`) is an identity as
+  well; the extractor writes `USER`. Neutralize account, computer/host and Windows
+  user names, including user-profile paths such as `C:\Users\<name>`, wherever they
+  appear.
 - The post now emits CAMDBG readouts at trace_level 5. Extract supported fields with
   `python -m pp_tests.tools.input_trace`; do not add raw debug NC to the repository.
   Inspect new debug string fields for identities before extending the extractor.

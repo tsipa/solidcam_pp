@@ -47,6 +47,7 @@ FIXED = {
     b'part_model_name': br'C:\reference\PART.SLDPRT',
     b'part_full_name': br'C:\reference\PART',
     b'path_part': br'C:\reference',
+    b'user_account': b'USER',  # the account of the user who ran SolidCAM (start_of_file)
 }
 GROUPS = {
     b'job_name': 'operation', b'original_job_name': 'operation',

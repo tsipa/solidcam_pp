@@ -1,22 +1,36 @@
 """Input trace extraction preserves CAM data while removing post output."""
 import gzip
+import hashlib
+import json
 import lzma
 import math
 import tempfile
 import unittest
+from collections import Counter
 from pathlib import Path
 
 from pp_tests.gppl.session import Session, load_events, resolve_policies
-from pp_tests.tools.input_trace import extract
+from pp_tests.tools.input_trace import FIXED, QUOTED, extract
 from pp_tests.trace import parse_trace
 
-from support import FIXTURES, PP, VMID, require_vmid
+from support import FIXTURES, PP, ROOT, VMID, require_vmid
+
+RECORDED = ROOT / 'tests' / 'fixtures'
+
+
+def fixed_identities(line):
+    """(field, neutral) for each fixed identity field in ``line`` (user_account, part and file
+    names): neutral unless a nonempty value differs from the extractor's. The value is not
+    returned, so a failure does not print the identity."""
+    return [(key.lower().decode('ascii'), not value or value == FIXED[key.lower()])
+            for key, _, value in QUOTED.findall(line) if key.lower() in FIXED]
 
 
 class InputTraceTests(unittest.TestCase):
     def test_input_values_and_format_survive_identity_changes(self):
         raw = (b"(1)@start_of_file ==> part_name:'PRIVATE_PART'\r\n"
                b"                    ..> full_g_file_name:'Z:\\private\\sample.mpf'\r\n"
+               b"                    ..> inch_system:0 user_account:'private_account'\r\n"
                b"(2)@usr_header ==> GENERATED_HEADER\r\n"
                b"                      > G54 A=DC(90)\r\n"
                b"(1)@start_of_job ==> job_name:'rough-one' original_job_name:'rough_one'\r\n"
@@ -33,6 +47,7 @@ class InputTraceTests(unittest.TestCase):
             events = parse_trace(result.decode())
             self.assertEqual([e.name for e in events], ['start_of_file', 'start_of_job', 'line_5x', 'end_of_file'])
             self.assertTrue(all(not event.output for event in events))
+            self.assertEqual(events[0].parameters['user_account'], 'USER')
             self.assertEqual(events[1].parameters['job_name'], 'operation_001')
             self.assertEqual(events[1].parameters['original_job_name'], 'operation_001')
             self.assertEqual(events[1].parameters['job_type'], 'spiral_pocket')
@@ -198,3 +213,34 @@ class InputTraceTests(unittest.TestCase):
         for event, original in arcs:
             for key in ('xstart', 'ystart', 'xcenter_rel', 'ycenter_rel', 'arc_size'):
                 self.assertAlmostEqual(event.parameters[key], original[key], places=8, msg=key)
+
+
+class RecordedFixtureTests(unittest.TestCase):
+    def test_fixed_identity_check_reports_a_non_neutral_value(self):
+        line = b"  ..> inch_system:0 USER_ACCOUNT:'someone' part_name:'PART' path_part:''\n"
+        self.assertEqual(fixed_identities(line), [('user_account', False), ('part_name', True), ('path_part', True)])
+
+    def test_recorded_traces_match_their_manifests_and_hold_neutral_identities(self):
+        """Each tests/fixtures/*.trace.txt.xz has the sizes and hashes its manifest records, and
+        the fixed identity fields hold only the extractor's neutral values: the account of the user
+        who ran SolidCAM (start_of_file user_account) is an identity like the part and file names."""
+        traces = sorted(RECORDED.glob('*.trace.txt.xz'))
+        self.assertTrue(traces)
+        for path in traces:
+            with self.subTest(trace=path.name):
+                manifest = json.loads(path.with_name(path.name.replace('.trace.txt.xz', '.manifest.json'))
+                                      .read_text(encoding='utf-8'))
+                compressed = path.read_bytes()
+                self.assertEqual((len(compressed), hashlib.sha256(compressed).hexdigest()),
+                                 (manifest['compressed_bytes'], manifest['compressed_sha256']))
+                digest, size, fields = hashlib.sha256(), 0, Counter()
+                with lzma.open(path) as trace:
+                    for line in trace:
+                        digest.update(line)
+                        size += len(line)
+                        if b"'" in line:
+                            fields.update(fixed_identities(line))
+                self.assertEqual((size, digest.hexdigest()),
+                                 (manifest['input_trace_bytes'], manifest['input_trace_sha256']))
+                self.assertEqual(sorted(field for field, neutral in fields if not neutral), [])
+                self.assertIn(('user_account', True), fields)

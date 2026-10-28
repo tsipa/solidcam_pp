@@ -87,6 +87,9 @@ repository and leave the source unchanged.
 - Replace part names, model names, source/output filenames and paths with neutral
   values such as `PART`, `REFERENCE.MPF` and `C:\reference`. Name the exported
   fixture generically as well.
+- Replace the SolidCAM user account (`user_account` in `start_of_file`) with
+  `USER`. Account, computer/host and Windows user names, including user-profile
+  paths such as `C:\Users\<name>`, are identities wherever they appear.
 - Replace operation names consistently with `operation_001`, `operation_002`, etc.
   Cover `job_name`, `original_job_name`, `next_job_name` and `prev_job_name`;
   SolidCAM's underscore/hyphen variants must resolve to the same alias.
