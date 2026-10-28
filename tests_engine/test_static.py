@@ -13,7 +13,7 @@ from pathlib import Path
 from pp_tests.engine import Engine, UnsupportedGPPL, uncomment
 from pp_tests.gppl.__main__ import main as cli
 from pp_tests.gppl import sysvars
-from pp_tests.gppl.analysis import Analysis
+from pp_tests.gppl.analysis import Analysis, entry_points
 from pp_tests.gppl.policies import Policies
 from pp_tests.gppl.program import load_program
 from pp_tests.gppl.vmid import load_vmid, parse_vmid
@@ -32,7 +32,7 @@ class WholeGppTests(unittest.TestCase):
         kinds = statement_kinds_from_text()
         self.assertEqual((summary['procedures'], summary['statements'], summary['globals_declared'],
                           summary['entry_points']),
-                         (len(lines_matching(r'^@\w+')), sum(kinds.values()), declared_global_count(), 58))
+                         (len(lines_matching(r'^@\w+')), sum(kinds.values()), declared_global_count(), 59))
         self.assertEqual(summary['statement_kinds'], kinds)
         self.assertEqual([d for d in self.diagnostics if d.severity == 'error'], [])
         self.program.validate(strict=True, policies=SESSION)
@@ -124,9 +124,9 @@ class WholeGppTests(unittest.TestCase):
 
     def test_cam_interface_inventory(self):
         interface = self.analysis.interface()
-        # 46 implemented or ignored events, plus the 12 motion events that stop the post
-        # (usr_unsupported_motion_event).
-        self.assertEqual(len(interface['entry_points']), 58)
+        # 47 implemented or ignored events (@home_number is also a PP call target), plus the 12 motion
+        # events that stop the post (usr_unsupported_motion_event).
+        self.assertEqual(len(interface['entry_points']), 59)
         for name in ('tool_number', 'arc_size', 'date', 'time', 'home_user_name'):
             self.assertIn(name, interface['cam_inputs'])
         self.assertEqual(interface['cam_inputs']['inumber_of_fixtures'], 'vmid-param')
@@ -227,7 +227,8 @@ class IdeGrammarTests(unittest.TestCase):
 class SolidCamCatalogTests(unittest.TestCase):
     """Names against SolidCAM's system-variable list (SolidCAM GPPTool Help, via the GPPL IDE catalog;
     not in the repository). Set GPPL_SOLIDCAM_CATALOG=<solidcam-system-variables.json>: a JSON object
-    whose 'variables' lists {'name', 'type', ...}; only names and types are read."""
+    whose 'variables' lists {'name', 'type', ...}; only names and types are read. The procedure list is
+    the sibling solidcam-system-procedures.json ('procedures' keyed '@name'); only its keys are read."""
 
     # SYSTEM_TYPES entries typed differently by the catalog. The enumerations are strings in the engine
     # because SolidCAM's trace prints their names (arc_plane:xy, side:comp_left); the catalog types them
@@ -288,6 +289,24 @@ class SolidCamCatalogTests(unittest.TestCase):
                          self.TYPE_DIVERGENCES)
         names = set(sysvars.CONSTANTS) | sysvars.CONTROL_VARIABLES | sysvars.SYSTEM_FORMATS
         self.assertEqual(names - set(self.catalog), set())
+
+    def undeclared_events(self, text, procedures):
+        """SolidCAM procedures the post defines that the analysis does not take for entry points."""
+        program = load_program(text)
+        return (set(program.procedures) & procedures) - set(entry_points(program))
+
+    def test_every_solidcam_procedure_the_post_defines_is_an_entry_point(self):
+        variables = Path(os.environ['GPPL_SOLIDCAM_CATALOG'])
+        path = variables.with_name(variables.name.replace('solidcam-system-variables', 'solidcam-system-procedures'))
+        if path == variables or not path.is_file():
+            raise unittest.SkipTest(f'no SolidCAM procedure catalog next to the variable catalog ({path.name})')
+        procedures = {name.lstrip('@').lower() for name in
+                      json.loads(path.read_text(encoding='utf-8-sig'))['procedures']}
+        self.assertEqual((set(sysvars.EVENT_CONTRACTS) | set(sysvars.LIFECYCLE)) - procedures, set())
+        # @home_number was missing from EVENT_CONTRACTS: its inputs were never reported.
+        self.assertEqual(self.undeclared_events(source(), procedures), set())
+        mutant = source() + '\n@stop_tool\nendp\n'
+        self.assertEqual(self.undeclared_events(mutant, procedures), {'stop_tool'})
 
 
 if __name__ == '__main__':

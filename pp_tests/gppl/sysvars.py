@@ -65,6 +65,10 @@ EVENT_CONTRACTS = {
     'message': ('message',),
     'home_data': ('home_user_name', 'home_number', 'position', 'shift_x', 'shift_y', 'shift_z',
                   'y_angle_const_z'),
+    # An event as well as a PP call target (@start_of_job calls it): the reference trace
+    # (tests/fixtures/reference_multijob.trace.txt.xz) has '(1)@home_number ==> home_number:1
+    # home_user_name:''' after @tmatrix.
+    'home_number': ('home_number', 'home_user_name'),
     'relative_mode': (), 'absolute_mode': (), 'rotate': (), 'mirror': (), 'job_plane': (),
     'chng_tool_cnext': (), 'rotary_info': (), 'tool_path_info': (), 'transform_info': (),
     'end_program': (), 'end_of_file': (),
