@@ -157,8 +157,8 @@ class SessionReadoutTests(unittest.TestCase):
     def test_readout_in_the_shared_rapid_is_detected(self):
         """INDEPENDENT: mutation self-check; the move readout in usr_rapid would print for every
         rapid, also the post's own and the 3-axis ones."""
-        moved = mutate('    call @usr_camdbg_move(5)\n', '')
-        mutant = mutate('\n@usr_rapid\n', '\n@usr_rapid\n    call @usr_camdbg_move(5)\n', source=moved)
+        moved = mutate('    call @usr_camdbg_move((5))\n', '')
+        mutant = mutate('\n@usr_rapid\n', '\n@usr_rapid\n    call @usr_camdbg_move((5))\n', source=moved)
         assert_detected(self, self.check_sessions, mutant, 'readout in usr_rapid')
 
 

@@ -280,7 +280,7 @@ class HarnessTests(unittest.TestCase):
         """INDEPENDENT: arithmetic of nested while loops (sum of i+j for i<3, j<2 is 9);
         procedure parameters do not leak into the caller's change flags."""
         source = ('@test\nlocal integer i j\nresult=0\ni=0\nwhile i < 3\n'
-                  'j=0\nwhile j < 2\ncall @add(i+j)\nj=j+1\nendw\ni=i+1\nendw\nendp\n'
+                  'j=0\nwhile j < 2\ncall @add((i+j))\nj=j+1\nendw\ni=i+1\nendw\nendp\n'
                   '@add(numeric value)\nresult=result+value\nendp')
         engine = Engine(source)
         engine.call('test')

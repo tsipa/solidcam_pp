@@ -1119,28 +1119,28 @@ endp
     ; each code once (usr_coolant_code: every OFF code is M9). The change flags mark the channels of
     ; this call until its end: usr_coolant_code prints a copy of the code, which leaves them set.
     if change(iCoolantM1)
-        call @usr_coolant_code(iCoolantM1, 1)
+        call @usr_coolant_code(iCoolantM1, (1))
     endif
     if change(iCoolantM2)
-        call @usr_coolant_code(iCoolantM2, 2)
+        call @usr_coolant_code(iCoolantM2, (2))
     endif
     if change(iCoolantM3)
-        call @usr_coolant_code(iCoolantM3, 3)
+        call @usr_coolant_code(iCoolantM3, (3))
     endif
     if change(iCoolantM4)
-        call @usr_coolant_code(iCoolantM4, 4)
+        call @usr_coolant_code(iCoolantM4, (4))
     endif
     if change(iCoolantM5)
-        call @usr_coolant_code(iCoolantM5, 5)
+        call @usr_coolant_code(iCoolantM5, (5))
     endif
     if change(iCoolantM6)
-        call @usr_coolant_code(iCoolantM6, 6)
+        call @usr_coolant_code(iCoolantM6, (6))
     endif
     if change(iCoolantM7)
-        call @usr_coolant_code(iCoolantM7, 7)
+        call @usr_coolant_code(iCoolantM7, (7))
     endif
     if change(iCoolantM8)
-        call @usr_coolant_code(iCoolantM8, 8)
+        call @usr_coolant_code(iCoolantM8, (8))
     endif
     call @usr_coolant_clear_flags
     ; The next block starts a new line unless the caller sets skipline = false again (usr_ct_after).
@@ -1282,7 +1282,7 @@ endp
     ; operations), which would cut the final walls in the roughing tolerance.
     if bCycle832Auto
         if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor'
-            call @usr_smoothing_set(1)
+            call @usr_smoothing_set((1))
         endif
         if feed_type eq 'feed_rate'
             call @usr_smoothing_set(iCycle832Job)
@@ -2355,7 +2355,7 @@ endp
 
     ; Drilling cycles run in the reset settings of the control (usr_smoothing): the job asks for
     ; none from here, also when its CYCLE832 still waits for G40.
-    call @usr_smoothing_set(0)
+    call @usr_smoothing_set((0))
     if iCycle832Mode ne 0
         call @usr_smoothing_off
     endif
@@ -2947,7 +2947,7 @@ endp
 @move_4x
     ; SolidCAM event: 4x rapid (usr_rapid; the A direction comes from dir5a, bR1useDir5a).
     ; A rotates around X on this machine: X is the axial coordinate and is posted as given.
-    call @usr_camdbg_move(4)
+    call @usr_camdbg_move((4))
     bR1useDir5a = true
     call @usr_rapid
     bR1useDir5a = false
@@ -2980,7 +2980,7 @@ endp
 
 @move_5x
     ; SolidCAM event: 5x rapid (usr_rapid; the A direction comes from dir5a, bR1useDir5a).
-    call @usr_camdbg_move(5)
+    call @usr_camdbg_move((5))
     bR1useDir5a = true
     call @usr_rapid
     bR1useDir5a = false

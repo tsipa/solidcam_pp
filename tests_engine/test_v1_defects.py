@@ -123,7 +123,7 @@ class V1DefectTests(unittest.TestCase):
         self.assertEqual((old.output, new.output), (['X1'], ['']))
 
     def test_call_arguments_are_parsed_not_split_on_commas(self):
-        src = ("@t\ncall @p('a,b')\ncall @q(left('abc',2), 3)\ncall @r()\nendp\n"
+        src = ("@t\ncall @p(('a,b'))\ncall @q((left('abc',2)), (3))\ncall @r()\nendp\n"
                "@p(string s)\nx=s\nendp\n@q(string s, numeric n)\ny=s\nz=n\nendp\n@r\nw=1\nendp")
         self.assertEqual(legacy_outcome(lambda: legacy_run(src))[0], 'error')
         engine = run(src)

@@ -36,7 +36,7 @@ class RecursionHardeningTests(unittest.TestCase):
     def test_full_call_depth_inside_nested_blocks(self):
         """62 nested calls, each inside 12 ifs and a while: the 64-call limit is the
         only depth limit (the parser-first and incremental prototypes hit Python's)."""
-        body = 'if true\n' * 12 + 'i = 0\nwhile i < 1\ni = i + 1\nif n gt 0\ncall @r(n - 1)\nendif\nendw\n' + 'endif\n' * 12
+        body = 'if true\n' * 12 + 'i = 0\nwhile i < 1\ni = i + 1\nif n gt 0\ncall @r((n - 1))\nendif\nendw\n' + 'endif\n' * 12
         src = '@r(numeric n)\nlocal numeric i\n' + body + 'hits = hits + 1\nendp'
         engine = Engine(src)
         engine.set(hits=0)
@@ -72,7 +72,7 @@ class StrictLoadTests(unittest.TestCase):
 
     def test_strict_load_rejects_every_static_error(self):
         cases = {'missing procedure': '@t\nif false\ncall @nope\nendif\nendp',
-                 'arity': '@t\ncall @u(1, 2)\nendp\n@u(numeric a)\nendp',
+                 'arity': '@t\ncall @u((1), (2))\nendp\n@u(numeric a)\nendp',
                  'syntax in dead code': '@t\nif false\nx = 0x10\nendif\nendp',
                  'structure': '@t\nwhile true\nendp',
                  'outside code': '@t\nendp\nx = 1',
@@ -199,7 +199,7 @@ class CoverageAndTraceTests(unittest.TestCase):
 
     def test_calltrace_records_calls_outputs_and_assignments(self):
         trace = CallTrace(record_assignments=True)
-        engine = Engine("@a\ncall @b(2)\nendp\n@b(numeric n)\nx = n\n{'G75 X'x}\nendp", tracer=trace)
+        engine = Engine("@a\ncall @b((2))\nendp\n@b(numeric n)\nx = n\n{'G75 X'x}\nendp", tracer=trace)
         engine.call('a')
         self.assertEqual(trace.calls(), ['a', 'b'])
         self.assertEqual(trace.emitted_by('G75'), [(['@a', '@b<-@a:2'], ('b', 6), 'G75 X2')])

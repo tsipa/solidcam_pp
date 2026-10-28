@@ -354,3 +354,17 @@ class SolidCamCatalogTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class CallArgumentSyntaxTests(unittest.TestCase):
+    def test_constants_and_expressions_require_parentheses(self):
+        for argument in ('1', '-1', 'x+7', '(x)+7'):
+            with self.subTest(argument=argument):
+                program = load_program('@main\ncall @user(' + argument + ')\nendp\n@user(integer value)\nendp')
+                self.assertTrue(program.errors())
+
+    def test_variable_reference_and_parenthesized_values_are_valid(self):
+        for argument in ('x', '(1)', '(-1)', '(x+7)', '((x)+7)'):
+            with self.subTest(argument=argument):
+                program = load_program('@main\ncall @user(' + argument + ')\nendp\n@user(integer value)\nendp')
+                self.assertFalse(program.errors())

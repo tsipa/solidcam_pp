@@ -152,7 +152,25 @@ def parse_simple(text, span, escape, max_depth=DEFAULT_MAX_DEPTH):
             parser.advance()
             if not parser.tok.is_op(')'):
                 while True:
-                    trees.append(parser.finish(parser.parse_expression()))
+                    start = parser.index
+                    tree = parser.finish(parser.parse_expression())
+                    argument = tokens[start:parser.index]
+                    # GPPL: a bare argument is a variable reference. Values and
+                    # expressions require their own surrounding parentheses.
+                    enclosed = False
+                    if argument and argument[0].is_op('('):
+                        depth = 0
+                        for index, token in enumerate(argument):
+                            if token.is_op('('):
+                                depth += 1
+                            elif token.is_op(')'):
+                                depth -= 1
+                            if depth == 0:
+                                enclosed = index == len(argument) - 1
+                                break
+                    if not (len(argument) == 1 and type(tree) is N.Var) and not enclosed:
+                        raise GPPLSyntaxError('call argument must be a variable or a parenthesized expression')
+                    trees.append(tree)
                     if parser.tok.is_op(','):
                         parser.advance()
                         continue

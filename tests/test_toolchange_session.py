@@ -521,8 +521,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
         """INDEPENDENT: wrong flag value, a skipped channel, a wrong pressure code or no coolant fail."""
         sources = {
             'air blast flag value': mutate('    if Air_Blast_coolant eq 1\n', '    if Air_Blast_coolant eq 2\n'),
-            'channel 7 never written': mutate("    if change(iCoolantM7)\n        call @usr_coolant_code(iCoolantM7, 7)\n",
-                                              "    if false\n        call @usr_coolant_code(iCoolantM7, 7)\n"),
+            'channel 7 never written': mutate("    if change(iCoolantM7)\n        call @usr_coolant_code(iCoolantM7, (7))\n",
+                                              "    if false\n        call @usr_coolant_code(iCoolantM7, (7))\n"),
             '40 bar code': mutate('            iCoolantM5ON = 71\n', '            iCoolantM5ON = 72\n'),
             'no coolant after M06': mutate("        if bCoolExist\n            skipline = false\n"
                                            "            call @usr_coolant\n",
