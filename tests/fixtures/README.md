@@ -27,13 +27,14 @@ output or a claim that the current offline interpreter can replay every event.
 
 Operations are consistently named `operation_001` through `operation_031`.
 Geometry names, part/file paths, setup/fixture names, and nonempty descriptive
-messages use neutral identifiers. Original identity mappings are not included.
+messages use neutral identifiers; the user account is `USER`. Original
+identity mappings are not included.
 All other native parameter text is retained, including numeric spelling, change
 flags (`T`/`F`), operation types, tool data, whitespace, and line endings. This
 uses targeted identity replacement, not the capture command's blanket string
 redaction.
 
-The complete enriched text is about 108 MB; XZ stores it losslessly in 5.71 MB
+The complete enriched text is about 108 MB; XZ stores it losslessly in 5.72 MB
 (5.45 MiB), smaller than the previous 8.08 MB gzip fixture despite the added data.
 `reference_multijob.manifest.json` records hashes, sizes, event counts, and the
 fields renamed or recovered from diagnostics. The compressed file has no source
@@ -129,10 +130,10 @@ local to each recording; matching alias numbers across files do not imply the
 same operation.
 
 Only public CAM inputs and supported diagnostic values are retained. Original
-part, operation, geometry, setup and message identities are neutralized; tool
-names and data are preserved. The additional stock/target labels and machine
-configuration fields were reviewed for part/operation identities. These files
-are input examples rather than expected NC output.
+part, operation, geometry, setup, message and user account identities are
+neutralized; tool names and data are preserved. The additional stock/target
+labels and machine configuration fields were reviewed for part/operation
+identities. These files are input examples rather than expected NC output.
 
 The exports use lossless XZ with preset `9 | lzma.PRESET_EXTREME` (retaining the
 smaller preset-6 stream if necessary). Decompressed bytes are verified after
@@ -141,8 +142,8 @@ The XZ decoder can need roughly 65 MiB for its compression dictionary.
 
 | Recording | Public events | CAMDBG readouts | XZ bytes |
 | --- | ---: | ---: | ---: |
-| `recorded_cam_001` | 154,995 | 101,499 | 4,329,900 |
-| `recorded_cam_002` | 11,831 | 1,505 | 211,712 |
-| `recorded_cam_003` | 5,997 | 8,685 | 279,284 |
-| `recorded_cam_004` | 41,574 | 22,995 | 1,163,000 |
-| `recorded_cam_005` | 25,533 | 19,151 | 874,580 |
+| `recorded_cam_001` | 154,995 | 101,499 | 4,318,600 |
+| `recorded_cam_002` | 11,831 | 1,505 | 211,476 |
+| `recorded_cam_003` | 5,997 | 8,685 | 278,884 |
+| `recorded_cam_004` | 41,574 | 22,995 | 1,152,796 |
+| `recorded_cam_005` | 25,533 | 19,151 | 871,432 |

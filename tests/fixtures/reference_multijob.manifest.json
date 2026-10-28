@@ -2,11 +2,11 @@
   "schema": 2,
   "source_bytes": 138550753,
   "source_sha256": "edc4f32b99801301187475c641680f52dcfc35a78721dbc8a1bba09d1749c16a",
-  "input_trace_bytes": 107576285,
-  "input_trace_sha256": "6c092d670a05a1d935eb595a2b8c23c15142eba813b9d86f27ef377dea74c243",
+  "input_trace_bytes": 107576287,
+  "input_trace_sha256": "a48138686dc91b6d0949a662daf189e586ff04f3df898d7613f5a564f3646ef1",
   "compression": "xz",
-  "compressed_bytes": 5710892,
-  "compressed_sha256": "1c4c4a940678b2c3272c81dc449f4805d374c88569d2291891ab8fff88dd7f0c",
+  "compressed_bytes": 5717788,
+  "compressed_sha256": "755cd1802c485db16947df49a5ae17f31a8a45ca3b43754ea107a2fed56110a9",
   "event_count": 154995,
   "events": {
     "absolute_mode": 1,
@@ -69,6 +69,7 @@
     "part_model_name": 1,
     "part_name": 1,
     "path_part": 1,
-    "setup_name": 1
+    "setup_name": 1,
+    "user_account": 1
   }
 }

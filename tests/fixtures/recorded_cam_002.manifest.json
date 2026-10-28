@@ -2,11 +2,11 @@
   "schema": 2,
   "source_bytes": 11828147,
   "source_sha256": "e9379083e1ca75d6788b3cdfe50b9cc2cafbe3217541b6963dd4aaa1a901359e",
-  "input_trace_bytes": 8210693,
-  "input_trace_sha256": "61f34d6cc7fa913e9866efeb0db0aac8fb7f04e818c46a77a6922b558f1dabc1",
+  "input_trace_bytes": 8210695,
+  "input_trace_sha256": "357c902a652c96de81947e0a204ff727cfc6ef411126f9545532ec995b0e52bd",
   "compression": "xz",
-  "compressed_bytes": 211712,
-  "compressed_sha256": "3e1a05da0d24a9655d9dbdfff45cfd59830974d654e10291d94f1742485b3d58",
+  "compressed_bytes": 211476,
+  "compressed_sha256": "413cd9fc958b8b38111711443f226731a2bcdef7bf1edb3f0f7702cd12de4fd4",
   "event_count": 11831,
   "events": {
     "absolute_mode": 1,
@@ -91,7 +91,8 @@
     "part_model_name": 1,
     "part_name": 1,
     "path_part": 1,
-    "setup_name": 1
+    "setup_name": 1,
+    "user_account": 1
   },
   "compression_preset": "9e (retained preset 6 if smaller)"
 }
