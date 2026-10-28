@@ -23,3 +23,20 @@
 
 - For VERICUT project/control work, use
   [.codex/skills/vericut-control/SKILL.md](.codex/skills/vericut-control/SKILL.md).
+
+# CAM trace and fixture identities
+
+- Before staging any recorded CAM trace, NC example, fixture, manifest or supporting
+  documentation, remove original part and operation names, including their paths,
+  filenames, comments, messages and debug output. Apply this to compressed contents
+  as well; never commit the raw source or an original-to-neutral name mapping.
+- Use stable neutral aliases for operations and related geometry/setup identities.
+  Tool names and tool data may remain unchanged. Preserve numeric machining inputs,
+  event order, change flags and native precision.
+- The post now emits CAMDBG readouts at trace_level 5. Extract supported fields with
+  `python -m pp_tests.tools.input_trace`; do not add raw debug NC to the repository.
+  Inspect new debug string fields for identities before extending the extractor.
+- Follow [tests/fixtures/README.md](tests/fixtures/README.md#sanitization-rules)
+  when recording or updating fixtures. Check the decompressed export for original
+  names and distinctive fragments before staging; automatic field replacement alone
+  does not establish that an unfamiliar trace format is sanitized.

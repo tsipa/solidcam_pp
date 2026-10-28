@@ -74,3 +74,46 @@ post keeps `trace_level = 0`.
 performs the extraction and neutral naming. The destination suffix selects XZ
 (`.xz`) or gzip (`.gz`). Optional `--forbid` terms make the export fail if a
 specified identity remains. Source files are never rewritten.
+
+## Sanitization rules
+
+These rules apply to all recorded fixtures and accompanying examples, debug logs,
+filenames, manifests and documentation in the repository, including compressed
+files. Sanitize before staging: original part and operation identities must never
+enter Git history, even in a temporary commit. Keep raw recordings outside the
+repository and leave the source unchanged.
+
+- Replace part names, model names, source/output filenames and paths with neutral
+  values such as `PART`, `REFERENCE.MPF` and `C:\reference`. Name the exported
+  fixture generically as well.
+- Replace operation names consistently with `operation_001`, `operation_002`, etc.
+  Cover `job_name`, `original_job_name`, `next_job_name` and `prev_job_name`;
+  SolidCAM's underscore/hyphen variants must resolve to the same alias.
+- Neutralize geometry, setup, fixture and origin names, descriptive messages and
+  comments that can reveal the part or operation. Do not retain original-name
+  mappings or identity-bearing source paths in manifests or documentation.
+- Tool names, descriptions and tool data may remain unchanged. Preserve machining
+  coordinates, angles, numeric precision, event order and native change flags.
+  An original part/operation identity copied into a tool label still needs removal.
+- With `trace_level = 5`, the post writes CAMDBG alongside the native trace and NC.
+  Use the extractor to promote supported debug values into event parameters and
+  remove generated NC, raw debug comments and nested implementation traces. The
+  debug field allowlist is not a general identity filter: inspect any new string
+  fields and extend neutral naming before retaining them. Do not silently drop
+  unrecognized debug fields to make extraction succeed.
+
+For example (use neutral destination names; the source stays outside the repo):
+
+```powershell
+python -m pp_tests.tools.input_trace C:\capture\recording.mpf tests/fixtures/reference_multijob.trace.txt.xz --manifest tests/fixtures/reference_multijob.manifest.json --forbid ORIGINAL_PART --forbid ORIGINAL_OPERATION
+```
+
+Supply actual original names and distinctive fragments to `--forbid` locally;
+never save those terms or the alias mapping in tracked commands or files. Check
+all known names, case variants, underscore/hyphen spellings and source path
+fragments in the **decompressed** export and accompanying text before staging.
+Review retained string fields, including strings recovered from CAMDBG, rather
+than assuming a successful extraction guarantees sanitization. An unfamiliar
+identity-bearing field requires an extractor update, not an exception to these
+rules. Run `python -m unittest discover -s tests_engine -p test_input_trace.py`
+after changing the extractor.
