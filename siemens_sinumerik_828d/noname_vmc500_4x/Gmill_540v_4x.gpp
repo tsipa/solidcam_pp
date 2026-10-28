@@ -1011,10 +1011,10 @@ endp
     ; start_of_job for a same-tool work offset change (full reset).
     ; Known defect PP-027: the first-tool branch never clears bSafetyprep, so the usr_ct call of the
     ; second tool takes the bSafetyprep branch and skips the full reset.
+    change(iAbsincmode) = false
     if first_tool
         iMotionmode = 9999
         iDiametercomp = 40
-        change(iAbsincmode) = false
         call @machine_plane
         change(iMplane) = true
         change(iWorkoffset) = true
@@ -1023,7 +1023,6 @@ endp
         if bSafetyprep
             call @machine_plane
             change(iMplane) = true
-            change(iAbsincmode) = false
             change(iDiametercomp) = false
             bSafetyprep = false
         else
@@ -1031,7 +1030,6 @@ endp
             if bWorkoffsettc
                 change(iWorkoffset) = true
             endif
-            change(iAbsincmode) = false
             iDiametercomp = 40
             change(nRapidfeed) = true
             apos = 0
