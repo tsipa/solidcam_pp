@@ -18,7 +18,7 @@
     global string nR1pos_f nInvFeed_f
     global logical bCycle832 bSpinWait
     global numeric nCycle832RoughAllow nCycle832TolRough nCycle832TolSemi nCycle832TolFinish
-    global string nCycle832Tol_f
+    global string nCycle832Tol_f nCamDbg_f
     ; Modal state of the NC program (what the control has active). iDiametercomp is the G40/G41/G42
     ; CAM asks for, printed on the next G0/G1 block; iCompActive is what the control has active.
     global integer iMotionmode iMplane iAbsincmode iWorkoffset iPworkoffset iDiametercomp iCompActive
@@ -214,10 +214,105 @@ endp
 
 @usr_ip_postwriteroptions
     ; Options for post writers: tracing.
-    ; trace "all":5
+    trace_level           = 0                  ; 5 = trace "all":5 and the CAMDBG readouts (usr_camdbg_*); NC for analysis only
+    nCamDbg_f             = '5.9'              ; CAMDBG number format
+    if trace_level > 0
+        trace 'all':trace_level
+    endif
     ; trace "@tmatrix":5
     ; trace "@def_tool":5
     ; trace "@drill_point":5
+endp
+
+; CAMDBG readouts (trace_level 5): event inputs the SolidCAM trace omits, prints as a name, or prints
+; with fewer decimals than the post computes with, as '; CAMDBG <event> name:value' comment lines that
+; pp_tests/tools/input_trace.py promotes into the recorded input fixture. The values are printed from
+; local copies: printing clears a variable's change flag (clear_change_after_gen), which the post may
+; still test. A readout opens its own lines at the start of the event (start_of_file: at its end), where
+; no block waits to be joined to the last line (skipline is true between events), so the NC keeps the
+; lines of trace_level 0 around the readouts.
+
+@usr_camdbg_start_of_file
+    ; date and time (absent from the trace) and the number of the drill type constant D_Tapping.
+    local string sDbg1 sDbg2
+    local numeric nDbg1
+    if trace_level >= 5
+        sDbg1 = date
+        sDbg2 = time
+        nDbg1 = D_Tapping
+        {nl,'; CAMDBG start_of_file date:',sDbg1,' time:',sDbg2,' d_tapping_value:',nDbg1:nCamDbg_f}
+    endif
+endp
+
+@usr_camdbg_def_tool
+    ; next_command (absent from the trace), read by def_tool.
+    local string sDbg1
+    if trace_level >= 5
+        sDbg1 = next_command
+        {nl,'; CAMDBG def_tool next_command:',sDbg1}
+    endif
+endp
+
+@usr_camdbg_start_of_job
+    ; The rotary positions and d_drill_type (absent from the first job of the trace), and the numbers
+    ; of the fields the post compares with numbers but the trace prints as names (coolant 'no_action',
+    ; rot_axis_coord 'axis4_no').
+    local numeric nDbg1 nDbg2 nDbg3 nDbg4 nDbg5 nDbg6 nDbg7 nDbg8 nDbg9
+    if trace_level >= 5
+        nDbg1 = angle
+        nDbg2 = cpos
+        nDbg3 = apos
+        nDbg4 = bpos
+        nDbg5 = d_drill_type
+        nDbg6 = rot_axis_coord
+        {nl,'; CAMDBG start_of_job angle:',nDbg1:nCamDbg_f,' cpos:',nDbg2:nCamDbg_f,' apos:',nDbg3:nCamDbg_f,' bpos:',nDbg4:nCamDbg_f,' d_drill_type:',nDbg5:nCamDbg_f,' rot_axis_coord_value:',nDbg6:nCamDbg_f}
+        nDbg1 = flood_coolant
+        nDbg2 = Mist_coolant
+        nDbg3 = HP_Flood_coolant
+        nDbg4 = LP_Flood_coolant
+        nDbg5 = through_ival_coolant
+        nDbg6 = LP_Through_coolant
+        nDbg7 = Air_Blast_coolant
+        nDbg8 = air_through_coolant
+        nDbg9 = through_coolant_val
+        {nl,'; CAMDBG start_of_job flood_coolant_value:',nDbg1:nCamDbg_f,' mist_coolant_value:',nDbg2:nCamDbg_f,' hp_flood_coolant_value:',nDbg3:nCamDbg_f,' lp_flood_coolant_value:',nDbg4:nCamDbg_f}
+        {nl,'; CAMDBG start_of_job through_ival_coolant_value:',nDbg5:nCamDbg_f,' lp_through_coolant_value:',nDbg6:nCamDbg_f,' air_blast_coolant_value:',nDbg7:nCamDbg_f,' air_through_coolant_value:',nDbg8:nCamDbg_f,' through_coolant_val:',nDbg9:nCamDbg_f}
+    endif
+endp
+
+@usr_camdbg_rapid_move
+    ; prev_command (absent from the trace), read by usr_rapid.
+    local string sDbg1
+    if trace_level >= 5
+        sDbg1 = prev_command
+        {nl,'; CAMDBG rapid_move prev_command:',sDbg1}
+    endif
+endp
+
+@usr_camdbg_arc
+    ; The start point (absent from the trace) and the centre, zcenter_rel and arc_size, which the
+    ; trace prints with 3 to 5 decimals: usr_arc_math rotates the start about the centre by arc_size
+    ; and checks the result against the CAM end point to 0.001.
+    local string sDbg1
+    local numeric nDbg1 nDbg2 nDbg3 nDbg4 nDbg5 nDbg6 nDbg7
+    if trace_level >= 5
+        sDbg1 = 'arc'
+        if arc_plane eq YZ
+            sDbg1 = 'arc_yz'
+        endif
+        if arc_plane eq ZX
+            sDbg1 = 'arc_zx'
+        endif
+        nDbg1 = xstart
+        nDbg2 = ystart
+        nDbg3 = zstart
+        nDbg4 = xcenter_rel
+        nDbg5 = ycenter_rel
+        nDbg6 = zcenter_rel
+        nDbg7 = arc_size
+        {nl,'; CAMDBG ',sDbg1,' xstart:',nDbg1:nCamDbg_f,' ystart:',nDbg2:nCamDbg_f,' zstart:',nDbg3:nCamDbg_f}
+        {nl,'; CAMDBG ',sDbg1,' xcenter_rel:',nDbg4:nCamDbg_f,' ycenter_rel:',nDbg5:nCamDbg_f,' zcenter_rel:',nDbg6:nCamDbg_f,' arc_size:',nDbg7:nCamDbg_f}
+    endif
 endp
 
 ;-------------------
@@ -271,6 +366,7 @@ endp
     if message10 ne ''
         {NL, cCb message10 cCe }
     endif
+    call @usr_camdbg_start_of_file
 endp
 
 @usr_check_options
@@ -451,6 +547,7 @@ endp
 
 @def_tool
     ; Tool list line of the header (bTlist); after the last tool: the WORKPIECE blank.
+    call @usr_camdbg_def_tool
     if bTlist
         if tool_message == '' then
             {nl, cCb'TOOL 'tool_number, ' - DIA '(tool_offset*2),' | HOLDER: ',holder_name,' | STICKOUT: ',tool_length:'5.3',' mm',cCe }
@@ -1256,6 +1353,7 @@ endp
     ; Start of an operation: work offset and job plane, a pending index, then the tool change
     ; (usr_ct) or, for the same tool, the job comment, the M1 (bOptstpjob) and a work-offset change.
     local numeric dummy_var
+    call @usr_camdbg_start_of_job
     call @usr_link_boundary
     call @home_number
     ; Arcs in YZ/ZX leave iMplane at 19/18; restore the job's machining plane for its first motion block.
@@ -1294,7 +1392,7 @@ endp
             endif
             ; bTlchg makes this rapid the positioning block (usr_rapid_tc_block, which clears it).
             bTlchg = true
-            call @rapid_move
+            call @usr_rapid_move
         endif
     endif
     call @usr_smoothing
@@ -1330,8 +1428,14 @@ endp
 ;-------------------
 
 @rapid_move
-    ; SolidCAM event: rapid move. All rapids go through usr_rapid; a CYCLE832 that waited for G40
-    ; comes first (usr_smoothing_apply).
+    ; SolidCAM event: rapid move (usr_rapid_move).
+    call @usr_camdbg_rapid_move
+    call @usr_rapid_move
+endp
+
+@usr_rapid_move
+    ; A rapid of the CAM or of the post (start_of_job, usr_StopM00_sametool, drill). All rapids go
+    ; through usr_rapid; a CYCLE832 that waited for G40 comes first (usr_smoothing_apply).
     call @usr_smoothing_apply
     call @usr_rapid
 endp
@@ -1840,18 +1944,21 @@ endp
 @arc
     ; SolidCAM event: XY arc. All arcs go through usr_arc, after the CYCLE832 of the cut
     ; (usr_smoothing_feed).
+    call @usr_camdbg_arc
     call @usr_smoothing_feed
     call @usr_arc
 endp
 
 @arc_yz
     ; SolidCAM event: YZ arc (usr_smoothing_feed, usr_arc).
+    call @usr_camdbg_arc
     call @usr_smoothing_feed
     call @usr_arc
 endp
 
 @arc_zx
     ; SolidCAM event: ZX arc (usr_smoothing_feed, usr_arc).
+    call @usr_camdbg_arc
     call @usr_smoothing_feed
     call @usr_arc
 endp
@@ -2110,7 +2217,7 @@ endp
     bHomedBeforeReturn = bPostHomed
     nZBeforeReturn = nLastPathZ
     bPostHomed = false
-    call @rapid_move
+    call @usr_rapid_move
     bPostHomed = bHomedBeforeReturn
     ; The return programs no Z: the tool stays at its Z (RTP after a drill cycle, or the homed top).
     nLastPathZ = nZBeforeReturn
@@ -2197,7 +2304,7 @@ endp
     if iCycle832Mode ne 0
         call @usr_smoothing_off
     endif
-    call @rapid_move
+    call @usr_rapid_move
     if drill_type eq G81 then
         gcode = 81
     endif

@@ -56,6 +56,14 @@ def strip_strings(code):
     return re.sub(r"'(?:[^']|'')*'|\"[^\"]*\"", "''", code)
 
 
+STRING_OR_DESCRIPTOR = re.compile(r":\s*'([^']*)'|'(?:[^']|'')*'|\"[^\"]*\"")
+
+
+def format_descriptors(code):
+    """Literal formats of output items (value:'5.3'); a ':' inside a string literal is text."""
+    return [match.group(1) for match in STRING_OR_DESCRIPTOR.finditer(code) if match.group(1) is not None]
+
+
 def option_state(source=None):
     """Post options as @init_post leaves them (stock engine; init_post runs there)."""
     engine = fresh_engine(source)
@@ -171,7 +179,7 @@ class GppStructureTests(unittest.TestCase):
                 if not NUMERIC_FORMAT.match(assignment.group(2)):
                     problems.append((number, assignment.group(2)))
             if code.startswith('{') or 'tostr(' in code.lower():
-                for descriptor in re.findall(r":'([^']*)'", code):
+                for descriptor in format_descriptors(code):
                     if not NUMERIC_FORMAT.match(descriptor):
                         problems.append((number, descriptor))
         self.assertEqual(problems, [])
@@ -309,12 +317,18 @@ class OptionTests(unittest.TestCase):
 class StaticSourceTests(unittest.TestCase):
     def scan(self, source):
         problems = []
-        for number, raw in enumerate(source.splitlines(), 1):
-            line = uncomment(raw)
+        lines = [uncomment(raw).strip() for raw in source.splitlines()]
+        levels = [line for line in lines if re.match(r'trace_level\s*=', line, re.I)]
+        if [re.sub(r'\s+', ' ', line) for line in levels] != ['trace_level = 0']:
+            problems.append((None, 'trace_level is not set once to 0', levels))
+        for number, line in enumerate(lines, 1):
             if re.match(r'trace\b', line, re.I):
-                problems.append((number, 'active trace statement', raw.strip()))
+                gated = (re.fullmatch(r"trace\s+(['\"])all\1\s*:\s*trace_level", line, re.I)
+                         and re.fullmatch(r'if\s+trace_level\s*>\s*0', lines[number - 2], re.I))
+                if not gated:
+                    problems.append((number, 'active trace statement', line))
             if re.match(r'input\b', line, re.I) and 'POST ERROR' not in line:
-                problems.append((number, 'interactive input prompt', raw.strip()))
+                problems.append((number, 'interactive input prompt', line))
         self.assertEqual(problems, [])
 
     def test_no_active_trace_or_interactive_input(self):
@@ -322,14 +336,23 @@ class StaticSourceTests(unittest.TestCase):
         trace writes '(n)@proc ==> ...' records into the NC file ('(' does not
         start a comment on Sinumerik, so the program alarms on load);
         revisions bff5ed0 and ab853be shipped with `trace "all":5` and no
-        behaviour test executes @usr_ip_postwriteroptions. `input` prompts are
-        allowed only on the POST ERROR paths."""
+        behaviour test executes @usr_ip_postwriteroptions. The only trace is
+        `trace 'all':trace_level` under `if trace_level > 0`, with the post-writer
+        option trace_level set once, to 0 (it also gates the CAMDBG readouts).
+        `input` prompts are allowed only on the POST ERROR paths."""
         self.scan(pp_source())
 
     def test_c8b79bd_reversion_is_detected(self):
         """INDEPENDENT: mutation self-check; re-activating the trace (the
-        c8b79bd reversion) must fail the scan with AssertionError."""
-        assert_detected(self, self.scan, mutate('    ; trace "all":5\n', '    trace "all":5\n'), 'c8b79bd reverted')
+        c8b79bd reversion: trace_level 5, or the trace statement without its
+        gate) must fail the scan with AssertionError."""
+        level = '    trace_level           = 0 '
+        gate = "    if trace_level > 0\n        trace 'all':trace_level\n    endif\n"
+        for label, (old, new) in (('trace_level 5', (level, level.replace('= 0', '= 5'))),
+                                  ('ungated trace', (gate, "    trace 'all':trace_level\n")),
+                                  ('commented level', (level, '    ; trace_level = 0 '))):
+            with self.subTest(mutant=label):
+                assert_detected(self, self.scan, mutate(old, new), label)
 
 
 STEP_KEYS = {'call', 'set', 'changed', 'blocks', 'contains', 'absent', 'order', 'state'}

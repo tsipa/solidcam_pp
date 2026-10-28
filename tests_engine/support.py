@@ -16,7 +16,8 @@ HERE = Path(__file__).resolve().parent
 FIXTURES = HERE / 'fixtures'
 PP = Path(os.environ.get('PP_TEST_SOURCE', ROOT / 'siemens_sinumerik_828d/noname_vmc500_4x/Gmill_540v_4x.gpp'))
 VMID = Path(os.environ.get('PP_TEST_VMID', PP.with_suffix('.vmid')))
-SESSIONS = ('synthetic_session', 'options_session', 'machine_variants_session', 'oracle_session', 'cycle832_session')
+SESSIONS = ('synthetic_session', 'options_session', 'machine_variants_session', 'oracle_session', 'cycle832_session',
+            'camdbg_session')
 SESSION = Policies.session()
 COMPAT = Policies()
 
@@ -47,7 +48,8 @@ def lines_matching(pattern, start=None):
 
 
 STATEMENT_PATTERNS = {
-    'Abort': r'^\s*abort\s*$', 'Input': r'^\s*input\b', 'Print': r'^\s*print\b', 'While': r'^\s*while\b',
+    'Abort': r'^\s*abort\s*$', 'Input': r'^\s*input\b', 'Print': r'^\s*print\b', 'Trace': r'^\s*trace\b',
+    'While': r'^\s*while\b',
     'If': r'^\s*if\b', 'Declare': r'^\s*(global|local)\b', 'FlagAssign': r'^\s*change\s*\(',
     'Output': r'^\s*\{', 'CallProc': r'^\s*call\s+@', 'Assign': r'^\s*[A-Za-z_]\w*\s*=(?!=)'}
 

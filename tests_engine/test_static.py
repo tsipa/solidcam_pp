@@ -39,8 +39,10 @@ class WholeGppTests(unittest.TestCase):
 
     def test_compat_policy_lists_exactly_what_the_legacy_engine_would_reject(self):
         errors = sorted((d.code, d.line) for d in self.program.errors(COMPAT))
-        expected = sorted(lines_matching(r"'5\.0\(n\)'") + lines_matching(r'^\s*print\b'))
-        self.assertEqual(len(expected), 1)                     # Print (usr_4x_index_rotate); the '5.0(n)' formats went with the fixture files
+        expected = sorted(lines_matching(r"'5\.0\(n\)'") + lines_matching(r'^\s*(print|trace)\b'))
+        # Print (usr_4x_index_rotate) and the trace_level trace (usr_ip_postwriteroptions); the '5.0(n)'
+        # formats went with the fixture files
+        self.assertEqual(len(expected), 2)
         self.assertEqual(errors, [('E-POLICY', line) for line in expected])
         format_vars = sorted(d.line for d in self.program.policy_diagnostics(COMPAT) if d.code == 'W-FORMAT-POLICY')
         # The only policy-sensitive formats were newshift_*_f = '+8.5', deleted with the dead
@@ -84,7 +86,7 @@ class WholeGppTests(unittest.TestCase):
         integer_tonum = lines_matching(r'^\s*(iWorkoffset|macnum|iHomingmode)\s*=\s*tonum\(')
         self.assertEqual(sorted(set(codes['I-POLICY-INTEGER'])), integer_tonum)
         self.assertIn(integer_tonum[0], codes['I-POLICY-TONUM'])
-        self.assertEqual(sorted(codes['I-POLICY-STMT']), lines_matching(r'^\s*(input|print)\b'))
+        self.assertEqual(sorted(codes['I-POLICY-STMT']), lines_matching(r'^\s*(input|print|trace)\b'))
 
     def test_event_contracts_include_change_flags(self):
         contracts = self.analysis.event_contracts()
