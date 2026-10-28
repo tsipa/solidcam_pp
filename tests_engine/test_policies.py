@@ -109,6 +109,16 @@ class PolicyTests(unittest.TestCase):
         e.call('t')
         self.assertEqual(e.output, [''])
 
+    def test_substr_start_lies_inside_the_string(self):
+        # GPPTool Help (via the GPPL IDE catalog): 1 <= start <= strlen; the legacy engine sliced.
+        self.assertEqual(engine('').expression("substr('abc', 3, 5)"), 'c')
+        for text in ("substr('abc', 4, 1)", "substr('', 1, 0)"):
+            with self.subTest(text=text), self.assertRaisesRegex(UnsupportedGPPL, 'string_index'):
+                engine('').expression(text)
+        for policy in ('python', 'clamp'):
+            self.assertEqual(engine('', string_index=policy).expression("substr('abc', 4, 1)"), '')
+        self.assertEqual(legacy.Engine('').expression("substr('abc', 4, 1)"), '')
+
     def test_string_and_mixed_comparison(self):
         self.assertFalse(engine('').expression("'CW' eq 'cw'"))
         self.assertTrue(engine('', string_compare='case_insensitive').expression("'CW' eq 'cw'"))

@@ -58,11 +58,13 @@ def f_right(rt, text, count):
 
 
 def f_substr(rt, text, start, count):
+    # The GPPTool Help (via the GPPL IDE catalog) requires 1 <= start <= strlen(text). Whether SolidCAM
+    # tolerates start = strlen + 1 (an empty result, as the python and clamp modes give) is unverified.
     text, start, count = _str(text, 'substr'), _count(start, 'substr'), _count(count, 'substr')
-    if start < 1 or count < 0:
+    if start < 1 or start > len(text) or count < 0:
         mode = rt.pol.string_index
         if mode == 'error':
-            _bad_index(rt, 'substr', f'start={start} count={count} (start is 1-based)')
+            _bad_index(rt, 'substr', f'start={start} count={count} (start must be 1..strlen={len(text)})')
         if mode == 'python':
             return text[start - 1:start - 1 + count]
         end = start + max(count, 0)

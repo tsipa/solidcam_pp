@@ -123,6 +123,36 @@ class ReplayFindings(unittest.TestCase):
         c_style = first_tool_comments(Policies.session(string_escapes='c'), 'LINE ONE\r\nLINE TWO')
         self.assertEqual(c_style, [';LINE ONE', ';LINE TWO'])
 
+    def test_message_split_keeps_left_and_substr_inside_the_message(self):
+        """A message that ends or starts with its line break: usr_ct_msg_lines calls left() only with
+        a positive count and substr() only with a start inside msg (the GPPTool Help calls anything
+        else an error; the engine raises under string_index=error). The CR LF rule gives an empty
+        comment for the empty line, as before."""
+        def comments(message):
+            session = Session.from_paths(PP, vmid=VMID, policies=Policies.session(string_escapes='c'))
+            session.start()
+            engine = session.engine
+            engine.set(msg=message)
+            engine.call('usr_ct_msg_lines')
+            return [line for line in engine.nc_lines() if line.startswith(';')]
+        self.assertEqual(comments('LINE ONE\r\nLINE TWO\r\n'), [';LINE ONE', ';LINE TWO', ';'])
+        self.assertEqual(comments('\nLINE'), [';', ';LINE'])
+        self.assertEqual(comments('\r\nLINE'), [';', ';LINE'])
+
+    def test_homing_string_ending_in_a_separator(self):
+        """usr_prep_home_axis takes the text after a final ';' as '' instead of a substr() that
+        starts past the end of the string."""
+        def homing(text):
+            session = Session.from_paths(PP, vmid=VMID, policies=Policies.session())
+            session.start()
+            engine = session.engine
+            engine.set(sHomestr=text, iCompActive=40)
+            before = len(engine.nc_lines())
+            engine.call('usr_prep_home_axis')
+            return [line.rstrip() for line in engine.nc_lines()[before:]]
+        self.assertEqual(homing('8::G75 Z1=0. ;'), ['G75 Z1=0.'])
+        self.assertEqual(homing('8::G75 Z1=0. ;8::G75 Y1=0 X1=0;'), ['G75 Z1=0.', 'G75 Y1=0 X1=0'])
+
 
 if __name__ == '__main__':
     unittest.main()

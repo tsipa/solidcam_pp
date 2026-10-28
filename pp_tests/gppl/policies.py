@@ -46,7 +46,7 @@ CHOICES = {
     'string_compare': ('case_sensitive', 'case_insensitive'),
     'mixed_compare': ('python', 'error'),        # 'a' eq 1 -> False | error
     'tonum': ('strict', 'atof'),                 # tonum('G5'): error | 0 (C atof prefix)
-    'string_index': ('error', 'python', 'clamp'),  # left(s,-1), substr(s,0,n)
+    'string_index': ('error', 'python', 'clamp'),  # left(s,-1), substr(s,0,n), substr(s,strlen+1,n)
     'modulo': ('python', 'truncate'),            # -7 % 3: 2 (floor) | -1 (C fmod)
     'constants': ('none', 'registry'),           # XY, CW, COMP_LEFT, G81 ... resolve
     # --- formatting -----------------------------------------------------------
