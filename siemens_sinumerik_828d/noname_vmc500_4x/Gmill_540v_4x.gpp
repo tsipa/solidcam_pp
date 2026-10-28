@@ -1646,9 +1646,7 @@ endp
     ; its first block; otherwise it goes on the last block here.
     call @usr_emulated_rapid_feed
     ; The homed return is done.
-    if bPostHomed
-        bPostHomed = false
-    endif
+    bPostHomed = false
     bClimbZValid = true
     call @usr_feed_start_here
 endp
