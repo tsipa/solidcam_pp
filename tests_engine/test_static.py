@@ -3,6 +3,9 @@ import io
 import json
 import os
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -184,6 +187,39 @@ class CorpusTests(unittest.TestCase):
                 program = load_program(path.read_text(encoding='utf-8-sig', errors='replace'))
                 errors = [str(d) for d in program.errors(SESSION)]
                 self.assertEqual(errors, [])
+
+
+class IdeGrammarTests(unittest.TestCase):
+    """The post against the GPPL IDE's grammar and its undeclared-name check (not in the repository; the
+    engine accepts forms the IDE grammar rejects, e.g. '%', a bare numeric function in an output block,
+    'if 1'). Set GPPL_IDE_REFERENCE=<dir> with GPPL.g4, raw/ (the IDE catalogs) and work/gppl_check.py."""
+
+    def check(self, gpp):
+        reference = Path(os.environ.get('GPPL_IDE_REFERENCE', '')).resolve()
+        result = subprocess.run([sys.executable, '-I', str(reference / 'work' / 'gppl_check.py'),
+                                 str(reference / 'GPPL.g4'), str(Path(gpp).resolve()), str(VMID.resolve()),
+                                 str(reference / 'raw')], capture_output=True, text=True, timeout=120)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout.splitlines()
+
+    def test_post_is_accepted_by_the_ide_grammar(self):
+        reference = os.environ.get('GPPL_IDE_REFERENCE')
+        if not reference or not (Path(reference) / 'work' / 'gppl_check.py').is_file():
+            raise unittest.SkipTest('set GPPL_IDE_REFERENCE to the GPPL IDE reference directory')
+        require_vmid(self)
+        lines = self.check(PP)
+        self.assertIn('per-line findings: 0', [line.strip() for line in lines])
+        self.assertIn('whole-file rule post accepts: True', [line.strip() for line in lines])
+        self.assertEqual([line for line in lines if line.startswith('SEM ')], [])
+        # Self-check: the state before 690774d (trace_level never declared) gives a SEM line.
+        mutant = re.sub(r'(?im)^(\s*global\s+integer\s.*?)\s+trace_level\b', r'\1', source(), count=1)
+        self.assertNotEqual(mutant, source())
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / PP.name
+            path.write_text(mutant, encoding='utf-8')
+            sem = [line for line in self.check(path) if line.startswith('SEM ')]
+        self.assertEqual(len(sem), 1)
+        self.assertIn("'trace_level'", sem[0])
 
 
 class SolidCamCatalogTests(unittest.TestCase):
