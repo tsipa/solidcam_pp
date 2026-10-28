@@ -185,7 +185,7 @@ fixtures under `session,<policy>=<value>`.
 | not precedence (fixed, documented) | `!` below comparisons, `and` above `or` | same | lint W-NOT-COMPARE: 0 sites in this GPP | low (irrelevant here) |
 | string_compare, mixed_compare | case-sensitive, python | same | no effect; `mixed_compare=error` works as a strictness guard | low |
 | modulo | python (floor) | same | `%` is unused by the GPP | low |
-| constants | none | registry | XY/ZX/YZ/CW/CCW/COMP_*/D_Tapping + VMID drill cycles as lower-case strings (the suite's convention); every session stops without them | low-medium (values are opaque) |
+| constants | none | registry | XY/ZX/YZ/CW/CCW/COMP_* as lower-case strings (the trace spelling); D_Drilling/D_Peck/D_Tapping 0/2/3 and the VMID drill cycles (their DrillType) as the numbers SolidCAM sends; every session stops without them | low-medium (values are opaque) |
 | logical_default, logical_output | 0, `True`/`False` | false, python | cosmetic | low |
 | print_stmt | error (legacy: unsupported statement) | console | `usr_4x_index` emits the same text via Print and an NC line, so Print is not NC output | medium |
 | trace_stmt | error | ignore | debugging directive (commented out in this GPP) | high |

@@ -13,7 +13,7 @@ import unittest
 
 from pp_tests.engine import Engine, UnsupportedGPPL
 from support.legacy_compat import with_stop_context
-from support.session import ALLOWANCE_KEYS, with_allowance
+from support.session import ALLOWANCE_KEYS, D_TAPPING, DRILL_TYPE, with_allowance
 from test_offline import PP
 
 # The default engine (pp_tests.gppl) joins NC lines on a one-shot skipline and runs `input` and
@@ -42,7 +42,7 @@ MOTION_KEYS = ('xpos', 'ypos', 'zpos', 'apos', 'bpos', 'cpos', 'feed', 'spin')
 
 CONSTANTS = dict(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz',
                  comp_left='comp_left', comp_right='comp_right', comp_off='comp_off',
-                 g81='g81', g82='g82', g83='g83', g84='g84', g86='g86', d_tapping='d_tapping')
+                 **{name.lower(): number for name, number in DRILL_TYPE.items()}, d_tapping=D_TAPPING)
 
 VMID = dict(iworkoffset_method=0, inumber_of_fixtures=0, blimit_3axis=False, sworkpcdir='',
             bstopm00=False, sstopmessage='', ig187_p=0, ng187_e=0.0, m50=0.0, m51=0.0,
@@ -64,7 +64,7 @@ CAM = dict(
     tool_message='', message='', bprintloop=False,
     arc_plane='xy', arc_direction='ccw', arc_size=90, radius=10, xstart=0, ystart=0, zstart=0,
     xcenter=0, ycenter=0, zcenter=0, xcenter_rel=0, ycenter_rel=0, zcenter_rel=0,
-    drill_type='g81', drill_clearance_z=10, drill_upper_z=0, drill_lower_z=-10, safety=2,
+    drill_type=DRILL_TYPE['G81'], drill_clearance_z=10, drill_upper_z=0, drill_lower_z=-10, safety=2,
     delay=0, down_step=1, step_down=0, varretract=0, gcode=0,
 )
 

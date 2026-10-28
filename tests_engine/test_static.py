@@ -148,6 +148,9 @@ class WholeGppTests(unittest.TestCase):
         self.assertIs(vmid.job_params['bstopm00'].value, False)
         self.assertEqual(sorted(vmid.drill_cycles), ['G81', 'G82', 'G83', 'G84', 'G86'])
         self.assertEqual(sorted(vmid.drill_cycles['G84']), ['step_down', 'varretract'])
+        # drill_type is the cycle's DrillType: recorded_cam_003/005 send drill_type:0 for G81, 2 for G83.
+        self.assertEqual(vmid.constants(), {'g81': 0, 'g82': 1, 'g83': 2, 'g84': 3, 'g86': 4})
+        self.assertEqual(parse_vmid('<Machine><DrillCycle GppName="G85"/></Machine>').constants(), {})
         with self.assertRaises(ValueError):
             parse_vmid('<!DOCTYPE x [<!ENTITY a "b">]><Machine/>')
 
@@ -276,9 +279,10 @@ class SolidCamCatalogTests(unittest.TestCase):
 
     # SYSTEM_TYPES entries typed differently by the catalog. The enumerations are strings in the engine
     # because SolidCAM's trace prints their names (arc_plane:xy, side:comp_left); the catalog types them
-    # integer (dir5a numeric). gcode/mcode: integer vs numeric; transform_type: integer vs logical;
-    # angle_4x_around_x_dir, clear_change_after_gen, line_labels: catalog type 'unknown'.
-    TYPE_DIVERGENCES = {'arc_direction', 'arc_plane', 'd_drill_type', 'drill_type', 'machine_plane', 'side',
+    # integer (dir5a numeric); drill_type and d_drill_type are integers in both. gcode/mcode: integer vs
+    # numeric; transform_type: integer vs logical; angle_4x_around_x_dir, clear_change_after_gen,
+    # line_labels: catalog type 'unknown'.
+    TYPE_DIVERGENCES = {'arc_direction', 'arc_plane', 'machine_plane', 'side',
                         'tool_direction', 'tool_side', 'dir5a', 'angle_4x_around_x_dir', 'gcode', 'mcode',
                         'transform_type', 'clear_change_after_gen', 'line_labels'}
     # date and time are GPPL built-in functions there; delay is this VMID's DELAY job parameter.

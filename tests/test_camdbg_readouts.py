@@ -65,10 +65,10 @@ class ReadoutTests(unittest.TestCase):
         """INDEPENDENT: the readouts name their SolidCAM event (the extractor attaches a readout
         only to the event whose trace record it follows) and print numbers with 9 decimals
         (nCamDbg_f '5.9'): an arc's end is the start rotated about the centre by arc_size and
-        must hit the CAM end to 0.001 (usr_arc_math), which 3-decimal arc_size misses. The
-        engine resolves the constant D_Tapping to its name; SolidCAM prints its number."""
+        must hit the CAM end to 0.001 (usr_arc_math), which 3-decimal arc_size misses. D_Tapping
+        is 3, the number of the recorded readouts."""
         self.assertEqual(program_readouts(), [
-            ['; CAMDBG start_of_file date:27-OCT-2026 time:17:57:04 d_tapping_value:d_tapping'],
+            ['; CAMDBG start_of_file date:27-OCT-2026 time:17:57:04 d_tapping_value:3'],
             ['; CAMDBG def_tool next_command:@def_tool'],
             ['; CAMDBG start_of_job angle:0 cpos:0 apos:90 bpos:0 d_drill_type:-1 rot_axis_coord_value:0',
              '; CAMDBG start_of_job flood_coolant_value:1 mist_coolant_value:2 hp_flood_coolant_value:0 '

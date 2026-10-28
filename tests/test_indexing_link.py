@@ -50,7 +50,7 @@ import unittest
 
 from pp_tests.engine import UnsupportedGPPL
 
-from support import (DRILL_DEFAULTS, SETTABLE_OFFSETS, Session, assert_detected, covers, index_of,
+from support import (DRILL_DEFAULTS, DRILL_TYPE, SETTABLE_OFFSETS, Session, assert_detected, covers, index_of,
                      known_defect, last_index_of, mutate, parse_blocks, replay)
 
 
@@ -578,7 +578,7 @@ class CamLinkBoundaryTests(LinkOracle, unittest.TestCase):
         session = rotated_job(source)
         link_retract(session)
         self.assertTrue(session.state['bcamlinkretract'], 'precondition: confirmed retract')
-        session.ev('drill', ['xpos', 'ypos'], drill_type='g81', xpos=30, ypos=40, **DRILL_DEFAULTS)
+        session.ev('drill', ['xpos', 'ypos'], drill_type=DRILL_TYPE['G81'], xpos=30, ypos=40, **DRILL_DEFAULTS)
         self.assertFalse(session.state['bcamlinkretract'], 'a drill positioning rapid keeps the link authorization')
 
     def test_drill_rapid_revokes_link(self):

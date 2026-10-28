@@ -15,7 +15,7 @@ import unittest
 
 from pp_tests.engine import UnsupportedGPPL
 from program_session import Program
-from support import covers
+from support import DRILL_TYPE, covers
 from test_offline import rotary_engine
 
 
@@ -303,7 +303,7 @@ class FullTurnBaselineTests(unittest.TestCase):
         def drill_job(program):
             program.ev('end_of_job')
             program.ev('start_of_job', job_name='drill')
-            program.ev('drill', xpos=20, ypos=0, zpos=12, drill_type='g81', drill_clearance_z=12,
+            program.ev('drill', xpos=20, ypos=0, zpos=12, drill_type=DRILL_TYPE['G81'], drill_clearance_z=12,
                        drill_upper_z=0, drill_lower_z=-5, feed=80)
             program.ev('end_drill')
             program.ev('end_of_job')

@@ -315,7 +315,7 @@
   {
    "name": "drill",
    "parameters": {
-    "drill_type": "g83",
+    "drill_type": 2,
     "drill_clearance_z": 30,
     "drill_upper_z": 2,
     "drill_lower_z": -20,
@@ -361,7 +361,7 @@
   {
    "name": "end_drill",
    "parameters": {
-    "drill_type": "g83"
+    "drill_type": 2
    },
    "expect": {
     "blocks": [

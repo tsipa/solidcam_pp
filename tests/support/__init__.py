@@ -15,7 +15,8 @@ Modules
   legacy        rotary_engine(), motion_engine(), history_engine() (legacy presets)
   session       Session (realistic SolidCAM event sessions, 'clear'/'persist' flag
                 policy; replay_tail(), event_replay(), segment(), fork()), Segment,
-                event(), AUTO, CAM_CONSTANTS, CAM_JOB_DEFAULTS, DRILL_DEFAULTS, SOLIDCAM_EVENTS
+                event(), AUTO, CAM_CONSTANTS, CAM_JOB_DEFAULTS, DRILL_DEFAULTS, DRILL_TYPE,
+                D_TAPPING, SOLIDCAM_EVENTS
   nc            parse_blocks(), parse_block(), Block, Word, block_texts(), index_of(),
                 last_index_of(), arc_center(), arc_sweep_degrees(), arc_path_error()
   modal         replay(), step(), state_before(), ModalState, DEFAULT_COOLANT_ON,
@@ -34,7 +35,7 @@ from .legacy import history_engine, motion_engine, rotary_engine
 from .nc import (Block, Word, arc_center, arc_path_error, arc_sweep_degrees, block_texts, index_of, last_index_of,
                  parse_block, parse_blocks)
 from .modal import DEFAULT_COOLANT_ON, SETTABLE_OFFSETS, ModalState, replay, state_before
-from .session import (AUTO, CAM_CONSTANTS, CAM_JOB_DEFAULTS, DRILL_DEFAULTS, MOTION_FLAGS,
-                      SOLIDCAM_EVENTS, Segment, Session, event)
+from .session import (AUTO, CAM_CONSTANTS, CAM_JOB_DEFAULTS, D_TAPPING, DRILL_DEFAULTS, DRILL_TYPE,
+                      MOTION_FLAGS, SOLIDCAM_EVENTS, Segment, Session, event)
 from .vericut import g_function_whitelist, vmid_user_parameters
 from .mutation import StaleAnchor, UnrelatedKill, assert_detected, mutate

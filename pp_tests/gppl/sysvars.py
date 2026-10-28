@@ -84,7 +84,7 @@ LIFECYCLE = ('init_post', 'start_of_file', 'end_of_file')
 _TYPES = {
     'integer': ('tool_number', 'next_tool_number', 'next_job_tool_number', 'program_number',
                 'home_number', 'position', 'loop_level', 'loop_count', 'label', 'rot_axis_coord',
-                'transform_type', 'gcode', 'mcode', 'flood_coolant',
+                'transform_type', 'gcode', 'mcode', 'drill_type', 'd_drill_type', 'flood_coolant',
                 'mist_coolant', 'hp_flood_coolant', 'lp_flood_coolant', 'through_ival_coolant',
                 'through_coolant_val', 'lp_through_coolant', 'air_blast_coolant',
                 'air_through_coolant', 'blknum', 'blknum_delta', 'blknum_max', 'num_user_procs',
@@ -95,7 +95,7 @@ _TYPES = {
                'msg', 'message', 'home_user_name', 'tool_message', 'holder_name', 'msg_mill_tool1',
                'msg_mill_tool2', 'msg_mill_tool3', 'msg_mill_tool4', 'msg_mill_tool5',
                'prev_command', 'next_command', 'feed_type', 'dir5a', 'arc_direction', 'arc_plane',
-               'machine_plane', 'side', 'tool_side', 'tool_direction', 'drill_type', 'd_drill_type',
+               'machine_plane', 'side', 'tool_side', 'tool_direction',
                'angle_4x_around_x_dir', 'blknum_letter', 'end_block_text', 'numeric_def_f',
                'integer_def_f', 'gcode_f', 'mcode_f', 'xpos_f', 'ypos_f', 'zpos_f', 'apos_f',
                'feed_f', 'blknum_f'),
@@ -118,15 +118,22 @@ CONTROL_VARIABLES = set(CONTROL_DEFAULTS) | {'numeric_def_f', 'integer_def_f', '
 SYSTEM_FORMATS = frozenset({'numeric_def_f', 'integer_def_f', 'gcode_f', 'mcode_f', 'xpos_f', 'ypos_f',
                             'zpos_f', 'apos_f', 'feed_f', 'blknum_f'})
 
-# Enumeration constants: the value is the spelling SolidCAM prints in its trace.
-# Observed in tests/fixtures/reference_multijob.trace.txt.xz: arc_plane:xy,
-# machine_plane:xy, arc_direction/dir5a/tool_direction:cw|ccw, side:comp_left|
-# comp_off, tool_side:comp_left. comp_right, zx/yz, G8x (VMID drill cycles),
-# d_tapping and mirror_* are not in that trace (unverified).
+# d_drill_type constants: the numbers SolidCAM sends. The CAMDBG readouts of the
+# tests/fixtures/recorded_cam_00*.trace.txt.xz recordings give D_Tapping 3 (d_tapping_value:3.); in
+# recorded_cam_003/005 a job whose @drill prints d_drill_type:D_Drilling reads 0 at its start_of_job,
+# one that prints D_Peck reads 2. The other names of the SolidCAM catalog (D_F_Drill, D_Boring, ...)
+# are not observed and not defined.
+D_DRILL_TYPES = {'d_drilling': 0, 'd_peck': 2, 'd_tapping': 3}
+
+# Enumeration constants: the value is the spelling SolidCAM prints in its trace, except the D_* drill
+# types above, which are numbers. Observed in tests/fixtures/reference_multijob.trace.txt.xz:
+# arc_plane:xy, machine_plane:xy, arc_direction/dir5a/tool_direction:cw|ccw, side:comp_left|
+# comp_off, tool_side:comp_left. comp_right, zx/yz and mirror_* are not in that trace (unverified).
+# The VMID drill cycles (G81..) are constants of their DrillType number (vmid.VmidConfig.constants).
 CONSTANTS = {
     'xy': 'xy', 'zx': 'zx', 'yz': 'yz', 'cw': 'cw', 'ccw': 'ccw',
     'comp_left': 'comp_left', 'comp_right': 'comp_right', 'comp_off': 'comp_off',
-    'd_tapping': 'd_tapping',
+    **D_DRILL_TYPES,
     'mirror_off': 'mirror_off', 'mirror_x': 'mirror_x', 'mirror_y': 'mirror_y', 'mirror_xy': 'mirror_xy',
 }
 CONSTANT_STATUS = {name: 'used-by-4x-gpp' for name in ('xy', 'zx', 'yz', 'cw', 'ccw', 'comp_left',

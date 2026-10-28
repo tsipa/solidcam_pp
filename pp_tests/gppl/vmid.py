@@ -2,7 +2,7 @@
 
 * UserDefParams/MachineParams   -> global user variables (e.g. iNumber_of_Fixtures)
 * UserDefParams/MillParamsJobs  -> per-job user variables (e.g. bStopM00)
-* MillDrilCycles/DrillCycle     -> drill-cycle names (G81..) and their CycleParams
+* MillDrilCycles/DrillCycle     -> drill-cycle names (G81..), their DrillType and CycleParams
 * PrecisionDef, WorkingStyle    -> recorded for reports only
 
 The file is untrusted input: DOCTYPE/ENTITY declarations are refused before
@@ -29,6 +29,7 @@ class VmidConfig:
     machine_params: dict = field(default_factory=dict)
     job_params: dict = field(default_factory=dict)
     drill_cycles: dict = field(default_factory=dict)   # name -> {param: UserParam}
+    drill_types: dict = field(default_factory=dict)    # name -> DrillType (int)
     precision: dict = field(default_factory=dict)
     working_style: dict = field(default_factory=dict)
 
@@ -40,7 +41,10 @@ class VmidConfig:
         return merged
 
     def constants(self):
-        return {name.lower(): name.lower() for name in self.drill_cycles}
+        """Drill-cycle names as constants of their DrillType: SolidCAM sends drill_type as that number
+        (recorded_cam_003/005: drill_type:0 with drill_cycle_name:'G81', drill_type:2 with 'G83').
+        A cycle without a DrillType attribute defines no constant."""
+        return {name.lower(): number for name, number in self.drill_types.items()}
 
 
 def _value(vtype, raw):
@@ -80,6 +84,9 @@ def parse_vmid(text):
                 param = _param(element, f'DrillCycle:{name}')
                 params[param.name] = param
         config.drill_cycles[name] = params
+        drill_type = cycle.get('DrillType', '').strip()
+        if re.fullmatch(r'-?\d+', drill_type):
+            config.drill_types[name] = int(drill_type)
     for element in root.iter('PrecisionDef'):
         config.precision = dict(element.attrib)
     for element in root.iter('WorkingStyle'):

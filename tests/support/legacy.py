@@ -15,6 +15,7 @@ fixtures and their area owners.
 from pp_tests.engine import Engine
 
 from .engines import adopt_state, fresh_engine
+from .session import DRILL_TYPE
 
 
 def rotary_engine(source=None, **overrides):
@@ -71,5 +72,5 @@ def history_engine(source=None):
                tool_number=7, last_tool=False, next_tool_number=8,
                drill_clearance_z=30, drill_upper_z=12, drill_lower_z=-15,
                safety=2, down_step=3, delay=0.25,
-               G81='g81', G82='g82', G83='g83', G84='g84', G86='g86')
+               **DRILL_TYPE)
     return engine

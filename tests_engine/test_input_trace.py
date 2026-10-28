@@ -180,9 +180,8 @@ class InputTraceTests(unittest.TestCase):
         """The post's CAMDBG lines (trace_level 5) in a trace of the shape SolidCAM writes (the
         engine's TraceRecorder, numbers with 3 decimals; one arc with a fractional centre and
         arc_size): every readout is allow-listed and attached to its event, the arc geometry and
-        arc_size come back with 9 decimals. The
-        engine resolves the constant D_Tapping to its name, the number being what the readout
-        records, so the test gives it one."""
+        arc_size come back with 9 decimals. D_Tapping reads out as 3, the number of the recorded
+        readouts."""
         require_vmid(self)
         events, extension, _ = load_events(FIXTURES / 'synthetic_session.json')
         arc = next(event['parameters'] for event in events if event['name'] == 'arc')
@@ -199,8 +198,7 @@ class InputTraceTests(unittest.TestCase):
                                 synthesize_commands=True)
         self.assertEqual(report.errors, [])
         trace = report.trace_text.encode()
-        self.assertEqual(trace.count(b' d_tapping_value:d_tapping'), 1)
-        trace = trace.replace(b' d_tapping_value:d_tapping', b' d_tapping_value:3')
+        self.assertEqual(trace.count(b' d_tapping_value:3'), 1)
         self.assertIn(b'> ; CAMDBG arc xstart:', trace)
         manifest, _, recorded = self.extract_bytes(trace)
         self.assertGreater(manifest['diagnostic_lines_read'], 0)

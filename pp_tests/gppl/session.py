@@ -93,7 +93,7 @@ def format_param(name, value, flag=None, number_style='exact'):
     return f"{name}:'" + text.replace("'", "''") + "'"
 
 
-_ENUMS = set(sysvars.CONSTANTS.values()) | {'yes', 'no', 'no_action'}
+_ENUMS = {value for value in sysvars.CONSTANTS.values() if isinstance(value, str)} | {'yes', 'no', 'no_action'}
 
 
 class TraceRecorder(Tracer):

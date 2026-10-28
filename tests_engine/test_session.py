@@ -1,6 +1,7 @@
 """Full-session replay: init_post .. end_of_file through the real GPP."""
 import io
 import json
+import lzma
 import os
 import subprocess
 import sys
@@ -190,6 +191,24 @@ class SessionReplayTests(unittest.TestCase):
         record = session.events[-1]
         self.assertTrue({'part_name', 'date', 'time'} <= set(record.contract_warnings))
         self.assertIsNotNone(record.error)
+
+    def test_recorded_drill_jobs_select_their_cycle(self):
+        """tests/fixtures/recorded_cam_003 starts with a G81 and a G83 job. SolidCAM sends drill_type as
+        the cycle's VMID DrillType (drill_type:0 with drill_cycle_name:'G81', 2 with 'G83'), the value
+        of the constants G81..G86 the post compares it with; with the constants as names @drill stopped
+        at the missing gcode."""
+        lines = []
+        with lzma.open(ROOT / 'tests/fixtures/recorded_cam_003.trace.txt.xz', 'rt', encoding='utf-8') as trace:
+            for line in trace:
+                if line.startswith('(1)@start_of_job') and "'operation_003'" in line:
+                    break
+                lines.append(line)
+        report = Session.from_paths(PP, vmid=VMID).replay(parse_trace(''.join(lines)))
+        self.assertEqual(report.errors, [])
+        drills = [event for event in report.events if event.name == 'drill']
+        self.assertEqual([event.params['drill_type'] for event in drills], [0, 2])
+        self.assertEqual([[line.split(' (')[0] for line in event.nc if 'MCALL' in line] for event in drills],
+                         [['MCALL CYCLE81'], ['MCALL CYCLE83']])
 
     def test_events_without_procedure_are_recorded(self):
         session = Session.from_paths(PP, vmid=VMID)

@@ -36,7 +36,7 @@ import unittest
 from pp_tests.engine import Engine, UnsupportedGPPL
 from pp_tests.gppl import legacy as legacy_engine
 
-from support import (DRILL_DEFAULTS, LEGACY, WORKAROUNDS, GpplCompatEngine, LegacyCompatEngine, Session,
+from support import (DRILL_DEFAULTS, DRILL_TYPE, LEGACY, WORKAROUNDS, GpplCompatEngine, LegacyCompatEngine, Session,
                      adopt_state, assert_detected, covers, fresh_engine, known_defect, motion_engine, mutate,
                      nc_text, parse_blocks, pp_source, rotary_engine)
 from support.engines import declared_globals
@@ -764,7 +764,7 @@ def _program_flow(engine_class, flags):
                xstart=10, ystart=0, zstart=-3, xcenter=0, ycenter=0, zcenter=-3, xcenter_rel=-10,
                ycenter_rel=0, zcenter_rel=0, xpos=0, ypos=10, zpos=-3, feed=300)
     session.next_tool(2, 3, tmatrix=90)
-    for drill_type in ('g81', 'g82', 'g83', 'g84', 'g86'):
+    for drill_type in DRILL_TYPE.values():
         session.ev('drill', ('xpos', 'ypos'), drill_type=drill_type, xpos=5, ypos=6, **DRILL_DEFAULTS)
         session.ev('drill_point', ('xpos', 'ypos'), xpos=7, ypos=8)
         session.ev('end_drill')

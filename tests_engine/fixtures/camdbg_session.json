@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "description": "The synthetic stream (synthetic_session.json) with trace_level 5: the CAMDBG readouts of start_of_file, def_tool, start_of_job, move_5x and arc (usr_camdbg_*) that pp_tests/tools/input_trace.py promotes into a recorded input fixture; none for the rapid the drill cycle makes itself or for 3-axis rapids. The engine spells the constant D_Tapping as its name, so its value is not pinned. Expectations characterise the current GPP under the session policy.",
+ "description": "The synthetic stream (synthetic_session.json) with trace_level 5: the CAMDBG readouts of start_of_file, def_tool, start_of_job, move_5x and arc (usr_camdbg_*) that pp_tests/tools/input_trace.py promotes into a recorded input fixture; none for the rapid the drill cycle makes itself or for 3-axis rapids. D_Tapping reads out as 3, the number of the recorded readouts. Expectations characterise the current GPP under the session policy.",
  "session": {
   "overrides": {
    "trace_level": 5
@@ -31,7 +31,7 @@
    },
    "expect": {
     "contains": [
-     "; CAMDBG start_of_file date:26-Oct-2026 time:14:05:33 d_tapping_value:"
+     "; CAMDBG start_of_file date:26-Oct-2026 time:14:05:33 d_tapping_value:3"
     ]
    }
   },
@@ -305,7 +305,7 @@
   {
    "name": "drill",
    "parameters": {
-    "drill_type": "g83",
+    "drill_type": 2,
     "drill_clearance_z": 30,
     "drill_upper_z": 2,
     "drill_lower_z": -20,
@@ -343,7 +343,7 @@
   {
    "name": "end_drill",
    "parameters": {
-    "drill_type": "g83"
+    "drill_type": 2
    }
   },
   {

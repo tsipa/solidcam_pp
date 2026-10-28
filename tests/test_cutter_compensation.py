@@ -19,7 +19,7 @@ from pp_tests.engine import Engine, UnsupportedGPPL
 from test_history_regressions import history_engine
 from test_offline import PP
 from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
-from support import covers
+from support import DRILL_TYPE, covers
 from test_post_homing_reposition import Session
 
 
@@ -222,7 +222,7 @@ class CompensationProgramTests(unittest.TestCase):
         self.assertEqual(program.ev('move_5x', zpos=10), ['G0 Z10', 'G40 X30 Y30'])
         program.ev('end_of_job')
         program.ev('start_of_job', job_name='drill')
-        cycle = program.ev('drill', xpos=30, ypos=30, zpos=10, drill_type='g81', drill_clearance_z=10,
+        cycle = program.ev('drill', xpos=30, ypos=30, zpos=10, drill_type=DRILL_TYPE['G81'], drill_clearance_z=10,
                            drill_upper_z=0, drill_lower_z=-15, feed=80)
         self.assertNotIn('G40', ' '.join(cycle))
 
@@ -376,8 +376,8 @@ class CompensationAtPostHomingTests(unittest.TestCase):
         program = compensation_left_on(self, off=False)
         program.ev('end_of_job')
         program.ev('start_of_job', job_name='drill')
-        program.ev('drill', xpos=10, ypos=10, zpos=50, drill_type='g81', drill_clearance_z=50, drill_upper_z=0,
-                   drill_lower_z=-15, feed=80)
+        program.ev('drill', xpos=10, ypos=10, zpos=50, drill_type=DRILL_TYPE['G81'], drill_clearance_z=50,
+                   drill_upper_z=0, drill_lower_z=-15, feed=80)
         program.ev('drill_point', xpos=100, ypos=80, zpos=50)
         program.ev('end_drill')
         self.assertEqual(program.ev('end_of_job'), ['G0 G40 X100 Y80'])

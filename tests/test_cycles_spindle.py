@@ -53,8 +53,8 @@ import unittest
 from pp_tests.engine import UnsupportedGPPL
 
 from program_session import Program
-from support import (DRILL_DEFAULTS, Session, assert_detected, block_texts, covers, index_of,
-                     known_defect, last_index_of, mutate, parse_blocks, pp_source, replay,
+from support import (D_TAPPING, DRILL_DEFAULTS, DRILL_TYPE, Session, assert_detected, block_texts, covers,
+                     index_of, known_defect, last_index_of, mutate, parse_blocks, pp_source, replay,
                      state_before)
 
 SIGNATURES = {
@@ -64,7 +64,7 @@ SIGNATURES = {
     84: 'RTP RFP SDIS DP DPR DTB SDAC MPIT PIT POSS SST SST1 _AXN _PTAB _TECHNO _VARI _DAM _VRT'.split(),
     86: 'RTP RFP SDIS DP DPR DTB SDIR RPA RPO RPAP POSS'.split(),
 }
-DRILL_TYPES = (('g81', 81), ('g82', 82), ('g83', 83), ('g84', 84), ('g86', 86))
+DRILL_TYPES = tuple((DRILL_TYPE[f'G{cycle}'], cycle) for cycle in (81, 82, 83, 84, 86))
 # drill_upper_z: above the safety distance, between 0 and safety, the Z0 boundary
 # (the PP branches on drill_upper_z > 0) and below Z0.
 UPPER_LEVELS = (12, 1, 0, -2)
@@ -237,7 +237,7 @@ def check_tapping_fields(tc, source=None):
     session = drilling_session(source)
     for upper, step_down, retract, tail in TAPPING_CASES:
         where = f'CYCLE84 drill_upper_z={upper} Step_Down={step_down} VarRetract={retract}'
-        values, fields = cycle_parameters(tc, session, 'g84', 84, where, drill_upper_z=upper,
+        values, fields = cycle_parameters(tc, session, DRILL_TYPE['G84'], 84, where, drill_upper_z=upper,
                                           Step_Down=step_down, VarRetract=retract, feed=150, spin=100)
         assert_feed_start_geometry(tc, values, upper, where)
         # INDEPENDENT (Siemens CYCLE84):
@@ -274,7 +274,7 @@ def check_modal_cycle_cancel(tc, source=None):
     for index, (drill_type, cycle) in enumerate(DRILL_TYPES):
         x0 = 10 + 100 * index                       # unique coordinates per job
         if index:
-            session.same_tool_job(job_name=f'drill_{drill_type}')
+            session.same_tool_job(job_name=f'drill_g{cycle}')
         session.ev('move_5x', ('xpos', 'ypos', 'zpos'), xpos=x0, ypos=20, zpos=30)
         start = session.mark()
         session.ev('drill', (), **dict(DRILL_DEFAULTS, drill_type=drill_type, feed=150, spin=100,
@@ -287,7 +287,7 @@ def check_modal_cycle_cancel(tc, source=None):
     replayed = replay(session.text())
     blocks = [block for block, _ in replayed]
     for drill_type, cycle, x0, job_text, cancel in jobs:
-        where = f'{drill_type} job at X{x0}'
+        where = f'G{cycle} job at X{x0}'
         calls = [b for b in parse_blocks(job_text) if b.cycle and b.cycle[0] == f'CYCLE{cycle}']
         tc.assertEqual(len(calls), 1, f'{where}: one MCALL CYCLE{cycle} per job')
         hole = index_of(blocks, lambda b: b.axes == {'X': x0 + 20, 'Y': 25})
@@ -298,7 +298,7 @@ def check_modal_cycle_cancel(tc, source=None):
         tc.assertIsNone(state_before(replayed, after).mcall, f'{where}: modal cycle still active at X{x0 + 40}')
         # Exact @end_drill blocks: one bare MCALL; G94 after tapping is a CHARACTERIZATION
         # (the Vericut ctl switches G331/G332 to feed per revolution).
-        tc.assertEqual(block_texts(cancel), ['MCALL'] + (['G94'] if drill_type == 'g84' else []), where)
+        tc.assertEqual(block_texts(cancel), ['MCALL'] + (['G94'] if cycle == 84 else []), where)
 
 
 def check_spindle_start(tc, source=None):
@@ -316,7 +316,7 @@ def check_spindle_start(tc, source=None):
                        f'm_feed_spin {direction} without a speed change')
     # CYCLE84 runs the spindle itself (SST); the tool start must not start it.
     session = Session(source=source)
-    blocks = parse_blocks(session.ev('start_tool', tool_direction='cw', spin=1000, d_drill_type='d_tapping'))
+    blocks = parse_blocks(session.ev('start_tool', tool_direction='cw', spin=1000, d_drill_type=D_TAPPING))
     tc.assertEqual((spindle_codes(blocks), speeds(blocks)), ([], []), f'tapping tool: {[b.raw for b in blocks]}')
     # Restart after an M0 between two jobs of the same tool (VMID bStopM00): @m_feed_spin
     # sets the direction that the restart block prints.
@@ -380,7 +380,7 @@ def check_spindle_wait(tc, source=None):
     blocks = p.ev('end_of_job', bstopm00=True, next_job_tool_number=1, spin=6000)
     tc.assertEqual(blocks[blocks.index('M0') + 1:blocks.index('M0') + 3], ['S6000 M3', 'WAITS'], blocks)
     # A tapping job: CYCLE84 runs the spindle, a speed change restates no M3 (start_tool prints none).
-    p = Program(source=source, cam=dict(x5_job=False, job_type='drill', d_drill_type='d_tapping', spin=500))
+    p = Program(source=source, cam=dict(x5_job=False, job_type='drill', d_drill_type=D_TAPPING, spin=500))
     p.start(tool=1, next_tool=1, spin=500)
     tc.assertEqual(p.ev('m_feed_spin', force={'spin': True}, spin=500), ['S500', 'WAITS'])
     p.ev('end_of_job', next_job_tool_number=1)
@@ -451,7 +451,7 @@ class DrillCycleGeometryTests(unittest.TestCase):
         session = drilling_session()
         for upper in (12, -2):
             where = f'CYCLE83 drill_upper_z={upper}'
-            values, _ = cycle_parameters(self, session, 'g83', 83, where, drill_upper_z=upper)
+            values, _ = cycle_parameters(self, session, DRILL_TYPE['G83'], 83, where, drill_upper_z=upper)
             self.assertEqual(number(values['DTB']), 0, where)
             self.assertEqual(number(values['DTS']), float(claims[1]), f'{where}: DTS differs from the comment')
             self.assertEqual((values['FRF'], values['VARI']), (claims[2], claims[3]),
@@ -471,7 +471,8 @@ class DrillCycleGeometryTests(unittest.TestCase):
         session = drilling_session()
         pecks = {}
         for upper in (0.001, -0.001):
-            values, _ = cycle_parameters(self, session, 'g83', 83, f'drill_upper_z={upper}', drill_upper_z=upper)
+            values, _ = cycle_parameters(self, session, DRILL_TYPE['G83'], 83, f'drill_upper_z={upper}',
+                                         drill_upper_z=upper)
             pecks[upper] = first_peck_depth(values)
         self.assertAlmostEqual(pecks[0.001] - pecks[-0.001], 0.002, delta=0.001,
                                msg=f'first peck depth jumps across Z0: {pecks}')
@@ -519,7 +520,8 @@ class RigidTappingTests(unittest.TestCase):
 
     def check_left_hand_tap(self, source=None):
         session = drilling_session(source)
-        values, _ = cycle_parameters(self, session, 'g84', 84, 'CCW tap', tool_direction='ccw', feed=150, spin=100)
+        values, _ = cycle_parameters(self, session, DRILL_TYPE['G84'], 84, 'CCW tap', tool_direction='ccw',
+                                     feed=150, spin=100)
         pitch = number(values['PIT']) if values['PIT'] != '' else number(values['MPIT'])
         self.assertLess(pitch, 0, f'thread hand: CCW tap programmed with pitch {pitch} (right-hand)')
         if values['PIT'] != '':
@@ -544,7 +546,7 @@ class RigidTappingTests(unittest.TestCase):
         POSS 0, SST 500, SST1 1000.
         """
         session = drilling_session()
-        fields = cycle_arguments(self, drill(session, 'g84', feed=625, spin=500), 84)
+        fields = cycle_arguments(self, drill(session, DRILL_TYPE['G84'], feed=625, spin=500), 84)
         expected = {0: 30, 1: 10, 2: 2, 3: -15, 6: 3, 8: 1.25, 9: 0, 11: 1000}
         self.assertEqual({index: number(fields[index]) for index in expected}, expected, fields)
         self.assertEqual(fields[4], '', 'DPR must be empty when RFP/SDIS are used')
@@ -556,7 +558,7 @@ class RigidTappingTests(unittest.TestCase):
 class BoringCycleTests(unittest.TestCase):
     def test_right_hand_boring_tool_runs_m3(self):
         """INDEPENDENT: Siemens CYCLE86 SDIR 3 = M3 for a CW boring tool."""
-        values, _ = cycle_parameters(self, drilling_session(), 'g86', 86, 'CW boring', tool_direction='cw')
+        values, _ = cycle_parameters(self, drilling_session(), DRILL_TYPE['G86'], 86, 'CW boring', tool_direction='cw')
         self.assertEqual(values['SDIR'], '3')
 
     @known_defect('PP-029', match='SDIR')
@@ -566,7 +568,8 @@ class BoringCycleTests(unittest.TestCase):
         A CCW boring tool must get SDIR 4, as @start_tool and @m_feed_spin map
         tool_direction CCW to M4; @drill hard-codes 3.
         """
-        values, _ = cycle_parameters(self, drilling_session(), 'g86', 86, 'CCW boring', tool_direction='ccw')
+        values, _ = cycle_parameters(self, drilling_session(), DRILL_TYPE['G86'], 86, 'CCW boring',
+                                     tool_direction='ccw')
         self.assertEqual(values['SDIR'], '4', 'SDIR for a CCW boring tool')
 
 
@@ -594,7 +597,7 @@ class ModalCycleTests(unittest.TestCase):
         SolidCAM drilling trace or a Vericut run of a posted 2-hole job settles it.
         """
         session = drilling_session()
-        session.ev('drill', (), **dict(DRILL_DEFAULTS, drill_type='g81', feed=150, spin=100, **HOLE))
+        session.ev('drill', (), **dict(DRILL_DEFAULTS, drill_type=DRILL_TYPE['G81'], feed=150, spin=100, **HOLE))
         first = parse_blocks(session.ev('drill_point', (), xpos=HOLE['xpos'], ypos=HOLE['ypos']))
         self.assertTrue(any(block.is_motion for block in first),
                         f'first hole has no motion block after MCALL: {[b.raw for b in first]}')
@@ -603,19 +606,20 @@ class ModalCycleTests(unittest.TestCase):
     def test_unknown_drill_type_is_rejected(self):
         """INDEPENDENT: a cycle call needs its parameter list and must be the requested cycle.
 
-        After a G81 job, a drill_type the PP does not implement (g85, Siemens CYCLE85)
+        After a G81 job, a drill_type the PP does not implement (G85, Siemens CYCLE85)
         must either stop the post (abort) or emit CYCLE85 with arguments. The PP
         prints the stale 'MCALL CYCLE81' without arguments (RTP=RFP=DP=0).
         Structural: the shipped VMID offers only the five implemented cycles
-        (registry reachability), so SolidCAM cannot send g85 today.
+        (registry reachability), so SolidCAM cannot send G85 today; drill_type 5 stands for it,
+        a DrillType no cycle of the VMID has.
         ENGINE-009: the engine stops at `input` as well as at `abort`, but in GPPL
         `input` only prompts and generation continues (engine-impl-critic-01
         correction). A stop therefore counts only if @drill contains an abort.
         """
         session = drilling_session()
-        drill(session, 'g81')
+        drill(session, DRILL_TYPE['G81'])
         try:
-            blocks = drill(session, 'g85')
+            blocks = drill(session, 5)
         except UnsupportedGPPL as exc:
             if 'postprocessor stopped' not in str(exc):
                 raise

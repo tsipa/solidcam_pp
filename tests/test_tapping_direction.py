@@ -9,6 +9,7 @@ import re
 import unittest
 
 from pp_tests.engine import Engine
+from support import DRILL_TYPE
 from test_history_regressions import history_engine
 from test_offline import PP
 
@@ -26,7 +27,7 @@ def cycle84_arguments(source=None, **state):
         candidate.set(**engine.state)
         candidate.changed.update(engine.changed)
         engine = candidate
-    engine.set(drill_type='g84', drill_upper_z=12, spin=500, feed=625, Step_Down=0, VarRetract=0,
+    engine.set(drill_type=DRILL_TYPE['G84'], drill_upper_z=12, spin=500, feed=625, Step_Down=0, VarRetract=0,
                integer_def_f='5.0', feed_f='4.4(P)')
     engine.set(**state)
     engine.output.clear()

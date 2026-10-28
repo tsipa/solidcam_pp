@@ -45,7 +45,7 @@
       "kind": "cycle",
       "commit": "bea8c623d6d1bae588c36b696aa3bc93340dc961",
       "reason": "Diff moves RFP into the second argument and leaves DPR empty; old output omitted RFP and put it after DP.",
-      "initial": {"drill_type": "g81", "drill_upper_z": 12, "tool_direction": "cw", "spin": 1000},
+      "initial": {"drill_type": 0, "drill_upper_z": 12, "tool_direction": "cw", "spin": 1000},
       "expected_cycle": 81,
       "expected_parameters": ["30", "10", "2", "-15", ""],
       "regression": {"find": "{' (',rtp,','rfp,','sdis,',',dp,','}", "replace": "{' (',rtp,',,'sdis,',',dp,',',rfp}"}
@@ -55,7 +55,7 @@
       "kind": "cycle",
       "commit": "bea8c623d6d1bae588c36b696aa3bc93340dc961",
       "reason": "Same repaired RFP/SDIS ordering; delay remains a separate argument after DPR.",
-      "initial": {"drill_type": "g82", "drill_upper_z": 12, "tool_direction": "cw", "spin": 1000},
+      "initial": {"drill_type": 1, "drill_upper_z": 12, "tool_direction": "cw", "spin": 1000},
       "expected_cycle": 82,
       "expected_parameters": ["30", "10", "2", "-15", "", "0.25"],
       "regression": {"find": "{' (',rtp,','rfp,','sdis,',',dp,','}", "replace": "{' (',rtp,',,'sdis,',',dp,',',rfp}"}
@@ -66,7 +66,7 @@
       "commit": "1710187d018f99c30085790a4b3d761db5f81496",
       "related_commits": ["bea8c623d6d1bae588c36b696aa3bc93340dc961", "e4af180"],
       "reason": "Commit reduces the upper dwell from 1 to 0.5; subsequent source comment identifies this as DTS, argument 10.",
-      "initial": {"drill_type": "g83", "drill_upper_z": 12, "tool_direction": "cw", "spin": 1000},
+      "initial": {"drill_type": 2, "drill_upper_z": 12, "tool_direction": "cw", "spin": 1000},
       "expected_cycle": 83,
       "expected_parameters": ["30", "10", "2", "-15", "", "", {"unpinned": "FDPR: PP-055, the first peck relative to RFP jumps by SDIS across drill_upper_z=0; a fix changes FDPR in one branch"}, "3", "", "0.5", "1", "1"],
       "regression": {"find": ",,0.5,1,1'}", "replace": ",,1.,1,1'}"}
@@ -77,7 +77,7 @@
       "commit": "1710187d018f99c30085790a4b3d761db5f81496",
       "related_commits": ["bea8c623d6d1bae588c36b696aa3bc93340dc961"],
       "reason": "The same dwell change for drill_upper_z<=0 (RFP=-2, SDIS empty and DPR=0); one CYCLE83 tail serves both branches since the shared CYCLE8x head.",
-      "initial": {"drill_type": "g83", "drill_upper_z": -2, "tool_direction": "cw", "spin": 1000},
+      "initial": {"drill_type": 2, "drill_upper_z": -2, "tool_direction": "cw", "spin": 1000},
       "expected_cycle": 83,
       "expected_parameters": ["30", "-2", "", "-15", "0.", "", {"unpinned": "FDPR: PP-055, the first peck relative to RFP jumps by SDIS across drill_upper_z=0; a fix changes FDPR in one branch"}, "3", "", "0.5", "1", "1"],
       "regression": {"find": ",,0.5,1,1'}", "replace": ",,1.,1,1'}"}
@@ -87,7 +87,7 @@
       "kind": "cycle",
       "commit": "bea8c623d6d1bae588c36b696aa3bc93340dc961",
       "reason": "Diff repairs the first five arguments while retaining the final spindle-mode value 3 (SDIR 3 = M3 for the CW tool given here; the CCW case is PP-029).",
-      "initial": {"drill_type": "g86", "drill_upper_z": 12, "tool_direction": "cw", "spin": 1000},
+      "initial": {"drill_type": 4, "drill_upper_z": 12, "tool_direction": "cw", "spin": 1000},
       "expected_cycle": 86,
       "expected_parameters": ["30", "10", "2", "-15", "", "", "3"],
       "regression": {"find": "{' (',rtp,','rfp,','sdis,',',dp,','}", "replace": "{' (',rtp,',,'sdis,',',dp,',',rfp}"}

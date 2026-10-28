@@ -48,11 +48,17 @@ from .modal import replay, state_before
 from .nc import index_of, last_index_of, parse_blocks
 from .vericut import vmid_user_parameters
 
+# drill_type SolidCAM sends for each drill cycle: its Gmill_540v_4x.vmid DrillType, the value of the
+# constants G81..G86 (recorded_cam_003/005: drill_type:0 for G81, 2 for G83). d_drill_type is a number
+# too: -1 in a milling job, D_Tapping 3 (CAMDBG d_tapping_value) in a tapping job.
+DRILL_TYPE = dict(G81=0, G82=1, G83=2, G84=3, G86=4)
+D_TAPPING = 3
+
 # SolidCAM enum constants (names lower-cased by the engine; cw == CW).
 CAM_CONSTANTS = dict(
     XY='xy', ZX='zx', YZ='yz', CW='cw', CCW='ccw', machine_plane='xy',
     COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off',
-    G81='g81', G82='g82', G83='g83', G84='g84', G86='g86', D_Tapping='d_tapping',
+    **DRILL_TYPE, D_Tapping=D_TAPPING,
     MIRROR_OFF='mirror_off', MIRROR_X='mirror_x', MIRROR_Y='mirror_y', MIRROR_XY='mirror_xy',
 )
 
@@ -75,7 +81,7 @@ CAM_JOB_DEFAULTS = dict(
 )
 
 # CAM inputs of a drilling job (@drill/@drill_point/@end_drill); pass them to
-# the @drill event, e.g. s.ev('drill', ('xpos', 'ypos'), drill_type='g83', **DRILL_DEFAULTS).
+# the @drill event, e.g. s.ev('drill', ('xpos', 'ypos'), drill_type=DRILL_TYPE['G83'], **DRILL_DEFAULTS).
 DRILL_DEFAULTS = dict(
     drill_clearance_z=30, drill_upper_z=12, drill_lower_z=-15, safety=2, down_step=3,
     delay=0.25, Step_Down=0, VarRetract=0,

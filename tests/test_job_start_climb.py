@@ -9,6 +9,7 @@ import re
 import unittest
 
 from program_session import Program, require_nc_stream
+from support import DRILL_TYPE
 from test_offline import PP
 from test_post_homing_reposition import EMULATED_RAPIDS, Session, without_emulated_feed_calls
 
@@ -31,7 +32,7 @@ def drill_job_then(next_z, rtp=30, drill_z=10, source=None):
     program.ev('move_5x', xpos=10, ypos=10, zpos=50)
     program.ev('end_of_job')
     program.ev('start_of_job', job_name='drill')
-    program.ev('drill', xpos=20, ypos=20, zpos=drill_z, drill_type='g81', drill_clearance_z=rtp,
+    program.ev('drill', xpos=20, ypos=20, zpos=drill_z, drill_type=DRILL_TYPE['G81'], drill_clearance_z=rtp,
                drill_upper_z=0, drill_lower_z=-10, feed=80)
     program.ev('drill_point', xpos=30, ypos=20)
     program.ev('end_drill')
@@ -145,8 +146,8 @@ class JobStartClimbTests(unittest.TestCase):
         program.ev('move_5x', xpos=10, ypos=10, zpos=50)
         program.ev('end_of_job')
         program.ev('start_of_job', job_name='drill')
-        program.ev('drill', xpos=20, ypos=20, zpos=5, drill_type='g81', drill_clearance_z=10, drill_upper_z=0,
-                   drill_lower_z=-10, feed=80)
+        program.ev('drill', xpos=20, ypos=20, zpos=5, drill_type=DRILL_TYPE['G81'], drill_clearance_z=10,
+                   drill_upper_z=0, drill_lower_z=-10, feed=80)
         program.ev('drill_point', xpos=30, ypos=20)
         program.ev('end_drill')
         self.assertIn('M0', program.ev('end_of_job'))

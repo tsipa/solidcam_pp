@@ -27,7 +27,7 @@ from support.vericut import VMID_FALLBACK
 TRACE = ("(1)@line_5x ==> zpos:15.833T feed_type:feed_link dir5a:cw\n"
          "                    ..> prev_command:'@line_5x' job_type:'profile' user_name:'Person'\n"
          "(1)@move_5x ==> apos:3.035T dir5a:ccw prev_command:'@line_5x' tool_direction:cw\n"
-         "(1)@drill ==> drill_type:G83 feed:100.000T\n")
+         "(1)@drill ==> drill_type:2 feed:100.000T\n")
 
 
 class TraceContractTests(unittest.TestCase):
@@ -46,8 +46,8 @@ class TraceContractTests(unittest.TestCase):
         replay") and the GPP inputs that drive safety branches: feed_type
         (@usr_line CAM-link test) and prev_command (@usr_rapid) decide whether
         G75 homing is skipped; job_type and drill_type select paths. They are
-        enumerations, not identities; sanitize() redacts four of them
-        (tool_direction 'cw' is already in the allowlist)."""
+        enumerations, not identities; sanitize() redacts three of them
+        (tool_direction 'cw' is already in the allowlist; drill_type is a number)."""
         events = sanitize(parse_trace(TRACE))
         kept = {
             'feed_type': events[0]['parameters']['feed_type'],
@@ -57,7 +57,7 @@ class TraceContractTests(unittest.TestCase):
             'drill_type': events[2]['parameters']['drill_type'],
         }
         self.assertEqual(kept, {'feed_type': 'feed_link', 'prev_command': '@line_5x', 'job_type': 'profile',
-                                'tool_direction': 'cw', 'drill_type': 'G83'})
+                                'tool_direction': 'cw', 'drill_type': 2})
 
     @known_defect('ENGINE-016')
     def test_nested_call_parameters_are_not_nc_output(self):

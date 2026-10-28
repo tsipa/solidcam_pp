@@ -12,6 +12,7 @@ import re
 import unittest
 
 from program_session import Program
+from support import DRILL_TYPE
 from test_offline import PP, ROOT
 from test_post_homing_reposition import Session
 
@@ -207,7 +208,7 @@ class InverseTimeFeedTests(unittest.TestCase):
         program.start()
         program.ev('move_5x', xpos=12, ypos=0, zpos=25)
         program.ev('line_5x', xpos=14, apos=30, feed=200)
-        output = program.ev('drill', xpos=30, ypos=0, zpos=30, drill_type='g81', drill_clearance_z=30,
+        output = program.ev('drill', xpos=30, ypos=0, zpos=30, drill_type=DRILL_TYPE['G81'], drill_clearance_z=30,
                             drill_upper_z=0, drill_lower_z=-10, feed=80)
         self.assertIn('G94 F80', output)
         self.assertLess(output.index('G94 F80'), next(i for i, b in enumerate(output) if 'CYCLE81' in b), output)
