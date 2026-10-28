@@ -1499,6 +1499,11 @@ endp
             bClimbFirst = true
         endif
     endif
+    ; A first move without X/Y travel is a Z move: Z joins the modal words (G0/G1 restated after a
+    ; CYCLE832 call), which would otherwise stand alone in the X/Y block.
+    if bFirstMove and change(zpos) and !change(xpos) and !change(ypos)
+        bClimbFirst = true
+    endif
     if bClimbFirst
         call @usr_rapid_climb_then_xy
     else

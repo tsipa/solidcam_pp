@@ -135,6 +135,24 @@ class PlacementTests(unittest.TestCase):
         cut(p, 60)
         self.assertEqual(calls(same_tool_job(p, 'op7', iG187_P=1, nG187_E=0.05)), ['CYCLE832(0.05,3,1)'])
 
+    def check_z_only_first_move(self, source=None):
+        p, _ = first_job(source, wall_offset=0.3)
+        cut(p)
+        job = same_tool_job(p, 'op2', wall_offset=0)
+        move = p.ev('rapid_move', xpos=10, ypos=10, zpos=5)
+        self.assertEqual((calls(job), move), ([FINISH], ['G0 Z5']), (job, move))
+
+    def test_z_only_first_move_joins_the_restated_motion_word(self):
+        """INDEPENDENT: the first rapid after the call writes G0 again; a job starting over the X/Y
+        where the last one ended moves only in Z, in one block instead of a bare 'G0' block and a
+        'Z5' block."""
+        self.check_z_only_first_move()
+        old = ('    if bFirstMove and change(zpos) and !change(xpos) and !change(ypos)\n'
+               '        bClimbFirst = true\n')
+        assert_detected(self, self.check_z_only_first_move, mutate(old, old.replace('bClimbFirst = true',
+                                                                                    'bClimbFirst = false')),
+                        'Z-only first move split')
+
     def check_tool_change(self, source=None):
         p, _ = first_job(source, wall_offset=0.3)
         cut(p)
