@@ -11,7 +11,7 @@
     global logical bCoolExist bCoolofftc bSpinofftc bCooloffend bSpinoffend
     global string cTCcodep cTCcodes cWo cPb cPe cCb cCe cOMb cOMe cR1
     global string sHomestrbegin sHomestrtc sHomestrend sHomestrstpsame sHomestrstpdiff sHomestrrotv sHomestrroth
-    global integer iProgendmode i4xIndexMode i4xIndexClearanceMode i4xFeedMode
+    global integer iProgendmode i4xIndexMode i4xIndexClearanceMode i4xFeedMode trace_level
     global integer iCoolantM1ON iCoolantM2ON iCoolantM3ON iCoolantM4ON iCoolantM5ON iCoolantM6ON iCoolantM7ON iCoolantM8ON
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
     global numeric nRapidfeed nMaxInverseFeed iR1dir iR2dir

@@ -103,7 +103,7 @@ CONTROL_DEFAULTS = {
     'remove_blanks': False, 'line_labels': False, 'num_user_procs': 0, 'end_block_text': '',
 }
 CONTROL_VARIABLES = set(CONTROL_DEFAULTS) | {'numeric_def_f', 'integer_def_f', 'gcode_f', 'mcode_f',
-                                              'blknum_f', 'trace_level'}
+                                              'blknum_f'}
 
 # Enumeration constants: the value is the spelling SolidCAM prints in its trace.
 # Observed in tests/fixtures/reference_multijob.trace.txt.xz: arc_plane:xy,

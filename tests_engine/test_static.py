@@ -68,9 +68,14 @@ class WholeGppTests(unittest.TestCase):
         # Branches the shipped user options never take: 33 branches / 80 statements at 058b0e9, fewer
         # with each removal of template options for other controls (+2: the G40 before an index in
         # clearance modes 1/2, the iR1dir stop; +1 the job-parameter stop with bCycle832 off; the G04
-        # spindle dwell with bSpinDwell off is gone, WAITS with bSpinWait on is live).
-        self.assertEqual(len(branches), 25)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 59)
+        # spindle dwell with bSpinDwell off is gone, WAITS with bSpinWait on is live). +6 / +44: the trace
+        # gate and the five CAMDBG readout gates, dead at the shipped trace_level 0 since trace_level is a
+        # declared post-writer option instead of a runtime control variable.
+        self.assertEqual(len(branches), 31)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 103)
+        gates = sorted(d.line for d in branches if 'trace_level=0' in d.message)
+        self.assertEqual(gates, lines_matching(r'^\s*if trace_level\s*(>|>=)\s*[05]\s*$'))
+        self.assertEqual(len(gates), 6)
         # The stops on an unsupported i4xIndexMode, i4xIndexClearanceMode or i4xFeedMode are among them: they run
         # only on a wrong setting.
         guard = lines_matching(r'^\s*if i4xIndexMode ne 0 and i4xIndexMode ne 1\s*$', start='@usr_check_options')
