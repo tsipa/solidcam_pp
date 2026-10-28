@@ -153,6 +153,36 @@ class SameToolWorkOffsetChangeTests(unittest.TestCase):
                    if 'Z' in block.homing_axes or ((53 in block.g or block.has('SUPA')) and 'Z' in block.axes)]
         self.assertTrue(retract, f'XY traverse in G55 without a machine-Z retract: {text!r}')
 
+    def check_unchanged_xy_in_a_new_offset(self, source=None):
+        session = Session(source=source, X5_job=False, vmid=dict(iWorkOffset_Method=1), home_user_name='54')
+        session.first_tool(tool=1, next_tool=1, last_tool=True)
+        session.ev('rapid_move', ('xpos', 'ypos', 'zpos'), xpos=10, ypos=20, zpos=5)
+        session.ev('line', ('zpos', 'feed'), zpos=-3)
+        session.ev('rapid_move', ('zpos',), zpos=50)
+        session.ev('end_of_job')
+        mark = session.mark()
+        session.engine.set(home_user_name='55')
+        session.ev('start_of_job', job_name='op2')
+        session.ev('rapid_move', ('zpos',), zpos=5)           # CAM: same X/Y as job 1's last point
+        session.ev('line', ('zpos', 'feed'), zpos=-3)
+        blocks = session.blocks(mark)
+        offset = next(index for index, block in enumerate(blocks) if 55 in block.g)
+        cut = next(index for index, block in enumerate(blocks) if 1 in block.g)
+        xy = [(block.get('X'), block.get('Y')) for block in blocks[offset:cut] if {'X', 'Y'} <= set(block.axes)]
+        self.assertEqual(xy, [(10, 20)], session.text(mark))
+
+    def test_first_move_in_a_new_offset_programs_x_and_y(self):
+        """INDEPENDENT: X/Y of the new offset are another machine position. Two fixtures with one
+        program (G54, G55, same tool, CAM's first point equal to the last one of the first job): the
+        new job must program X and Y before it goes down, else it cuts at the first fixture's X/Y.
+        Same rule as after a tool change (e16058e, bTcReprogram)."""
+        self.check_unchanged_xy_in_a_new_offset()
+
+    def test_unchanged_xy_guard_detects_the_reversion(self):
+        """INDEPENDENT: mutation self-check of the reprogramming after the offset change."""
+        mutant = mutate('            bTcReprogram = true\n        endif\n    endif\n', '        endif\n    endif\n')
+        assert_detected(self, self.check_unchanged_xy_in_a_new_offset, mutant, 'no reprogramming')
+
 
 # ---------------------------------------------------------------------------
 # Negative validation

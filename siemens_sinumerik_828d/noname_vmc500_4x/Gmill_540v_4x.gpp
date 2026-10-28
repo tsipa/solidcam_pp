@@ -66,8 +66,9 @@
     ; move reprograms X/Y/Z. usr_rapid_xyz keeps it set to its end as the homed-return marker.
     ; bCamLinkRapid / bRapidRotaryChanged: per-rapid decisions of usr_rapid, shared by its stages.
     ; bPostHomedZ: Z is among the axes homed since the last positioning move (with bPostHomed).
-    ; bTcReprogram: M06/D1 ran since the last positioning move; the next move programs X, Y and Z
-    ; also when no post homing ran (bHometc, or bHomebegin and bHomerotv, switched off).
+    ; bTcReprogram: M06/D1 ran, or a same-tool job changed the work offset, since the last positioning
+    ; move; the next move programs X, Y and Z also when no post homing ran (bHometc, or bHomebegin and
+    ; bHomerotv, switched off).
     global logical bPostHomed bPostHomedZ bCamLinkRapid bRapidRotaryChanged bTcReprogram
     ; WORKPIECE header: the program body is buffered in a file until the end of the file
     ; (usr_workpiece_begin / usr_workpiece_flush), so the blank is clamped on A only when a non-zero
@@ -1398,6 +1399,10 @@ endp
             ; bTlchg makes this rapid the positioning block (usr_rapid_tc_block, which clears it).
             bTlchg = true
             call @rapid_move
+            ; X, Y and Z now count in the new offset: the next move programs them also when CAM's
+            ; values equal the last job's (two fixtures, one program), else the tool would go down at
+            ; the old fixture's X/Y.
+            bTcReprogram = true
         endif
     endif
     call @usr_smoothing
