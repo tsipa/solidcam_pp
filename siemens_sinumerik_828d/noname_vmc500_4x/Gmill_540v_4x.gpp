@@ -280,12 +280,17 @@ endp
     endif
 endp
 
-@usr_camdbg_rapid_move
-    ; prev_command (absent from the trace), read by usr_rapid.
-    local string sDbg1
+@usr_camdbg_move(integer iAxes)
+    ; prev_command (absent from the trace) of the 4x/5x rapid events (iAxes 4/5), the only rapids
+    ; whose CAM link test reads it (usr_rapid_cam_link).
+    local string sDbg1 sDbg2
     if trace_level >= 5
-        sDbg1 = prev_command
-        {nl,'; CAMDBG rapid_move prev_command:',sDbg1}
+        sDbg1 = 'move_5x'
+        if iAxes eq 4
+            sDbg1 = 'move_4x'
+        endif
+        sDbg2 = prev_command
+        {nl,'; CAMDBG ',sDbg1,' prev_command:',sDbg2}
     endif
 endp
 
@@ -1392,7 +1397,7 @@ endp
             endif
             ; bTlchg makes this rapid the positioning block (usr_rapid_tc_block, which clears it).
             bTlchg = true
-            call @usr_rapid_move
+            call @rapid_move
         endif
     endif
     call @usr_smoothing
@@ -1428,14 +1433,8 @@ endp
 ;-------------------
 
 @rapid_move
-    ; SolidCAM event: rapid move (usr_rapid_move).
-    call @usr_camdbg_rapid_move
-    call @usr_rapid_move
-endp
-
-@usr_rapid_move
-    ; A rapid of the CAM or of the post (start_of_job, usr_StopM00_sametool, drill). All rapids go
-    ; through usr_rapid; a CYCLE832 that waited for G40 comes first (usr_smoothing_apply).
+    ; SolidCAM event: rapid move. All rapids go through usr_rapid; a CYCLE832 that waited for G40
+    ; comes first (usr_smoothing_apply).
     call @usr_smoothing_apply
     call @usr_rapid
 endp
@@ -2217,7 +2216,7 @@ endp
     bHomedBeforeReturn = bPostHomed
     nZBeforeReturn = nLastPathZ
     bPostHomed = false
-    call @usr_rapid_move
+    call @rapid_move
     bPostHomed = bHomedBeforeReturn
     ; The return programs no Z: the tool stays at its Z (RTP after a drill cycle, or the homed top).
     nLastPathZ = nZBeforeReturn
@@ -2304,7 +2303,7 @@ endp
     if iCycle832Mode ne 0
         call @usr_smoothing_off
     endif
-    call @usr_rapid_move
+    call @rapid_move
     if drill_type eq G81 then
         gcode = 81
     endif
@@ -2888,6 +2887,7 @@ endp
 @move_4x
     ; SolidCAM event: 4x rapid (usr_rapid; the A direction comes from dir5a, bR1useDir5a).
     ; A rotates around X on this machine: X is the axial coordinate and is posted as given.
+    call @usr_camdbg_move(4)
     bR1useDir5a = true
     call @usr_rapid
     bR1useDir5a = false
@@ -2920,6 +2920,7 @@ endp
 
 @move_5x
     ; SolidCAM event: 5x rapid (usr_rapid; the A direction comes from dir5a, bR1useDir5a).
+    call @usr_camdbg_move(5)
     bR1useDir5a = true
     call @usr_rapid
     bR1useDir5a = false

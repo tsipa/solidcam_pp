@@ -128,11 +128,28 @@ class InputTraceTests(unittest.TestCase):
         self.assertEqual(manifest['diagnostics_kept_native'], {'arc_size': 1, 'zstart': 1})
         self.assertEqual(manifest['parameters_from_diagnostics'], {'xstart': 1, 'ystart': 1, 'zcenter_rel': 1})
 
+    def test_restatement_needs_one_native_within_half_a_unit(self):
+        """The native spelling is the CAM value rounded to its last digit: a readout may lie half a
+        unit away (either tie rule), not more; a field printed twice is never respelled."""
+        cases = ((b'45.0005', 45.0005), (b'44.9995', 44.9995), (b'45.0005001', 45), (b'45.0008', 45),
+                 (b'44.9990', 45))
+        for readout, expected in cases:
+            with self.subTest(readout=readout):
+                raw = (b"(1)@arc ==> arc_size:45.000\n"
+                       b"                      > ; CAMDBG arc arc_size:" + readout + b"\n")
+                _, _, events = self.extract_bytes(raw)
+                self.assertEqual(events[0].parameters['arc_size'], expected)
+        raw = (b"(1)@arc ==> xcenter_rel:1.000 xcenter_rel:1.000\n"
+               b"                      > ; CAMDBG arc xcenter_rel:1.0001234\n")
+        manifest, result, _ = self.extract_bytes(raw)
+        self.assertIn(b'xcenter_rel:1.000 xcenter_rel:1.000\n', result)
+        self.assertEqual(manifest['diagnostics_kept_native'], {'xcenter_rel': 1})
+
     def test_command_names_are_strings_and_enum_numbers_must_be_numeric(self):
         raw = (b"(1)@def_tool ==> tool_number:1\n"
                b"                      > ; CAMDBG def_tool next_command:@def_tool\n"
-               b"(1)@rapid_move ==> xpos:1.000T\n"
-               b"                      > ; CAMDBG rapid_move prev_command:\n"
+               b"(1)@move_5x ==> xpos:1.000T\n"
+               b"                      > ; CAMDBG move_5x prev_command:\n"
                b"(1)@start_of_job ==> flood_coolant:no_action\n"
                b"                      > ; CAMDBG start_of_job flood_coolant_value:2 rot_axis_coord_value:0\n")
         _, _, events = self.extract_bytes(raw)

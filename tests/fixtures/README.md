@@ -57,7 +57,7 @@ prints `; CAMDBG <event> name:value` lines (`@usr_camdbg_*`):
 
 - `start_of_file`: `date`, `time`, and `d_tapping_value` (the drill type constant
   `D_Tapping`);
-- `def_tool`: `next_command`; `rapid_move`: `prev_command` (CAM rapids only);
+- `def_tool`: `next_command`; `move_4x`, `move_5x`: `prev_command`;
 - `start_of_job`: `angle`, `cpos`, `apos`, `bpos`, `d_drill_type`,
   `through_coolant_val`, and the numbers of the fields the trace prints as names
   (`rot_axis_coord_value`, `flood_coolant_value` and the other coolant `*_value`

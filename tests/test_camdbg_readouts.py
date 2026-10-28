@@ -42,6 +42,8 @@ def program_readouts(source=None, trace_level=5):
               readouts(p.ev('def_tool', **TOOL, next_command='@def_tool')),
               readouts(p.start(tool=1, next_tool=2, apos=90, mist_coolant=2)),
               readouts(p.ev('rapid_move', xpos=10, ypos=10, zpos=50)),
+              readouts(p.ev('move_5x', xpos=10, ypos=10, zpos=50, apos=100, dir5a='ccw', prev_command='@line_5x')),
+              readouts(p.ev('move_4x', xpos=10, ypos=10, zpos=50, apos=110, dir5a='ccw')),
               readouts(p.ev('arc', **XY_ARC)),
               readouts(p.ev('arc_yz', **YZ_ARC))]
     return result
@@ -76,7 +78,9 @@ class ReadoutTests(unittest.TestCase):
              'lp_flood_coolant_value:0',
              '; CAMDBG start_of_job through_ival_coolant_value:0 lp_through_coolant_value:0 '
              'air_blast_coolant_value:0 air_through_coolant_value:0 through_coolant_val:0'],
-            ['; CAMDBG rapid_move prev_command:@start_of_job'],
+            [],
+            ['; CAMDBG move_5x prev_command:@line_5x'],
+            ['; CAMDBG move_4x prev_command:@move_5x'],
             ['; CAMDBG arc xstart:10.123456789 ystart:0 zstart:50',
              '; CAMDBG arc xcenter_rel:-10.123456789 ycenter_rel:0 zcenter_rel:0 arc_size:90'],
             ['; CAMDBG arc_yz xstart:0 ystart:10 zstart:50',
@@ -85,7 +89,7 @@ class ReadoutTests(unittest.TestCase):
 
     def test_trace_level_0_writes_no_readout(self):
         """INDEPENDENT: the shipped post (trace_level 0) writes the NC for the machine."""
-        self.assertEqual(program_readouts(trace_level=0), [[]] * 6)
+        self.assertEqual(program_readouts(trace_level=0), [[]] * 8)
 
     def test_readouts_keep_the_change_flags(self):
         """INDEPENDENT: printing a variable clears its change flag (clear_change_after_gen 1), and
@@ -102,8 +106,8 @@ class ReadoutTests(unittest.TestCase):
         """INDEPENDENT: mutation self-check of the event name, the copies and the gate."""
         mutants = {
             'arc_yz named arc': ("        sDbg1 = 'arc_yz'\n", "        sDbg1 = 'arc'\n"),
-            'gate at trace_level 0': ('    if trace_level >= 5\n        sDbg1 = prev_command\n',
-                                      '    if trace_level >= 0\n        sDbg1 = prev_command\n'),
+            'gate at trace_level 0': ('    if trace_level >= 5\n        sDbg1 = next_command\n',
+                                      '    if trace_level >= 0\n        sDbg1 = next_command\n'),
             'printed without a copy': ("' apos:',nDbg3:nCamDbg_f", "' apos:',apos:nCamDbg_f"),
         }
         checks = {'arc_yz named arc': self.check_readouts, 'gate at trace_level 0': self.check_trace_level_0,
@@ -113,10 +117,10 @@ class ReadoutTests(unittest.TestCase):
                 assert_detected(self, checks[label], mutate(old, new), label)
 
     def check_readouts(self, source):
-        self.assertEqual(program_readouts(source)[5][0], '; CAMDBG arc_yz xstart:0 ystart:10 zstart:50')
+        self.assertEqual(program_readouts(source)[7][0], '; CAMDBG arc_yz xstart:0 ystart:10 zstart:50')
 
     def check_trace_level_0(self, source):
-        self.assertEqual(program_readouts(source, trace_level=0), [[]] * 6)
+        self.assertEqual(program_readouts(source, trace_level=0), [[]] * 8)
 
     def check_flags(self, source):
         p = Program(source=source, options={'trace_level': 5})
@@ -132,8 +136,8 @@ class SessionReadoutTests(unittest.TestCase):
         self.assertEqual([line for line in traced if not line.startswith('; CAMDBG')], plain)
         counts = Counter(line.split()[2] for line in traced if line.startswith('; CAMDBG'))
         expected = Counter({'start_of_file': events['start_of_file'], 'def_tool': events['def_tool'],
-                            'start_of_job': 3 * events['start_of_job'], 'rapid_move': events['rapid_move'],
-                            'arc': 2 * events['arc'], 'arc_yz': 2 * events['arc_yz']})
+                            'start_of_job': 3 * events['start_of_job'], 'move_4x': events['move_4x'],
+                            'move_5x': events['move_5x'], 'arc': 2 * events['arc'], 'arc_yz': 2 * events['arc_yz']})
         self.assertEqual(counts, +expected, name)
 
     def check_sessions(self, source=None):
@@ -143,21 +147,19 @@ class SessionReadoutTests(unittest.TestCase):
     def test_readouts_leave_the_nc_lines_and_follow_the_cam_events(self):
         """INDEPENDENT: at trace_level 5 the NC minus the readouts is line for line the NC of
         trace_level 0 (a readout opens its own lines where no block waits to be joined), and
-        each SolidCAM event reads out once; the rapids the post makes itself (start_of_job,
-        usr_StopM00_sametool, drill: usr_rapid_move) read out nothing, so no readout follows the
-        record of another event."""
+        each SolidCAM event reads out once. prev_command is read out on the 4x/5x rapids, the
+        only rapids whose CAM link test reads it (usr_rapid_cam_link); the rapids the post makes
+        itself (start_of_job, usr_StopM00_sametool, drill) read out nothing."""
         for name in SESSION_NAMES:
             with self.subTest(session=name):
                 self.check_session(name)
 
-    def test_readout_in_the_rapid_body_is_detected(self):
-        """INDEPENDENT: mutation self-check; the rapid readout in usr_rapid_move would print for
-        the rapids the post makes itself."""
-        old = '    call @usr_camdbg_rapid_move\n    call @usr_rapid_move\n'
-        body = '    ; through usr_rapid; a CYCLE832 that waited for G40 comes first (usr_smoothing_apply).\n'
-        moved = mutate(old, '    call @usr_rapid_move\n')
-        mutant = mutate(body, body + '    call @usr_camdbg_rapid_move\n', source=moved)
-        assert_detected(self, self.check_sessions, mutant, 'readout in usr_rapid_move')
+    def test_readout_in_the_shared_rapid_is_detected(self):
+        """INDEPENDENT: mutation self-check; the move readout in usr_rapid would print for every
+        rapid, also the post's own and the 3-axis ones."""
+        moved = mutate('    call @usr_camdbg_move(5)\n', '')
+        mutant = mutate('\n@usr_rapid\n', '\n@usr_rapid\n    call @usr_camdbg_move(5)\n', source=moved)
+        assert_detected(self, self.check_sessions, mutant, 'readout in usr_rapid')
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "description": "The synthetic stream (synthetic_session.json) with trace_level 5: the CAMDBG readouts of start_of_file, def_tool, start_of_job, rapid_move and arc (usr_camdbg_*) that pp_tests/tools/input_trace.py promotes into a recorded input fixture; none for the rapid the drill cycle makes itself. The engine spells the constant D_Tapping as its name, so its value is not pinned. Expectations characterise the current GPP under the session policy.",
+ "description": "The synthetic stream (synthetic_session.json) with trace_level 5: the CAMDBG readouts of start_of_file, def_tool, start_of_job, move_5x and arc (usr_camdbg_*) that pp_tests/tools/input_trace.py promotes into a recorded input fixture; none for the rapid the drill cycle makes itself or for 3-axis rapids. The engine spells the constant D_Tapping as its name, so its value is not pinned. Expectations characterise the current GPP under the session policy.",
  "session": {
   "overrides": {
    "trace_level": 5
@@ -170,7 +170,6 @@
    },
    "expect": {
     "blocks": [
-     "; CAMDBG rapid_move prev_command:@start_of_job",
      "G0 X10 Y20",
      "Z5"
     ]
@@ -321,7 +320,7 @@
    },
    "expect": {
     "absent": [
-     "; CAMDBG rapid_move"
+     "; CAMDBG"
     ]
    }
   },
@@ -458,6 +457,12 @@
     "apos": 10,
     "bpos": 0,
     "dir5a": "ccw"
+   },
+   "expect": {
+    "order": [
+     "; CAMDBG move_5x prev_command:@start_of_job",
+     "A="
+    ]
    }
   },
   {
@@ -494,6 +499,11 @@
     "apos": 30,
     "bpos": 0,
     "dir5a": "ccw"
+   },
+   "expect": {
+    "contains": [
+     "; CAMDBG move_5x prev_command:@line_5x"
+    ]
    }
   },
   {
