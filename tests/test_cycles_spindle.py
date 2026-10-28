@@ -307,9 +307,10 @@ def check_spindle_start(tc, source=None):
         blocks = parse_blocks(session.ev('start_tool', tool_direction=direction, spin=1000))
         tc.assertEqual(spindle_codes(blocks), [code], f'start_tool {direction}: {[b.raw for b in blocks]}')
         tc.assertEqual(speeds(blocks), [1000], f'start_tool {direction}')
-        # A mid-job speed change (CAM @m_feed_spin) programs only the new S, then WAITS.
+        # A mid-job speed change (CAM @m_feed_spin) restates the direction with the new S (WAITS
+        # waits after M3/M4), then WAITS.
         tc.assertEqual(block_texts(session.ev('m_feed_spin', ('spin',), tool_direction=direction, spin=1200)),
-                       ['S1200', 'WAITS'], f'm_feed_spin {direction}')
+                       [f'M{code}', 'S1200', 'WAITS'], f'm_feed_spin {direction}')
         tc.assertEqual(block_texts(session.ev('m_feed_spin', (), tool_direction=direction, spin=1200)), [],
                        f'm_feed_spin {direction} without a speed change')
     # CYCLE84 runs the spindle itself (SST); the tool start must not start it.
@@ -346,7 +347,7 @@ def check_spindle_wait(tc, source=None):
         tc.assertIsNotNone(speed, start)
         tc.assertEqual(start[speed + 1:], expected, f'start, bSpinWait {wait}: {start}')
         change = block_texts(session.ev('m_feed_spin', ('spin',), spin=3000))
-        tc.assertEqual(change, ['S3000'] + expected, f'speed change, bSpinWait {wait}')
+        tc.assertEqual(change, ['M3', 'S3000', 'WAITS'] if wait else ['S3000'], f'speed change, bSpinWait {wait}')
         tc.assertEqual(block_texts(session.ev('m_feed_spin', (), spin=3000)), [], 'same speed')
         stop = block_texts(session.ev('end_program'))
         m5 = next((i for i, block in enumerate(stop) if 'M5' in block.split()), None)
@@ -681,7 +682,10 @@ MUTATIONS = (
     ('start_tool_skips_the_direction', 'spindle_start',
      '(SST).\n    call @usr_spindle_dir\n', '(SST).\n', 1),
     ('m_feed_spin_skips_the_direction', 'spindle_start',
-     '    ; Spindle speed change within a job.\n    call @usr_spindle_dir\n', '    ; Spindle speed change within a job.\n', 1),
+     '    ; 7.4); the signal is "spindle in setpoint range" (FB1 S1, tolerance MD35150).\n    call @usr_spindle_dir\n',
+     '    ; 7.4); the signal is "spindle in setpoint range" (FB1 S1, tolerance MD35150).\n', 1),
+    ('speed_change_without_the_direction', 'spindle_wait',
+     '        if bSpinWait and last_spin ne 0\n', '        if false\n', 1),
     ('spindle_wait_ignores_the_option', 'spindle_wait', '    if bSpinWait\n', '    if true\n', 1),
     ('spindle_wait_missing_after_a_speed_change', 'spindle_wait',
      '    if spin ne last_spin\n        call @usr_spindle_wait\n', '    if false\n        call @usr_spindle_wait\n', 1),

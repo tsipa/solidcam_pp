@@ -2254,9 +2254,16 @@ endp
 ;-------------------
 
 @m_feed_spin
-    ; Spindle speed change within a job.
+    ; Spindle speed change within a job. With bSpinWait and the spindle running (last_spin set) the
+    ; block restates M3/M4 with the new S: WAITS waits for the setpoint speed after M3/M4 (PGsl 03/2013
+    ; 7.4); the signal is "spindle in setpoint range" (FB1 S1, tolerance MD35150).
     call @usr_spindle_dir
     if change(spin)
+        if bSpinWait and last_spin ne 0
+            skipline = true
+            {nb, 'M'iSpindleDir:mcode_f ' '}
+            skipline = false
+        endif
         call @usr_spindle_output
     endif
 endp
@@ -2291,10 +2298,12 @@ endp
 endp
 
 @usr_spindle_wait
-    ; WAITS on a block of its own (bSpinWait): the program goes on when the spindle runs at the
-    ; programmed speed after M3/M4/S, or stands still after M5, instead of a G04 dwell timed by the
-    ; post. Feed blocks wait for the speed anyway (MD35500 = 2); WAITS also holds G0, the cycles and
-    ; the tool change. The trailing new block keeps later words off the WAITS line.
+    ; WAITS on a block of its own (bSpinWait; PGsl 03/2013 7.4: "Programming in a separate NC block"):
+    ; after M3/M4 the program goes on when the spindle reaches its setpoint speed, after M5 when it
+    ; stands still (FB1 S1: "spindle in setpoint range", tolerance MD35150; "spindle stationary"),
+    ; instead of a G04 dwell timed by the post. Feed blocks wait for the speed anyway (MD35500 = 2:
+    ; the path stops before the first machining block); WAITS also holds G0, the cycles and the tool
+    ; change. The trailing new block keeps later words off the WAITS line.
     if bSpinWait
         skipline = true
         {nb, 'WAITS'}
