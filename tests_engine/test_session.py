@@ -207,6 +207,8 @@ class SessionReplayTests(unittest.TestCase):
         self.assertEqual(report.errors, [])
         drills = [event for event in report.events if event.name == 'drill']
         self.assertEqual([event.params['drill_type'] for event in drills], [0, 2])
+        # @drill prints d_drill_type:D_Drilling and D_Peck; the job's CAMDBG readout gives 0 and 2.
+        self.assertEqual([event.params['d_drill_type'] for event in drills], [0, 2])
         self.assertEqual([[line.split(' (')[0] for line in event.nc if 'MCALL' in line] for event in drills],
                          [['MCALL CYCLE81'], ['MCALL CYCLE83']])
 

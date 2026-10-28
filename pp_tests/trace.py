@@ -2,6 +2,8 @@
 import re
 from dataclasses import dataclass, field
 
+from .gppl.sysvars import D_DRILL_TYPES
+
 HEADER = re.compile(r'^\((\d+)\)@(\w+)\s*==>\s*(.*)$')
 # SolidCAM prints VMID job parameters as 'name : value' with the string value unquoted, so an empty
 # string leaves nothing before the next 'name :' ('sStopMessage :   iG187_P : 0') or the line end:
@@ -33,6 +35,9 @@ def parameters(text, event):
                     event.changed[key] = number[2] == 'T'
             elif token.lower() in ('true', 'false'):
                 value = token.lower() == 'true'
+            elif key == 'd_drill_type' and token.lower() in D_DRILL_TYPES:
+                # @drill prints the number SolidCAM sends by its constant name (D_Drilling, D_Peck).
+                value = float(D_DRILL_TYPES[token.lower()])
             else:
                 value = token
         event.parameters[key] = value

@@ -122,7 +122,7 @@ SYSTEM_FORMATS = frozenset({'numeric_def_f', 'integer_def_f', 'gcode_f', 'mcode_
 # tests/fixtures/recorded_cam_00*.trace.txt.xz recordings give D_Tapping 3 (d_tapping_value:3.); in
 # recorded_cam_003/005 a job whose @drill prints d_drill_type:D_Drilling reads 0 at its start_of_job,
 # one that prints D_Peck reads 2. The other names of the SolidCAM catalog (D_F_Drill, D_Boring, ...)
-# are not observed and not defined.
+# are not observed and not defined. trace.py reads the printed names as these numbers.
 D_DRILL_TYPES = {'d_drilling': 0, 'd_peck': 2, 'd_tapping': 3}
 
 # Enumeration constants: the value is the spelling SolidCAM prints in its trace, except the D_* drill

@@ -222,6 +222,17 @@ class HarnessTests(unittest.TestCase):
                           parameters['sworkpcdir']), ('', '', 'text', ''))
         self.assertEqual((parameters['machine_plane'], parameters['omachine_plane']), ('xy', 'zc'))
 
+    def test_printed_drill_type_names_are_read_as_numbers(self):
+        """INDEPENDENT: SolidCAM traces tests/fixtures/recorded_cam_003/005: @drill prints drill_type as a
+        number and d_drill_type by its constant name; the CAMDBG readout of the same job gives that
+        d_drill_type as the number SolidCAM sends (D_Drilling 0, D_Peck 2)."""
+        events = parse_trace("(1)@drill           ==> drill_depth:2.200 down_step:0.000 num_down_steps:1 \n"
+                             "                    ..> drill_type:0 d_drill_type:D_Drilling drill_cycle_name:'G81' \n"
+                             "(1)@drill           ==> drill_depth:24.000 down_step:2.000 num_down_steps:12 \n"
+                             "                    ..> drill_type:2 d_drill_type:D_Peck drill_cycle_name:'G83' \n")
+        self.assertEqual([(event.parameters['drill_type'], event.parameters['d_drill_type'],
+                           event.parameters['drill_cycle_name']) for event in events], [(0, 0, 'G81'), (2, 2, 'G83')])
+
     def test_plain_nc_is_not_a_trace(self):
         """INDEPENDENT: harness contract: plain NC text is rejected as a trace."""
         with self.assertRaises(ValueError):
