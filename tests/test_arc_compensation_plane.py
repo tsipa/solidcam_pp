@@ -5,9 +5,12 @@
 Area D. Tests drive a SolidCAM-like Session after the first tool change, put
 the tool at the arc start with a feed move and judge the emitted G2/G3 block
 the way a Sinumerik 828D executes it:
-* support.nc.arc_sweep_degrees is the DIN 66025 / Siemens sweep oracle: G17
-  is X/Y viewed from +Z, G18 is Z/X viewed from +Y (abscissa Z, ordinate X),
-  G19 is Y/Z viewed from +X; I/J/K are incremental unless written I=AC(..);
+* support.nc.arc_path_error is the DIN 66025 / Siemens oracle: G17 is X/Y
+  viewed from +Z, G18 is Z/X viewed from +Y (abscissa Z, ordinate X), G19 is
+  Y/Z viewed from +X; the post writes the end point and the opening angle AR=
+  (PGsl 03/2013 9.6.4) and the control derives the centre, so the oracle
+  compares the arc the control runs with the CAM arc; an arc above 180 deg is
+  two blocks of half the angle;
 * plane (G17/G18/G19) and TRC (G40/G41/G42) states come from support.modal.replay.
 
 ZX (G18) orientation was registered as PP-003. The owner's fix (5408e5c) stops
@@ -26,11 +29,14 @@ Event order caveat: every PP-019/PP-020 test assumes SolidCAM delivers
 """
 import json
 import math
+import os
 import unittest
+from unittest import mock
 
 from pp_tests.engine import UnsupportedGPPL
-from support import (DRILL_DEFAULTS, FIXTURES, Session, arc_center, arc_sweep_degrees, assert_detected,
-                     covers, mutate, parse_blocks, replay, state_before)
+from program_session import Program, require_nc_stream
+from support import (DRILL_DEFAULTS, FIXTURES, Session, arc_center, arc_path_error, assert_detected, covers,
+                     mutate, parse_blocks, replay, state_before)
 
 # plane: (abscissa, ordinate, applicate, SolidCAM event, G code), DIN 66025 / Siemens 828D.
 PLANES = {
@@ -38,12 +44,12 @@ PLANES = {
     'zx': ('Z', 'X', 'Y', 'arc_zx', 18),
     'yz': ('Y', 'Z', 'X', 'arc_yz', 19),
 }
-CENTER_WORDS = {'X': 'I', 'Y': 'J', 'Z': 'K'}
 # Coarsest coordinate format in effect after the first tool change is zpos_f '5.4'
 # (PP-006): rounding moves a written coordinate by at most 5e-5 mm.
 COORDINATE_TOLERANCE = 5.1e-5
-# 5e-5 mm on a 10 mm radius is 3e-4 deg; 0.01 deg separates rounding from a wrong arc.
-SWEEP_TOLERANCE = 0.01
+# The arc the control runs through rounded end points: an end moves by up to 5.0e-5 mm in YZ
+# (Y '8.5', Z '5.4'), 0.71e-5 mm in XY ('8.5'); the AR= bulge error is below 1e-6 here.
+PATH_TOLERANCE = 1.0e-4
 
 
 _JOB_TEMPLATES = {}
@@ -117,6 +123,41 @@ def arc_result(testcase, session, mark):
     return replayed[index][0], state_before(replayed, index), replayed[index][1]
 
 
+def arc_blocks(testcase, session, mark):
+    """[(block, state before, state after)] of the AR= arc blocks of the arc event; an arc
+    above 180 deg is two, and its second half carries no G2/G3 word (modal)."""
+    replayed = replay(session.text())
+    first = len(replayed) - len(parse_blocks(session.text(mark)))
+    last = len(replayed) - len(parse_blocks(session.text(mark + 1)))
+    arcs = [index for index in range(first, last)
+            if replayed[index][1].motion in (2, 3) and replayed[index][0].has('AR')]
+    testcase.assertTrue(arcs, f'no AR= arc block: {raw(replayed[first:last])}')
+    return [(replayed[index][0], state_before(replayed, index), replayed[index][1]) for index in arcs]
+
+
+def path_errors(plane, center, sweep, arcs):
+    """arc_path_error of each block against its share of the CAM arc (sweep / blocks, positive
+    counter-clockwise); a block the control cannot run (AR= outside 0..360, an end on the
+    start) counts as infinitely far off."""
+    abscissa, ordinate = PLANES[plane][:2]
+    errors = []
+    for block, before, after in arcs:
+        try:
+            errors.append(arc_path_error(plane, before.xyz(), block, (center[abscissa], center[ordinate]),
+                                         sweep / len(arcs), after.motion))
+        except ValueError:
+            errors.append(math.inf)
+    return errors
+
+
+def rotated(point, center, degrees):
+    """(abscissa, ordinate) of point turned about center by degrees (positive counter-clockwise)."""
+    angle = math.radians(degrees)
+    du, dv = point[0] - center[0], point[1] - center[1]
+    return (center[0] + du * math.cos(angle) - dv * math.sin(angle),
+            center[1] + du * math.sin(angle) + dv * math.cos(angle))
+
+
 def in_plane(plane, pair, applicate):
     """{'X','Y','Z'} point from (abscissa, ordinate) and the applicate value."""
     abscissa, ordinate, normal = PLANES[plane][:3]
@@ -127,8 +168,8 @@ class ArcSweepConventionTests(unittest.TestCase):
     """Convention-independent G2/G3 check (pp-weird-hunter-02, history-misc-04).
 
     For each CAM label and size both candidate CAD end points are fed; the PP must
-    accept exactly one (dc916d7 end-point check) and the control must sweep the
-    CAM arc_size for the block it writes, whatever label convention SolidCAM uses.
+    accept exactly one (dc916d7 end-point check) and the control must run the CAM arc
+    for the block it writes, whatever label convention SolidCAM uses.
     """
 
     CENTER = {'X': 3.0, 'Y': -2.0, 'Z': 1.0}
@@ -157,18 +198,27 @@ class ArcSweepConventionTests(unittest.TestCase):
     def sweep_errors(self, planes, source=None):
         errors = []
         for plane in planes:
+            abscissa, ordinate = PLANES[plane][:2]
             for direction in ('ccw', 'cw'):
                 for size in (45, 90, 135):
-                    block, before, _ = self.accepted_arc(plane, direction, size, source)
-                    sweep = arc_sweep_degrees(plane, before.xyz(), block)
-                    if abs(sweep - size) > SWEEP_TOLERANCE:
-                        errors.append(f'{plane} {direction} {size}: control sweeps {sweep:.3f} deg for {block.raw!r}')
+                    block, before, after = self.accepted_arc(plane, direction, size, source)
+                    # The CAM arc ends at the accepted end point: turned by +size or -size.
+                    center = (self.CENTER[abscissa], self.CENTER[ordinate])
+                    end = (after.xyz()[abscissa], after.xyz()[ordinate])
+                    start = (before.xyz()[abscissa], before.xyz()[ordinate])
+                    sweep = min((sign * size for sign in (1, -1)),
+                                key=lambda turn: math.dist(end, rotated(start, center, turn)))
+                    error = arc_path_error(plane, before.xyz(), block, center, sweep)
+                    if error > PATH_TOLERANCE:
+                        errors.append(f'{plane} {direction} {size}: the control runs off the CAM arc by {error:.4f} '
+                                      f'for {block.raw!r}')
         return errors
 
     def test_pin_xy_yz_arcs_sweep_cam_angle_on_control(self):
         """INDEPENDENT: DIN 66025 / Siemens 828D circle direction (G17 viewed from +Z, G19
-        from +X): for XY and YZ arcs of 45/90/135 deg, both labels, the block the PP
-        writes must sweep exactly the CAM arc_size on the control."""
+        from +X) and PGsl 03/2013 9.6.4 (end point and AR=): for XY and YZ arcs of
+        45/90/135 deg, both labels, the block the PP writes must make the control run the
+        CAM arc (the start turned about the CAM centre by arc_size in the label's sense)."""
         errors = self.sweep_errors(('xy', 'yz'))
         self.assertEqual(errors, [])
 
@@ -226,6 +276,13 @@ OFF_AXIS_CASES = [
          planes=('xy', 'yz')),
     dict(name='quarter_offset_center_ccw', size=90, direction='ccw', start=(5, 1), center=(2, 5), end=(6, 8),
          planes=('xy', 'yz')),
+    # Above 180 deg (two halves): the start off the abscissa exercises both terms of the halfway rotation.
+    dict(name='major_off_axis_ccw', size=270, direction='ccw', start=(6, 8), center=(0, 0), end=(8, -6),
+         planes=('xy', 'yz')),
+    dict(name='major_off_axis_cw', size=270, direction='cw', start=(6, 8), center=(0, 0), end=(-8, 6),
+         planes=('xy', 'yz')),
+    dict(name='major_offset_center_ccw', size=270, direction='ccw', start=(5, 1), center=(2, 5), end=(-2, 2),
+         planes=('xy', 'yz')),
     # A CAD end point off the circle in the NEGATIVE direction of each in-plane axis aborts too.
     dict(name='negative_abscissa_mismatch_aborts', size=180, direction='ccw', start=(6, 8), center=(0, 0),
          end=(-6, -8), cad_delta=(-0.0011, 0), error=True),
@@ -239,14 +296,14 @@ OFF_AXIS_CASES = [
 def fixture_cases():
     """fixtures/ambiguous_arcs.json cases as XY/YZ arc cases (ZX orientation is PP-003)."""
     fixture = json.loads((FIXTURES / 'ambiguous_arcs.json').read_text())
-    return [dict(case, planes=('xy', 'yz')) for case in fixture['cases']]
+    return [dict(case, planes=tuple(case.get('planes', ('xy', 'yz')))) for case in fixture['cases']]
 
 
 class ArcGuardTests(unittest.TestCase):
     """dc916d7 ('Arcs must be handled mathematically in post') regression guards."""
 
     def assert_arc_case(self, case, plane, source=None):
-        abscissa, ordinate, normal, _, code = PLANES[plane]
+        normal, code = PLANES[plane][2], PLANES[plane][4]
         delta = case.get('cad_delta', (0, 0))
         start = in_plane(plane, case['start'], 2)
         center = in_plane(plane, case['center'], 2)
@@ -266,18 +323,23 @@ class ArcGuardTests(unittest.TestCase):
             if 'POST ERROR' in str(exc):
                 self.fail(f'{label}: the PP aborted an arc whose CAD end point is on the circle: {exc}')
             raise
-        block, before, after = arc_result(self, session, mark)
-        self.assertEqual(after.plane, code, f'{label}: plane active at {block.raw!r}')
-        sweep = arc_sweep_degrees(plane, before.xyz(), block)
-        self.assertAlmostEqual(sweep, case['size'] % 360, delta=SWEEP_TOLERANCE, msg=f'{label}: {block.raw!r}')
-        self.assertIn(3 if case['direction'] == 'ccw' else 2, block.g, f'{label}: {block.raw!r}')
+        arcs = arc_blocks(self, session, mark)
+        written = [block.raw for block, _, _ in arcs]
+        self.assertEqual(len(arcs), 2 if case['size'] > 180 else 1, f'{label}: {written}')
+        self.assertIn(3 if case['direction'] == 'ccw' else 2, arcs[0][0].g, f'{label}: {written}')
+        for block, _, after in arcs:
+            self.assertEqual(after.plane, code, f'{label}: plane active at {block.raw!r}')
+            self.assertEqual([word.raw for word in block.words if word.address in ('I', 'J', 'K', 'R', 'CR')], [],
+                             f'{label}: centre or radius word with AR= in {block.raw!r}')
+        sweep = case['size'] if case['direction'] == 'ccw' else -case['size']
+        errors = path_errors(plane, center, sweep, arcs)
+        self.assertLessEqual(max(errors), PATH_TOLERANCE, f'{label}: {written} runs off the CAM arc by {errors}')
+        if len(arcs) == 2:   # a helix rises half its lead in each half
+            self.assertAlmostEqual(arcs[0][2].xyz()[normal], (start[normal] + true_end[normal]) / 2,
+                                   delta=COORDINATE_TOLERANCE, msg=f'{label}: {written}')
         for axis in 'XYZ':
-            self.assertAlmostEqual(after.xyz()[axis], true_end[axis], delta=COORDINATE_TOLERANCE,
-                                   msg=f'{label} {axis}: {block.raw!r}')
-        words = {word.address: (word.mode, word.value) for word in block.words
-                 if word.address in ('I', 'J', 'K', 'R', 'CR')}
-        expected = {CENTER_WORDS[axis]: (None, center[axis] - start[axis]) for axis in (abscissa, ordinate)}
-        self.assertEqual(words, expected, f'{label}: incremental centre words expected in {block.raw!r}')
+            self.assertAlmostEqual(arcs[-1][2].xyz()[axis], true_end[axis], delta=COORDINATE_TOLERANCE,
+                                   msg=f'{label} {axis}: {written}')
 
     def run_cases(self, cases, source=None, subtests=True):
         # XY and YZ only: every ZX arc stops the post since 5408e5c (test_zx_arc_stops_the_post).
@@ -290,15 +352,17 @@ class ArcGuardTests(unittest.TestCase):
                     self.assert_arc_case(case, plane, source)
 
     @covers('ENGINE-009')
-    def test_off_axis_center_words_and_negative_mismatch(self):
+    def test_off_axis_arcs_and_negative_mismatch(self):
         """INDEPENDENT: geometry and Sinumerik words, in XY (G17) and YZ (G19); ZX arcs stop
         the post since 5408e5c (test_zx_arc_stops_the_post). A semicircle ends at
         2*center - start for either direction; quarter arcs rotate +abscissa -> +ordinate
-        for CCW (DIN 66025); I/J/K are the centre relative to the start point (incremental,
-        iArcmode=2); dc916d7 aborts on a CAD end point more than 0.001 off the circle in
-        either direction of any axis and writes the corrected end point within tolerance.
-        Starts lie off the abscissa (absorbs the TSR off-axis test). The abort is observed
-        as the engine exception at the GPPL `input` line (ENGINE-009)."""
+        for CCW (DIN 66025); the block carries the end point and AR= and no centre or radius
+        word (PGsl 03/2013 9.6.4), and the arc the control derives from it follows the CAM
+        arc; above 180 deg it is two halves, a helix rising half its lead in each; dc916d7
+        aborts on a CAD end point more than 0.001 off the circle in either direction of any
+        axis and writes the corrected end point within tolerance. Starts lie off the
+        abscissa (absorbs the TSR off-axis test). The abort is observed as the engine
+        exception at the GPPL `input` line (ENGINE-009)."""
         self.run_cases(OFF_AXIS_CASES)
 
     # ZX mutants (dc916d7's ZX K-word revert, ZX K sign, ZX orthogonal axis) are gone:
@@ -320,8 +384,18 @@ class ArcGuardTests(unittest.TestCase):
         'dx_signed_reversed': ('dx = abs(calculated_xpos - xpos)', 'dx = (xpos - calculated_xpos)'),
         'dy_signed_reversed': ('dy = abs(calculated_ypos - ypos)', 'dy = (ypos - calculated_ypos)'),
         'dz_signed_reversed': ('dz = abs(calculated_zpos - zpos)', 'dz = (zpos - calculated_zpos)'),
-        'xy_j_rel_sign': ("{'I'xcenter_rel ' ', 'J'ycenter_rel ' '}", "{'I'xcenter_rel ' ', 'J'(-ycenter_rel) ' '}"),
-        'yz_k_rel_sign': ("{'J'ycenter_rel ' ', 'K'zcenter_rel ' '}", "{'J'ycenter_rel ' ', 'K'(-zcenter_rel) ' '}"),
+        'ar_complement': ("'AR='arc_size:nArcAR_f", "'AR='(360 - arc_size):nArcAR_f"),
+        'halves_above_360': ('    if arc_size > 180.000005 then\n        ; First half',
+                             '    if arc_size > 360 then\n        ; First half'),
+        'mid_at_full_angle': ('        c = cos(angle_deg / 2)\n        s = sin(angle_deg / 2)\n',
+                              '        c = cos(angle_deg)\n        s = sin(angle_deg)\n'),
+        'xy_mid_normal_at_end': ('            nArcMidZ = (zstart + calculated_zpos) / 2\n',
+                                 '            nArcMidZ = calculated_zpos\n'),
+        'yz_mid_normal_at_end': ('            nArcMidX = (xstart + calculated_xpos) / 2\n',
+                                 '            nArcMidX = calculated_xpos\n'),
+        'second_half_full_angle': ("        {'AR='nArcAR:nArcAR_f ' '}\n", "        {'AR='arc_size:nArcAR_f ' '}\n"),
+        'no_angle_check': ('    call @usr_arc_angle_check\n', ''),
+        'angle_limit_looser': ('arc_size > 360.000005', 'arc_size > 361'),
         'check_or_to_and': ('if dx gt tolerance or dy gt tolerance or dz gt tolerance then',
                             'if dx gt tolerance and dy gt tolerance and dz gt tolerance then'),
         'no_chord_check': ('    call @usr_arc_chord_check(du, dv)\n', ''),
@@ -329,21 +403,27 @@ class ArcGuardTests(unittest.TestCase):
                            '    if false then\n        du = calculated_ypos - ystart\n'),
         'chord_limit_looser': ('du * du + dv * dv < 0.00000001', 'du * du + dv * dv < 0.000000001'),
         'chord_limit_tighter': ('du * du + dv * dv < 0.00000001', 'du * du + dv * dv < 0.0000001'),
-        'full_circle_not_exempt': ('    if arc_size < 360 and du * du', '    if du * du'),
+        'halves_not_exempt': ('    if arc_size <= 180.000005 and (du * du', '    if (du * du'),
+        'yz_z_resolution_ignored': (' or (iMplane eq 19 and abs(du) < 0.0001 and abs(dv) < 0.0002)', ''),
+        'mid_xy_ordinate_sign': ('            nArcMidX = cx + vx * c - vy * s\n',
+                                 '            nArcMidX = cx + vx * c + vy * s\n'),
+        'mid_yz_ordinate_sign': ('            nArcMidY = cy + vy * c - vz * s\n',
+                                 '            nArcMidY = cy + vy * c + vz * s\n'),
     }
 
     def test_arc_math_mutants_are_detected_by_assertions(self):
         """INDEPENDENT: every in-memory mutant of @usr_arc_math/@usr_arc/@usr_arc_check below
-        (dc916d7 reverts, rotation/sign/centre/orthogonal-axis/tolerance mutants) must make
-        one of the geometric oracles above raise AssertionError, never an interpreter
-        error. ZX mutants are absent: the ZX lines are unreachable behind the ZX stop."""
+        (dc916d7 reverts, rotation/sign/centre/orthogonal-axis/tolerance mutants, the AR=
+        word, the halves and the angle/chord stops) must make one of the geometric oracles
+        above raise AssertionError, never an interpreter error. ZX mutants are absent: the
+        ZX lines are unreachable behind the ZX stop."""
         cases = OFF_AXIS_CASES + fixture_cases()
         for name, (old, new) in self.MUTANTS.items():
             with self.subTest(mutant=name):
                 assert_detected(self, lambda source: self.run_cases(cases, source, subtests=False),
                                 mutate(old, new), name)
 
-    def check_configured_arc_mode(self, source=None):
+    def check_arc_words(self, source=None):
         session = job_session(source)
         case = OFF_AXIS_CASES[6]   # quarter, start (5, 1), center (2, 5)
         start, center = in_plane('xy', case['start'], 2), in_plane('xy', case['center'], 2)
@@ -351,45 +431,167 @@ class ArcGuardTests(unittest.TestCase):
         mark = emit_valid_arc(self, session, 'xy', case['direction'], case['size'], start, center,
                               in_plane('xy', case['end'], 2))
         block, before, _ = arc_result(self, session, mark)
-        self.assertEqual([word.raw for word in block.words if word.address in ('R', 'CR')], [], block.raw)
-        self.assertEqual({word.address: (word.mode, word.value) for word in block.words
-                          if word.address in ('I', 'J', 'K')},
-                         {'I': (None, -3), 'J': (None, 4)}, block.raw)
-        self.assertEqual(arc_center('xy', before.xyz(), block), (2, 5), block.raw)
+        self.assertEqual([word.raw for word in block.words if word.address in ('I', 'J', 'K', 'R', 'CR')], [],
+                         block.raw)
+        self.assertEqual((block.get('X'), block.get('Y'), block.get('AR')), (6, 8, 90), block.raw)
+        cx, cy = arc_center('xy', before.xyz(), block)
+        self.assertLessEqual(math.dist((cx, cy), (2, 5)), 1e-9, block.raw)
 
-    def test_configured_arc_mode_emits_sinumerik_incremental_ijk(self):
-        """INDEPENDENT: Sinumerik 828D reads plain I/J/K as incremental centre offsets
-        (absolute needs I=AC(..)) and writes the radius as CR= (R is an arithmetic
-        parameter). @usr_arc must produce incremental I/J
-        and no radius word (absorbs efc test_configured_arc_mode_is_sinumerik_incremental_ijk)."""
-        self.check_configured_arc_mode()
+    def test_arc_block_writes_end_point_and_opening_angle(self):
+        """INDEPENDENT: PGsl 03/2013 9.6.4: 'G2/G3 X... Y... Z... AR=' gives the end point and
+        the opening angle, and the control derives the centre (here (2, 5)); the radius word
+        of a Sinumerik is CR= (R is an arithmetic parameter). @usr_arc must write X/Y and
+        AR= and no centre or radius word, which would over-determine the circle."""
+        self.check_arc_words()
 
-    def test_non_sinumerik_arc_words_are_detected(self):
-        """INDEPENDENT: @usr_arc writing the absolute centre as plain I/J (the removed
-        iArcmode 1) or an R word (the removed modes 3/4) must make the configured-mode check
-        fail with AssertionError."""
-        xy_centre = "        {'I'xcenter_rel ' ', 'J'ycenter_rel ' '}\n"
-        mutants = {'absolute I/J': "        {'I'xcenter ' ', 'J'ycenter ' '}\n",
-                   'R word': "        {'I'xcenter_rel ' ', 'J'ycenter_rel ' ', 'R'radius ' '}\n"}
-        for label, words in mutants.items():
+    def test_other_arc_words_are_detected(self):
+        """INDEPENDENT: @usr_arc writing centre words next to AR= or an R word instead of
+        AR= must make the arc-word check fail with AssertionError."""
+        words = "'AR='arc_size:nArcAR_f ' '"
+        mutants = {'centre words': "'I'xcenter_rel ' ', 'J'ycenter_rel ' ', 'AR='arc_size:nArcAR_f ' '",
+                   'R word': "'R'radius ' '"}
+        for label, replacement in mutants.items():
             with self.subTest(label):
-                assert_detected(self, self.check_configured_arc_mode, mutate(xy_centre, words), label)
+                assert_detected(self, self.check_arc_words, mutate(words, replacement), label)
 
-    def test_configured_output_precision_keeps_end_point_on_circle(self):
-        """INDEPENDENT: dc916d7 raised XYZ output to 5 decimals so emitted arc end points lie
-        on the circle (VMID MovementPrecision=5). After @init_post a 30 deg XY arc must end
-        on the circle of its start point within 1e-5 mm (5-decimal rounding of X/Y bounds the
-        radial error by about 0.71e-5 mm)."""
+    def test_configured_output_precision_keeps_the_arc_on_the_cam_arc(self):
+        """INDEPENDENT: dc916d7 raised XYZ output to 5 decimals (VMID MovementPrecision=5).
+        After @init_post the arc the control runs for a 30 deg XY arc through its written end
+        point and AR= must stay within 1e-5 mm of the CAM arc (5-decimal rounding moves the
+        end by at most 0.71e-5 mm; the 5-decimal AR= moves the middle by chord * 2e-8)."""
         session = job_session()
         start = {'X': 10, 'Y': 0, 'Z': 0}
         end = {'X': 10 * math.cos(math.radians(30)), 'Y': 5.0, 'Z': 0}
         position(session, start)
         mark = emit_valid_arc(self, session, 'xy', 'ccw', 30, start, {'X': 0, 'Y': 0, 'Z': 0}, end)
-        block, before, after = arc_result(self, session, mark)
-        cx, cy = arc_center('xy', before.xyz(), block)
-        radial_error = abs(math.hypot(after.xyz()['X'] - cx, after.xyz()['Y'] - cy)
-                           - math.hypot(before.xyz()['X'] - cx, before.xyz()['Y'] - cy))
-        self.assertLessEqual(radial_error, 1e-5, block.raw)
+        block, before, _ = arc_result(self, session, mark)
+        self.assertLessEqual(arc_path_error('xy', before.xyz(), block, (0, 0), 30), 1e-5, block.raw)
+
+
+class ArcEndWordTests(unittest.TestCase):
+    """Both end words of the arc plane in every AR= block (@usr_arc_point)."""
+
+    def semicircle(self, source=None, zpos=-1):
+        require_nc_stream()
+        with mock.patch.dict(os.environ, GPPL_POLICY='change_on_equal_assign=clear'):
+            program = Program(source=source)
+            program.start()
+            program.ev('rapid_move', xpos=10, ypos=0, zpos=5)
+            program.ev('line', zpos=-1, feed=200)
+            return program.ev('arc', xpos=-10, ypos=0, zpos=zpos, xstart=10, ystart=0, zstart=-1, xcenter_rel=-10,
+                              ycenter_rel=0, zcenter_rel=0, arc_size=180, arc_direction='ccw', arc_plane='xy',
+                              feed=200)
+
+    def test_ar_block_keeps_both_plane_words_when_an_equal_assignment_clears_the_flag(self):
+        """INDEPENDENT: PGsl 03/2013 9.6.4: AR= with the end point; a missing end word keeps the
+        start coordinate, and an end on the start leaves the centre undefined. Whether an equal
+        assignment clears a change flag is UNVERIFIED (policy change_on_equal_assign);
+        @usr_arc_math commits the computed end by such an assignment (X = 10 * cos 180 = -10
+        exactly, the CAM value), so the block must carry X and Y whatever the flags say."""
+        self.assertEqual(self.semicircle(), ['G3 X-10 Y0 AR=180'])
+
+    def test_helix_keeps_its_normal_axis_when_an_equal_assignment_clears_the_flag(self):
+        """INDEPENDENT: a helical arc ends at the CAM Z (here -2 from a start at -1); the same
+        commit by assignment may clear the Z flag, and an arc block without Z runs flat."""
+        self.assertEqual(self.semicircle(zpos=-2), ['G3 X-10 Y0 Z-2 AR=180'])
+
+    def yz_quarter(self, source=None, xpos=5):
+        """YZ arc from Y10 Z0 about Y0 Z0 by 90 deg CCW to Y0 Z10 (Z = 10 * sin 90 exactly), X from 5."""
+        require_nc_stream()
+        with mock.patch.dict(os.environ, GPPL_POLICY='change_on_equal_assign=clear'):
+            program = Program(source=source)
+            program.start()
+            program.ev('rapid_move', xpos=5, ypos=10, zpos=5)
+            program.ev('line', zpos=0, feed=200)
+            return program.ev('arc_yz', xpos=xpos, ypos=0, zpos=10, xstart=5, ystart=10, zstart=0, xcenter_rel=0,
+                              ycenter_rel=-10, zcenter_rel=0, arc_size=90, arc_direction='ccw', arc_plane='yz',
+                              feed=200)
+
+    def test_yz_arc_keeps_y_z_and_its_helix_x_when_an_equal_assignment_clears_the_flag(self):
+        """INDEPENDENT: the same rules in G19 (Y abscissa, Z ordinate): Y and Z in every block,
+        X when the helix moves it (here 5 -> 7)."""
+        self.assertEqual((self.yz_quarter(), self.yz_quarter(xpos=7)),
+                         (['G3 G19 Y0 Z10 AR=90'], ['G3 G19 X7 Y0 Z10 AR=90']))
+
+    def test_modal_end_words_are_detected(self):
+        """INDEPENDENT: mutation self-check; modal plane words in @usr_arc_point drop X (XY) or
+        Z (YZ), and without the helix checks the helix Z (XY) or X (YZ) is dropped."""
+        checks = [
+            ("        {'X'xpos ' ','Y'ypos ' ',['Z'zpos ' ']}\n", "        {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}\n",
+             lambda source: self.assertEqual(self.semicircle(source), ['G3 X-10 Y0 AR=180']), 'modal X/Y'),
+            ('        if zpos ne zstart then\n            change(zpos) = true\n        endif\n', '',
+             lambda source: self.assertEqual(self.semicircle(source, zpos=-2), ['G3 X-10 Y0 Z-2 AR=180']),
+             'helix Z by flag'),
+            ("        {['X'xpos ' '],'Y'ypos ' ','Z'zpos ' '}\n", "        {['X'xpos ' '],'Y'ypos ' ',['Z'zpos ' ']}\n",
+             lambda source: self.assertEqual(self.yz_quarter(source), ['G3 G19 Y0 Z10 AR=90']), 'modal YZ Z'),
+            ('        if xpos ne xstart then\n            change(xpos) = true\n        endif\n', '',
+             lambda source: self.assertEqual(self.yz_quarter(source, xpos=7), ['G3 G19 X7 Y0 Z10 AR=90']),
+             'helix X by flag'),
+        ]
+        for old, new, check, label in checks:
+            with self.subTest(label):
+                assert_detected(self, check, mutate(old, new), label)
+
+
+class ArcLimitTests(unittest.TestCase):
+    """The AR= format and the stops that keep an AR= block defined, with the post's real formats."""
+
+    def arc(self, source=None, start=(10, 0), center=(0, 0), size=90.0, plane='xy', applicate=14):
+        """One CCW arc of size degrees from start about center after the program start (real formats)."""
+        require_nc_stream()
+        program = Program(source=source)
+        program.start()
+        abscissa, ordinate, normal, event, _ = PLANES[plane]
+        su, sv = start
+        cu, cv = center
+        eu, ev = rotated(start, center, size)
+        point = {abscissa: su, ordinate: sv, normal: applicate}
+        program.ev('rapid_move', xpos=point['X'], ypos=point['Y'], zpos=5)
+        program.ev('line', zpos=point['Z'], feed=200)
+        values = {abscissa.lower() + 'pos': eu, ordinate.lower() + 'pos': ev, normal.lower() + 'pos': applicate,
+                  abscissa.lower() + 'start': su, ordinate.lower() + 'start': sv, normal.lower() + 'start': applicate,
+                  abscissa.lower() + 'center_rel': cu - su, ordinate.lower() + 'center_rel': cv - sv,
+                  normal.lower() + 'center_rel': 0}
+        return program.ev(event, arc_size=size, arc_direction='ccw', arc_plane=plane, feed=200, **values)
+
+    def test_ar_prints_the_control_angle_resolution(self):
+        """INDEPENDENT: INT_INCR_PER_DEG 100000 (MD10210 in backups/NOLOG.ard): the control reads an
+        angle to 0.00001 deg, so AR= carries 5 decimals (a 37.123456 deg arc prints AR=37.12346, a
+        0.0004 deg arc AR=0.0004, not AR=0)."""
+        self.assertEqual(self.arc(size=37.123456), ['G3 X7.97337 Y6.03534 AR=37.12346'])
+        self.assertEqual(self.arc(start=(100, 0), size=0.0004), ['G3 X100 Y0.0007 AR=0.0004'])
+
+    def test_angle_that_prints_as_zero_stops(self):
+        """INDEPENDENT: PGsl 03/2013 9.6.4 (AR= above 0): a 0.000004 deg arc prints AR=0 with 5
+        decimals. On radius 2000 (VMID MaxArcRadius) its chord, 0.00014 mm, passes the chord
+        stop, so @usr_arc_angle_check must stop the post."""
+        with self.assertRaisesRegex(UnsupportedGPPL, 'POST ERROR: ARC opening angle outside AR='):
+            self.arc(start=(2000, 0), size=0.000004)
+
+    def test_coarser_ar_format_is_detected(self):
+        """INDEPENDENT: mutation self-check of the 5-decimal pin; a coarser nArcAR_f would print
+        AR=0 above the 0.000005 deg limit of @usr_arc_angle_check."""
+        coarse = mutate("    nArcAR_f        = '3.5'\n", "    nArcAR_f        = '3.4'\n")
+        assert_detected(self, lambda source: self.assertEqual(self.arc(source, size=37.123456),
+                                                              ['G3 X7.97337 Y6.03534 AR=37.12346']), coarse, '3.4')
+
+    def test_yz_chord_that_z_rounds_onto_the_start_stops(self):
+        """INDEPENDENT: Z prints with 4 decimals after the first homing (zpos_f '5.4', PP-006). A
+        YZ arc from Y0 Z-1 to Y0.000009 Z-0.9999004 (chord 0.0001000058 mm, 90 deg) prints its end
+        as 'Y0.00001 Z-0.9999' next to a start of 'Y0 Z-1'; one Z increment and the rounding of
+        the start leave no margin, so the post stops ('ARC chord too short') instead of writing an
+        AR= block whose end may print onto its start."""
+        with self.assertRaisesRegex(UnsupportedGPPL, 'POST ERROR: ARC chord too short'):
+            self.arc(start=(0, -1), center=(-4.53e-05, -0.9999457), size=90, plane='yz')
+
+    def test_ignoring_the_z_resolution_is_detected(self):
+        """INDEPENDENT: mutation self-check; without the YZ clause the chord of 0.0001000058 mm passes."""
+        mutant = mutate(' or (iMplane eq 19 and abs(du) < 0.0001 and abs(dv) < 0.0002)', '')
+
+        def check(source):
+            with self.assertRaisesRegex(UnsupportedGPPL, 'POST ERROR: ARC chord too short'):
+                self.arc(source=source, start=(0, -1), center=(-4.53e-05, -0.9999457), size=90, plane='yz')
+        assert_detected(self, check, mutant, 'YZ Z resolution ignored')
 
 
 class RemovedArcModeTests(unittest.TestCase):
@@ -402,29 +604,29 @@ class RemovedArcModeTests(unittest.TestCase):
 
     START, CENTER = {'X': 12, 'Y': 23, 'Z': -2}, {'X': 2, 'Y': 23, 'Z': -2}
 
-    def arc_block(self, mode, size):
+    def arc_blocks(self, mode, size):
         session = job_session(options=dict(iArcmode=mode))
         angle = math.radians(size)
         end = {'X': 2 + 10 * math.cos(angle), 'Y': 23 + 10 * math.sin(angle), 'Z': -2}
         position(session, self.START)
         mark = emit_arc(session, 'xy', 'ccw', size, self.START, self.CENTER, end)
-        block, before, _ = arc_result(self, session, mark)
-        return block, before
+        return arc_blocks(self, session, mark)
 
     @covers('PP-022')
     def test_leftover_arc_mode_setting_posts_the_sinumerik_centre(self):
         """INDEPENDENT: the Sinumerik centre and radius rules above. A leftover iArcmode 1, 3 or 4
         setting (the removed modes printed the absolute centre as plain I/J, also for full circles,
-        and R for the radius) must give the control the CAM centre (2, 23) for a 90 deg arc and a
-        full circle, with no R or CR word. Regression guard of all three PP-022 facets."""
+        and R for the radius) must make the control run the CAM arc about (2, 23) for a 90 deg arc
+        and a full circle (two halves, PGsl 03/2013 9.6.4), with no R or CR word. Regression guard
+        of all three PP-022 facets."""
         problems = {}
         for mode in (1, 3, 4):
             for size in (90, 360):
-                block, before = self.arc_block(mode, size)
-                radius = [word.raw for word in block.words if word.address in ('R', 'CR')]
-                if arc_center('xy', before.xyz(), block) != (2, 23) or radius:
-                    problems[(mode, size)] = block.raw
-        self.assertEqual(problems, {}, 'arc words are not the Sinumerik incremental centre')
+                arcs = self.arc_blocks(mode, size)
+                radius = [word.raw for block, _, _ in arcs for word in block.words if word.address in ('R', 'CR')]
+                if max(path_errors('xy', self.CENTER, size, arcs)) > PATH_TOLERANCE or radius:
+                    problems[(mode, size)] = [block.raw for block, _, _ in arcs]
+        self.assertEqual(problems, {}, 'the control does not run the CAM arc')
 
 
 def compensated_job(source=None):

@@ -50,7 +50,7 @@ class SessionReplayTests(unittest.TestCase):
             'WORKPIECE(,"A",,"BOX",0,0,-30,-25,0,0,100,60)'])
         expected_in_order = ['G75 Z1=0.', 'T1', 'M06', 'D1', 'T2', 'MSG("F_CONTOUR")', 'CYCLE832(0.01,1,1)',
                              'G0 X10 Y20', 'Z5',
-                             'G1 G41 Y30 Z-5 F600', 'X40', 'G2 X50 Y20 I0 J-10', 'G1 Y0', 'G0 Z50', 'G40 X50 Y0',
+                             'G1 G41 Y30 Z-5 F600', 'X40', 'G2 X50 Y20 AR=90', 'G1 Y0', 'G0 Z50', 'G40 X50 Y0',
                              'M9', 'M5', 'M1', 'T2', 'MSG("D_PECK")', 'X25 Y15', 'MCALL CYCLE83 (30,0,2,-20,,,4,4,,0.5,1,1)',
                              'X45', 'MCALL', 'G54 A=ACN(90)', 'MSG("F_SIDE_A90")', 'CYCLE832(0.1,3,1)', 'M0',
                              ';CHECK PART', 'MSG("F_5X")', 'CYCLE832(0,0,1)', 'G0 A=ACP(100)', 'G1 G93 Z5 A=ACP(110) F19.769', 'G94 Z30 F300',
@@ -69,15 +69,17 @@ class SessionReplayTests(unittest.TestCase):
         _, report = replay_file(PP, ORACLE, vmid=VMID)
         self.assertTrue(report.ok, (report.errors, report.failures))
         self.assertIn('ARC end mismatch', str(report.events[-1].error))      # expected error, replay continued
+        # The arc writes both plane words whatever their flags (usr_arc_point), so an equal assignment
+        # that clears a flag no longer changes this stream.
         _, flipped = replay_file(PP, ORACLE, vmid=VMID, change_on_equal_assign='clear')
-        self.assertEqual(flipped.failures, ["event #11 @arc: blocks ['G2 I0 J-10'] != ['G2 X50 Y20 I0 J-10']"])
+        self.assertEqual(flipped.failures, [])
         _, flipped = replay_file(PP, ORACLE, vmid=VMID, event_flag_reset='globals_after_event')
         self.assertIn("event #9 @line: blocks ['G1 Y30 Z-5 F600'] != ['G1 G41 Y30 Z-5 F600']", flipped.failures)
 
     def test_gppl_policy_reaches_fixture_replays(self):
         code = ('import sys; from pp_tests.gppl.session import replay_file; '
                 's, r = replay_file(sys.argv[1], sys.argv[2], vmid=sys.argv[3]); print(len(r.failures))')
-        env = dict(os.environ, GPPL_POLICY='change_on_equal_assign=clear')
+        env = dict(os.environ, GPPL_POLICY='event_flag_reset=globals_after_event')
         out = subprocess.run([sys.executable, '-c', code, str(PP), str(ORACLE), str(VMID)], cwd=ROOT,
                              env=env, capture_output=True, text=True)
         self.assertEqual(out.stdout.strip(), '1', out.stderr)
@@ -287,8 +289,10 @@ class SemanticsProbeTests(unittest.TestCase):
     on three behaviours: arcs print their end point, @compensation's G41 reaches the
     next move, and the first tool gets M8 without M9 right after it. Only 'clear_user'
     satisfied all three; since usr_init_gmstates clears the coolant flags it sets
-    (2026-10-27), the M9 signal no longer separates 'keep' from 'clear_user'. (A fourth
-    signal, no 'G187 P2', went with the G187 output.)"""
+    (2026-10-27), the M9 signal no longer separates 'keep' from 'clear_user', and since
+    the arcs write both plane words whatever their flags (usr_arc_point, AR=) the arc
+    signal no longer separates 'clear'. (A fourth signal, no 'G187 P2', went with the
+    G187 output.)"""
 
     def probe(self, **policy):
         session, report = replay_file(PP, MAIN, vmid=VMID, **policy)
@@ -305,7 +309,7 @@ class SemanticsProbeTests(unittest.TestCase):
         # Seven M9 before usr_init_gmstates cleared the coolant flags it sets.
         self.assertEqual(self.probe(), {'m9_after_first_m8': 0, 'arc_end': True, 'g41': True})
         self.assertEqual(self.probe(change_on_equal_assign='clear'),
-                         {'m9_after_first_m8': 0, 'arc_end': False, 'g41': True})
+                         {'m9_after_first_m8': 0, 'arc_end': True, 'g41': True})
         self.assertEqual(self.probe(event_flag_reset='globals_after_event'),
                          {'m9_after_first_m8': 0, 'arc_end': True, 'g41': False})
         self.assertEqual(self.probe(change_on_equal_assign='clear_user'),

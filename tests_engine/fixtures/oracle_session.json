@@ -236,7 +236,7 @@
    },
    "expect": {
     "blocks": [
-     "G2 X50 Y20 I0 J-10"
+     "G2 X50 Y20 AR=90"
     ],
     "state": {
      "iMotionmode": 2

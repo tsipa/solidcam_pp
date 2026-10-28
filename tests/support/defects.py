@@ -640,7 +640,8 @@ _ENTRIES = [
        'None needed (c85f5f7 intent: all MACs map to G54).',
        ['critic-06'], 'F'),
     _d('PP-051', 'Vericut K word format left at 5.3 while I/J were widened to 8.5 (f88de47)', 'low',
-       'ZX/YZ arcs only (K is printed with 5 decimals).',
+       'None while the post writes arcs as end point and AR= (no centre word); YZ arcs printed K with 5 decimals '
+       'before.',
        'uncertain',
        'Vericut run of a ZX arc with a K word below 0.001 resolution.',
        ['critic-07'], 'F'),
@@ -737,7 +738,7 @@ _ENTRIES = [
        ['engine-impl-critic-03', 'efc-05'], 'F'),
     _d('ENGINE-003', 'numeric_def_f / integer_def_f are ignored: unformatted numbers use 3 decimals instead of '
        "'8.5'", 'low-medium',
-       'Arc centre words I/J/K/R, CYCLE parameters and any number without a <name>_f format.',
+       'CYCLE parameters and any number without a <name>_f format (arcs write no centre word since AR=).',
        'confirmed',
        'A posted MPF with an unformatted arc centre (number of decimals).',
        ['engine-impl-critic-05', 'efc-04', 'engine-impl-critic-12'], 'F'),

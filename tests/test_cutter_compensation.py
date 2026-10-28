@@ -249,7 +249,7 @@ class CompensationProgramTests(unittest.TestCase):
         arc = program.ev('arc', xpos=20, ypos=0, arc_plane='xy', arc_direction='ccw', arc_size=180, radius=5,
                          xstart=10, ystart=0, zstart=-1, xcenter=15, ycenter=0, zcenter=-1, xcenter_rel=5,
                          ycenter_rel=0, zcenter_rel=0, feed=200)
-        self.assertEqual(arc, ['G3 X20 Y0 I5 J0 F200'])
+        self.assertEqual(arc, ['G3 X20 Y0 AR=180 F200'])
 
     def test_compensation_on_the_first_feed_move_after_homing_is_selected_on_the_xy_return(self):
         program = Program()
@@ -433,7 +433,8 @@ YZ_ARC = dict(arc_plane='yz', arc_direction='ccw', arc_size=90, radius=10)
 def yz_arc(program, end, start, center, **values):
     (y, z), (ys, zs), (yc, zc) = end, start, center
     return program.ev('arc_yz', ypos=y, zpos=z, ystart=ys, zstart=zs, ycenter=yc, zcenter=zc,
-                      xcenter=program.engine.state['xpos'], xcenter_rel=0, ycenter_rel=yc - ys,
+                      xstart=program.engine.state['xpos'], xcenter=program.engine.state['xpos'], xcenter_rel=0,
+                      ycenter_rel=yc - ys,
                       zcenter_rel=zc - zs, **YZ_ARC, **values)
 
 
@@ -469,7 +470,7 @@ class CompensationPlaneAxisTests(unittest.TestCase):
 
     def test_yz_job_climb_selects_compensation_on_a_y_block(self):
         # Before: 'G0 Z40' and G41 never printed; the arc and the line ran uncompensated.
-        self.assertEqual(self.yz_climb(), ['G0 Z40', 'G41 Y10', 'G3 Y0 Z30 J0 K-10', 'G1 Y-5'])
+        self.assertEqual(self.yz_climb(), ['G0 Z40', 'G41 Y10', 'G3 Y0 Z30 AR=90', 'G1 Y-5'])
 
     def test_zx_job_climb_selects_compensation_on_an_x_block(self):
         program = same_tool_second_job('zx')

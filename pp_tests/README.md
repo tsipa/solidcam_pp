@@ -348,10 +348,11 @@ covered as DESIGN.md lists. `tests/support/engines.py` adapts either engine for 
 post tests without changing `pp_tests/gppl` (see Engines).
 
 Fixture files: `ambiguous_arcs.json` supplies hand-authored XY/YZ arcs for the
-incremental I/J/K output (minor/major arcs sharing endpoints, both semicircle
-directions, 179.999/180/180.001 degrees, nonzero centres, CAD endpoint roundoff and
-mismatch errors); ZX arcs stop the post (PP-003, fixed in 5408e5c). The other arc
-modes (`iArcmode` 1/3/4, PP-022) were removed in the refactor. `motion_sequences.json` exercises the
+end point and AR= output (minor/major arcs sharing endpoints, both semicircle
+directions, 179.999/180/180.001 degrees, halves above 180 degrees, nonzero centres,
+CAD endpoint roundoff, mismatch, short-chord and opening-angle errors); ZX arcs stop
+the post (PP-003, fixed in 5408e5c). The other arc modes (`iArcmode` 1/3/4, PP-022)
+were removed in the refactor. `motion_sequences.json` exercises the
 rapid/line procedures, the homing-string parser and indexing with exact word
 tokens. `history_regressions.json` holds the historical bug-fix cases
 (`tests/HISTORY_COVERAGE.md`). The repeated-G75 defect and its test oracle history

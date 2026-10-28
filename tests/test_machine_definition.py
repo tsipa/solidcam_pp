@@ -139,11 +139,13 @@ class MachineDefinitionKnownDefects(unittest.TestCase):
     @known_defect('PP-051', match='MetricFormat precision')
     def test_vericut_arc_center_words_keep_post_precision(self):
         """INDEPENDENT: f88de47 'use 8.5 metric formatting for I and J macro call
-        words' to match the post's numeric_def_f; @usr_arc prints K (ZX and YZ
+        words' to match the post's numeric_def_f; @usr_arc printed K (ZX and YZ
         arcs) from the same numeric_def_f and the VMID enables those planes
-        (SupportArcsZX_YZ="1"), so K needs the same precision. UNVERIFIED:
-        whether Vericut's K MetricFormat changes the simulated arc for a word
-        written with a decimal point (PP-051 uncertain)."""
+        (SupportArcsZX_YZ="1"), so K needs the same precision. Since the arcs are
+        written as end point and AR= no centre word is printed, so the mismatch is
+        unreachable until centre words return. UNVERIFIED: whether Vericut's K
+        MetricFormat changes the simulated arc for a word written with a decimal
+        point (PP-051 uncertain)."""
         if attribute(vmid_text(), 'SupportArcsZX_YZ') != ['1']:
             self.skipTest('ZX/YZ arcs disabled in the VMID; K is never printed')
         ctl = ctl_text()

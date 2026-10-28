@@ -223,17 +223,41 @@ ARC_PLANES = {'xy': ('X', 'Y'), 'zx': ('Z', 'X'), 'yz': ('Y', 'Z')}
 CENTER_WORDS = {'X': 'I', 'Y': 'J', 'Z': 'K'}
 
 
-def arc_center(plane, start, block):
+def _arc_direction(block):
+    direction = [code for code in block.g if code in (2, 3)]
+    if len(direction) != 1:
+        raise ValueError(f'not a single G2/G3 block: {block.raw!r}')
+    return direction[0]
+
+
+def arc_center(plane, start, block, motion=None):
     """Centre (abscissa, ordinate) a Sinumerik control derives from a G2/G3 block.
 
-    plane: 'xy' | 'zx' | 'yz'; start: {'X':..,'Y':..,'Z':..} start point. I/J/K
-    written as I=AC(v) are absolute, plain I/J/K are incremental from start, a
-    missing centre word means offset 0 (Siemens 828D programming manual).
+    plane: 'xy' | 'zx' | 'yz'; start: {'X':..,'Y':..,'Z':..} start point; motion: 2/3
+    for a block that carries no G2/G3 word (modal). With AR= (PGsl 03/2013 9.6.4, end
+    point and opening angle) the centre C is the point about which the start turns
+    onto the end by AR, counter-clockwise for G3 and clockwise for G2 in the plane's
+    abscissa/ordinate frame: E - C = R(+-AR)(S - C); a missing end word keeps the
+    start coordinate. Otherwise I/J/K written as I=AC(v) are absolute, plain I/J/K are
+    incremental from start and a missing centre word means offset 0 (9.6.2).
     """
     if isinstance(block, str):
         block = parse_block(block)
+    abscissa, ordinate = ARC_PLANES[plane]
+    if block.has('AR'):
+        angle = math.radians(block.get('AR'))
+        if (motion or _arc_direction(block)) == 2:
+            angle = -angle
+        c, s = math.cos(angle), math.sin(angle)
+        su, sv = start[abscissa], start[ordinate]
+        eu, ev = block.get(abscissa, su), block.get(ordinate, sv)
+        bu, bv = eu - (c * su - s * sv), ev - (s * su + c * sv)
+        det = 2 * (1 - c)
+        if det == 0:
+            raise ValueError(f'AR= of a full circle has no centre: {block.raw!r}')
+        return ((1 - c) * bu - s * bv) / det, (s * bu + (1 - c) * bv) / det
     center = []
-    for axis in ARC_PLANES[plane]:
+    for axis in (abscissa, ordinate):
         words = block.find(CENTER_WORDS[axis])
         if words and words[0].mode == 'AC':
             center.append(words[0].value)
@@ -242,25 +266,69 @@ def arc_center(plane, start, block):
     return tuple(center)
 
 
-def arc_sweep_degrees(plane, start, block):
+def arc_sweep_degrees(plane, start, block, motion=None):
     """Sweep in degrees that a Sinumerik control executes for a G2/G3 block.
 
     plane: 'xy' | 'zx' | 'yz'; start: {'X':..,'Y':..,'Z':..} start point;
-    block: Block or text. Missing end words keep the start coordinate; missing
-    centre words mean offset 0. Returns a value in [0, 360); a full circle
-    returns 0. CR= radius blocks are rejected (centre is not unique).
+    block: Block or text; motion: 2/3 for a block without its own G2/G3 word. With
+    AR= the sweep is the opening angle (PGsl 03/2013 9.6.4: 0 to 360, no full
+    circle; the end point must leave the start, or the centre is undefined).
+    Otherwise missing end words keep the start coordinate and missing centre words
+    mean offset 0; returns a value in [0, 360), a full circle returns 0. CR= radius
+    blocks are rejected (centre is not unique).
     """
     if isinstance(block, str):
         block = parse_block(block)
     if block.has('CR'):
         raise ValueError('CR= radius arcs have no unique centre')
-    direction = [code for code in block.g if code in (2, 3)]
-    if len(direction) != 1:
-        raise ValueError(f'not a single G2/G3 block: {block.raw!r}')
+    direction = motion or _arc_direction(block)
     abscissa, ordinate = ARC_PLANES[plane]
     end = {axis: block.get(axis, start[axis]) for axis in 'XYZ'}
+    if block.has('AR'):
+        sweep = block.get('AR')
+        if not 0 < sweep < 360:
+            raise ValueError(f'AR= outside 0..360 deg: {block.raw!r}')
+        if end[abscissa] == start[abscissa] and end[ordinate] == start[ordinate]:
+            raise ValueError(f'AR= arc ends on its start (no centre): {block.raw!r}')
+        return sweep
     center = dict(zip((abscissa, ordinate), arc_center(plane, start, block)))
     t_start = math.degrees(math.atan2(start[ordinate] - center[ordinate], start[abscissa] - center[abscissa]))
     t_end = math.degrees(math.atan2(end[ordinate] - center[ordinate], end[abscissa] - center[abscissa]))
     ccw = (t_end - t_start) % 360
-    return ccw if direction[0] == 3 else (360 - ccw) % 360
+    return ccw if direction == 3 else (360 - ccw) % 360
+
+
+def _turn(u, v, cu, cv, degrees):
+    angle = math.radians(degrees)
+    du, dv = u - cu, v - cv
+    return cu + du * math.cos(angle) - dv * math.sin(angle), cv + du * math.sin(angle) + dv * math.cos(angle)
+
+
+def arc_path_error(plane, start, block, center, sweep, motion=None, samples=16):
+    """Largest distance between the arc a Sinumerik control runs for a G2/G3 block and
+    the arc that turns start about center (abscissa, ordinate) by sweep degrees
+    (positive counter-clockwise, negative clockwise, in the plane's abscissa/ordinate
+    frame), compared at equal fractions of the turn.
+
+    The control's arc comes from arc_center and arc_sweep_degrees in the block's own
+    G2/G3 direction (motion: 2/3 only for a block without a G2/G3 word), so the
+    comparison holds for both arc forms (AR= or I/J/K) and catches a wrong direction,
+    side, radius, sweep or end point.
+    """
+    if isinstance(block, str):
+        block = parse_block(block)
+    own = [code for code in block.g if code in (2, 3)]
+    direction = own[0] if own else motion
+    if direction not in (2, 3):
+        raise ValueError(f'no G2/G3 direction for {block.raw!r}')
+    abscissa, ordinate = ARC_PLANES[plane]
+    cu, cv = arc_center(plane, start, block, direction)
+    executed = arc_sweep_degrees(plane, start, block, direction)
+    sign = 1 if direction == 3 else -1
+    worst = 0.0
+    for step in range(samples + 1):
+        fraction = step / samples
+        actual = _turn(start[abscissa], start[ordinate], cu, cv, sign * fraction * executed)
+        wanted = _turn(start[abscissa], start[ordinate], center[0], center[1], fraction * sweep)
+        worst = max(worst, math.dist(actual, wanted))
+    return worst

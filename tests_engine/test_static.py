@@ -100,7 +100,8 @@ class WholeGppTests(unittest.TestCase):
         self.assertNotIn('xpos', contracts['change_tool']['inferred'])
         self.assertIn('stock_x', contracts['def_tool']['persisted_from_earlier_events'])
         self.assertEqual(contracts['move_4x']['flags'], ['xpos', 'ypos', 'zpos'])
-        self.assertEqual(contracts['arc']['flags'], ['feed', 'xpos', 'ypos', 'zpos'])
+        # X/Y of an XY arc and Y/Z of a YZ arc print whatever their flags (usr_arc_point).
+        self.assertEqual(contracts['arc']['flags'], ['feed', 'xpos', 'zpos'])
 
     def test_cam_interface_inventory(self):
         interface = self.analysis.interface()

@@ -467,7 +467,7 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 
 - Severity: low
 - Confidence: uncertain
-- Reachability: ZX/YZ arcs only (K is printed with 5 decimals).
+- Reachability: None while the post writes arcs as end point and AR= (no centre word); YZ arcs printed K with 5 decimals before.
 - Location: vericut/sin840d_special.ctl <Word Name="K"> MetricFormat="5.3" (I/J 8.5); GPP @usr_arc L1606/L1620
 - Evidence that would settle it: Vericut run of a ZX arc with a K word below 0.001 resolution.
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
@@ -595,7 +595,7 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 
 - Severity: low-medium
 - Confidence: confirmed
-- Reachability: Arc centre words I/J/K/R, CYCLE parameters and any number without a <name>_f format.
+- Reachability: CYCLE parameters and any number without a <name>_f format (arcs write no centre word since AR=).
 - Location: pp_tests/gppl/legacy.py Engine._render numeric descriptor fallback (precision 3 when no <name>_f)
 - Evidence that would settle it: A posted MPF with an unformatted arc centre (number of decimals).
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
@@ -698,7 +698,7 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
   - `tests/test_engine_harness.py::PostAbortGuardTests::test_removed_abort_changes_observable_result` (facet `abort-observable`, confidence confirmed)
   - `tests/test_engine_harness.py::StatementGaps::test_engine_input_prompt_is_not_terminal` (facet `input-terminal`, confidence confirmed)
 - Pinned or exercised by (`@covers`):
-  - `tests/test_arc_compensation_plane.py::ArcGuardTests::test_off_axis_center_words_and_negative_mismatch`
+  - `tests/test_arc_compensation_plane.py::ArcGuardTests::test_off_axis_arcs_and_negative_mismatch`
   - `tests/test_arcs.py::ArcTests::test_cad_mismatch_stops_before_the_arc_block`
   - `tests/test_arcs.py::ArcTests::test_exact_mismatch_tolerance_each_axis`
   - `tests/test_offline.py::PostprocessorTests::test_invalid_direction_is_not_silently_emitted`

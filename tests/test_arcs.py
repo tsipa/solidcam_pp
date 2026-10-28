@@ -5,8 +5,11 @@ Scope after the area-D port:
 * XY (G17) and YZ (G19) only. Every ZX arc stops the post since 5408e5c (PP-003,
   fixed): tests/test_zx_arc_guard.py and
   tests/test_arc_compensation_plane.py::test_zx_arc_stops_the_post.
-* Incremental I/J/K only: the other arc modes (iArcmode 1/3/4, PP-022) were
-  removed in the refactor (tests/test_arc_compensation_plane.py).
+* End point and opening angle AR= (PGsl 03/2013 9.6.4): no centre word. The
+  control derives the centre, so support.nc.arc_path_error compares the arc it
+  runs with the fixture arc. An arc above 180 deg is two blocks of AR=size/2
+  through the point halfway (the centre from the chord is ill-conditioned there
+  and AR= has no full circle).
 * Compensation is unchanged, so no G40/G41/G42 may appear in an arc block (TRC
   in a G2/G3 block was PP-020; b999f65 stops the post instead); the old forced
   change(iDiametercomp) is gone. The harness state includes iCompActive (the
@@ -23,24 +26,31 @@ STRUCTURAL GUARDS (states a real session does not produce, stated on purpose):
   are modal and absent; the block layout asserted here is a property of the
   forced flags, not of a SolidCAM program.
 * Fixture arcs above 180 deg (major_*, just_above_semicircle,
-  almost_full_circle, full_circle_*) exercise the @usr_arc_math rotation for
-  any angle. With the VMID setting SupportGrt180degArcs="0" SolidCAM is
-  expected to split such arcs before the post sees them (meaning of the VMID
-  flag UNVERIFIED), so these cases guard the math, not a reachable input.
+  almost_full_circle*, full_circle_*) exercise the @usr_arc_math rotation and
+  the halves for any angle. With the VMID setting SupportGrt180degArcs="0"
+  SolidCAM splits such arcs before the post sees them (the reference trace of
+  2026-10-27 has none above 180), so these cases guard the math, not a
+  reachable input.
 """
 import json
 import unittest
 
 from pp_tests.engine import UnsupportedGPPL
-from support import FIXTURES, arc_sweep_degrees, covers, fresh_engine, parse_blocks
+from support import FIXTURES, arc_path_error, covers, fresh_engine, parse_blocks
 
 FIXTURE = json.loads((FIXTURES / 'ambiguous_arcs.json').read_text())
 # plane: (axes in the PP's (u, v, w) order, G code, SolidCAM event). For G17 and G19
-# the PP order equals the DIN abscissa/ordinate order used by arc_sweep_degrees.
+# the PP order equals the DIN abscissa/ordinate order used by arc_path_error.
 PLANES = [('xy', ('x', 'y', 'z'), 17, 'arc'), ('yz', ('y', 'z', 'x'), 19, 'arc_yz')]
-CENTER_WORDS = {'x': 'I', 'y': 'J', 'z': 'K'}
 # Coordinates use the @init_post format '8.5': rounding error at most 5e-6 mm.
 COORDINATE_TOLERANCE = 0.51e-5
+# The arc the control runs through rounded end points: both ends move by up to 0.71e-5 mm.
+PATH_TOLERANCE = 1.5e-5
+
+
+def case_planes(case):
+    """PLANES entries of a fixture case ('planes' limits it, e.g. a YZ-only chord case)."""
+    return [entry for entry in PLANES if entry[0] in case.get('planes', ('xy', 'yz'))]
 
 
 def arc_engine(case, plane, axes):
@@ -49,7 +59,7 @@ def arc_engine(case, plane, axes):
     engine.set(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz', arc_direction=case['direction'],
                arc_plane=plane, arc_size=case['size'], radius=10, bFeedoutput=False,
                iFeedMode=94, iDiametercomp=40, iCompActive=40, cWo='G', iWorkoffset=54, iAbsincmode=90, feed=100,
-               mcode_f='2.0(p)', clear_change_after_gen=1, xpos_f='8.5', ypos_f='8.5', zpos_f='8.5',
+               mcode_f='2.0(p)', clear_change_after_gen=1, xpos_f='8.5', ypos_f='8.5', zpos_f='8.5', nArcAR_f='3.5',
                bCycle832Auto=False, iCycle832Want=0, nCycle832WantTol=0, iCycle832Mode=0, nCycle832Tol=0, trace_level=0)
     u, v, w = axes
     delta = case.get('cad_delta', [0, 0])
@@ -77,21 +87,22 @@ def call_valid_arc(testcase, engine, procedure, arguments=()):
 
 class ArcTests(unittest.TestCase):
     def test_ambiguous_arcs_all_planes_and_modes(self):
-        """INDEPENDENT: XY (G17) and YZ (G19) with incremental I/J/K. End points come
-        from the fixture geometry (rotation of start-center by +-arc_size); the control
-        must sweep arc_size for the written block (DIN 66025 / Siemens 828D, checked with
-        support.nc.arc_sweep_degrees); I/J/K are incremental from the start point; the
-        helical orthogonal end point is the CAD value; with compensation unchanged no
-        G40/G41/G42 appears in the arc block. Scope (module docstring): no ZX (PP-003), no
-        modes 1/3/4 (PP-022). STRUCTURAL parts (module docstring): the exact modal G list
-        comes from the forced change flags, and change(nRapidfeed) is the @usr_arc
+        """INDEPENDENT: XY (G17) and YZ (G19). End points come from the fixture geometry
+        (rotation of start-center by +-arc_size); the arc the control runs for the written
+        blocks (PGsl 03/2013 9.6.4: end point and opening angle AR=, centre derived; G17
+        viewed from +Z, G19 from +X, checked with support.nc.arc_path_error) must follow
+        the fixture arc; an arc above 180 deg is two blocks of AR=size/2 through the point
+        halfway; no centre or radius word is written; the helical orthogonal end point is
+        the CAD value; with compensation unchanged no G40/G41/G42 appears. Scope (module
+        docstring): no ZX (PP-003). STRUCTURAL parts (module docstring): the exact modal G
+        list comes from the forced change flags, and change(nRapidfeed) is the @usr_arc
         contract that re-arms 'F nRapidfeed' for the next feed-emulated rapid
         (bSyncdrapid=false; usr_ip_useroptions documents nRapidfeed as the G1 rapid
         feed)."""
         for case in FIXTURE['cases']:
             if 'error' in case:
                 continue
-            for plane, axes, plane_code, procedure in PLANES:
+            for plane, axes, plane_code, procedure in case_planes(case):
                 with self.subTest(case=case['name'], plane=plane):
                     engine = arc_engine(case, plane, axes)
                     call_valid_arc(self, engine, procedure)
@@ -103,23 +114,29 @@ class ArcTests(unittest.TestCase):
                     motion = 3 if case['direction'] == 'ccw' else 2
                     self.assertEqual(engine.state['imotionmode'], motion)
                     blocks = parse_blocks(''.join(engine.output))
-                    self.assertEqual(len(blocks), 1, blocks)
-                    block = blocks[0]
-                    self.assertEqual(block.g, [motion, plane_code, 54, 90], block.raw)
-                    self.assertEqual(set(block.g) & {40, 41, 42}, set(), f'TRC word in arc block: {block.raw!r}')
-                    self.assertEqual(set(block.axes), {'X', 'Y', 'Z'}, block.raw)
+                    halves = case['size'] > 180
+                    self.assertEqual(len(blocks), 2 if halves else 1, [block.raw for block in blocks])
+                    self.assertEqual(blocks[0].g, [motion, plane_code, 54, 90], blocks[0].raw)
+                    self.assertEqual(set(blocks[0].axes), {'X', 'Y', 'Z'}, blocks[0].raw)
+                    self.assertEqual(blocks[0].get('F'), 100, blocks[0].raw)
+                    point = {u.upper(): case['start'][0], v.upper(): case['start'][1], w.upper(): 2}
+                    center = tuple(case['center'])
+                    for index, block in enumerate(blocks):
+                        self.assertEqual(set(block.g) & {40, 41, 42}, set(), f'TRC word in arc block: {block.raw!r}')
+                        self.assertEqual([word.raw for word in block.words if word.address in ('I', 'J', 'K', 'R', 'CR')],
+                                         [], block.raw)
+                        self.assertAlmostEqual(block.get('AR'), case['size'] / len(blocks), delta=0.51e-5, msg=block.raw)
+                        sweep = (1 if motion == 3 else -1) * case['size'] / len(blocks)
+                        self.assertLessEqual(arc_path_error(plane, point, block, center, sweep, motion), PATH_TOLERANCE,
+                                             block.raw)
+                        if index:
+                            self.assertEqual((block.g, block.get('F')), ([], None), block.raw)
+                        point = {axis: block.get(axis, point[axis]) for axis in 'XYZ'}
+                    if halves:   # the helix rises half its lead in each half
+                        self.assertAlmostEqual(blocks[0].get(w.upper()), (2 - 7) / 2, delta=COORDINATE_TOLERANCE)
                     for axis in 'xyz':
-                        self.assertAlmostEqual(block.get(axis.upper()), engine.state[axis + 'pos'],
-                                               delta=COORDINATE_TOLERANCE, msg=block.raw)
-                    self.assertEqual(block.get('F'), 100, block.raw)
-                    start = {u.upper(): case['start'][0], v.upper(): case['start'][1], w.upper(): 2}
-                    sweep = arc_sweep_degrees(plane, start, block)
-                    self.assertAlmostEqual(sweep, case['size'] % 360, delta=0.01, msg=block.raw)
-                    words = {word.address: (word.mode, word.value) for word in block.words
-                             if word.address in ('I', 'J', 'K', 'R', 'CR')}
-                    expected = {CENTER_WORDS[axis]: (None, case['center'][index] - case['start'][index])
-                                for index, axis in enumerate((u, v))}
-                    self.assertEqual(words, expected, block.raw)
+                        self.assertAlmostEqual(point[axis.upper()], engine.state[axis + 'pos'],
+                                               delta=COORDINATE_TOLERANCE, msg=blocks[-1].raw)
                     self.assertTrue(engine.changed['nrapidfeed'])
 
     @covers('ENGINE-009')
@@ -131,13 +148,16 @@ class ArcTests(unittest.TestCase):
         GPPL `input` line (ENGINE-009). Real SolidCAM continues after `input`, writes the
         'POST ERROR ...' text and stops at `abort`; that text block is deliberately not
         asserted (neither its presence nor the engine's empty output), so the test does not
-        pin the engine model. The tiny-chord cases stop the same way with 'POST ERROR: ARC
-        chord below 0.0001 mm' (usr_arc_chord_check): an end point that rounds onto the start
-        is a full circle on the control (FB1 03/2006, GEOAX example)."""
+        pin the engine model. The tiny-chord cases (below 0.0001 mm) stop the same way with
+        'POST ERROR: ARC chord too short' (usr_arc_chord_check): with the end point and AR= the
+        control derives the centre from the chord (PGsl 03/2013 9.6.4), and an end point that
+        rounds onto the start leaves it undefined. An opening angle that prints as AR=0 or
+        exceeds a full circle stops with 'POST ERROR: ARC opening angle outside AR=' (9.6.4: 0
+        to 360)."""
         for case in FIXTURE['cases']:
             if 'error' not in case:
                 continue
-            for plane, axes, _, procedure in PLANES:
+            for plane, axes, _, procedure in case_planes(case):
                 with self.subTest(case=case['name'], plane=plane):
                     engine = arc_engine(case, plane, axes)
                     with self.assertRaisesRegex(UnsupportedGPPL, 'POST ERROR: ' + case['error']):

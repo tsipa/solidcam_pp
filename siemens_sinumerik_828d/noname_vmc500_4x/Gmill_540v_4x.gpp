@@ -18,7 +18,7 @@
     global string nR1pos_f nInvFeed_f
     global logical bCycle832 bSpinWait
     global numeric nCycle832RoughAllow nCycle832TolRough nCycle832TolSemi nCycle832TolFinish
-    global string nCycle832Tol_f nCamDbg_f
+    global string nCycle832Tol_f nCamDbg_f nArcAR_f
     ; Modal state of the NC program (what the control has active). iDiametercomp is the G40/G41/G42
     ; CAM asks for, printed on the next G0/G1 block; iCompActive is what the control has active.
     global integer iMotionmode iMplane iAbsincmode iWorkoffset iPworkoffset iDiametercomp iCompActive
@@ -62,6 +62,8 @@
     ; Feed: G93 inverse time (usr_inverse_feed) and the feed reprogramming flag
     global logical bFeedPrevValid bFeedoutput
     global numeric nInvFeed nSqrt nFeedPrevX nFeedPrevY nFeedPrevZ nFeedPrevA nFeedPrevR1
+    ; Arcs above 180 deg: the point halfway (usr_arc_math), where usr_arc ends the first half
+    global numeric nArcMidX nArcMidY nArcMidZ
     ; bPostHomed: the post homed the axes after the last positioning move (usr_home_axis); the next
     ; move reprograms X/Y/Z. usr_rapid_xyz keeps it set to its end as the homed-return marker.
     ; bCamLinkRapid / bRapidRotaryChanged: per-rapid decisions of usr_rapid, shared by its stages.
@@ -99,6 +101,11 @@
     feed_f          = '4.4(P)'
     nInvFeed_f      = '5.3'
     nCycle832Tol_f  = '5.4'
+    ; AR= of the arcs (usr_arc): degrees with the control's angle resolution (INT_INCR_PER_DEG 100000
+    ; in backups/NOLOG.ard). With the end point written the angle sets only the bulge: 0.000005 deg
+    ; moves the middle of an arc of up to 180 deg by at most chord * 0.000000022, 0.0000007 mm on the
+    ; longest chord of the reference trace (65 mm at 3.9 deg).
+    nArcAR_f        = '3.5'
     blknum_f        = '5.0(p)'
     blknum_gen      = true
     call @usr_ip_useroptions
@@ -1980,20 +1987,56 @@ endp
     endif
 endp
 
-@usr_arc_chord_check(numeric du, numeric dv)
-    ; POST ERROR when an arc below 360 degrees ends within 0.0001 mm of its start in the arc plane (du,
-    ; dv): the control goes from the start to the end around the centre in the programmed direction
-    ; (PGsl 03/2013 9.6.2), and an end point on the start is a full circle (FB1 03/2006, GEOAX example
-    ; 'G17 G2 X20 I10 ; Full circle'). The control resolution is 0.00001 mm (INT_INCR_PER_MM 100000 in
-    ; backups/NOLOG.ard), the output has 5 decimals, and start, end and centre each round by up to
-    ; 0.000005 mm: a chord of 10 increments cannot round onto the start or behind it, a shorter one can
-    ; turn a tiny arc into a full circle. VMID MinArcLength 0.0003 keeps SolidCAM arcs above it.
+@usr_arc_angle_check
+    ; POST ERROR when the opening angle prints as AR=0 or exceeds a full circle: every arc is written
+    ; with AR= (usr_arc), which takes 0 to 360 deg (PGsl 03/2013 9.6.4). 0.000005 is half the last
+    ; digit of nArcAR_f '3.5' (tests/test_arc_compensation_plane.py pins the format). VMID
+    ; MinArcAngle 0.002 keeps SolidCAM arcs above 0.
     local numeric dummy_var
-    if arc_size < 360 and du * du + dv * dv < 0.00000001
+    if arc_size < 0.000005 or arc_size > 360.000005
         dummy_var = 0
-        input '"POST ERROR: ARC chord below 0.0001 mm: the control may cut a full circle."'dummy_var
-        {nb,"POST ERROR: ARC chord below 0.0001 mm: the control may cut a full circle. dU=", du, " dV=", dv}
+        input '"POST ERROR: ARC opening angle outside AR= (above 0, up to 360 deg)."'dummy_var
+        {nb,"POST ERROR: ARC opening angle outside AR= (above 0, up to 360 deg). arc_size=", arc_size}
         abort
+    endif
+endp
+
+@usr_arc_chord_check(numeric du, numeric dv)
+    ; POST ERROR when an arc of up to 180 degrees ends too close to its start in the arc plane (du,
+    ; dv): with the end point and AR= the control derives the centre from the chord (PGsl 03/2013
+    ; 9.6.4), and an end point that rounds onto the start leaves it undefined. The control resolution
+    ; is 0.00001 mm (INT_INCR_PER_MM 100000 in backups/NOLOG.ard); X and Y print with 5 decimals and
+    ; round by up to 0.000005 mm, so a chord of 0.0001 mm (10 increments) cannot round onto the start.
+    ; Z prints with 4 decimals (zpos_f '5.4' from the first homing, PP-006): in a YZ arc the end must
+    ; also leave the start by 0.0001 mm in Y or 0.0002 mm in Z. VMID MinArcLength 0.0003 keeps
+    ; SolidCAM arcs above both; usr_arc writes a longer arc in halves, whose chords are at least 1.4
+    ; radii.
+    local numeric dummy_var
+    if arc_size <= 180.000005 and (du * du + dv * dv < 0.00000001 or (iMplane eq 19 and abs(du) < 0.0001 and abs(dv) < 0.0002))
+        dummy_var = 0
+        input '"POST ERROR: ARC chord too short: the control cannot place the centre (AR=)."'dummy_var
+        {nb,"POST ERROR: ARC chord too short: the control cannot place the centre (AR=). dU=", du, " dV=", dv}
+        abort
+    endif
+endp
+
+@usr_arc_point
+    ; End point of an arc block: both axes of the arc plane in every block, whatever their change
+    ; flags (an AR= block without them ends on its start and leaves the centre undefined), and the
+    ; axis normal to the plane when it is flagged or leaves its start (helix): usr_arc_math commits
+    ; the end with an assignment that may clear the flag of an equal value. ZX arcs stop the post
+    ; before (usr_arc_math).
+    if arc_plane eq XY then
+        if zpos ne zstart then
+            change(zpos) = true
+        endif
+        {'X'xpos ' ','Y'ypos ' ',['Z'zpos ' ']}
+    endif
+    if arc_plane eq YZ then
+        if xpos ne xstart then
+            change(xpos) = true
+        endif
+        {['X'xpos ' '],'Y'ypos ' ','Z'zpos ' '}
     endif
 endp
 
@@ -2002,7 +2045,9 @@ endp
     ; and the end point recomputed from the start point, the incremental centre (x/y/zcenter_rel) and
     ; arc_size in the arc plane; the axis normal to the plane keeps the CAD end value (helical arcs).
     ; usr_arc_check stops the post when the result misses the CAD end point by more than 0.001,
-    ; usr_arc_chord_check when it lies within 0.0001 mm of the start point (full circle on the control).
+    ; usr_arc_angle_check when AR= cannot take the angle, usr_arc_chord_check when the end lies within
+    ; 0.0001 mm of the start point. An arc above 180 degrees also gets the point halfway (nArcMidX/Y/Z),
+    ; where usr_arc ends its first half.
     local numeric cx, cy, cz
     local numeric vx, vy, vz
     local numeric rx, ry, rz
@@ -2094,6 +2139,7 @@ endp
     dy = abs(calculated_ypos - ypos)
     dz = abs(calculated_zpos - zpos)
     call @usr_arc_check(dx, dy, dz)
+    call @usr_arc_angle_check
     ; --- chord in the arc plane ---
     du = calculated_xpos - xstart
     dv = calculated_ypos - ystart
@@ -2102,6 +2148,23 @@ endp
         dv = calculated_zpos - zstart
     endif
     call @usr_arc_chord_check(du, dv)
+
+    ; --- point halfway for an arc above 180 degrees (AR= above 180 with nArcAR_f); the normal axis
+    ; moves linearly (helix) ---
+    if arc_size > 180.000005 then
+        c = cos(angle_deg / 2)
+        s = sin(angle_deg / 2)
+        if iMplane eq 17 then
+            nArcMidX = cx + vx * c - vy * s
+            nArcMidY = cy + vx * s + vy * c
+            nArcMidZ = (zstart + calculated_zpos) / 2
+        endif
+        if iMplane eq 19 then
+            nArcMidX = (xstart + calculated_xpos) / 2
+            nArcMidY = cy + vy * c - vz * s
+            nArcMidZ = cz + vy * s + vz * c
+        endif
+    endif
     ; --- commit end point ---
     xpos = calculated_xpos
     ypos = calculated_ypos
@@ -2109,8 +2172,19 @@ endp
 endp
 
 @usr_arc
-    ; G2/G3 block: end point checked against the CAM centre (usr_arc_math), I/J/K incremental.
-    local numeric dummy_var
+    ; G2/G3 block with the end point and the opening angle AR= (PGsl 03/2013 9.6.4 'G2/G3 X... Y...
+    ; Z... AR='): start (the current position), end, angle and direction describe one arc, and the
+    ; control derives the centre. The end point with the centre (I/J/K) describes the circle twice
+    ; and rounding never makes the two radii equal: 'G1 X8.1412 Y-30.' 'G3 X8.0394 Y-30.0017 I0.0002
+    ; J-3.04' (quoted in dc916d7), a 1.9 deg arc with radii 0.000012 mm apart, ran as a huge arc on
+    ; this 828D while the simulator accepted it (owner). The centre with AR= ('G2/G3 I... J... AR=')
+    ; would leave the end point to the control: AR= rounds to 0.00001 deg, which moves it by up to
+    ; 0.00016 mm at radius 1800, and the next arc's centre is relative to it, so the error adds up
+    ; over a run of arcs (runs of 33 in the reference trace). The end point keeps every block
+    ; absolute. Above 180 degrees the centre from the chord turns ill-conditioned (an end moved
+    ; 0.000005 mm along the chord changes the radius of a 359.99 deg arc of radius 10 by 0.03 mm),
+    ; and AR= has no full circle (9.6.4), so such an arc is written in two halves.
+    local numeric dummy_var nArcAR nArcEndX nArcEndY nArcEndZ
     if change(iDiametercomp)
         if iDiametercomp eq iCompActive
             ; Switched back before any move: the control state does not change.
@@ -2135,18 +2209,27 @@ endp
         bFeedoutput  = false
     endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-    {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}
-    ; Centre words of the arc plane, incremental from the start point (Sinumerik I/J/K default).
-    if arc_plane eq XY then
-        {'I'xcenter_rel ' ', 'J'ycenter_rel ' '}
+    if arc_size > 180.000005 then
+        ; First half to the point halfway, then the second half from there to the end.
+        nArcAR = arc_size / 2
+        nArcEndX = xpos
+        nArcEndY = ypos
+        nArcEndZ = zpos
+        xpos = nArcMidX
+        ypos = nArcMidY
+        zpos = nArcMidZ
+        call @usr_arc_point
+        {'AR='nArcAR:nArcAR_f ' ',['F'feed ' ']}
+        xpos = nArcEndX
+        ypos = nArcEndY
+        zpos = nArcEndZ
+        {nb}
+        call @usr_arc_point
+        {'AR='nArcAR:nArcAR_f ' '}
+    else
+        call @usr_arc_point
+        {'AR='arc_size:nArcAR_f ' ',['F'feed ' ']}
     endif
-    if arc_plane eq ZX then
-        {'I'xcenter_rel ' ', 'K'zcenter_rel ' '}
-    endif
-    if arc_plane eq YZ then
-        {'J'ycenter_rel ' ', 'K'zcenter_rel ' '}
-    endif
-    {['F'feed ' ']}
     change(nRapidfeed) = true
     bStopSinceMotion = false
     ; The next G93 block starts here; A does not turn on an arc, so its A reference stays.
