@@ -643,16 +643,12 @@ class ToolChangeDefectTests(unittest.TestCase):
         self.assertEqual(sorted(seg.states[cut].coolant), [8],
                          f'coolant in effect when cutting resumes after M00:\n{seg.shown}')
 
-    @known_defect('PP-024', facet='ramp-dwell', match='no spindle ramp dwell')
-    def test_m00_same_tool_waits_for_spindle_ramp(self):
-        """INDEPENDENT oracle: the PP's own spindle-acceleration policy, not machine physics.
-
-        Every other spindle start of this PP dwells S/spindle_accel seconds
-        (@init_post spindle_accel = 500 rpm/s; @usr_spindle_output). The restart
-        after an M00 between same-tool jobs (S8000 from standstill) gets no
-        dwell. Whether the 828D needs one at all is decided by MD35500
-        SPIND_ON_SPEED_AT_IPO_START (tc-03 correction: low severity). A missing
-        M00, restart or cut is a precondition failure (match=).
+    @covers('PP-024')
+    def test_m00_same_tool_restart_relies_on_the_spindle_wait(self):
+        """CHARACTERIZATION of PP-024[ramp-dwell], accepted: the restart after an M00 between
+        same-tool jobs (S8000 from standstill) has no G04, like every spindle start by default
+        (bSpinDwell off). The machine holds the first feed block until the spindle is at speed
+        (MD35500 = 2; owner check 2026-10-27, SPINWAIT.MPF).
         """
         s, seg = m00_same_tool_session()
         stop = seg.find(m_code(0))
@@ -660,9 +656,7 @@ class ToolChangeDefectTests(unittest.TestCase):
         restart = seg.find(m_code(3, 4), stop)
         cut = seg.first_feed(restart)
         self.assertTrue(stop < restart < cut, f'precondition: M3/M4 restart before the next cut:\n{seg.shown}')
-        policy = 8000 / s.state['spindle_accel']
-        self.assertGreaterEqual(seg.dwell(restart, cut), policy,
-                                f'no spindle ramp dwell between the M3 restart and cutting:\n{seg.shown}')
+        self.assertEqual(seg.dwell(restart, cut), 0, seg.shown)
 
     @known_defect('PP-025', match='coolant in effect at the first cut')
     def test_same_tool_job_applies_its_coolant_request(self):

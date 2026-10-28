@@ -23,7 +23,7 @@ import re
 import unittest
 
 from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
-from support import (Session, assert_detected, covers, g_function_whitelist, index_of, known_defect, mutate,
+from support import (Session, assert_detected, covers, g_function_whitelist, index_of, mutate,
                      parse_blocks, replay, state_before)
 from pp_tests.file_commands import assemble_files
 
@@ -711,21 +711,17 @@ def persisting_first_job():
 
 
 class FirstJobPersistingFlagTests(unittest.TestCase):
-    @known_defect('PP-054', facet='coolant-burst', match='coolant in effect at the first cut')
+    @covers('PP-054')
     def test_flood_coolant_is_not_cancelled_before_the_first_cut(self):
         """INDEPENDENT: M9 switches every coolant channel off on the 828D (modal replay).
 
         The job requests flood coolant (flood_coolant=1, all other channels 0),
-        so flood (M8) must be active at the first feed move. UNVERIFIED: only
-        under Session(flags='persist'), i.e. if SolidCAM keeps the change flags
-        raised by the @usr_init_gmstates assignments (ENGINE-001); then
-        @usr_coolant_output prints M8 followed by seven M9. The clear policy
-        prints only M8. An engine-semantics probe (pp-weird-hunter-06), not a
-        confirmed PP bug. The unemulated skipline switch (ENGINE-002) that
-        @usr_coolant_output sets is also involved (history-misc-15), but joining
-        the blocks would still put M9 after M8, so the replayed result does not
-        depend on it. A missing first cut is a precondition failure, not a
-        reproduction (match=).
+        so flood (M8) must be active at the first feed move, also under
+        Session(flags='persist'), i.e. if SolidCAM keeps the change flags raised
+        by the @usr_init_gmstates assignments (ENGINE-001). Before 82eea8d that
+        case printed M8 followed by seven M9; the 2026-10-27 reference trace
+        replay showed the eight M9 under both policies. A missing first cut is a
+        precondition failure.
         """
         s = persisting_first_job()
         blocks = s.blocks()

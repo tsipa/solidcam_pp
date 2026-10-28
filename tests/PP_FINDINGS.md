@@ -40,13 +40,13 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 31 | 30 | 1 | 2 |
+| pp | 31 | 30 | 1 | 3 |
 | engine | 19 | 2 | 0 | 0 |
 | design | 6 | 1 | 0 | 0 |
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 52. `@covers` references: 96.
+Canonical `@known_defect` tests: 50. `@covers` references: 98.
 
 ## Index of open entries
 
@@ -65,7 +65,7 @@ Canonical `@known_defect` tests: 52. `@covers` references: 96.
 | [PP-017](#pp-017) | medium | confirmed | C | i4xIndexMode=1 accumulates position-1 over successive @fourth_axis events (54->55->57->60) | `test_new_workoffset_mode_maps_position_to_offset` |
 | [PP-018](#pp-018) | low | uncertain | C | Straight-retract (CAM-link) check ignores cpos, the rotary input of @line_4x/@move_4x | `test_rotary_4x_link_is_not_a_straight_retract` |
 | [PP-023](#pp-023) | low | confirmed | D | Feed-emulated rapids write G1 rotary/XY blocks without the rapid feed (stale cutting feed or "feedrate not programmed") | `test_every_g1_block_of_emulated_rapid_moves_at_rapid_feed` |
-| [PP-024](#pp-024) | medium | confirmed | A | M00 between same-tool jobs switches coolant off and never restores it; spindle restart has no ramp dwell | `test_m00_same_tool_restores_coolant_before_next_cut` [coolant], `test_m00_same_tool_waits_for_spindle_ramp` [ramp-dwell] |
+| [PP-024](#pp-024) | medium | confirmed | A | M00 between same-tool jobs switches coolant off and never restores it; spindle restart has no ramp dwell | `test_m00_same_tool_restores_coolant_before_next_cut` [coolant] |
 | [PP-025](#pp-025) | low-medium | uncertain | A | Coolant is evaluated only at tool changes: a same-tool job's coolant request is ignored | `test_same_tool_job_applies_its_coolant_request` |
 | [PP-026](#pp-026) | low | confirmed | E | Spindle ramp dwell divides by the literal 500 instead of spindle_accel | `test_spindle_dwell_uses_configured_acceleration` |
 | [PP-027](#pp-027) | low | confirmed | A | The second tool change skips the full modal reset because the first-tool path leaves bSafetyprep=true | `test_tool_change_does_not_depend_on_previous_tool_being_first` |
@@ -79,7 +79,7 @@ Canonical `@known_defect` tests: 52. `@covers` references: 96.
 | [PP-050](#pp-050) | medium | confirmed | F | vericut/GcodeSim.ini maps MAC 1-3 and 5-10 to G54 but omits MAC 4 | `test_vericut_mac_table_matches_post_work_offsets` |
 | [PP-051](#pp-051) | low | uncertain | F | Vericut K word format left at 5.3 while I/J were widened to 8.5 (f88de47) | `test_vericut_arc_center_words_keep_post_precision` |
 | [PP-052](#pp-052) | low | confirmed | F | VMID job parameters M50/M51 appear in every job dialog but the GPP never reads them | `test_every_vmid_user_parameter_is_read_by_the_post` |
-| [PP-054](#pp-054) | low | likely-engine-artifact | A | First job under persisting init flags: 'G187 P2' and flood M8 cancelled by seven M9 | `test_flood_coolant_is_not_cancelled_before_the_first_cut` [coolant-burst] |
+| [PP-054](#pp-054) | low | likely-engine-artifact | A | First job under persisting init flags: 'G187 P2' and flood M8 cancelled by seven M9 | pinned only (@covers) |
 | [PP-055](#pp-055) | low | confirmed | E | CYCLE83 first peck depth jumps by SDIS when drill_upper_z crosses 0 (FDPR relative to RFP) | `test_cycle83_first_peck_is_continuous_across_z0` |
 | [PP-056](#pp-056) | low | confirmed | A | bStopM00difftool is set and cleared in the same @end_of_job: the skip path is dead and is what keeps the G75 retract before M06 | pinned only (@covers) |
 | [PP-058](#pp-058) | low | uncertain | F | Mach3 4x post (6efcad8): the feed re-statement remedy is missing on @line_5x and @arc | `test_line_5x_and_arc_feed_changes_are_restated_too` |
@@ -314,9 +314,11 @@ Canonical `@known_defect` tests: 52. `@covers` references: 96.
 - Evidence that would settle it: Coolant: none needed. Dwell: MD35500 / spindle acceleration on the target 828D.
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: tc-03, pp3-m00-sametool-coolant
+- Facet `ramp-dwell`: accepted: Owner check 2026-10-27: MD35500 = 2 and a G1 after S/M3 waits for the spindle on the machine (SPINWAIT.MPF). 82eea8d makes every G04 ramp dwell optional (bSpinDwell, default off); the M00 restart never dwells.
 - Reproduced by:
   - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_m00_same_tool_restores_coolant_before_next_cut` (facet `coolant`, confidence confirmed)
-  - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_m00_same_tool_waits_for_spindle_ramp` (facet `ramp-dwell`, confidence confirmed)
+- Pinned or exercised by (`@covers`):
+  - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_m00_same_tool_restart_relies_on_the_spindle_wait`
 
 ### PP-025
 
@@ -338,7 +340,7 @@ Canonical `@known_defect` tests: 52. `@covers` references: 96.
 
 - Severity: low
 - Confidence: confirmed
-- Reachability: Latent: spindle_accel is an @init_post constant (500 rpm/s), not a user option; the dwell differs from the documented policy only if that constant is edited (tc-09 correction).
+- Reachability: Latent: spindle_accel is an @init_post constant (500 rpm/s), not a user option; the dwell differs from the documented policy only if that constant is edited (tc-09 correction). Since 82eea8d the dwell exists only with bSpinDwell true (default false).
 - Location: GPP @usr_spindle_output L1969-1972 (G04 F (0.3+(sdiff/500))); spindle_accel = 500 in @init_post
 - Evidence that would settle it: None needed for the formula; MD35500 on the target 828D for the intended ramp time.
 - Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
@@ -513,9 +515,11 @@ Canonical `@known_defect` tests: 52. `@covers` references: 96.
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: TSR-12, TSR-13, efc-02, efc-03, tc-06, pp-weird-hunter-06, history-misc-15, engine-impl-critic-07, history-indexing-link-14
 - Facet `g187-default`: fixed: c06b190 No G187 output exists any more.
-- Reproduced by:
-  - `tests/test_session_program.py::FirstJobPersistingFlagTests::test_flood_coolant_is_not_cancelled_before_the_first_cut` (facet `coolant-burst`, confidence likely-engine-artifact)
+- Facet `coolant-burst`: fixed: 82eea8d usr_init_gmstates clears the change flags of its coolant OFF assignments, usr_coolant_output prints each M code once, and the first tool change switches coolant off once like the others (bCooloffend).
+- Tests of the fix: tests/test_session_program.py, tests/test_coolant_codes.py
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
 - Pinned or exercised by (`@covers`):
+  - `tests/test_session_program.py::FirstJobPersistingFlagTests::test_flood_coolant_is_not_cancelled_before_the_first_cut`
   - `tests/test_session_program.py::FirstJobPersistingFlagTests::test_no_fanuc_g187_in_a_default_program`
 
 ### PP-055
@@ -994,7 +998,7 @@ now a regression guard marked `@covers`.
 | [PP-002 [negative-mode]](#pp-002) | 3441c5f | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-003](#pp-003) | 5408e5c | `test_zx_arc_stops_the_post` | `tests/test_zx_arc_guard.py` |
 | [PP-007](#pp-007) | ca63502 | `test_move_4x_preserves_axial_x` | `tests/test_move_4x_axial_x.py` |
-| [PP-012](#pp-012) | c06b190 | `test_hsm_job_parameters_select_cycle832_or_stop` | `tests/test_toolchange_session.py` |
+| [PP-012](#pp-012) | c06b190 | `test_hsm_job_parameters_select_cycle832_or_stop` | `tests/test_toolchange_session.py`, `tests/test_cycle832.py` |
 | [PP-013](#pp-013) | 49f8b80 | `test_same_tool_job_climbs_before_xy_traverse` | `tests/test_job_start_climb.py` |
 | [PP-019](#pp-019) | b999f65 | `test_compensation_off_before_retract_reaches_controller_before_next_tool_cuts`, `test_compensation_off_emitted_on_following_rapid`, `test_compensation_on_emitted_on_following_rapid` | `tests/test_cutter_compensation.py` |
 | [PP-020](#pp-020) | b999f65 | `test_compensation_not_activated_in_circular_block`, `test_compensation_not_deactivated_in_circular_block` | `tests/test_cutter_compensation.py` |
@@ -1016,7 +1020,8 @@ now a regression guard marked `@covers`.
 | [PP-047](#pp-047) | 8989278 | `test_mirror_event_changes_the_frame_or_stops`, `test_rotate_event_changes_the_frame_or_stops` | `tests/test_contracts.py` |
 | [PP-049](#pp-049) | 9f48a3a | `test_rotary_feed_moves_use_the_documented_inverse_time_mode` | `tests/test_inverse_time_feed.py` |
 | [PP-053](#pp-053) | 0667596 | `test_first_index_in_z_homing_mode_homes_z` |  |
-| [PP-054 [g187-default]](#pp-054) | c06b190 | `test_no_fanuc_g187_in_a_default_program` |  |
+| [PP-054 [g187-default]](#pp-054) | c06b190 | `test_flood_coolant_is_not_cancelled_before_the_first_cut`, `test_no_fanuc_g187_in_a_default_program` | `tests/test_session_program.py`, `tests/test_coolant_codes.py` |
+| [PP-054 [coolant-burst]](#pp-054) | 82eea8d | `test_flood_coolant_is_not_cancelled_before_the_first_cut`, `test_no_fanuc_g187_in_a_default_program` | `tests/test_session_program.py`, `tests/test_coolant_codes.py` |
 | [PP-057](#pp-057) | f5c74cd | `test_fanuc_only_output_is_pinned_to_legacy_procedures`, `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` |  |
 | [PP-059](#pp-059) | f7fb9bf | `test_emulated_rapid_without_motion_leaves_the_cut_feed_alone`, `test_rapid_without_motion_leaves_the_cut_alone`, `test_rapid_without_motion_leaves_the_job_comment_alone` | `tests/test_motion_rapids.py` |
 | [PP-060](#pp-060) | d8f71e8 | `test_angles_that_jump_by_a_turn_stop_in_a_cut`, `test_extra_turn_after_the_post_unwind_stops`, `test_first_feed_move_after_toolchange_unwind_stops`, `test_rounding_straddle_against_the_word_stops`, `test_wrong_way_feed_moves_stop_the_post`, `test_wrong_way_rapid_with_a_rotation_homing_without_z_stops_the_post`, `test_wrong_way_rapid_without_rotation_homing_stops_the_post`, `test_wrong_way_rotary_link_rapid_stops_the_post`, `test_wrong_way_three_axis_rapid_without_rotation_homing_stops_the_post` | `tests/test_rotary_direction_guard.py` |
@@ -1089,8 +1094,8 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: Siemens 828D G-function list (G187 undefined; repository Vericut control has no G187).
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: tc-07, efc-02, pp-weird-hunter-17
-- Status: fixed: c06b190 A job that sets the G187 smoothing parameters stops the post; no G187 is written (8989278: iG187_P 2 stops too).
-- Tests of the fix: tests/test_toolchange_session.py
+- Status: fixed: c06b190 A job that sets the G187 smoothing parameters stops the post; no G187 is written (8989278: iG187_P 2 stops too; 82eea8d: iG187_P 1/2/3/-1 and nG187_E select CYCLE832, only values out of range or set with bCycle832 off stop).
+- Tests of the fix: tests/test_toolchange_session.py, tests/test_cycle832.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_hsm_job_parameters_select_cycle832_or_stop`

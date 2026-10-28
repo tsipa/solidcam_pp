@@ -188,13 +188,20 @@ RESOLUTIONS = {
     'PP-002[negative-mode]': ('fixed', '3441c5f Keep only the modulo A range: the iR1posControl 0/2 modes are '
                                        'removed.'),
     'PP-012': ('fixed', 'c06b190 A job that sets the G187 smoothing parameters stops the post; no G187 is written '
-                        '(8989278: iG187_P 2 stops too).'),
+                        '(8989278: iG187_P 2 stops too; 82eea8d: iG187_P 1/2/3/-1 and nG187_E select CYCLE832, '
+                        'only values out of range or set with bCycle832 off stop).'),
     'PP-022': ('fixed', 'd9fe31f Keep only Sinumerik arc words (incremental I/J/K): iArcmode 1/3/4 are removed.'),
     'PP-037': ('fixed', '3441c5f Keep only the modulo A range: the shortest-distance mode is removed.'),
     'PP-040': ('fixed', 'a2cb528 The homing parser splits entries on ; and :, the prefix is optional.'),
     'PP-041': ('fixed', 'a2cb528 Homing modes 1-7 (G53 among them) stop the post; only mode 8 is left.'),
     'PP-042': ('fixed', 'a2cb528 Homing modes 1-7 (mode 7 G90 G54 among them) stop the post; only mode 8 is left.'),
     'PP-054[g187-default]': ('fixed', 'c06b190 No G187 output exists any more.'),
+    'PP-054[coolant-burst]': ('fixed', '82eea8d usr_init_gmstates clears the change flags of its coolant OFF '
+                                       'assignments, usr_coolant_output prints each M code once, and the first tool '
+                                       'change switches coolant off once like the others (bCooloffend).'),
+    'PP-024[ramp-dwell]': ('accepted', 'Owner check 2026-10-27: MD35500 = 2 and a G1 after S/M3 waits for the '
+                                       'spindle on the machine (SPINWAIT.MPF). 82eea8d makes every G04 ramp dwell '
+                                       'optional (bSpinDwell, default off); the M00 restart never dwells.'),
     'PP-053': ('fixed', '0667596 The first index before any rapid homes with sHomestrrotv in clearance mode 0, also with the program start homing off (bHomebegin).'),
     'PP-057': ('fixed', 'f5c74cd Remove the Fanuc template paths (follow-ups a2cb528 homing modes, 9d519d7 '
                         'O number, c06b190 G187): the post writes no Fanuc/Haas-only words.'),
@@ -236,7 +243,8 @@ FIX_TESTS = {
     'PP-021': ('tests/test_job_plane_restore.py',),
     'PP-028': ('tests/test_tapping_direction.py',),
     'PP-049': ('tests/test_inverse_time_feed.py',),
-    'PP-012': ('tests/test_toolchange_session.py',),
+    'PP-012': ('tests/test_toolchange_session.py', 'tests/test_cycle832.py'),
+    'PP-054': ('tests/test_session_program.py', 'tests/test_coolant_codes.py'),
     'PP-022': ('tests/test_arc_compensation_plane.py',),
     'PP-037': ('tests/test_rotary.py',),
     'PP-040': ('tests/test_session_program.py',),
@@ -485,7 +493,8 @@ _ENTRIES = [
        ['tc-04'], 'A'),
     _d('PP-026', 'Spindle ramp dwell divides by the literal 500 instead of spindle_accel', 'low',
        'Latent: spindle_accel is an @init_post constant (500 rpm/s), not a user option; the dwell differs '
-       'from the documented policy only if that constant is edited (tc-09 correction).',
+       'from the documented policy only if that constant is edited (tc-09 correction). Since 82eea8d the dwell '
+       'exists only with bSpinDwell true (default false).',
        'confirmed',
        'None needed for the formula; MD35500 on the target 828D for the intended ramp time.',
        ['tc-09', 'history-misc-17'], 'E'),
