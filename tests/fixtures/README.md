@@ -117,3 +117,32 @@ than assuming a successful extraction guarantees sanitization. An unfamiliar
 identity-bearing field requires an extractor update, not an exception to these
 rules. Run `python -m unittest discover -s tests_engine -p test_input_trace.py`
 after changing the extractor.
+
+## Additional recorded CAM fixtures
+
+`recorded_cam_001.trace.txt.xz` through `recorded_cam_005.trace.txt.xz` are
+five separate recordings exported with the current CAMDBG-aware extractor.
+Each has a matching `.manifest.json` with source/content hashes, event counts,
+neutral identity counts and diagnostic recovery statistics. Source paths and
+original identity mappings are intentionally excluded. Operation aliases are
+local to each recording; matching alias numbers across files do not imply the
+same operation.
+
+Only public CAM inputs and supported diagnostic values are retained. Original
+part, operation, geometry, setup and message identities are neutralized; tool
+names and data are preserved. The additional stock/target labels and machine
+configuration fields were reviewed for part/operation identities. These files
+are input examples rather than expected NC output.
+
+The exports use lossless XZ with preset `9 | lzma.PRESET_EXTREME` (retaining the
+smaller preset-6 stream if necessary). Decompressed bytes are verified after
+compression; use streaming `lzma.open` to read them without an unpacked copy.
+The XZ decoder can need roughly 65 MiB for its compression dictionary.
+
+| Recording | Public events | CAMDBG readouts | XZ bytes |
+| --- | ---: | ---: | ---: |
+| `recorded_cam_001` | 154,995 | 101,499 | 4,329,900 |
+| `recorded_cam_002` | 11,831 | 1,505 | 211,712 |
+| `recorded_cam_003` | 5,997 | 8,685 | 279,284 |
+| `recorded_cam_004` | 41,574 | 22,995 | 1,163,000 |
+| `recorded_cam_005` | 25,533 | 19,151 | 874,580 |
