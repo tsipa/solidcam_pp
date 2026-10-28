@@ -52,6 +52,7 @@ import unittest
 
 from pp_tests.engine import UnsupportedGPPL
 
+from program_session import Program
 from support import (DRILL_DEFAULTS, Session, assert_detected, block_texts, covers, index_of,
                      known_defect, last_index_of, mutate, parse_blocks, pp_source, replay,
                      state_before)
@@ -349,6 +350,8 @@ def check_spindle_wait(tc, source=None):
         change = block_texts(session.ev('m_feed_spin', ('spin',), spin=3000))
         tc.assertEqual(change, ['M3', 'S3000', 'WAITS'] if wait else ['S3000'], f'speed change, bSpinWait {wait}')
         tc.assertEqual(block_texts(session.ev('m_feed_spin', (), spin=3000)), [], 'same speed')
+        # SolidCAM flags spin again at a job start with the same value: S only, no M3, no WAITS.
+        tc.assertEqual(block_texts(session.ev('m_feed_spin', ('spin',), spin=3000)), ['S3000'], 'same speed flagged')
         stop = block_texts(session.ev('end_program'))
         m5 = next((i for i, block in enumerate(stop) if 'M5' in block.split()), None)
         tc.assertIsNotNone(m5, stop)
@@ -368,6 +371,34 @@ def check_spindle_wait(tc, source=None):
         tc.assertIsNotNone(restart, blocks)
         tc.assertEqual(blocks[restart + 1:restart + 2] == ['WAITS'], wait, blocks)
         tc.assertEqual(blocks[restart:].count('WAITS'), 1 if wait else 0, blocks)
+    # The same restart with a new speed still pending from the job (spin flagged at end_of_job): one M3.
+    p = Program(source=source)
+    p.start(tool=1, next_tool=1, spin=8000)
+    p.ev('rapid_move', xpos=10, ypos=20, zpos=5)
+    p.ev('line', zpos=-1, feed=300)
+    p.ev('rapid_move', zpos=50)
+    blocks = p.ev('end_of_job', bstopm00=True, next_job_tool_number=1, spin=6000)
+    tc.assertEqual(blocks[blocks.index('M0') + 1:blocks.index('M0') + 3], ['S6000 M3', 'WAITS'], blocks)
+    # A tapping job: CYCLE84 runs the spindle, a speed change restates no M3 (start_tool prints none).
+    p = Program(source=source, cam=dict(x5_job=False, job_type='drill', d_drill_type='d_tapping', spin=500))
+    p.start(tool=1, next_tool=1, spin=500)
+    tc.assertEqual(p.ev('m_feed_spin', force={'spin': True}, spin=500), ['S500', 'WAITS'])
+    p.ev('end_of_job', next_job_tool_number=1)
+    p.ev('start_of_job', job_name='op2')
+    tc.assertEqual(p.ev('m_feed_spin', force={'spin': True}, spin=400), ['S400', 'WAITS'])
+    # Cutter compensation still on at the control (an M0 between operations of the same tool that CAM
+    # leaves with G41 on): no WAITS, the blocks without motion in the plane count toward MD20250 (5).
+    p = Program(source=source, cam=dict(x5_job=False, sstopmessage='CHECK PART', tool_start_plane=35))
+    p.start(tool=1, next_tool=1, spin=8000)
+    p.ev('rapid_move', xpos=10, ypos=20, zpos=5)
+    p.ev('line', zpos=-1, feed=300)
+    p.ev('compensation', side='comp_left')
+    p.ev('line', xpos=40, feed=300)
+    blocks = p.ev('rapid_move', zpos=25)
+    p.ev('compensation', side='comp_off')
+    blocks += p.ev('end_of_job', bstopm00=True, next_job_tool_number=1)
+    tc.assertEqual(blocks[:blocks.index('M3') + 1], ['G0 Z25', 'M9', 'M5', 'M0', ';CHECK PART', 'M3'], blocks)
+    tc.assertNotIn('WAITS', blocks)
 
 
 # --------------------------------------------------------------------------- tests
@@ -682,11 +713,16 @@ MUTATIONS = (
     ('start_tool_skips_the_direction', 'spindle_start',
      '(SST).\n    call @usr_spindle_dir\n', '(SST).\n', 1),
     ('m_feed_spin_skips_the_direction', 'spindle_start',
-     '    ; 7.4); the signal is "spindle in setpoint range" (FB1 S1, tolerance MD35150).\n    call @usr_spindle_dir\n',
-     '    ; 7.4); the signal is "spindle in setpoint range" (FB1 S1, tolerance MD35150).\n', 1),
+     '    ; S that SolidCAM flags again at a job start with the same value.\n    call @usr_spindle_dir\n',
+     '    ; S that SolidCAM flags again at a job start with the same value.\n', 1),
     ('speed_change_without_the_direction', 'spindle_wait',
-     '        if bSpinWait and last_spin ne 0\n', '        if false\n', 1),
-    ('spindle_wait_ignores_the_option', 'spindle_wait', '    if bSpinWait\n', '    if true\n', 1),
+     '        if bSpinWait and last_spin ne 0 and', '        if false and last_spin ne 0 and', 1),
+    ('direction_restated_at_the_same_speed', 'spindle_wait', ' and spin ne last_spin and d_drill_type', ' and d_drill_type', 1),
+    ('direction_restated_for_a_tap', 'spindle_wait', ' and d_drill_type ne D_Tapping and iCompActive ne 41',
+     ' and iCompActive ne 41', 1),
+    ('spindle_wait_ignores_the_option', 'spindle_wait', '    if bSpinWait and iCompActive', '    if true and iCompActive', 1),
+    ('spindle_wait_under_compensation', 'spindle_wait',
+     '    if bSpinWait and iCompActive ne 41 and iCompActive ne 42\n', '    if bSpinWait\n', 1),
     ('spindle_wait_missing_after_a_speed_change', 'spindle_wait',
      '    if spin ne last_spin\n        call @usr_spindle_wait\n', '    if false\n        call @usr_spindle_wait\n', 1),
     ('spindle_wait_missing_after_m5', 'spindle_wait',
