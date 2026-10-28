@@ -104,6 +104,10 @@ CONTROL_DEFAULTS = {
 }
 CONTROL_VARIABLES = set(CONTROL_DEFAULTS) | {'numeric_def_f', 'integer_def_f', 'gcode_f', 'mcode_f',
                                               'blknum_f'}
+# Output formats SolidCAM defines itself (names: SolidCAM GPPTool Help, via the GPPL IDE catalog).
+# Any other '<name>_f' format is a PP variable and needs a declaration (Analysis.classify).
+SYSTEM_FORMATS = frozenset({'numeric_def_f', 'integer_def_f', 'gcode_f', 'mcode_f', 'xpos_f', 'ypos_f',
+                            'zpos_f', 'apos_f', 'feed_f', 'blknum_f'})
 
 # Enumeration constants: the value is the spelling SolidCAM prints in its trace.
 # Observed in tests/fixtures/reference_multijob.trace.txt.xz: arc_plane:xy,

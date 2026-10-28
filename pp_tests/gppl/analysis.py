@@ -185,7 +185,7 @@ class Analysis:
             return 'vmid-param'
         if name in sysvars.CONSTANTS or name in self.vmid_constants:
             return 'constant'
-        if name in sysvars.CONTROL_VARIABLES or name.endswith('_f'):
+        if name in sysvars.CONTROL_VARIABLES or name in sysvars.SYSTEM_FORMATS:
             return 'control'
         if name in sysvars.SYSTEM_TYPES:
             return 'system'

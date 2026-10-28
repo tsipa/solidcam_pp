@@ -2,12 +2,14 @@
 import io
 import json
 import os
+import re
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
 from pp_tests.engine import Engine, UnsupportedGPPL, uncomment
 from pp_tests.gppl.__main__ import main as cli
+from pp_tests.gppl import sysvars
 from pp_tests.gppl.analysis import Analysis
 from pp_tests.gppl.policies import Policies
 from pp_tests.gppl.program import load_program
@@ -55,6 +57,15 @@ class WholeGppTests(unittest.TestCase):
     def test_every_identifier_resolves(self):
         unknown = [str(d) for d in self.diagnostics if d.code == 'W-UNKNOWN-IDENT']
         self.assertEqual(unknown, [])
+        # Every assigned name is declared, a VMID parameter or a SolidCAM variable (the IDE reports an
+        # undeclared one, GPPL2007). Only SolidCAM's own formats are exempt, not every '*_f' name.
+        undeclared = [str(d) for d in self.diagnostics if d.code == 'I-UNDECLARED-WRITE']
+        self.assertEqual(undeclared, [])
+        mutant = re.sub(r'(?im)^(\s*global\s+string\s.*?)\s+nArcAR_f\b', r'\1', source(), count=1)
+        self.assertNotEqual(mutant, source())
+        found = {d.message.split("'")[1] for d in Analysis(load_program(mutant), load_vmid(VMID), SESSION).run()
+                 if d.code == 'I-UNDECLARED-WRITE'}
+        self.assertEqual(found, {'narcar_f'})
         bare = Analysis(self.program).run()           # without the VMID its user params are unknown
         names = {d.message.split("'")[1] for d in bare if d.code == 'W-UNKNOWN-IDENT'}
         self.assertTrue({'inumber_of_fixtures', 'blimit_3axis', 'bstopm00', 'step_down'} <= names)
@@ -173,6 +184,72 @@ class CorpusTests(unittest.TestCase):
                 program = load_program(path.read_text(encoding='utf-8-sig', errors='replace'))
                 errors = [str(d) for d in program.errors(SESSION)]
                 self.assertEqual(errors, [])
+
+
+class SolidCamCatalogTests(unittest.TestCase):
+    """Names against SolidCAM's system-variable list (SolidCAM GPPTool Help, via the GPPL IDE catalog;
+    not in the repository). Set GPPL_SOLIDCAM_CATALOG=<solidcam-system-variables.json>: a JSON object
+    whose 'variables' lists {'name', 'type', ...}; only names and types are read."""
+
+    # SYSTEM_TYPES entries typed differently by the catalog. The enumerations are strings in the engine
+    # because SolidCAM's trace prints their names (arc_plane:xy, side:comp_left); the catalog types them
+    # integer (dir5a numeric). gcode/mcode: integer vs numeric; transform_type: integer vs logical;
+    # angle_4x_around_x_dir, clear_change_after_gen, line_labels: catalog type 'unknown'.
+    TYPE_DIVERGENCES = {'arc_direction', 'arc_plane', 'd_drill_type', 'drill_type', 'machine_plane', 'side',
+                        'tool_direction', 'tool_side', 'dir5a', 'angle_4x_around_x_dir', 'gcode', 'mcode',
+                        'transform_type', 'clear_change_after_gen', 'line_labels'}
+    # date and time are GPPL built-in functions there; delay is this VMID's DELAY job parameter.
+    NOT_IN_CATALOG = {'date', 'time', 'delay'}
+
+    def setUp(self):
+        path = os.environ.get('GPPL_SOLIDCAM_CATALOG')
+        if not path or not Path(path).is_file():
+            raise unittest.SkipTest('set GPPL_SOLIDCAM_CATALOG to the SolidCAM system-variable catalog JSON')
+        require_vmid(self)
+        variables = json.loads(Path(path).read_text(encoding='utf-8-sig'))['variables']
+        self.catalog = {entry['name'].lower(): entry['type'] for entry in variables}
+
+    def analysis(self, text):
+        return Analysis(load_program(text), load_vmid(VMID), SESSION)
+
+    def unresolved(self, text):
+        """Names read or written that are not declared, VMID names or catalog variables."""
+        analysis = self.analysis(text)
+        known = (analysis.pp_globals | set(analysis.vmid_params) | set(analysis.vmid_constants)
+                 | set(self.catalog) | {'date', 'time'})
+        names = set()
+        for fact in analysis.facts.values():
+            used = set(fact.reads) | set(fact.flag_reads) | set(fact.writes) | set(fact.flag_writes)
+            names |= used - fact.locals - fact.params - known
+        return names
+
+    def reused(self, text):
+        """Post globals, locals and parameters that carry a SolidCAM variable name."""
+        analysis = self.analysis(text)
+        names = {(None, name) for name in analysis.pp_globals}
+        for proc, fact in analysis.facts.items():
+            names |= {(proc, name) for name in fact.locals | fact.params}
+        return sorted((proc, name) for proc, name in names if name in self.catalog)
+
+    def test_every_identifier_is_declared_a_vmid_name_or_a_solidcam_variable(self):
+        self.assertEqual(self.unresolved(source()), set())
+        # The state before 690774d: trace_level assigned and read, never declared.
+        mutant = re.sub(r'(?im)^(\s*global\s+integer\s.*?)\s+trace_level\b', r'\1', source(), count=1)
+        self.assertNotEqual(mutant, source())
+        self.assertEqual(self.unresolved(mutant), {'trace_level'})
+
+    def test_no_post_variable_reuses_a_solidcam_name(self):
+        self.assertEqual(self.reused(source()), [])
+        mutant = re.sub(r'(?m)^(\s*local\s+numeric\s.*)$', r'\1 tool_feed', source(), count=1)
+        self.assertEqual([name for _, name in self.reused(mutant)], ['tool_feed'])
+
+    def test_engine_registry_differs_from_the_catalog_only_where_pinned(self):
+        types = sysvars.SYSTEM_TYPES
+        self.assertEqual({name for name in types if name not in self.catalog}, self.NOT_IN_CATALOG)
+        self.assertEqual({name for name in types if name in self.catalog and self.catalog[name] != types[name]},
+                         self.TYPE_DIVERGENCES)
+        names = set(sysvars.CONSTANTS) | sysvars.CONTROL_VARIABLES | sysvars.SYSTEM_FORMATS
+        self.assertEqual(names - set(self.catalog), set())
 
 
 if __name__ == '__main__':

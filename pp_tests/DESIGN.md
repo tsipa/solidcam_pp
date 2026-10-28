@@ -412,6 +412,7 @@ lines of code plus tests); CI runs the unchanged suite on every step.
 ```bash
 python3 -m unittest discover -s tests            # post tests (GPPL_ENGINE=legacy: original engine)
 python3 -m unittest discover -s tests_engine     # engine harness (GPPL_CORPUS=<dir of .gpp> enables the corpus test)
+GPPL_SOLIDCAM_CATALOG=<solidcam-system-variables.json> python3 -m unittest discover -s tests_engine -p test_static.py
 python3 tests_engine/shadow_v1.py                # mirror every post-test Engine through the legacy engine
 G=siemens_sinumerik_828d/noname_vmc500_4x/Gmill_540v_4x.gpp; V=${G%.gpp}.vmid
 python3 -m pp_tests.gppl validate $G --vmid $V --strict
