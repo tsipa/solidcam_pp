@@ -278,7 +278,7 @@ class FinishPassTests(unittest.TestCase):
         """INDEPENDENT: a job finished by allowance (wall_offset 0) is already finishing."""
         p, start = first_job(job_type='profile', wall_offset=0)
         self.assertEqual(calls(start), [FINISH])
-        self.assertEqual(calls(finish_pass(p, side='left')), [])
+        self.assertEqual(calls(finish_pass(p, side='comp_left')), [])
 
     def test_finishing_move_is_its_own_nc_line(self):
         """INDEPENDENT: with the skipline joining of the NC stream the call stays on its own line."""
@@ -293,7 +293,7 @@ class FinishPassTests(unittest.TestCase):
 class CompensationTests(unittest.TestCase):
     def check_before_selection(self, source=None):
         p, _ = first_job(source, wall_offset=0.3)
-        blocks = finish_pass(p, side='left')
+        blocks = finish_pass(p, side='comp_left')
         self.assertEqual(calls(blocks), [FINISH])
         selection = next(index for index, block in enumerate(blocks) if 'G41' in block)
         self.assertEqual(blocks.index(FINISH), selection - 1, blocks)
@@ -308,10 +308,10 @@ class CompensationTests(unittest.TestCase):
         p, _ = first_job(source, wall_offset=0.3)
         p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
         p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
-        p.ev('compensation', side='left')
+        p.ev('compensation', side='comp_left')
         self.assertEqual(calls(rough_move(p)), [])
         on = p.ev('line', xpos=60, feed=300, feed_type='finish_feed')
-        on += p.ev('compensation', side='off')
+        on += p.ev('compensation', side='comp_off')
         on += p.ev('line', xpos=70, feed_type='finish_feed')
         self.assertEqual(calls(on), [], on)
         self.assertIn('G40', on[-1])
@@ -330,10 +330,10 @@ class CompensationTests(unittest.TestCase):
         p, _ = first_job(wall_offset=0.3)
         p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
         p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
-        p.ev('compensation', side='left')
+        p.ev('compensation', side='comp_left')
         rough_move(p)
         self.assertEqual(calls(same_tool_job(p, 'op2', wall_offset=0)), [])
-        off = p.ev('compensation', side='off') + p.ev('line', xpos=50, feed_type='finish_feed')
+        off = p.ev('compensation', side='comp_off') + p.ev('line', xpos=50, feed_type='finish_feed')
         self.assertEqual(calls(off), [], off)
         self.assertEqual(p.ev('rapid_move', zpos=50)[0], FINISH)
 

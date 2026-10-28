@@ -138,7 +138,7 @@ class PolicyTests(unittest.TestCase):
         with self.assertRaises(MissingInput):
             engine('').expression('CW')                        # legacy: strict, must be supplied
         self.assertEqual(engine('', constants='registry').expression('CW'), 'cw')
-        self.assertEqual(engine('', constants='registry').expression('COMP_LEFT'), 'left')
+        self.assertEqual(engine('', constants='registry').expression('COMP_LEFT'), 'comp_left')
         e = engine('', constants='registry')
         e.set(cw='clockwise')                                  # supplied value wins over constant
         self.assertEqual(e.expression('cw'), 'clockwise')

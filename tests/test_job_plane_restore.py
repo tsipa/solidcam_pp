@@ -69,23 +69,23 @@ class JobPlaneRestoreTests(unittest.TestCase):
 
     def test_compensation_after_yz_arc_in_the_same_job_is_selected_in_g17(self):
         session = Session()
-        session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off', iCompActive=40)
+        session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off', iCompActive=40)
         yz_arc(session)
-        session.step('compensation', side='left')
+        session.step('compensation', side='comp_left')
         output = session.step('line_5x', ['xpos'], xpos=50, feed_type='feed_cut')
         self.assertRegex(' '.join(output), r'\bG17\b.*\bG41\b', output)
-        session.step('compensation', side='off')
+        session.step('compensation', side='comp_off')
         session.step('line_5x', ['ypos'], ypos=5, feed_type='feed_cut')
-        session.step('compensation', side='right')
+        session.step('compensation', side='comp_right')
         rapid = session.step('move_5x', ['xpos', 'ypos'], xpos=60, ypos=10)
         self.assertEqual(planes(rapid), [], rapid)   # plane already G17: no repeat
         self.assertIn('G42', ' '.join(rapid))
 
     def test_compensation_off_after_yz_arc_keeps_the_arc_plane(self):
         session = Session()
-        session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off', iDiametercomp=41, iCompActive=41)
+        session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off', iDiametercomp=41, iCompActive=41)
         yz_arc(session)
-        session.step('compensation', side='off')
+        session.step('compensation', side='comp_off')
         output = session.step('line_5x', ['xpos'], xpos=50, feed_type='feed_cut')
         self.assertEqual(planes(output), [], output)
 
@@ -93,25 +93,25 @@ class JobPlaneRestoreTests(unittest.TestCase):
         # The YZ arc already changed the plane with TRC active. Staying in G19 would compensate the
         # X/Y moves in the YZ plane (cut one radius off, silently); 'G17 G42' either works or alarms.
         session = Session()
-        session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off', iDiametercomp=41, iCompActive=41)
+        session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off', iDiametercomp=41, iCompActive=41)
         yz_arc(session)
-        session.step('compensation', side='right')
+        session.step('compensation', side='comp_right')
         output = session.step('line_5x', ['ypos'], ypos=40, feed_type='feed_cut')
         self.assertEqual(planes(output), ['17'], output)
         self.assertIn('G42', ' '.join(output))
 
     def test_side_change_on_a_rapid_after_a_yz_arc_restores_the_job_plane(self):
         session = Session()
-        session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off', iDiametercomp=41, iCompActive=41)
+        session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off', iDiametercomp=41, iCompActive=41)
         yz_arc(session)
-        session.step('compensation', side='right')
+        session.step('compensation', side='comp_right')
         output = session.step('move_5x', ['xpos'], xpos=40)
         self.assertEqual(output, ['G0 G17 G42 X40'])
 
     def test_side_change_in_g17_prints_no_plane_word(self):
         session = Session()
-        session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off', iDiametercomp=41, iCompActive=41)
-        session.step('compensation', side='right')
+        session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off', iDiametercomp=41, iCompActive=41)
+        session.step('compensation', side='comp_right')
         output = session.step('line_5x', ['ypos'], ypos=40, feed_type='feed_cut')
         self.assertEqual(output, ['G42 Y40'])
 
@@ -123,7 +123,7 @@ class JobPlaneRestoreTests(unittest.TestCase):
         program.engine.set(**YZ_ARC)
         program.ev('arc_yz', ypos=0, zpos=9, ystart=10, zstart=-1, ycenter=0, zcenter=-1, xcenter=10,
                    xcenter_rel=0, ycenter_rel=-10, zcenter_rel=0)
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         self.assertEqual(program.ev('line_5x', xpos=40, feed=200), ['G1 G17 G41 X40'])
 
     def test_restore_does_not_depend_on_equal_assignment_flags(self):
@@ -139,8 +139,8 @@ class JobPlaneRestoreTests(unittest.TestCase):
         require_nc_stream()
         with mock.patch.dict(os.environ, GPPL_POLICY='change_on_equal_assign=clear_user'):
             session, _ = job_after_yz_arc()
-            session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off')
-            session.step('compensation', side='left')
+            session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off')
+            session.step('compensation', side='comp_left')
             first = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=30, ypos=40, zpos=5)
         self.assertEqual(first, ['G0 G17 G41 X30 Y40', 'Z5'])
 

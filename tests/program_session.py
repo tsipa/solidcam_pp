@@ -37,7 +37,7 @@ def post_abort_error():
 MOTION_KEYS = ('xpos', 'ypos', 'zpos', 'apos', 'bpos', 'cpos', 'feed', 'spin')
 
 CONSTANTS = dict(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz',
-                 comp_left='left', comp_right='right', comp_off='off',
+                 comp_left='comp_left', comp_right='comp_right', comp_off='comp_off',
                  g81='g81', g82='g82', g83='g83', g84='g84', g86='g86', d_tapping='tapping')
 
 VMID = dict(iworkoffset_method=0, inumber_of_fixtures=0, blimit_3axis=False, sworkpcdir='',
@@ -56,7 +56,7 @@ CAM = dict(
     d_drill_type='none', flood_coolant=1, mist_coolant=0, hp_flood_coolant=0, lp_flood_coolant=0,
     through_ival_coolant=0, through_coolant_val=0, lp_through_coolant=0, air_blast_coolant=0,
     air_through_coolant=0, xpos=0, ypos=0, zpos=0, feed=100, prev_command='@start_program',
-    feed_type='feed_cut', tool_offset=5, side='off', tool_side='off', next_command='',
+    feed_type='feed_cut', tool_offset=5, side='comp_off', tool_side='comp_off', next_command='',
     tool_message='', message='', bprintloop=False,
     arc_plane='xy', arc_direction='ccw', arc_size=90, radius=10, xstart=0, ystart=0, zstart=0,
     xcenter=0, ycenter=0, zcenter=0, xcenter_rel=0, ycenter_rel=0, zcenter_rel=0,

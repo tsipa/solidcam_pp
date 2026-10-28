@@ -67,7 +67,7 @@ def history_engine(source=None):
     engine = motion_engine()
     if source is not None:
         engine = adopt_state(engine, source, Engine)
-    engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off',
+    engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off',
                tool_number=7, last_tool=False, next_tool_number=8,
                drill_clearance_z=30, drill_upper_z=12, drill_lower_z=-15,
                safety=2, down_step=3, delay=0.25,

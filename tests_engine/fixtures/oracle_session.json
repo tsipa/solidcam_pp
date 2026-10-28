@@ -185,8 +185,8 @@
   {
    "name": "compensation",
    "parameters": {
-    "side": "left",
-    "tool_side": "left"
+    "side": "comp_left",
+    "tool_side": "comp_left"
    }
   },
   {
@@ -255,8 +255,8 @@
   {
    "name": "compensation",
    "parameters": {
-    "side": "off",
-    "tool_side": "left"
+    "side": "comp_off",
+    "tool_side": "comp_left"
    }
   },
   {

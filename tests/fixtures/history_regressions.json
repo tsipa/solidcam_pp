@@ -7,7 +7,7 @@
       "kind": "compensation",
       "commit": "2aa6df0bb2da7b754313a7fa41763e20da7957cd",
       "reason": "Commit and source comment explicitly say lookahead pre-applied upcoming compensation to the current lead-out/zigzag move.",
-      "initial": {"iDiametercomp": 41, "side": "left", "tool_side": "right", "next_command": "@compensation"},
+      "initial": {"iDiametercomp": 41, "side": "comp_left", "tool_side": "comp_right", "next_command": "@compensation"},
       "expected_codes": [[41], [42], [40]],
       "regression": {"find": "    ; move where it must become active; a look-ahead corrupts lead-out/zigzag side changes (2aa6df0).\n", "replace": "    ; move where it must become active; a look-ahead corrupts lead-out/zigzag side changes (2aa6df0).\n    if next_command eq '@compensation' and iMotionmode ne 0\n        side = tool_side\n        call @compensation\n    endif\n"}
     },

@@ -223,7 +223,7 @@ class ToolChangeCompensationTests(unittest.TestCase):
         p.start(tool=1, next_tool=2, next_job_tool_number=2)
         p.ev('rapid_move', xpos=10, ypos=10, zpos=5)
         p.ev('line', zpos=-1, feed=200)
-        p.ev('compensation', side='left')
+        p.ev('compensation', side='comp_left')
         p.ev('line', xpos=40, feed=200)
         p.ev('line', zpos=20, feed=200)          # below tool_start_plane 50: end_of_job keeps G41
         p.ev('end_of_job', next_job_tool_number=2)
@@ -246,7 +246,7 @@ class ToolChangeCompensationTests(unittest.TestCase):
                 p.start(tool=1, next_tool=2, next_job_tool_number=2)
                 p.ev('rapid_move', xpos=10, ypos=10, zpos=5)
                 p.ev('line', zpos=-1, feed=200)
-                p.ev('compensation', side='left')
+                p.ev('compensation', side='comp_left')
                 p.ev('line', xpos=40, feed=200)
                 p.ev('line', zpos=20, feed=200)
                 p.ev('end_of_job', next_job_tool_number=2)

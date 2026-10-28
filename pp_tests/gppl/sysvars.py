@@ -105,11 +105,14 @@ CONTROL_DEFAULTS = {
 CONTROL_VARIABLES = set(CONTROL_DEFAULTS) | {'numeric_def_f', 'integer_def_f', 'gcode_f', 'mcode_f',
                                               'blknum_f', 'trace_level'}
 
-# Enumeration constants. Values follow the convention of the existing suite and
-# trace.py's enum allow-list (lower-case identifiers); unverified for G8x/COMP_*.
+# Enumeration constants: the value is the spelling SolidCAM prints in its trace.
+# Observed in tests/fixtures/reference_multijob.trace.txt.xz: arc_plane:xy,
+# machine_plane:xy, arc_direction/dir5a/tool_direction:cw|ccw, side:comp_left|
+# comp_off, tool_side:comp_left. comp_right, zx/yz, G8x (VMID drill cycles),
+# d_tapping and mirror_* are not in that trace (unverified).
 CONSTANTS = {
     'xy': 'xy', 'zx': 'zx', 'yz': 'yz', 'cw': 'cw', 'ccw': 'ccw',
-    'comp_left': 'left', 'comp_right': 'right', 'comp_off': 'off',
+    'comp_left': 'comp_left', 'comp_right': 'comp_right', 'comp_off': 'comp_off',
     'd_tapping': 'd_tapping',
     'mirror_off': 'mirror_off', 'mirror_x': 'mirror_x', 'mirror_y': 'mirror_y', 'mirror_xy': 'mirror_xy',
 }

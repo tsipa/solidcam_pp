@@ -51,7 +51,7 @@ from .vericut import vmid_user_parameters
 # SolidCAM enum constants (names lower-cased by the engine; cw == CW).
 CAM_CONSTANTS = dict(
     XY='xy', ZX='zx', YZ='yz', CW='cw', CCW='ccw', machine_plane='xy',
-    COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off',
+    COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off',
     G81='g81', G82='g82', G83='g83', G84='g84', G86='g86', D_Tapping='d_tapping',
     MIRROR_OFF='mirror_off', MIRROR_X='mirror_x', MIRROR_Y='mirror_y', MIRROR_XY='mirror_xy',
 )
@@ -71,7 +71,7 @@ CAM_JOB_DEFAULTS = dict(
     prev_command='', next_command='', rotate_angle_x=0, rotate_angle_y=0, rotate_angle_z=0,
     shift_x=0, shift_y=0, shift_z=0, position=1, home_number=1, home_user_name='',
     rot_axis_coord=0, transform_type=0, loop_level=0, loop_count=0, bPrintloop=False,
-    xpos=0, ypos=0, zpos=0, feed=500, tool_offset=1, side='off', tool_side='off',
+    xpos=0, ypos=0, zpos=0, feed=500, tool_offset=1, side='comp_off', tool_side='comp_off',
 )
 
 # CAM inputs of a drilling job (@drill/@drill_point/@end_drill); pass them to

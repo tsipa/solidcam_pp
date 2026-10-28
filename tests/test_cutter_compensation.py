@@ -48,24 +48,24 @@ def event(engine, call, changed=(), **values):
 class CutterCompensationTests(unittest.TestCase):
     def test_compensation_off_on_a_z_retract_programs_the_plane_axes(self):
         engine = engine_with_comp(41)
-        event(engine, 'compensation', side='off')
+        event(engine, 'compensation', side='comp_off')
         self.assertEqual(event(engine, 'rapid_move', ['zpos'], zpos=50), ['G0 G40 X12 Y23 Z50'])
         self.assertEqual(event(engine, 'rapid_move', ['xpos', 'ypos'], xpos=30, ypos=40), ['X30 Y40'])
 
     def test_compensation_on_before_z_approach_is_selected_on_the_approach(self):
         engine = engine_with_comp(40)
-        event(engine, 'compensation', side='left')
+        event(engine, 'compensation', side='comp_left')
         self.assertEqual(event(engine, 'rapid_move', ['zpos'], zpos=5), ['G0 G41 X12 Y23 Z5'])
         self.assertEqual(event(engine, 'line', ['zpos'], zpos=-1), ['G1 Z-1'])
 
     def test_z_only_plunge_keeps_its_pre_fix_form(self):
         engine = engine_with_comp(40)
-        event(engine, 'compensation', side='left')
+        event(engine, 'compensation', side='comp_left')
         self.assertEqual(event(engine, 'line', ['zpos'], zpos=-1), ['G41 Z-1'])   # G1 is modal here
 
     def test_compensation_on_before_approach_rapid_is_posted_on_the_rapid(self):
         engine = engine_with_comp(40)
-        event(engine, 'compensation', side='left')
+        event(engine, 'compensation', side='comp_left')
         self.assertEqual(event(engine, 'rapid_move', ['xpos', 'ypos'], xpos=0, ypos=0), ['G0 G41 X0 Y0'])
         self.assertEqual(event(engine, 'line', ['xpos'], xpos=20), ['G1 X20'])  # G41 not repeated
 
@@ -89,12 +89,12 @@ class CutterCompensationTests(unittest.TestCase):
         engine.set(first_tool=False, bSafetyprep=True, machine_plane='xy', xy='xy', zx='zx', yz='yz',
                    bStopM00difftool=True)
         self.assertIn('G17 G40 G64 G90', event(engine, 'usr_ct_before_notfirsttool'))
-        event(engine, 'compensation', side='left')
+        event(engine, 'compensation', side='comp_left')
         output = event(engine, 'line', ['xpos'], xpos=20)
         self.assertRegex(' '.join(output), r'\bG41\b.*X20', output)
 
     def test_compensation_change_on_an_arc_stops_the_post(self):
-        for before, side in ((40, 'left'), (41, 'off'), (41, 'right')):
+        for before, side in ((40, 'comp_left'), (41, 'comp_off'), (41, 'comp_right')):
             with self.subTest(before=before, side=side):
                 engine = engine_with_comp(before)
                 engine.set(**ARC)
@@ -110,7 +110,7 @@ class CutterCompensationTests(unittest.TestCase):
         scripted.changed.update(engine.changed)
         scripted.set(iDiametercomp=40, iCompActive=40, **ARC)
         scripted.changed['idiametercomp'] = False
-        event(scripted, 'compensation', side='left')
+        event(scripted, 'compensation', side='comp_left')
         with self.assertRaises(post_abort_error()):
             event(scripted, 'arc', ['xpos', 'ypos'], xpos=0, ypos=10)
         self.assertFalse(any(line.startswith('G3') for line in scripted.nc_lines()), scripted.nc_lines())
@@ -118,8 +118,8 @@ class CutterCompensationTests(unittest.TestCase):
     def test_compensation_switched_back_before_an_arc_does_not_stop_the_post(self):
         engine = engine_with_comp(40)
         engine.set(**ARC)
-        event(engine, 'compensation', side='left')
-        event(engine, 'compensation', side='off')
+        event(engine, 'compensation', side='comp_left')
+        event(engine, 'compensation', side='comp_off')
         output = event(engine, 'arc', ['xpos', 'ypos'], xpos=0, ypos=10)
         self.assertTrue(any(re.match(r'G3\b', block) for block in output), output)
         self.assertFalse(re.search(r'\bG4[012]\b', ' '.join(output)), output)
@@ -134,9 +134,9 @@ class CutterCompensationTests(unittest.TestCase):
     def test_climb_puts_the_pending_compensation_on_the_xy_block(self):
         session = Session()
         session.engine.set(iDiametercomp=41, iCompActive=41, **{k: v for k, v in ARC.items() if k in ('xy', 'zx', 'yz')})
-        session.engine.set(COMP_LEFT='left', COMP_RIGHT='right', COMP_OFF='off')
+        session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off')
         session.step('line_5x', ['zpos'], zpos=5, feed_type='feed_cut')
-        session.step('compensation', side='off')
+        session.step('compensation', side='comp_off')
         session.step('end_of_job')
         session.step('start_of_job')
         output = session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=100, ypos=100, zpos=50)
@@ -168,7 +168,7 @@ class CutterCompensationTests(unittest.TestCase):
         self.assertEqual(source.count(anchor), 1, 'rapid block changed; review this test')
         broken = source.replace(anchor, "['G'iMplane' '],['G'iAbsincmode ' '],[cWo,iWorkoffset' '],['X'xpos ' '],['Y'ypos ' ']", 1)
         engine = engine_with_comp(41, broken)
-        event(engine, 'compensation', side='off')
+        event(engine, 'compensation', side='comp_off')
         self.assertEqual(event(engine, 'rapid_move', ['xpos', 'ypos'], xpos=30, ypos=40), ['G0 X30 Y40'])
 
 
@@ -176,11 +176,11 @@ class CutterCompensationTests(unittest.TestCase):
 def contour_with_compensation(program):
     """Approach, compensation left, plunge, two cuts, compensation off: the tool stands at X30 Y30 Z-2."""
     program.ev('move_5x', xpos=0, ypos=0, zpos=5)
-    program.ev('compensation', side='left')
+    program.ev('compensation', side='comp_left')
     program.ev('line_5x', zpos=-2, feed=200)
     program.ev('line_5x', xpos=30, feed=200)
     program.ev('line_5x', ypos=30, feed=200)
-    program.ev('compensation', side='off')
+    program.ev('compensation', side='comp_off')
 
 
 class CompensationProgramTests(unittest.TestCase):
@@ -229,7 +229,7 @@ class CompensationProgramTests(unittest.TestCase):
     def test_next_pass_deselects_on_the_retract_and_selects_on_the_plunge(self):
         program = self.program()
         self.assertEqual(program.ev('move_5x', zpos=2), ['G0 Z2', 'G40 X30 Y30'])
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         self.assertEqual(program.ev('line_5x', zpos=-4, feed=200), ['G1 G41 Z-4'])
 
     def test_next_job_plunge_does_not_carry_a_late_g40(self):
@@ -244,7 +244,7 @@ class CompensationProgramTests(unittest.TestCase):
         program = Program()
         program.start()
         program.ev('move_5x', xpos=10, ypos=0, zpos=5)
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         self.assertEqual(program.ev('move_5x', zpos=-1), ['G41 X10 Y0 Z-1'])
         arc = program.ev('arc', xpos=20, ypos=0, arc_plane='xy', arc_direction='ccw', arc_size=180, radius=5,
                          xstart=10, ystart=0, zstart=-1, xcenter=15, ycenter=0, zcenter=-1, xcenter_rel=5,
@@ -261,7 +261,7 @@ class CompensationProgramTests(unittest.TestCase):
         program.ev('tmatrix', angle_4x_around_x=90)
         program.engine.state['btmatrixindexpending'] = True
         program.ev('start_of_job', job_name='op2')
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         self.assertEqual(program.ev('line_5x', xpos=40, ypos=15, zpos=-1, feed=200), ['G0 G41 X40 Y15', 'G1 Z-1'])
 
     def test_yz_job_z_rapid_keeps_compensation_on_the_z_block(self):
@@ -269,7 +269,7 @@ class CompensationProgramTests(unittest.TestCase):
         program = Program(cam=dict(machine_plane='yz'))
         program.start()
         program.ev('move_5x', xpos=0, ypos=0, zpos=5)
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         self.assertEqual(program.ev('move_5x', zpos=4), ['G41 Z4'])
 
 
@@ -280,7 +280,7 @@ def index_next_job(program, angle=90):
     return program.ev('start_of_job', job_name='op2', angle_4x_around_x=angle)
 
 
-def compensation_left_on(test, side='left', options=None, retract=50, off=True, policies=None):
+def compensation_left_on(test, side='comp_left', options=None, retract=50, off=True, policies=None):
     """A contour whose compensation off comes after the last retract (or never): G41/G42 is still on at
     the retract height (Z50 by default)."""
     program = Program(options=options, policies=policies)
@@ -292,7 +292,7 @@ def compensation_left_on(test, side='left', options=None, retract=50, off=True, 
     program.ev('line_5x', ypos=30, feed=200)
     test.assertEqual(program.ev('move_5x', zpos=retract), [f'G0 Z{retract}'])
     if off:
-        program.ev('compensation', side='off')
+        program.ev('compensation', side='comp_off')
     return program
 
 
@@ -305,7 +305,7 @@ class CompensationAtPostHomingTests(unittest.TestCase):
     @covers('PP-062')
     def test_compensation_left_on_at_the_job_end_is_deselected_at_the_clearance_height(self):
         """INDEPENDENT: module oracle; G40 before any G75, index, M1 or tool change of the next job."""
-        for side in ('left', 'right'):
+        for side in ('comp_left', 'comp_right'):
             with self.subTest(side=side):
                 program = compensation_left_on(self, side)
                 self.assertEqual(program.ev('end_of_job'), ['G0 G40 X30 Y30'])
@@ -395,7 +395,7 @@ class CompensationAtPostHomingTests(unittest.TestCase):
         program = Program()
         program.start()
         program.ev('move_5x', xpos=0, ypos=0, zpos=5)
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         program.ev('line_5x', zpos=-2, feed=200)
         program.ev('line_5x', xpos=30, feed=200)
         self.assertEqual(program.ev('move_5x', apos=90, zpos=20),
@@ -418,11 +418,11 @@ class CompensationAtPostHomingTests(unittest.TestCase):
         program = Program(cam=dict(machine_plane='yz'))
         program.start(machine_plane='yz')
         program.ev('move_5x', xpos=10, ypos=-7.5, zpos=5)
-        program.ev('compensation', side='right')
+        program.ev('compensation', side='comp_right')
         program.ev('line_5x', zpos=-2, feed=200)
         program.ev('line_5x', ypos=-20.25, feed=200)
         program.ev('move_5x', zpos=50)
-        program.ev('compensation', side='off')
+        program.ev('compensation', side='comp_off')
         index = index_next_job(program)
         self.assertEqual(index[1:3], ['G75 Z1=0.', 'G0 G40 X10 Y-20.25'])
 
@@ -461,7 +461,7 @@ class CompensationPlaneAxisTests(unittest.TestCase):
     def yz_climb(self, source=None, **options):
         require_nc_stream()
         program = same_tool_second_job('yz', source, **options)
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         program.ev('move_5x', xpos=10, ypos=10, zpos=40)
         yz_arc(program, (0, 30), (10, 40), (10, 30), feed=200)
         program.ev('line_5x', ypos=-5, feed=200)
@@ -473,36 +473,36 @@ class CompensationPlaneAxisTests(unittest.TestCase):
 
     def test_zx_job_climb_selects_compensation_on_an_x_block(self):
         program = same_tool_second_job('zx')
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         self.assertEqual(program.ev('move_5x', zpos=40), ['G0 Z40', 'G41 X10'])
 
     def test_yz_first_move_split_selects_compensation_on_a_y_block(self):
         program = same_tool_second_job('yz')
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         # Below the last Z: no climb, the first move splits XY then Z. Before: a bare 'G41' block.
         self.assertEqual(program.ev('move_5x', zpos=-2), ['G0 G41 Y10', 'Z-2'])
 
     def test_yz_rapid_with_z_keeps_compensation_on_the_z_block(self):
         program = same_tool_second_job('yz')
         program.ev('move_5x', zpos=5)
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         self.assertEqual(program.ev('move_5x', xpos=12, zpos=4), ['G41 X12 Z4'])
 
     def test_yz_rapid_without_y_or_z_gets_y(self):
         program = same_tool_second_job('yz')
         program.ev('move_5x', zpos=5)
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         self.assertEqual(program.ev('move_5x', xpos=12), ['G41 X12 Y10'])
 
     def test_yz_drill_positioning_cancels_compensation_with_a_y_word(self):
         program = Program()
         program.start(machine_plane='yz')
         program.ev('move_5x', xpos=30, ypos=30, zpos=5)
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         program.ev('line_5x', zpos=-2, feed=200)
         program.ev('line_5x', ypos=40, feed=200)
         program.ev('move_5x', zpos=30)
-        program.ev('compensation', side='off')
+        program.ev('compensation', side='comp_off')
         program.ev('end_of_job')
         program.ev('start_of_job', job_name='drill', machine_plane='yz')
         cycle = program.ev('drill', xpos=30, ypos=40, zpos=10, drill_type='g81', drill_clearance_z=10,
@@ -523,9 +523,9 @@ class CompensationPlaneAxisTests(unittest.TestCase):
         program.start()
         program.ev('move_5x', xpos=10, ypos=10, zpos=5)
         program.ev('line_5x', zpos=-1, feed=200)
-        program.ev('compensation', side='left')
+        program.ev('compensation', side='comp_left')
         program.ev('line_5x', xpos=40, feed=200)
-        program.ev('compensation', side='off')
+        program.ev('compensation', side='comp_off')
         program.ev('move_5x', xpos=40, ypos=10, zpos=-1)
         return program.nc()[-2:]
 
@@ -542,10 +542,10 @@ class CompensationPlaneAxisTests(unittest.TestCase):
                 program.start()
                 program.ev('move_5x', xpos=10, ypos=10, zpos=5)
                 program.ev('line_5x', zpos=-1, feed=200)
-                program.ev('compensation', side='left')
+                program.ev('compensation', side='comp_left')
                 program.ev('line_5x', xpos=40, feed=200)
                 program.ev('line_5x', zpos=40, feed=200)        # below the clearance plane: end_of_job keeps G41
-                program.ev('compensation', side='off')
+                program.ev('compensation', side='comp_off')
                 program.ev('end_of_job')
                 program.ev('start_of_job', job_name='op2')
                 program.ev('move_5x', xpos=40, ypos=10, zpos=40)

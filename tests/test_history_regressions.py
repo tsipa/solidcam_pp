@@ -62,7 +62,7 @@ class HistoryRegressionTests(unittest.TestCase):
         if kind == 'compensation':
             engine.changed['idiametercomp'] = True
             codes = []
-            for side in (None, 'right', 'off'):
+            for side in (None, 'comp_right', 'comp_off'):
                 engine.output.clear()
                 if side:
                     engine.set(side=side)

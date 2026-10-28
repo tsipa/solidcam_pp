@@ -469,7 +469,7 @@ class CompensationTests(unittest.TestCase):
         off = G40; a change written on the following G1 move is a valid linear
         selection/deselection block (TSR SmallBranchRegressions, left was never called)."""
         session = compensated_job()
-        for side, y, code in (('left', 20, 41), ('right', 25, 42), ('off', 30, 40), ('left', 35, 41)):
+        for side, y, code in (('comp_left', 20, 41), ('comp_right', 25, 42), ('comp_off', 30, 40), ('comp_left', 35, 41)):
             session.ev('compensation', side=side)
             self.assertEqual(session.state['idiametercomp'], code, side)
             mark = session.mark()
@@ -491,7 +491,7 @@ class CompensationTests(unittest.TestCase):
         lead-in (VMID CompensationNeedFirstLine="0"; 2aa6df0 removed the @usr_line
         lookahead)."""
         session = compensated_job()
-        session.ev('compensation', side='left')
+        session.ev('compensation', side='comp_left')
         written = stopped_arc(self, session, (12, 13), 2)
         self.assertEqual([block.raw for block in written if set(block.g) & {2, 3, 41, 42}], [],
                          'arc or TRC block written before the stop')
@@ -505,9 +505,9 @@ class CompensationTests(unittest.TestCase):
         of PP-020 facet deactivation. UNVERIFIED event order: assumes SolidCAM delivers
         @compensation(off) directly before the lead-out arc."""
         session = compensated_job()
-        session.ev('compensation', side='left')
+        session.ev('compensation', side='comp_left')
         session.ev('line', ('ypos',), ypos=23)
-        session.ev('compensation', side='off')
+        session.ev('compensation', side='comp_off')
         written = stopped_arc(self, session, (12, 23), 2)
         self.assertEqual([block.raw for block in written if set(block.g) & {2, 3, 40}], [],
                          'arc or G40 block written before the stop')
@@ -525,10 +525,10 @@ class CompensationTests(unittest.TestCase):
         off-before-rapid. UNVERIFIED event order: assumes SolidCAM emits @compensation(off)
         immediately before the rapid (e.g. lead-out 'None')."""
         session = compensated_job()
-        session.ev('compensation', side='left')
+        session.ev('compensation', side='comp_left')
         session.ev('line', ('ypos',), ypos=23)
         session.ev('line', ('xpos',), xpos=40)
-        session.ev('compensation', side='off')
+        session.ev('compensation', side='comp_off')
         mark = session.mark()
         session.ev('rapid_move', ('zpos',), zpos=50)
         retract = session.mark()
@@ -555,7 +555,7 @@ class CompensationTests(unittest.TestCase):
         ERROR stop is accepted."""
         session = job_session()
         session.ev('move_5x', ('xpos', 'ypos', 'zpos'), xpos=12, ypos=13, zpos=50)
-        session.ev('compensation', side='left')
+        session.ev('compensation', side='comp_left')
         mark = session.mark()
         try:
             session.ev('rapid_move', ('xpos', 'ypos'), xpos=0, ypos=0)
@@ -577,10 +577,10 @@ class CompensationTests(unittest.TestCase):
         event order: assumes @compensation(off) before the retract rapid and no line/arc
         between that rapid and @end_of_job."""
         session = compensated_job()
-        session.ev('compensation', side='left')
+        session.ev('compensation', side='comp_left')
         session.ev('line', ('xpos',), xpos=20)
         session.ev('line', ('ypos',), ypos=40)
-        session.ev('compensation', side='off')
+        session.ev('compensation', side='comp_off')
         try:
             session.ev('rapid_move', ('zpos',), zpos=50)
         except UnsupportedGPPL as exc:
@@ -657,7 +657,7 @@ class PlaneModalityTests(unittest.TestCase):
         session = self.after_yz_arc_job()
         session.ev('move_5x', ('xpos', 'ypos', 'zpos'), xpos=0, ypos=-10, zpos=5)
         session.ev('line', ('zpos', 'feed'), zpos=-2, feed=300)
-        session.ev('compensation', side='left')
+        session.ev('compensation', side='comp_left')
         session.ev('line', ('ypos',), ypos=0)
         replayed = replay(session.text())
         selections = [(block.raw, state.plane) for block, state in replayed if 41 in block.g]
