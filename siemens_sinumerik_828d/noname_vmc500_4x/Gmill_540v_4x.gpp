@@ -2820,7 +2820,8 @@ endp
     if nR1pos >= 359.9995 or nR1pos < 0.0005
         nR1pos = 0
     endif
-    ; GPPL has no round(): count the 0.001 steps with powers of two (2^18 + ... + 1 > 360000).
+    ; round() is not used: the offline engine does not implement it and no SolidCAM run has checked its
+    ; rounding. Count the 0.001 steps with powers of two (2^18 + ... + 1 > 360000).
     nTarget = nR1pos * 1000 + 0.5
     nSteps = 0
     nWeight = 262144
