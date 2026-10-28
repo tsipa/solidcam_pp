@@ -508,14 +508,7 @@ endp
     ; The control starts with every coolant off. The eight assignments above flag every channel:
     ; kept, the first operation printed an OFF code for each (M9 eight times; after its M8 too,
     ; which switched the flood off again) unless SolidCAM clears a flag on an equal assignment.
-    change(iCoolantM1) = false
-    change(iCoolantM2) = false
-    change(iCoolantM3) = false
-    change(iCoolantM4) = false
-    change(iCoolantM5) = false
-    change(iCoolantM6) = false
-    change(iCoolantM7) = false
-    change(iCoolantM8) = false
+    call @usr_coolant_clear_flags
     bTmatrixIndexPending = false
     bIndexClearancePending = true
     bCamLinkRetract = false
@@ -696,8 +689,7 @@ endp
 @end_program
     ; End of program: coolant and spindle off, homing (bHomeend), optional stop, CYCLE832 off, M30 (or M2).
     if bCooloffend and bCoolExist
-        call @usr_coolant_prep_all_off
-        call @usr_coolant_output
+        call @usr_coolant_all_off
     endif
     if bSpinoffend
         call @usr_spindle_stop
@@ -837,8 +829,7 @@ endp
     local numeric dummy_var
     if !bStopM00difftool
         if bCooloffend and bCoolExist
-            call @usr_coolant_prep_all_off
-            call @usr_coolant_output
+            call @usr_coolant_all_off
         endif
         if bSpinoffend
             call @usr_spindle_stop
@@ -880,8 +871,7 @@ endp
     ; Before the first tool change: coolant off as before every tool change (bCooloffend; the control
     ; may still have it on from an earlier program), then the safety block.
     if bCooloffend and bCoolExist
-        call @usr_coolant_prep_all_off
-        call @usr_coolant_output
+        call @usr_coolant_all_off
     endif
     call @usr_ct_safety_block
 endp
@@ -1157,14 +1147,7 @@ endp
     if change(iCoolantM8)
         call @usr_coolant_code(iCoolantM8, 8)
     endif
-    change(iCoolantM1) = false
-    change(iCoolantM2) = false
-    change(iCoolantM3) = false
-    change(iCoolantM4) = false
-    change(iCoolantM5) = false
-    change(iCoolantM6) = false
-    change(iCoolantM7) = false
-    change(iCoolantM8) = false
+    call @usr_coolant_clear_flags
     ; The next block starts a new line unless the caller sets skipline = false again (usr_ct_after).
     ; (The template tested 'any coolant flag not set' here, always true: the output above cleared them.)
     skipline = TRUE
@@ -1202,9 +1185,9 @@ endp
     endif
 endp
 
-@usr_coolant_prep_all_off
-    ; Prepare coolant off for usr_coolant_output: every code takes its OFF value and only iCoolantM1
-    ; is flagged, so one OFF code is output.
+@usr_coolant_all_off
+    ; Coolant off: every code takes its OFF value and only iCoolantM1 is flagged, so usr_coolant_output
+    ; prints one OFF code.
     iCoolantM1 = iCoolantM1OFF
     iCoolantM2 = iCoolantM2OFF
     iCoolantM3 = iCoolantM3OFF
@@ -1213,7 +1196,15 @@ endp
     iCoolantM6 = iCoolantM6OFF
     iCoolantM7 = iCoolantM7OFF
     iCoolantM8 = iCoolantM8OFF
+    call @usr_coolant_clear_flags
     change(iCoolantM1) = true
+    bskipline = true
+    call @usr_coolant_output
+endp
+
+@usr_coolant_clear_flags
+    ; No coolant channel flagged for usr_coolant_output.
+    change(iCoolantM1) = false
     change(iCoolantM2) = false
     change(iCoolantM3) = false
     change(iCoolantM4) = false
@@ -1221,7 +1212,6 @@ endp
     change(iCoolantM6) = false
     change(iCoolantM7) = false
     change(iCoolantM8) = false
-    bskipline = true
 endp
 
 @usr_check_smoothing
@@ -2262,8 +2252,7 @@ endp
     ; The M0 stop of a job boundary (VMID bStopM00): coolant and spindle off, the homing the caller
     ; put in sHomestr, M0, then the stop message.
     if bCoolExist
-        call @usr_coolant_prep_all_off
-        call @usr_coolant_output
+        call @usr_coolant_all_off
     endif
     call @usr_spindle_stop
     call @usr_prep_home_axis

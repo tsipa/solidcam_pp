@@ -89,7 +89,7 @@ class CoolantCodeTests(unittest.TestCase):
             self.assertIn('M8', codes)
             self.assertNotIn('M9', codes)
         anchor = '    ; which switched the flood off again) unless SolidCAM clears a flag on an equal assignment.\n'
-        resets = ''.join(f'    change(iCoolantM{k}) = false\n' for k in range(1, 9))
+        resets = '    call @usr_coolant_clear_flags\n'
         assert_detected(self, check, mutate(anchor + resets, anchor), 'init flag reset removed')
 
     def test_removing_the_repeat_check_is_detected(self):
