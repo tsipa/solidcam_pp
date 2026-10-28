@@ -20,7 +20,8 @@ def arc_engine(plane, source=None, policies=None):
                arc_size=90, radius=10, bFeedoutput=False, iDiametercomp=40, iCompActive=40, cWo='G',
                iWorkoffset=54, iAbsincmode=90, feed=100, mcode_f='2.0(p)', clear_change_after_gen=1,
                xstart=10, ystart=0, zstart=0, xcenter=0, ycenter=0, zcenter=0,
-               xcenter_rel=-10, ycenter_rel=0, zcenter_rel=0, xpos=0, ypos=0, zpos=0, bCamLinkRetract=False)
+               xcenter_rel=-10, ycenter_rel=0, zcenter_rel=0, xpos=0, ypos=0, zpos=0, bCamLinkRetract=False,
+               bCycle832Auto=False, iCycle832Want=0, nCycle832WantTol=0, iCycle832Mode=0, nCycle832Tol=0)
     engine.changed.update({key: False for key in ('imotionmode', 'implane', 'idiametercomp', 'cwo',
                                                   'iworkoffset', 'iabsincmode', 'feed')})
     engine.changed.update(xpos=True, ypos=True, zpos=True)

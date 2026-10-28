@@ -84,6 +84,8 @@
    "name": "start_of_job",
    "parameters": {
     "job_name": "F_CONTOUR",
+    "wall_offset": 0,
+    "floor_offset": 0,
     "job_type": "contour",
     "msg": "",
     "home_number": 1,
@@ -321,6 +323,8 @@
    "name": "start_of_job",
    "parameters": {
     "job_name": "F_SIDE_A90",
+    "wall_offset": 0.3,
+    "floor_offset": 0.3,
     "job_type": "contour",
     "home_number": 1,
     "position": 1,

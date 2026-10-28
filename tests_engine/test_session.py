@@ -48,11 +48,12 @@ class SessionReplayTests(unittest.TestCase):
             ';SYNTHETIC REPLAY', ';TOOL 1 - DIA 10 | HOLDER: BT40-ER32 | STICKOUT: 45 mm',
             ';T2-DRILL 6 | HOLDER: BT40-ER25 | STICKOUT: 60.5 mm', ';---HSS', 'MSG(" Loading Zeropoints ")',
             'WORKPIECE(,"A",,"BOX",0,0,-30,-25,0,0,100,60)'])
-        expected_in_order = ['G75 Z1=0.', 'T1', 'M06', 'D1', 'T2', 'MSG("F_CONTOUR")', 'X10 Y20', 'Z5',
+        expected_in_order = ['G75 Z1=0.', 'T1', 'M06', 'D1', 'T2', 'MSG("F_CONTOUR")', 'CYCLE832(0.01,1,1)',
+                             'G0 X10 Y20', 'Z5',
                              'G1 G41 Y30 Z-5 F600', 'X40', 'G2 X50 Y20 I0 J-10', 'G1 Y0', 'G0 Z50', 'G40 X50 Y0',
                              'M9', 'M5', 'M1', 'T2', 'MSG("D_PECK")', 'X25 Y15', 'MCALL CYCLE83 (30,0,2,-20,,,4,4,,0.5,1,1)',
-                             'X45', 'MCALL', 'G54 A=ACN(90)', 'MSG("F_SIDE_A90")', 'M0', ';CHECK PART',
-                             'MSG("F_5X")', 'G0 A=ACP(100)', 'G1 G93 Z5 A=ACP(110) F19.769', 'G94 Z30 F300',
+                             'X45', 'MCALL', 'G54 A=ACN(90)', 'MSG("F_SIDE_A90")', 'CYCLE832(0.1,3,1)', 'M0',
+                             ';CHECK PART', 'MSG("F_5X")', 'CYCLE832(0,0,1)', 'G0 A=ACP(100)', 'G1 G93 Z5 A=ACP(110) F19.769', 'G94 Z30 F300',
                              'G0 A=ACP(120)',
                              'A=ACN(135)', 'M30']
         position = 0
@@ -69,9 +70,7 @@ class SessionReplayTests(unittest.TestCase):
         self.assertTrue(report.ok, (report.errors, report.failures))
         self.assertIn('ARC end mismatch', str(report.events[-1].error))      # expected error, replay continued
         _, flipped = replay_file(PP, ORACLE, vmid=VMID, change_on_equal_assign='clear')
-        self.assertEqual(flipped.failures, [
-            "event #6 @start_of_job: 0 line(s) start with 'M9', expected 7",
-            "event #11 @arc: blocks ['G2 I0 J-10'] != ['G2 X50 Y20 I0 J-10']"])
+        self.assertEqual(flipped.failures, ["event #11 @arc: blocks ['G2 I0 J-10'] != ['G2 X50 Y20 I0 J-10']"])
         _, flipped = replay_file(PP, ORACLE, vmid=VMID, event_flag_reset='globals_after_event')
         self.assertIn("event #9 @line: blocks ['G1 Y30 Z-5 F600'] != ['G1 G41 Y30 Z-5 F600']", flipped.failures)
 
@@ -81,7 +80,7 @@ class SessionReplayTests(unittest.TestCase):
         env = dict(os.environ, GPPL_POLICY='change_on_equal_assign=clear')
         out = subprocess.run([sys.executable, '-c', code, str(PP), str(ORACLE), str(VMID)], cwd=ROOT,
                              env=env, capture_output=True, text=True)
-        self.assertEqual(out.stdout.strip(), '2', out.stderr)
+        self.assertEqual(out.stdout.strip(), '1', out.stderr)
 
     def test_trace_log_round_trips_through_trace_py(self):
         session, report = main_replay()
@@ -111,8 +110,8 @@ class SessionReplayTests(unittest.TestCase):
         trace = parse_trace(original.trace_text)
         mutant = source().replace("{nb, 'D1 '}", "{nb, 'D2 '}", 1)
         replay = Session(mutant, vmid=VMID).replay(trace, user_params=load_events(MAIN)[1]['user_params'])
-        self.assertEqual(compare_with_trace(trace, replay), ['event 5 @start_of_job: line 4: D1 vs D2',
-                                                             'event 16 @start_of_job: line 9: D1 vs D2'])
+        self.assertEqual(compare_with_trace(trace, replay), ['event 5 @start_of_job: line 5: D1 vs D2',
+                                                             'event 16 @start_of_job: line 10: D1 vs D2'])
 
     def test_cli_replays_a_raw_trace_with_tolerance(self):
         _, original = main_replay()
@@ -123,7 +122,7 @@ class SessionReplayTests(unittest.TestCase):
             # user parameter Message1 is not part of a trace, so the header comment is the only difference
             self.assertEqual((code, summary['trace_diff']),
                              (3, ["event 0 @start_of_file: line 3: expected ';SYNTHETIC REPLAY', got None"]))
-            nudged = original.trace_text.replace('> X10 Y20', '> X10.0004 Y20', 1)
+            nudged = original.trace_text.replace('> G0 X10 Y20', '> G0 X10.0004 Y20', 1)
             self.assertNotEqual(nudged, original.trace_text)
             path.write_text(nudged, encoding='utf-8')
             _, _, loose = run_cli('replay', PP, path, '--vmid', VMID)
@@ -191,10 +190,10 @@ class SessionReplayTests(unittest.TestCase):
         _, report = replay_file(PP, MAIN, vmid=VMID, tracer=trace)
         self.assertTrue(report.ok)
         chains = trace.emitted_by('M9')
-        self.assertEqual(len(chains), 10)
+        self.assertEqual(len(chains), 4)
         outer, origin, text = chains[0]
         self.assertEqual(outer[0], '@start_of_job')
-        self.assertEqual(origin, ('usr_coolant_output', lines_matching(r"'M'iCoolantM2:mcode_f", start='@usr_coolant_output')[0]))
+        self.assertEqual(origin, ('usr_coolant_code', lines_matching(r"\{nb,'M'iCode:mcode_f")[0]))
         self.assertTrue(all('<-@' in entry for entry in outer[1:]))
         self.assertIn('@usr_coolant_output', trace.render())
 
@@ -277,20 +276,24 @@ class SemanticsProbeTests(unittest.TestCase):
     """The same stream under competing change-flag hypotheses. The GPP author relies
     on three behaviours: arcs print their end point, @compensation's G41 reaches the
     next move, and the first tool gets M8 without M9 right after it. Only 'clear_user'
-    satisfies all three. (A fourth signal, no 'G187 P2', went with the G187 output.)"""
+    satisfied all three; since usr_init_gmstates clears the coolant flags it sets
+    (2026-10-27), the M9 signal no longer separates 'keep' from 'clear_user'. (A fourth
+    signal, no 'G187 P2', went with the G187 output.)"""
 
     def probe(self, **policy):
         session, report = replay_file(PP, MAIN, vmid=VMID, **policy)
         self.assertTrue(report.ok, report.errors)
         by_index = {event.index: event for event in report.events}
         first_tool = [line.strip() for line in by_index[6].nc]
-        return {'m9_after_first_m8': sum(1 for line in first_tool if line.startswith('M9')),
+        m8 = next(index for index, line in enumerate(first_tool) if 'M8' in line.split())
+        return {'m9_after_first_m8': sum(1 for line in first_tool[m8:] if line.startswith('M9')),
                 'arc_end': any('X50 Y20' in line for line in by_index[11].nc),
                 'g41': any('G41' in line for line in by_index[9].nc)}
 
     def test_hypotheses(self):
         require_vmid(self)
-        self.assertEqual(self.probe(), {'m9_after_first_m8': 7, 'arc_end': True, 'g41': True})
+        # Seven M9 before usr_init_gmstates cleared the coolant flags it sets.
+        self.assertEqual(self.probe(), {'m9_after_first_m8': 0, 'arc_end': True, 'g41': True})
         self.assertEqual(self.probe(change_on_equal_assign='clear'),
                          {'m9_after_first_m8': 0, 'arc_end': False, 'g41': True})
         self.assertEqual(self.probe(event_flag_reset='globals_after_event'),

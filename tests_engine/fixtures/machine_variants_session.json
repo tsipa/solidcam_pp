@@ -91,6 +91,8 @@
    "name": "start_of_job",
    "parameters": {
     "job_name": "MODEL",
+    "wall_offset": 0.05,
+    "floor_offset": 0.05,
     "job_type": "3-d model",
     "msg": "",
     "home_number": 1,

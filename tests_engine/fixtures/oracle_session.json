@@ -101,6 +101,8 @@
    "name": "start_of_job",
    "parameters": {
     "job_name": "F_CONTOUR",
+    "wall_offset": 0,
+    "floor_offset": 0,
     "job_type": "contour",
     "msg": "",
     "home_number": 1,
@@ -148,16 +150,18 @@
    },
    "expect": {
     "order": [
+     "M9",
      "T1",
      "M06",
      "D1",
      "MSG(\"F_CONTOUR\")",
      "G54",
      "M8",
-     "M3 S8000"
+     "M3 S8000",
+     "CYCLE832(0.01,1,1)"
     ],
     "count": {
-     "M9": 7
+     "M9": 1
     },
     "state": {
      "bFirstMove": true
@@ -173,7 +177,7 @@
    },
    "expect": {
     "blocks": [
-     "X10 Y20",
+     "G0 X10 Y20",
      "Z5"
     ]
    }
@@ -392,6 +396,8 @@
    "name": "start_of_job",
    "parameters": {
     "job_name": "F_SIDE_A90",
+    "wall_offset": 0.3,
+    "floor_offset": 0.3,
     "job_type": "contour",
     "home_number": 1,
     "position": 1,

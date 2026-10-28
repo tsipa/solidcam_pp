@@ -38,7 +38,7 @@ EVENT_CONTRACTS = {
                      'xnext', 'ynext', 'spin_rate', 'spin', 'tool_direction', 'd_drill_type',
                      'loop_level', 'loop_count', 'next_job_tool_number', 'apos', 'bpos', 'cpos',
                      'angle', 'shift_x', 'shift_y', 'shift_z', 'rotate_angle_x', 'rotate_angle_y',
-                     'rotate_angle_z') + _COOLANT,
+                     'rotate_angle_z', 'wall_offset', 'floor_offset') + _COOLANT,
     'end_of_job': ('next_job_tool_number', 'tool_z_level', 'tool_start_plane'),
     'rapid_move': _MOTION,
     'line': _MOTION,

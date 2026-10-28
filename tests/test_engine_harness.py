@@ -413,12 +413,13 @@ class PostAbortGuardTests(unittest.TestCase):
         @usr_unsupported_event, @usr_unsupported_transform, the rot_axis_coord
         stop of @start_of_job, the compensation stop at a combined Z/XY homing
         line in @usr_prep_home_axis, the homing mode stop of @usr_home_axis, the
-        G187 smoothing stop of @usr_check_smoothing and the compensation stop at a
-        tool change without a Z homing in @usr_ct_before_notfirsttool) must fail
-        the guard with AssertionError."""
+        two job-parameter stops of @usr_check_smoothing (CYCLE832 switched off,
+        iG187_P/nG187_E out of range) and the compensation stop at a tool change
+        without a Z homing in @usr_ct_before_notfirsttool) must fail the guard
+        with AssertionError."""
         lines = pp_source().split('\n')
         abort_lines = [index for index, line in enumerate(lines) if line.strip().lower() == 'abort']
-        self.assertEqual(len(abort_lines), 19, 'abort sites changed; review the guard')
+        self.assertEqual(len(abort_lines), 20, 'abort sites changed; review the guard')
         for removed in abort_lines:
             mutant = '\n'.join(line for index, line in enumerate(lines) if index != removed)
             assert_detected(self, self.assert_post_errors_abort, mutant, f'abort at line {removed + 1} removed')

@@ -374,15 +374,17 @@ def representative(source=None, **options):
 
 
 # The pre-option post (cd52658) printed exactly this without the two job M1 lines (after MSG("op2")
-# and MSG("op6")); compared old vs new on 2026-10-27.
+# and MSG("op6")), without the M9 before the first tool change (bCooloffend, as before the others)
+# and with a G04 F6.3 spindle dwell after each 'M3 S3000' block (bSpinDwell is off by default since
+# the control holds the first feed block, MD35500); compared old vs new on 2026-10-27.
 DEFAULT_NC = [
-    'G75 Z1=0.', 'G75 Y1=0 X1=0', ';', 'G17 G40 G64 G90', 'T1', 'M06', 'D1', 'T2', 'MSG("op1")',
-    'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G0 G17 G90 G54 A=DC(0) M8 M3 S3000', 'G04 F6.3', 'X10 Y10', 'Z50',
+    'G75 Z1=0.', 'G75 Y1=0 X1=0', 'M9', ';', 'G17 G40 G64 G90', 'T1', 'M06', 'D1', 'T2', 'MSG("op1")',
+    'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G0 G17 G90 G54 A=DC(0) M8 M3 S3000', 'X10 Y10', 'Z50',
     'G1 Z-2 F200', 'G0 Z50', 'MSG("op2")', 'M1', 'X20', 'G1 Z-2', 'G0 Z50',
     'M1', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G54 A=ACP(90)', 'MSG("op3")', 'X30 Y10', 'Z50', 'G1 Z-2', 'G0 Z50',
     'M1', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'A=ACP(135)', 'MSG("op4")', 'X40 Y10', 'Z50', 'G1 Z-2', 'G0 Z50',
     'M9', 'M5', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'M1', ';', 'G17 G40 G64 G90', 'T2', 'M06', 'D1', 'MSG("op5")',
-    'G0 G17 G90 G54 M8 M3 S3000', 'G04 F6.3', 'X10 Y0', 'Z40', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G0 A=ACP(225)',
+    'G0 G17 G90 G54 M8 M3 S3000', 'X10 Y0', 'Z40', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'G0 A=ACP(225)',
     'X10 Y0', 'Z40', 'Z25', 'G1 G93 X20 A=ACP(255) F18.212', 'G0 Z50', 'G94 F300',
     'MSG("op6")', 'M1', 'X50 Y10', 'G1 Z-2 F200', 'G0 Z50', 'M9', 'M5', 'G75 Z1=0.', 'G75 Y1=0 X1=0', 'M30',
 ]
@@ -391,12 +393,12 @@ DEFAULT_NC = [
 OPTION_OFF_EDITS = {
     'bHomebegin': [('delete', 0, 2, [])],
     'bHometc': [('delete', 42, 44, [])],
-    'bHomeend': [('delete', 71, 73, [])],
-    'bHomerotv': [('delete', 9, 11, [])],
+    'bHomeend': [('delete', 70, 72, [])],
+    'bHomerotv': [('delete', 10, 12, [])],
     # No homing before the A turn: no X/Y/Z reprogramming after it either.
-    'bHomeroth': [('delete', 55, 57, []), ('delete', 58, 60, [])],
+    'bHomeroth': [('delete', 54, 56, []), ('delete', 57, 59, [])],
     'bOptstptc': [('delete', 44, 45, [])],
-    'bOptstpjob': [('delete', 18, 19, []), ('delete', 65, 66, [])],
+    'bOptstpjob': [('delete', 18, 19, []), ('delete', 64, 65, [])],
     # Without the index M1 the boundary has no stop yet: the job M1 follows the next MSG.
     'bOptstpindex': [('delete', 22, 23, []), ('insert', 27, 27, ['M1']),
                      ('delete', 31, 32, []), ('insert', 36, 36, ['M1'])],

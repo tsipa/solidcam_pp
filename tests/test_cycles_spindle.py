@@ -331,26 +331,31 @@ def check_spindle_start(tc, source=None):
 
 
 def check_spindle_acceleration_dwell(tc, source=None):
-    """A speed change above one second of ramp gets a dwell of at least dS/spindle_accel.
+    """With bSpinDwell a speed change above one second of ramp gets a dwell of at least
+    dS/spindle_accel; without it (the default) no speed change gets a dwell.
 
     spindle_accel is the post's declared acceleration (@init_post 'spindle_accel =
-    500 ; rpm/s'). Whether the 828D needs a dwell at all depends on MD35500
-    (tc-03/tc-09 corrections); the oracle is the ramp time at the declared value.
+    500 ; rpm/s'); the oracle is the ramp time at the declared value. The default
+    relies on the control: MD35500 SPIND_ON_SPEED_AT_IPO_START = 2 holds the next
+    G1/G2/G3 until the spindle is at speed (machine archive; G1 waiting checked on
+    the machine 2026-10-27).
     """
     for previous, target in ((0, 1000), (900, 1000), (8000, 3000)):
-        session = Session(source=source)
-        if previous:
-            session.ev('start_tool', tool_direction='cw', spin=previous)
-            text = session.ev('m_feed_spin', ('spin',), spin=target)
-        else:
-            text = session.ev('start_tool', tool_direction='cw', spin=target)
-        accel = session.state['spindle_accel']
-        dwell = dwell_seconds(parse_blocks(text))
-        where = f'S{previous} -> S{target} at {accel} rpm/s: {text!r}'
-        if abs(target - previous) > accel:
-            tc.assertGreaterEqual(dwell, abs(target - previous) / accel, where)   # INDEPENDENT: ramp time
-        else:
-            tc.assertEqual(dwell, 0, where)          # CHARACTERIZATION: no dwell below 1 s of ramp
+        for dwell_option in (True, False):
+            session = Session(source=source, options=dict(bSpinDwell=dwell_option))
+            if previous:
+                session.ev('start_tool', tool_direction='cw', spin=previous)
+                text = session.ev('m_feed_spin', ('spin',), spin=target)
+            else:
+                text = session.ev('start_tool', tool_direction='cw', spin=target)
+            accel = session.state['spindle_accel']
+            dwell = dwell_seconds(parse_blocks(text))
+            where = f'S{previous} -> S{target} at {accel} rpm/s, bSpinDwell {dwell_option}: {text!r}'
+            if dwell_option and abs(target - previous) > accel:
+                tc.assertGreaterEqual(dwell, abs(target - previous) / accel, where)   # INDEPENDENT: ramp time
+            else:
+                # CHARACTERIZATION: no dwell below 1 s of ramp; none at all without bSpinDwell
+                tc.assertEqual(dwell, 0, where)
 
 
 # --------------------------------------------------------------------------- tests
@@ -597,10 +602,11 @@ class SpindleTests(unittest.TestCase):
     def test_spindle_acceleration_dwell(self):
         """INDEPENDENT: ramp time = dS / spindle_accel; CHARACTERIZATION: no dwell below 1 s.
 
-        S0->S1000 and S8000->S3000 at the post's declared spindle_accel (@init_post,
-        500 rpm/s) need a G4 of at least 2 s and 10 s; S900->S1000 gets none (PP
-        threshold: one second of ramp). Whether the 828D needs a dwell at all is an
-        MD35500 question (tc-03/tc-09 corrections).
+        With bSpinDwell, S0->S1000 and S8000->S3000 at the post's declared spindle_accel
+        (@init_post, 500 rpm/s) need a G4 of at least 2 s and 10 s; S900->S1000 gets none
+        (PP threshold: one second of ramp). Without it (the default) none of them gets a
+        G4: MD35500 = 2 on this 828D holds the next feed block until the spindle is at
+        speed (checked on the machine 2026-10-27).
         """
         check_spindle_acceleration_dwell(self)
 
@@ -638,12 +644,12 @@ class SpindleTests(unittest.TestCase):
     def test_spindle_dwell_uses_configured_acceleration(self):
         """INDEPENDENT: ramp time = dS / acceleration, with the post's own spindle_accel.
 
-        With spindle_accel = 250 rpm/s the first tool's start to S8000 needs at least
+        With bSpinDwell and spindle_accel = 250 rpm/s the first tool's start to S8000 needs at least
         8000/250 = 32 s; @usr_spindle_output gates the dwell with spindle_accel but
         computes it with the literal 500 (0.3 + 8000/500 = 16.3 s). Latent: the shipped
         spindle_accel is 500.
         """
-        session = Session(options=dict(spindle_accel=250))
+        session = Session(options=dict(spindle_accel=250, bSpinDwell=True))
         blocks = parse_blocks(session.first_tool(spin=8000, spin_rate=8000))
         speed = index_of(blocks, lambda b: b.get('S') == 8000)
         self.assertNotEqual(speed, -1, [b.raw for b in blocks])
@@ -686,7 +692,10 @@ MUTATIONS = (
     ('m_feed_spin_skips_the_direction', 'spindle_start',
      '    ; Spindle speed change within a job.\n    call @usr_spindle_dir\n', '    ; Spindle speed change within a job.\n', 1),
     ('spindle_dwell_threshold_inverted', 'spindle_acceleration_dwell',
-     '    if sdiff > spindle_accel\n', '    if sdiff < spindle_accel\n', 1),
+     '    if bSpinDwell and sdiff > spindle_accel\n', '    if bSpinDwell and sdiff < spindle_accel\n', 1),
+    ('spindle_dwell_ignores_the_option', 'spindle_acceleration_dwell',
+     '    if bSpinDwell and sdiff > spindle_accel\n', '    if sdiff > spindle_accel\n', 1),
+    ('spindle_dwell_too_short', 'spindle_acceleration_dwell', '(0.3+(sdiff/500))', '(0.3+(sdiff/5000))', 1),
 )
 
 

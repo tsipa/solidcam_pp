@@ -28,7 +28,6 @@ from program_session import Program, post_abort_error, require_nc_stream, script
 from support import (Segment, Session, assert_detected, covers, g_function_whitelist, index_of, known_defect,
                      last_index_of, mutate, parse_blocks)
 
-SPINDLE_ACCEL_DOC = 500   # @init_post: spindle_accel = 500 ; rpm/s
 NO_COOLANT = dict(flood_coolant=0, Mist_coolant=0, HP_Flood_coolant=0, LP_Flood_coolant=0,
                   through_ival_coolant=0, through_coolant_val=0, LP_Through_coolant=0,
                   Air_Blast_coolant=0, air_through_coolant=0)
@@ -36,7 +35,10 @@ TC_HOMING_CALL = "        else\n            sHomestr = sHomestrtc\n"
 INDEX_HOMING = "            sHomestr = sHomestrrotv\n        endif\n        call @usr_prep_home_axis\n    endif\n"
 INDEX_NO_HOMING = "            sHomestr = sHomestrrotv\n        endif\n    endif\n"
 START_TOOL_AFTER_TC = '        skipline = false\n        call @start_tool\n    endif\nendp\n'
-HSM_STOP = 'POST ERROR: G187 smoothing (job parameters iG187_P, nG187_E) is not supported. Set both to 0.'
+CYCLE832_OFF_STOP = ('POST ERROR: CYCLE832 is switched off (bCycle832): set the job parameters iG187_P and '
+                     'nG187_E to 0.')
+CYCLE832_RANGE_STOP = ('POST ERROR: Job parameters: iG187_P -1 (no CYCLE832), 0 (by allowance), 1 (rough), '
+                       '2 (semi), 3 (finish); nG187_E 0 or 0.001-0.2 mm.')
 
 
 def listing(blocks):
@@ -202,14 +204,14 @@ class ToolChangeSafetyTests(unittest.TestCase):
             # this PP's order (CHARACTERIZATION).
             self.assertEqual(sorted(state.coolant), [8], f'flood coolant not on at the {label}:\n{seg.shown}')
         # CHARACTERIZATION (tc-14): stop-then-retract and M1 between M5 and M06 are
-        # this PP's order (retract-then-stop would be equally safe); the ramp dwell
-        # is the PP's own spindle_accel policy (500 rpm/s), not machine physics.
+        # this PP's order (retract-then-stop would be equally safe). No ramp dwell by
+        # default (bSpinDwell): MD35500 = 2 holds the first cut until the spindle is at
+        # speed, so the approach rapids run during the ramp.
         m5, m9, m1 = seg.find(m_code(5)), seg.find(m_code(9)), seg.find(m_code(1))
         self.assertTrue(0 <= m9 < home and 0 <= m5 < home, f'M9/M5 must precede the retract:\n{seg.shown}')
         self.assertTrue(m5 < m1 < m06, f'M01 (bOptstptc) must be between M5 and M06:\n{seg.shown}')
         speed = seg.find(lambda b: b.has('S', 3000), m06)
-        self.assertGreaterEqual(seg.dwell(speed, approach), 3000 / SPINDLE_ACCEL_DOC,
-                                f'spindle ramp dwell missing:\n{seg.shown}')
+        self.assertEqual(seg.dwell(speed, cut), 0, f'G4 before the first cut without bSpinDwell:\n{seg.shown}')
 
     def test_next_tool_change_stops_retracts_then_changes_then_restarts(self):
         """INDEPENDENT: tool-change safety (retract Z, change, restart) on the replayed modal state.
@@ -220,8 +222,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
         (option docs bSpinofftc/bCoolofftc); S3000 and M3 are in effect at the
         first Z approach and at the first cut, the requested flood M8 at the
         first cut. CHARACTERIZATION (tc-14): M5/M9 before G75 Z, M1 between M5
-        and M06, M8 already at the Z approach and the S/500 s ramp dwell (the
-        PP's spindle_accel policy).
+        and M06, M8 already at the Z approach, and no ramp dwell (bSpinDwell off:
+        the control holds the first cut, MD35500 = 2).
         """
         self.check_next_tool_change()
 
@@ -248,7 +250,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
             'preselect before M06': mutate("    {nb, 'T',tool_number,cTCcodes}\n    {nb, cTCcodep}",
                                            "    {nb, 'T',tool_number,cTCcodes}\n    {nb, 'T'next_tool_number' '}\n"
                                            "    {nb, cTCcodep}"),
-            'short ramp dwell': mutate('(0.3+(sdiff/500))', '(0.3+(sdiff/5000))'),
+            'ramp dwell without bSpinDwell': mutate('    if bSpinDwell and sdiff > spindle_accel\n',
+                                                    '    if sdiff > spindle_accel\n'),
         }
         for label, source in sources.items():
             with self.subTest(mutant=label):
@@ -276,9 +279,9 @@ class ToolChangeSafetyTests(unittest.TestCase):
         self.assertGreater(approach, m06, f'no Z approach after M06:\n{seg.shown}')
         state = seg.states[approach]
         self.assertEqual((state.spindle, state.speed), (3, 8000), f'spindle on at S8000 before the approach:\n{seg.shown}')
-        # CHARACTERIZATION: the PP's spindle_accel ramp policy (S/500 s).
+        # CHARACTERIZATION: no ramp dwell by default (bSpinDwell; MD35500 holds the first cut).
         speed = seg.find(lambda b: b.has('S', 8000), m06)
-        self.assertGreaterEqual(seg.dwell(speed, approach), 8000 / SPINDLE_ACCEL_DOC, f'ramp dwell missing:\n{seg.shown}')
+        self.assertEqual(seg.dwell(speed, seg.first_feed(m06)), 0, f'G4 without bSpinDwell:\n{seg.shown}')
 
     def test_first_tool_change_is_preceded_by_program_start_retract(self):
         """INDEPENDENT: program start safety and the first tool load.
@@ -286,8 +289,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
         The program-start G75 Z precedes T1/M06 and nothing moves before M06;
         T1 is in effect at M06; D1 and the T2 preselection follow; the first A
         output is DC (ab853be: the A position is unknown at program start);
-        spindle M3 at S8000 is on before the first Z approach. The S/500 s dwell
-        is a CHARACTERIZATION of the PP's spindle_accel policy.
+        spindle M3 at S8000 is on before the first Z approach. No G4 before the
+        first cut (CHARACTERIZATION: bSpinDwell off, MD35500 = 2 holds the cut).
         """
         self.check_first_tool_change()
 
@@ -514,8 +517,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
         """INDEPENDENT: wrong flag value, a skipped channel, a wrong pressure code or no coolant fail."""
         sources = {
             'air blast flag value': mutate('    if Air_Blast_coolant eq 1\n', '    if Air_Blast_coolant eq 2\n'),
-            'channel 7 never written': mutate("    if change(iCoolantM7)\n        {nb,['M'iCoolantM7:mcode_f' ']}\n",
-                                              "    if false\n        {nb,['M'iCoolantM7:mcode_f' ']}\n"),
+            'channel 7 never written': mutate("    if change(iCoolantM7)\n        call @usr_coolant_code(iCoolantM7, 7)\n",
+                                              "    if false\n        call @usr_coolant_code(iCoolantM7, 7)\n"),
             '40 bar code': mutate('            iCoolantM5ON = 71\n', '            iCoolantM5ON = 72\n'),
             'no coolant after M06': mutate("        if bCoolExist\n            skipline = false\n"
                                            "            call @usr_coolant\n",
@@ -714,25 +717,42 @@ class ToolChangeDefectTests(unittest.TestCase):
                                  f'{changes[0][first or 0:]} vs {changes[1][first or 0:]}')
 
     @covers('PP-012')
-    def test_hsm_job_parameters_stop_the_post(self):
-        """INDEPENDENT: the 828D G-function set of vericut/sin840d_special.ctl has no G187
-        (the 828D smooths with CYCLE832). A job with the VMID smoothing parameters set
-        (iG187_P=1, nG187_E=0.05) must stop the post with a POST ERROR and write no G187;
-        only the VMID default values (both 0) post: P 2, the template default, stops too
-        (owner rule 2026-10-28). Regression guard of PP-012."""
+    def test_hsm_job_parameters_select_cycle832_or_stop(self):
+        """INDEPENDENT: the 828D G-function set of vericut/sin840d_special.ctl has no G187; the
+        828D smooths with CYCLE832 (828D Operating Manual 07/2021, High Speed Settings). The VMID
+        smoothing parameters of the template choose the CYCLE832 machining type (iG187_P 1 / 2 / 3
+        = roughing / semi-finishing / finishing, machining types 3 / 2 / 1) and nG187_E its
+        tolerance, up to 0.2 mm (the machine rounds G0 corners by 10 times the tolerance,
+        $SCS_MILL_TOL_FACTOR_*); values outside that range, and any value with bCycle832 off, stop
+        the post with a POST ERROR. No G187 is ever written. Regression guard of PP-012 (owner 2026-10-27:
+        CYCLE832 by the wall allowance, the job parameters override it)."""
         require_nc_stream()
-        for values in (dict(iG187_P=1, nG187_E=0.05), dict(iG187_P=0, nG187_E=0.01), dict(iG187_P=3, nG187_E=0),
-                       dict(iG187_P=2, nG187_E=0)):
-            program = Program(cam=values, policies=scripted_input_policies())
-            with self.assertRaises(post_abort_error(), msg=str(values)):
+        for options, values, stop in (
+                ({}, dict(iG187_P=4), CYCLE832_RANGE_STOP), ({}, dict(iG187_P=-2), CYCLE832_RANGE_STOP),
+                ({}, dict(nG187_E=0.201), CYCLE832_RANGE_STOP), ({}, dict(nG187_E=0.0005), CYCLE832_RANGE_STOP),
+                ({}, dict(nG187_E=-0.01), CYCLE832_RANGE_STOP),
+                ({}, dict(iG187_P=-1, nG187_E=0.01), CYCLE832_RANGE_STOP),
+                (dict(bCycle832=False), dict(iG187_P=1), CYCLE832_OFF_STOP),
+                (dict(bCycle832=False), dict(nG187_E=0.05), CYCLE832_OFF_STOP)):
+            with self.subTest(options=options, values=values):
+                program = Program(options=options, cam=values, policies=scripted_input_policies())
+                with self.assertRaises(post_abort_error()):
+                    program.start()
+                nc = program.nc()
+                self.assertEqual(nc[-1], stop)
+                self.assertFalse([line for line in nc[:-1] if 'G187' in line or 'CYCLE832' in line], nc)
+        for values, call in ((dict(iG187_P=1), 'CYCLE832(0.1,3,1)'), (dict(iG187_P=2), 'CYCLE832(0.05,2,1)'),
+                             (dict(iG187_P=3), 'CYCLE832(0.01,1,1)'),
+                             (dict(iG187_P=1, nG187_E=0.05), 'CYCLE832(0.05,3,1)'),
+                             (dict(iG187_P=1, nG187_E=0.2), 'CYCLE832(0.2,3,1)'),
+                             (dict(iG187_P=3, nG187_E=0.001), 'CYCLE832(0.001,1,1)'),
+                             (dict(iG187_P=0, nG187_E=0), None), (dict(iG187_P=-1), None)):
+            with self.subTest(values=values):
+                program = Program(cam=values)
                 program.start()
-            nc = program.nc()
-            self.assertEqual(nc[-1], HSM_STOP, values)
-            self.assertFalse([line for line in nc[:-1] if 'G187' in line], nc)
-        values = dict(iG187_P=0, nG187_E=0)
-        program = Program(cam=values, policies=scripted_input_policies())
-        program.start()
-        self.assertFalse([line for line in program.nc() if 'G187' in line or 'POST ERROR' in line], values)
+                nc = program.nc()
+                self.assertEqual([line for line in nc if 'CYCLE832' in line], [call] if call else [], nc)
+                self.assertFalse([line for line in nc if 'G187' in line or 'POST ERROR' in line], nc)
 
     @covers('PP-008')
     def test_through_coolant_pressure_codes_pin(self):

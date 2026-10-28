@@ -16,12 +16,25 @@
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
     global numeric nRapidfeed nMaxInverseFeed iR1dir iR2dir spindle_accel
     global string nR1pos_f nInvFeed_f
+    global logical bCycle832 bSpinDwell
+    global numeric nCycle832RoughAllow nCycle832TolRough nCycle832TolSemi nCycle832TolFinish
+    global string nCycle832Tol_f
     ; Modal state of the NC program (what the control has active). iDiametercomp is the G40/G41/G42
     ; CAM asks for, printed on the next G0/G1 block; iCompActive is what the control has active.
     global integer iMotionmode iMplane iAbsincmode iWorkoffset iPworkoffset iDiametercomp iCompActive
     global integer iFeedMode iSpindleDir
     global integer iCoolantM1 iCoolantM2 iCoolantM3 iCoolantM4 iCoolantM5 iCoolantM6 iCoolantM7 iCoolantM8
     global numeric last_spin
+    ; CYCLE832 the control has selected (usr_smoothing): the machining type (0 = deselected, the
+    ; reset settings of the control) and the tolerance of that call.
+    global integer iCycle832Mode
+    global numeric nCycle832Tol
+    ; CYCLE832 the cut asks for (usr_smoothing_set), selected when cutter compensation is off
+    ; (usr_smoothing_apply); the type of the job's allowance, and bCycle832Auto when the finishing
+    ; passes of the job switch the type (usr_smoothing_feed).
+    global integer iCycle832Want iCycle832Job
+    global numeric nCycle832WantTol
+    global logical bCycle832Auto
     ; Tool change and job start
     global logical bTlchg bSafetyprep bStopM00difftool bskipline bFirstMove bFirstRapid
     ; bBoundaryStop: an M0/M1 was printed since the last end_of_job (usr_optionalstop, usr_forcedstop);
@@ -85,6 +98,7 @@
     apos_f          = '5.3'
     feed_f          = '4.4(P)'
     nInvFeed_f      = '5.3'
+    nCycle832Tol_f  = '5.4'
     blknum_f        = '5.0(p)'
     blknum_gen      = true
     call @usr_ip_useroptions
@@ -117,6 +131,9 @@ endp
     bCooloffend           = true               ; True = coolant off at each tool change and at the program end
     bSpinoffend           = true               ; True = spindle off at each tool change and at the program end
     bCoolspinaftertc      = false              ; True = spindle and coolant blocks right after the tool change
+    bSpinDwell            = false              ; True = G04 after a speed change of more than spindle_accel rpm (0.3 s + 1 s
+                                               ; per 500 rpm). False: the control holds the next G1/G2/G3 until the spindle
+                                               ; is at speed (MD35500 SPIND_ON_SPEED_AT_IPO_START 2 on this machine)
     iCoolantM1ON          = 8                  ; Code: Flood Coolant ON
     iCoolantM1OFF         = 9                  ; Code: Flood Coolant OFF
     iCoolantM2ON          = 7                  ; Code: Mist Coolant ON
@@ -151,6 +168,15 @@ endp
     blknum                = 200                ; First block number
     blknum_delta          = 10                 ; Block number step
     blknum_max            = 99999              ; Largest block number
+
+    ;High Speed Settings: CYCLE832 per operation (usr_smoothing; 828D option Top Surface). The job
+    ;parameter iG187_P chooses the machining type: 0 = by the wall allowance, 1 = roughing,
+    ;2 = semi-finishing, 3 = finishing, -1 = no CYCLE832; nG187_E > 0 replaces the tolerance (mm).
+    bCycle832             = TRUE               ; True = CYCLE832 per operation; False = none (iG187_P and nG187_E must be 0)
+    nCycle832RoughAllow   = 0.1                ; Wall allowance (mm) from which iG187_P 0 is roughing (0 = finishing, between = semi)
+    nCycle832TolRough     = 0.1                ; Contour tolerance (mm) of roughing
+    nCycle832TolSemi      = 0.05               ; Contour tolerance (mm) of semi-finishing
+    nCycle832TolFinish    = 0.01               ; Contour tolerance (mm) of finishing
 
     ;Homing: one NC line per '8:prefix:line' entry, entries separated by ';', output in order
     ;(usr_prep_home_axis). 8 is the only mode (the line as given); prefix is usually empty. The
@@ -370,6 +396,17 @@ endp
     iCoolantM6      = iCoolantM6OFF
     iCoolantM7      = iCoolantM7OFF
     iCoolantM8      = iCoolantM8OFF
+    ; The control starts with every coolant off. The eight assignments above flag every channel:
+    ; kept, the first operation printed an OFF code for each (M9 eight times; after its M8 too,
+    ; which switched the flood off again) unless SolidCAM clears a flag on an equal assignment.
+    change(iCoolantM1) = false
+    change(iCoolantM2) = false
+    change(iCoolantM3) = false
+    change(iCoolantM4) = false
+    change(iCoolantM5) = false
+    change(iCoolantM6) = false
+    change(iCoolantM7) = false
+    change(iCoolantM8) = false
     bTmatrixIndexPending = false
     bIndexClearancePending = true
     bCamLinkRetract = false
@@ -402,6 +439,13 @@ endp
     bFirstVert      = true
     bBoundaryStop   = false
     bStopSinceMotion = false
+    ; No CYCLE832 yet: the control has its reset settings, as in a program without one.
+    iCycle832Mode   = 0
+    nCycle832Tol    = 0
+    iCycle832Want   = 0
+    nCycle832WantTol = 0
+    iCycle832Job    = 0
+    bCycle832Auto   = false
 endp
 
 ;-------------------
@@ -540,7 +584,7 @@ endp
 ;-------------------
 
 @end_program
-    ; End of program: coolant and spindle off, homing (bHomeend), optional stop, M30 (or M2).
+    ; End of program: coolant and spindle off, homing (bHomeend), optional stop, CYCLE832 off, M30 (or M2).
     if bCooloffend and bCoolExist
         call @usr_coolant_prep_all_off
         call @usr_coolant_output
@@ -554,6 +598,10 @@ endp
     endif
     if bOptstpend
         call @usr_optionalstop
+    endif
+    if iCycle832Mode ne 0
+        ; M30 resets the G groups too (machine data); M2 or a reset that keeps them would not.
+        call @usr_smoothing_off
     endif
     if bToolChangeAtEnd
         {nb,cTCcodep'T'next_tool_number' 'cTCcodes}
@@ -679,7 +727,8 @@ endp
 endp
 
 @usr_ct_before_notfirsttool
-    ; Before a tool change after the first: coolant and spindle off, home (bHometc), optional stop, safety block.
+    ; Before a tool change after the first: coolant and spindle off, home (bHometc), optional stop,
+    ; CYCLE832 off, safety block.
     ; bStopM00difftool is always false here (PP-056: end_of_job clears it in the same event), so the
     ; G75 retract before M06 runs whenever bHometc is set.
     local numeric dummy_var
@@ -717,11 +766,21 @@ endp
     if bTcseperation
         {nl}
     endif
+    if iCycle832Mode ne 0
+        ; M06 and the safety block run in the reset settings of the control; the next operation
+        ; selects its own after M06 (usr_smoothing).
+        call @usr_smoothing_off
+    endif
     call @usr_ct_safety_block
 endp
 
 @usr_ct_before_firsttool
-    ; Before the first tool change: the safety block.
+    ; Before the first tool change: coolant off as before every tool change (bCooloffend; the control
+    ; may still have it on from an earlier program), then the safety block.
+    if bCooloffend and bCoolExist
+        call @usr_coolant_prep_all_off
+        call @usr_coolant_output
+    endif
     call @usr_ct_safety_block
 endp
 
@@ -962,42 +1021,76 @@ endp
 endp
 
 @usr_coolant_output
-    ; One M code per coolant channel whose state changed (bskipline joins them to the current line).
+    ; One M code per coolant channel whose state changed (bskipline joins them to the current line),
+    ; each code once (usr_coolant_code: every OFF code is M9). The change flags mark the channels of
+    ; this call until its end: usr_coolant_code prints a copy of the code, which leaves them set.
     if change(iCoolantM1)
-        {nb,['M'iCoolantM1:mcode_f' ']}
-        skipline = bskipline
+        call @usr_coolant_code(iCoolantM1, 1)
     endif
     if change(iCoolantM2)
-        {nb,['M'iCoolantM2:mcode_f' ']}
-        skipline = bskipline
+        call @usr_coolant_code(iCoolantM2, 2)
     endif
     if change(iCoolantM3)
-        {nb,['M'iCoolantM3:mcode_f' ']}
-        skipline = bskipline
+        call @usr_coolant_code(iCoolantM3, 3)
     endif
     if change(iCoolantM4)
-        {nb,['M'iCoolantM4:mcode_f' ']}
-        skipline = bskipline
+        call @usr_coolant_code(iCoolantM4, 4)
     endif
     if change(iCoolantM5)
-        {nb,['M'iCoolantM5:mcode_f' ']}
-        skipline = bskipline
+        call @usr_coolant_code(iCoolantM5, 5)
     endif
     if change(iCoolantM6)
-        {nb,['M'iCoolantM6:mcode_f' ']}
-        skipline = bskipline
+        call @usr_coolant_code(iCoolantM6, 6)
     endif
     if change(iCoolantM7)
-        {nb,['M'iCoolantM7:mcode_f' ']}
-        skipline = bskipline
+        call @usr_coolant_code(iCoolantM7, 7)
     endif
     if change(iCoolantM8)
-        {nb,['M'iCoolantM8:mcode_f' ']}
-        skipline = bskipline
+        call @usr_coolant_code(iCoolantM8, 8)
     endif
+    change(iCoolantM1) = false
+    change(iCoolantM2) = false
+    change(iCoolantM3) = false
+    change(iCoolantM4) = false
+    change(iCoolantM5) = false
+    change(iCoolantM6) = false
+    change(iCoolantM7) = false
+    change(iCoolantM8) = false
     ; The next block starts a new line unless the caller sets skipline = false again (usr_ct_after).
     ; (The template tested 'any coolant flag not set' here, always true: the output above cleared them.)
     skipline = TRUE
+endp
+
+@usr_coolant_code(integer iCode, integer iChannel)
+    ; M<iCode> for coolant channel iChannel of usr_coolant_output, unless an earlier channel of the
+    ; same call has the same code (every OFF code is M9: channels switched off together print one).
+    local logical bRepeat
+    bRepeat = false
+    if iChannel > 1 and change(iCoolantM1) and iCoolantM1 eq iCode
+        bRepeat = true
+    endif
+    if iChannel > 2 and change(iCoolantM2) and iCoolantM2 eq iCode
+        bRepeat = true
+    endif
+    if iChannel > 3 and change(iCoolantM3) and iCoolantM3 eq iCode
+        bRepeat = true
+    endif
+    if iChannel > 4 and change(iCoolantM4) and iCoolantM4 eq iCode
+        bRepeat = true
+    endif
+    if iChannel > 5 and change(iCoolantM5) and iCoolantM5 eq iCode
+        bRepeat = true
+    endif
+    if iChannel > 6 and change(iCoolantM6) and iCoolantM6 eq iCode
+        bRepeat = true
+    endif
+    if iChannel > 7 and change(iCoolantM7) and iCoolantM7 eq iCode
+        bRepeat = true
+    endif
+    if !bRepeat
+        {nb,'M'iCode:mcode_f' '}
+        skipline = bskipline
+    endif
 endp
 
 @usr_coolant_prep_all_off
@@ -1023,15 +1116,139 @@ endp
 endp
 
 @usr_check_smoothing
-    ; The job parameters iG187_P / nG187_E (VMID) are the Fanuc/Haas G187 smoothing of the template;
-    ; the 828D has no G187 (it uses CYCLE832). 0 (the VMID default) means not set; any other value stops.
+    ; Stop on job parameters iG187_P / nG187_E (VMID) that usr_smoothing cannot follow: any non-zero
+    ; value with bCycle832 false; P outside -1 to 3; E below 0, above 0.2 mm, between 0 and 0.001 mm,
+    ; or set with P -1. The control rounds G0 corners by $SCS_MILL_TOL_FACTOR_* (10 here) times the
+    ; tolerance: 2 mm at 0.2 mm.
     local numeric dummy_var
-    if iG187_P ne 0 or nG187_E ne 0
+    if !bCycle832 and (iG187_P ne 0 or nG187_E ne 0)
         dummy_var = 0
-        input '"POST ERROR: G187 smoothing (job parameters iG187_P, nG187_E) is not supported. Set both to 0."'dummy_var
-        {nb,"POST ERROR: G187 smoothing (job parameters iG187_P, nG187_E) is not supported. Set both to 0."}
+        input '"POST ERROR: CYCLE832 is switched off (bCycle832): set the job parameters iG187_P and nG187_E to 0."'dummy_var
+        {nb,"POST ERROR: CYCLE832 is switched off (bCycle832): set the job parameters iG187_P and nG187_E to 0."}
         abort
     endif
+    if iG187_P < -1 or iG187_P > 3 or nG187_E < 0 or nG187_E > 0.2 or (nG187_E > 0 and nG187_E < 0.001) or (iG187_P eq -1 and nG187_E ne 0)
+        dummy_var = 0
+        input '"POST ERROR: Job parameters: iG187_P -1 (no CYCLE832), 0 (by allowance), 1 (rough), 2 (semi), 3 (finish); nG187_E 0 or 0.001-0.2 mm."'dummy_var
+        {nb,"POST ERROR: Job parameters: iG187_P -1 (no CYCLE832), 0 (by allowance), 1 (rough), 2 (semi), 3 (finish); nG187_E 0 or 0.001-0.2 mm."}
+        abort
+    endif
+endp
+
+@usr_smoothing
+    ; CYCLE832 High Speed Settings of the operation, at the job start after the tool change (or the
+    ; job comment of the same tool) and before the first move: CYCLE832(tolerance, type, 1) with
+    ; type 3 roughing / 2 semi-finishing / 1 finishing and the tolerance nCycle832TolRough / Semi /
+    ; Finish. The job parameter iG187_P (the Haas G187 P of the template) chooses the type: 1 / 2 / 3.
+    ; With iG187_P 0 the wall allowance does (wall_offset; on a 3D profile the smaller of wall_offset
+    ; and floor_offset, as its path also moves in Z): roughing from nCycle832RoughAllow, semi-
+    ; finishing from nCycle832TolSemi, finishing below, so the tolerance stays within the allowance;
+    ; the finishing passes of the job switch to finishing (usr_smoothing_feed). nG187_E > 0 replaces
+    ; the tolerance. No CYCLE832 (deselected when active) with iG187_P -1, with iG187_P 0 on a
+    ; simultaneous 4x/5x job (X5_job) or a drilling job, and with bCycle832 false. Printed when the
+    ; type or the tolerance changes, not with cutter compensation on (usr_smoothing_apply); a tool
+    ; change, a drilling cycle and the program end deselect it.
+    ; Machine 2026-10-27: CYCLE832 selects G645, SOFT, COMPSURF and DYNROUGH / DYNSEMIFIN /
+    ; DYNFINISH; CYCLE832(0,0,1) returns to G64, SOFT, COMPOF, DYNNORM.
+    local integer iMode
+    local numeric nAllow
+    call @usr_check_smoothing
+    iMode = 0
+    bCycle832Auto = false
+    if bCycle832 and iG187_P eq 0 and !X5_job and instr(job_type,'drill') eq 0
+        bCycle832Auto = true
+        nAllow = wall_offset
+        if job_type eq 'profile_3D' and floor_offset < nAllow
+            nAllow = floor_offset
+        endif
+        iMode = 1
+        if nAllow >= nCycle832TolSemi
+            iMode = 2
+        endif
+        if nAllow >= nCycle832RoughAllow and nAllow >= nCycle832TolRough
+            iMode = 3
+        endif
+    endif
+    if bCycle832 and iG187_P eq 1
+        iMode = 3
+    endif
+    if bCycle832 and iG187_P eq 2
+        iMode = 2
+    endif
+    if bCycle832 and iG187_P eq 3
+        iMode = 1
+    endif
+    iCycle832Job = iMode
+    call @usr_smoothing_set(iMode)
+    call @usr_smoothing_apply
+endp
+
+@usr_smoothing_feed
+    ; Feed move of a job with the type by allowance (bCycle832Auto): its finishing passes (feed_type
+    ; finish_feed or finish_feed_floor) take finishing, its cutting feed (feed_rate) the type of the
+    ; allowance again; plunges and links keep the type. Reference trace 2026-10-27: SolidCAM pockets
+    ; give the roughing allowance as wall_offset and finish walls and floor at its end (8 of 31
+    ; operations), which would cut the final walls in the roughing tolerance.
+    if bCycle832Auto
+        if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor'
+            call @usr_smoothing_set(1)
+        endif
+        if feed_type eq 'feed_rate'
+            call @usr_smoothing_set(iCycle832Job)
+        endif
+    endif
+    call @usr_smoothing_apply
+endp
+
+@usr_smoothing_set(integer iMode)
+    ; The CYCLE832 type the cut asks for (0 = none) and its tolerance (nG187_E > 0 replaces it).
+    iCycle832Want = iMode
+    nCycle832WantTol = 0
+    if iMode eq 1
+        nCycle832WantTol = nCycle832TolFinish
+    endif
+    if iMode eq 2
+        nCycle832WantTol = nCycle832TolSemi
+    endif
+    if iMode eq 3
+        nCycle832WantTol = nCycle832TolRough
+    endif
+    if iMode ne 0 and nG187_E > 0
+        nCycle832WantTol = nG187_E
+    endif
+endp
+
+@usr_smoothing_apply
+    ; Select the CYCLE832 the cut asks for when it differs from the active one, on a line of its own
+    ; before the move. Not while cutter compensation is on at the control: the cycle's blocks without
+    ; motion count as empty blocks of TRC (MD20250 CUTCOM_MAXNUM_DUMMY_BLOCKS 5 here, alarm 10762
+    ; above), so it waits for the move after G40. A G41/G42 still to come is selected after it.
+    if iCycle832Want ne iCycle832Mode or nCycle832WantTol ne nCycle832Tol
+        if iCompActive ne 41 and iCompActive ne 42
+            skipline = true
+            if iCycle832Want eq 0
+                {nb,'CYCLE832(0,0,1)'}
+            else
+                {nb,'CYCLE832(',nCycle832WantTol:nCycle832Tol_f,',',iCycle832Want,',1)'}
+            endif
+            iCycle832Mode = iCycle832Want
+            nCycle832Tol = nCycle832WantTol
+            ; The next move programs G0/G1 again after the cycle call.
+            iMotionmode = 9999
+        endif
+    endif
+endp
+
+@usr_smoothing_off
+    ; Deselect CYCLE832 now (machining type 0): the control returns to the G groups of its reset
+    ; state. The cut asks for none until the next usr_smoothing_set.
+    iCycle832Want = 0
+    nCycle832WantTol = 0
+    skipline = true
+    {nb,'CYCLE832(0,0,1)'}
+    iCycle832Mode = 0
+    nCycle832Tol = 0
+    iMotionmode = 9999
 endp
 
 ;--------------------
@@ -1081,7 +1298,7 @@ endp
             call @rapid_move
         endif
     endif
-    call @usr_check_smoothing
+    call @usr_smoothing
     ; The job's Z approach is still to come: the first rapid that moves Z splits it from X/Y
     ; (usr_rapid_xy_then_z / usr_rapid_climb_then_xy) and clears bFirstMove; feed moves keep it.
     bFirstMove = true
@@ -1114,7 +1331,9 @@ endp
 ;-------------------
 
 @rapid_move
-    ; SolidCAM event: rapid move. All rapids go through usr_rapid.
+    ; SolidCAM event: rapid move. All rapids go through usr_rapid; a CYCLE832 that waited for G40
+    ; comes first (usr_smoothing_apply).
+    call @usr_smoothing_apply
     call @usr_rapid
 endp
 
@@ -1399,7 +1618,9 @@ endp
 ;-------------------
 
 @line
-    ; SolidCAM event: feed move. All feed moves go through usr_line.
+    ; SolidCAM event: feed move. All feed moves go through usr_line, after the CYCLE832 of the cut
+    ; (usr_smoothing_feed).
+    call @usr_smoothing_feed
     call @usr_line
 endp
 
@@ -1613,17 +1834,21 @@ endp
 
 ; -----------
 @arc
-    ; SolidCAM event: XY arc. All arcs go through usr_arc.
+    ; SolidCAM event: XY arc. All arcs go through usr_arc, after the CYCLE832 of the cut
+    ; (usr_smoothing_feed).
+    call @usr_smoothing_feed
     call @usr_arc
 endp
 
 @arc_yz
-    ; SolidCAM event: YZ arc (usr_arc).
+    ; SolidCAM event: YZ arc (usr_smoothing_feed, usr_arc).
+    call @usr_smoothing_feed
     call @usr_arc
 endp
 
 @arc_zx
-    ; SolidCAM event: ZX arc (usr_arc).
+    ; SolidCAM event: ZX arc (usr_smoothing_feed, usr_arc).
+    call @usr_smoothing_feed
     call @usr_arc
 endp
 
@@ -1932,6 +2157,12 @@ endp
     sdis = safety
     dp = drill_lower_z
 
+    ; Drilling cycles run in the reset settings of the control (usr_smoothing): the job asks for
+    ; none from here, also when its CYCLE832 still waits for G40.
+    call @usr_smoothing_set(0)
+    if iCycle832Mode ne 0
+        call @usr_smoothing_off
+    endif
     call @rapid_move
     if drill_type eq G81 then
         gcode = 81
@@ -2049,14 +2280,15 @@ endp
 endp
 
 @usr_spindle_output
-    ; S word, then a G04 dwell while the spindle reaches the new speed when the speed changes by more
-    ; than spindle_accel (rpm/s): 0.3 s plus 1 s per 500 rpm of change.
+    ; S word, then (bSpinDwell) a G04 dwell while the spindle reaches the new speed when the speed
+    ; changes by more than spindle_accel (rpm/s): 0.3 s plus 1 s per 500 rpm of change. Without it
+    ; the control holds the next feed block until the spindle is at speed (MD35500).
     {nb,'S'spin:integer_def_f ' '}
     ; Keep the integer sdiff and the literal 500: spindle_accel or a numeric would change the dwell if
     ; GPPL divides integers as integers (unverified).
     local integer sdiff
     sdiff = abs(last_spin-spin)
-    if sdiff > spindle_accel
+    if bSpinDwell and sdiff > spindle_accel
         {nb, 'G04 F', (0.3+(sdiff/500))}
         {nb}
     endif
@@ -2501,7 +2733,9 @@ endp
 endp
 
 @line_4x
-    ; SolidCAM event: 4x feed move (usr_line; the A direction comes from dir5a, bR1useDir5a).
+    ; SolidCAM event: 4x feed move (usr_smoothing_feed, usr_line; the A direction comes from dir5a,
+    ; bR1useDir5a).
+    call @usr_smoothing_feed
     bR1useDir5a = true
     call @usr_line
     bR1useDir5a = false
@@ -2531,7 +2765,9 @@ endp
 endp
 
 @line_5x
-    ; SolidCAM event: 5x feed move (usr_line; the A direction comes from dir5a, bR1useDir5a).
+    ; SolidCAM event: 5x feed move (usr_smoothing_feed, usr_line; the A direction comes from dir5a,
+    ; bR1useDir5a).
+    call @usr_smoothing_feed
     bR1useDir5a = true
     call @usr_line
     bR1useDir5a = false

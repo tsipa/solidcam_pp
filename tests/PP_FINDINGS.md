@@ -994,7 +994,7 @@ now a regression guard marked `@covers`.
 | [PP-002 [negative-mode]](#pp-002) | 3441c5f | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-003](#pp-003) | 5408e5c | `test_zx_arc_stops_the_post` | `tests/test_zx_arc_guard.py` |
 | [PP-007](#pp-007) | ca63502 | `test_move_4x_preserves_axial_x` | `tests/test_move_4x_axial_x.py` |
-| [PP-012](#pp-012) | c06b190 | `test_hsm_job_parameters_stop_the_post` | `tests/test_toolchange_session.py` |
+| [PP-012](#pp-012) | c06b190 | `test_hsm_job_parameters_select_cycle832_or_stop` | `tests/test_toolchange_session.py` |
 | [PP-013](#pp-013) | 49f8b80 | `test_same_tool_job_climbs_before_xy_traverse` | `tests/test_job_start_climb.py` |
 | [PP-019](#pp-019) | b999f65 | `test_compensation_off_before_retract_reaches_controller_before_next_tool_cuts`, `test_compensation_off_emitted_on_following_rapid`, `test_compensation_on_emitted_on_following_rapid` | `tests/test_cutter_compensation.py` |
 | [PP-020](#pp-020) | b999f65 | `test_compensation_not_activated_in_circular_block`, `test_compensation_not_deactivated_in_circular_block` | `tests/test_cutter_compensation.py` |
@@ -1093,7 +1093,7 @@ now a regression guard marked `@covers`.
 - Tests of the fix: tests/test_toolchange_session.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
-  - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_hsm_job_parameters_stop_the_post`
+  - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_hsm_job_parameters_select_cycle832_or_stop`
 
 ### PP-013
 
