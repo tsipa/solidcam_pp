@@ -68,6 +68,11 @@ EVENT_CONTRACTS = {
     'relative_mode': (), 'absolute_mode': (), 'rotate': (), 'mirror': (), 'job_plane': (),
     'chng_tool_cnext': (), 'rotary_info': (), 'tool_path_info': (), 'transform_info': (),
     'end_program': (), 'end_of_file': (),
+    # Motion events the 4x GPP stops on (@usr_unsupported_motion_event); names: SolidCAM GPPTool Help,
+    # via the GPPL IDE catalog. Their inputs are not read.
+    'drill4x_pnt': (), 'drill4x_cartesian': (), 'drill4x_polar': (), 'move4x_polar': (), 'line4x_polar': (),
+    'arc_4x_polar': (), 'arc4x_polar': (), 'move4x_cartesian': (), 'line4x_cartesian': (),
+    'arc_4x_cartesian': (), 'arc4x_cartesian': (), 'arc_5x': (),
 }
 LIFECYCLE = ('init_post', 'start_of_file', 'end_of_file')
 

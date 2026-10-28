@@ -6,13 +6,16 @@ programming, not a work offset. The SolidCAM GPP '!!open/copy/delete file!!' mul
 was never verified on this machine (owner decision 2026-10-27: remove it; the WORKPIECE header buffer
 of f004bdf uses the same directives for one balanced file and is not part of it). A post that meets such a
 setting or event must stop with a POST ERROR (GPPL: input prompts, abort ends generation), not write
-NC for another control.
+NC for another control. The same holds for SolidCAM motion events the post has no output for (4x
+polar/Cartesian motion, 4x drill, 5x arcs): SolidCAM skips an event the post does not define (the
+reference trace tests/fixtures/reference_multijob.trace.txt.xz has (0)@vmid_info and (0)@setup, which
+have no procedure, and posting went on), so without a procedure the motion would be dropped silently.
 """
 import re
 import unittest
 
 from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
-from support import covers
+from support import Session, covers
 from support.session import HEADER_DEFAULTS
 from test_offline import PP
 
@@ -21,6 +24,9 @@ INDEX_STOP = 'POST ERROR: i4xIndexMode must be 0 or 1.'
 FEED_MODE_STOP = 'POST ERROR: i4xFeedMode must be 0 or 1.'
 CLEARANCE_STOP = 'POST ERROR: i4xIndexClearanceMode must be 0, 1 or 2.'
 EVENT_STOP = 'POST ERROR: SolidCAM subprograms, loops and reference point changes are not supported by this post.'
+MOTION_STOP = 'POST ERROR: SolidCAM 4x polar/Cartesian, 4x drill and 5x face arc events are not supported by this post.'
+MOTION_EVENTS = ('drill4x_pnt', 'drill4x_cartesian', 'drill4x_polar', 'move4x_polar', 'line4x_polar', 'arc_4x_polar',
+                 'arc4x_polar', 'move4x_cartesian', 'line4x_cartesian', 'arc_4x_cartesian', 'arc4x_cartesian', 'arc_5x')
 
 
 def stopped_with(test, program, event, **values):
@@ -131,6 +137,21 @@ class UnsupportedEventTests(unittest.TestCase):
                 self.assertEqual(nc[-1], EVENT_STOP)
                 fanuc = [line for line in nc if re.search(r'\bM9[89]\b|\bG10\b|\bG65|WHILE|#', line)]
                 self.assertEqual(fanuc, [], nc)
+
+    def test_motion_events_the_post_cannot_output_stop_it(self):
+        # support.session.Session runs the GPP text unchanged (Program rewrites Print), so the suite's
+        # coverage record (tests_engine CoverageTests) counts these procedures.
+        require_nc_stream()
+        for event in MOTION_EVENTS:
+            with self.subTest(event=event):
+                session = Session(start=True, engine_options=dict(policies=scripted_input_policies()))
+                session.ev('start_of_job', job_name='op1')
+                engine = session.engine
+                before = len(engine.output)
+                with self.assertRaises(post_abort_error()):
+                    session.ev(event, xpos=10, ypos=20, zpos=-5, apos=90, feed=500)
+                blocks = [block.strip() for block in ''.join(engine.output[before:]).splitlines() if block.strip()]
+                self.assertEqual(blocks, [MOTION_STOP])
 
     def test_template_switches_are_gone(self):
         # bSubs (subprogram output), the trig macro and the multiple-fixture files are not in the post.

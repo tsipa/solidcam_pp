@@ -437,6 +437,16 @@ endp
     abort
 endp
 
+@usr_unsupported_motion_event
+    ; Stop on a SolidCAM motion event this post cannot output (the procedures at the end of the file)
+    ; instead of posting the job without that motion.
+    local numeric dummy_var
+    dummy_var = 0
+    input '"POST ERROR: SolidCAM 4x polar/Cartesian, 4x drill and 5x face arc events are not supported by this post."'dummy_var
+    {nb,"POST ERROR: SolidCAM 4x polar/Cartesian, 4x drill and 5x face arc events are not supported by this post."}
+    abort
+endp
+
 @usr_sof_progname
     ; The program name after cPb (';%_N_<part>_MPF') and the workpiece directory line. Sinumerik
     ; names allow letters, digits and '_': every '-' of the part name becomes '_'.
@@ -3056,4 +3066,70 @@ endp
 @home_data
     ; SolidCAM CoordSys data event (VMID HomeDataAtStart). The post needs none of its data: the work
     ; offset comes from @home_number; no frame (CTRANS) is written.
+endp
+
+;-------------------
+; SolidCAM motion events this post cannot output. SolidCAM skips an event the post does not define
+; (the reference trace has (0)@vmid_info and (0)@setup, which have no procedure, and posting went on),
+; so a missing procedure would drop the motion silently: each of these stops the post. Not here:
+; @init_cpos, an information event of the supported simultaneous 4x jobs, and @stop_tool (PP-048).
+
+@drill4x_pnt
+    ; 4x simultaneous drill point: not supported.
+    call @usr_unsupported_motion_event
+endp
+
+@drill4x_cartesian
+    ; 4x drill cycle, Cartesian: not supported.
+    call @usr_unsupported_motion_event
+endp
+
+@drill4x_polar
+    ; 4x drill cycle, polar: not supported.
+    call @usr_unsupported_motion_event
+endp
+
+@move4x_polar
+    ; 4x polar rapid: not supported.
+    call @usr_unsupported_motion_event
+endp
+
+@line4x_polar
+    ; 4x polar feed move: not supported.
+    call @usr_unsupported_motion_event
+endp
+
+@arc_4x_polar
+    ; 4x polar arc: not supported.
+    call @usr_unsupported_motion_event
+endp
+
+@arc4x_polar
+    ; 4x polar arc: not supported.
+    call @usr_unsupported_motion_event
+endp
+
+@move4x_cartesian
+    ; 4x Cartesian rapid: not supported.
+    call @usr_unsupported_motion_event
+endp
+
+@line4x_cartesian
+    ; 4x Cartesian feed move: not supported.
+    call @usr_unsupported_motion_event
+endp
+
+@arc_4x_cartesian
+    ; 4x Cartesian arc: not supported.
+    call @usr_unsupported_motion_event
+endp
+
+@arc4x_cartesian
+    ; 4x Cartesian arc: not supported.
+    call @usr_unsupported_motion_event
+endp
+
+@arc_5x
+    ; 5x arc (VMID Support5xArcsInFace/Support5xArcsInRadial 1): not supported.
+    call @usr_unsupported_motion_event
 endp

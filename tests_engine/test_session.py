@@ -236,13 +236,17 @@ class CoverageTests(unittest.TestCase):
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
         # arc_zx: no session has a ZX arc since a ZX arc stops the post (5408e5c);
         # test_replay_findings.test_zx_arc_stops_the_session runs it. The unsupported events stop the post
-        # (tests/test_unsupported_features.py; @rotate/@mirror: tests/test_contracts.py). usr_line_homed_return: a feed move right after a post homing,
+        # (tests/test_unsupported_features.py, also the 4x polar/Cartesian, 4x drill and 5x arc events;
+        # @rotate/@mirror: tests/test_contracts.py). usr_line_homed_return: a feed move right after a post homing,
         # which only the removed subprogram session recorded (tests/test_post_homing_reposition.py runs it).
         # usr_r1_wrong_way_stop: every session turns A the way CAM does (tests/test_rotary_direction_guard.py
         # runs it). usr_trc_cancel: every session deselects compensation on a linear block
         # (tests/test_cutter_compensation.py::CompensationAtPostHomingTests runs it).
         unsupported = {'call_proc', 'proc', 'end_proc', 'loop', 'end_loop', 'change_ref_point', 'usr_unsupported_event',
-                       'rotate', 'mirror', 'usr_unsupported_transform'}
+                       'rotate', 'mirror', 'usr_unsupported_transform', 'usr_unsupported_motion_event',
+                       'drill4x_pnt', 'drill4x_cartesian', 'drill4x_polar', 'move4x_polar', 'line4x_polar',
+                       'arc_4x_polar', 'arc4x_polar', 'move4x_cartesian', 'line4x_cartesian', 'arc_4x_cartesian',
+                       'arc4x_cartesian', 'arc_5x'}
         self.assertEqual(never, {'arc_zx', 'usr_line_homed_return', 'usr_r1_wrong_way_stop', 'usr_trc_cancel'}
                          | unsupported)
         self.assertIn('Branch gaps', total.markdown(program))

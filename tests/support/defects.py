@@ -621,9 +621,13 @@ _ENTRIES = [
        'SolidCAM run of a mirrored/rotated job with this VMID: are @rotate/@mirror called and is the toolpath '
        'already transformed?',
        ['critic-02'], 'F'),
-    _d('PP-048', 'SolidCAM MCO, dwell, 4x drill-point and rotate-to-plane events have no procedure (an MCO Halt '
+    _d('PP-048', 'SolidCAM MCO, dwell, spindle-stop and rotate-to-plane events have no procedure (an MCO Halt '
        'produces no M0)', 'medium',
-       'Only if those events are used; whether SolidCAM silently skips undefined procedures is UNVERIFIED.',
+       'Only if those events are used. SolidCAM skips an event the post does not define: the reference trace of '
+       '2026-10-27 has (0)@vmid_info (3) and (0)@setup (1), which have no procedure, while defined events print '
+       'at depth (1), and posting went on through all 31 operations. Whether SolidCAM delivers the MCO events to '
+       'this post is UNVERIFIED. The 4x drill point (@drill4x_pnt) and the other 4x polar/Cartesian, 4x drill and '
+       '5x arc events stop the post (@usr_unsupported_motion_event).',
        'uncertain',
        'SolidCAM run with an MCO Halt/optional stop and a dwell: is anything posted?',
        ['critic-03'], 'F'),
@@ -975,8 +979,9 @@ LOCATIONS = {
               "d8f71e8); @usr_rapid",
     'PP-047': 'GPP @rotate L1770-1773 and @mirror L1776-1779 (empty, refactoring branch before 8989278); VMID '
               'SoftwareTransform="0"',
-    'PP-048': 'GPP: procedures absent (@halt_program, @machine_opt_stop, @delay/@dwell, @drill4x_pnt, '
-              '@rotate_to_plane, MCO events); reference: the Mach3 4x template at ffd296c',
+    'PP-048': 'GPP: procedures absent (@halt_program, @machine_opt_stop, @delay/@dwell, @stop_tool, '
+              '@rotate_to_plane, MCO events; @drill4x_pnt stops the post); reference: the Mach3 4x template at '
+              'ffd296c',
     'PP-049': 'GPP option i4xFeedMode L173 (never read); F output @usr_line L1419-1424, @line_4x L2502-2510, '
               '@line_5x L2535-2543',
     'PP-050': 'vericut/GcodeSim.ini [MAC] (1,2,3,5..10 = 54; MAC 4 missing)',

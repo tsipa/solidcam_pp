@@ -8,8 +8,8 @@
   inputs SolidCAM can produce, in an order SolidCAM can produce, or carry a
   written justification.
 * SolidCAM event contract: events SolidCAM delivers under this VMID must be
-  implemented or stop the post (PP-047 transformations, PP-048 MCO/dwell/4x
-  drill events). Both depend on unverified SolidCAM event delivery.
+  implemented or stop the post (PP-047 transformations, PP-048 MCO/dwell/
+  spindle-stop events). Both depend on unverified SolidCAM event delivery.
 """
 import json
 import re
@@ -234,9 +234,10 @@ class TransformEventTests(unittest.TestCase):
 
 
 class SolidCamEventCoverageTests(unittest.TestCase):
-    """SolidCAM calls GPP procedures by name and, most likely, skips names the
-    post does not define, so a missing event procedure drops the event
-    silently. The event set comes from the author's own 4x template
+    """SolidCAM calls GPP procedures by name and skips names the post does not
+    define (the reference trace of 2026-10-27 has (0)@vmid_info and (0)@setup,
+    which have no procedure, and posting went on), so a missing event procedure
+    drops the event silently. The event set comes from the author's own 4x template
     (ffd296c:mach3/4x/Mach3_4X_Y.gpp, a fork of teodoryantcheff/SolidCam-Mach3-
     Post), which uses the SolidCAM MCO variables (optional_stop,
     MCO_New_Line, MCO_CoordSysType, move_axis_*). round_comp, assign_axis and
@@ -260,9 +261,9 @@ class SolidCamEventCoverageTests(unittest.TestCase):
     def test_every_event_of_the_authors_4x_template_is_handled(self):
         """INDEPENDENT: the event set the same author's SolidCAM 4x template
         handles; each must have a procedure (implementing the event or
-        aborting). UNVERIFIED: that SolidCAM silently skips undefined
-        procedures and delivers these events for this machine (PP-048
-        uncertain)."""
+        aborting). UNVERIFIED: that SolidCAM delivers these events for this
+        machine (PP-048 uncertain); undefined procedures are skipped silently
+        (reference trace: (0)@vmid_info, (0)@setup)."""
         procedures = fresh_engine().procedures
         missing = sorted(f'@{name}: {meaning}' for name, meaning in self.EVENTS.items() if name not in procedures)
         self.assertEqual(missing, [])

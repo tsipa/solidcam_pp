@@ -32,7 +32,7 @@ class WholeGppTests(unittest.TestCase):
         kinds = statement_kinds_from_text()
         self.assertEqual((summary['procedures'], summary['statements'], summary['globals_declared'],
                           summary['entry_points']),
-                         (len(lines_matching(r'^@\w+')), sum(kinds.values()), declared_global_count(), 46))
+                         (len(lines_matching(r'^@\w+')), sum(kinds.values()), declared_global_count(), 58))
         self.assertEqual(summary['statement_kinds'], kinds)
         self.assertEqual([d for d in self.diagnostics if d.severity == 'error'], [])
         self.program.validate(strict=True, policies=SESSION)
@@ -124,7 +124,9 @@ class WholeGppTests(unittest.TestCase):
 
     def test_cam_interface_inventory(self):
         interface = self.analysis.interface()
-        self.assertEqual(len(interface['entry_points']), 46)
+        # 46 implemented or ignored events, plus the 12 motion events that stop the post
+        # (usr_unsupported_motion_event).
+        self.assertEqual(len(interface['entry_points']), 58)
         for name in ('tool_number', 'arc_size', 'date', 'time', 'home_user_name'):
             self.assertIn(name, interface['cam_inputs'])
         self.assertEqual(interface['cam_inputs']['inumber_of_fixtures'], 'vmid-param')

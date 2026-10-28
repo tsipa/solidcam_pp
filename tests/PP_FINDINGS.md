@@ -74,7 +74,7 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 | [PP-032](#pp-032) | medium | confirmed | C | home_number with iWorkOffset_Method=1 emits any operator number as the work offset (G1, G500, G58, ...) | `test_user_defined_offset_must_be_a_settable_offset` |
 | [PP-036](#pp-036) | medium | confirmed | B | bLimit_3axis still emits A=DC(...) at the first rapid after a tool change | `test_limit_3axis_never_outputs_rotary` |
 | [PP-039](#pp-039) | low | confirmed | C | Index clearance warning is written into the NC file as a bare text block (no comment prefix) | `test_index_clearance_warning_is_a_comment` |
-| [PP-048](#pp-048) | medium | uncertain | F | SolidCAM MCO, dwell, 4x drill-point and rotate-to-plane events have no procedure (an MCO Halt produces no M0) | `test_every_event_of_the_authors_4x_template_is_handled` [event-coverage], `test_mco_halt_program_stops_the_machine` [mco-halt] |
+| [PP-048](#pp-048) | medium | uncertain | F | SolidCAM MCO, dwell, spindle-stop and rotate-to-plane events have no procedure (an MCO Halt produces no M0) | `test_every_event_of_the_authors_4x_template_is_handled` [event-coverage], `test_mco_halt_program_stops_the_machine` [mco-halt] |
 | [PP-050](#pp-050) | medium | confirmed | F | vericut/GcodeSim.ini maps MAC 1-3 and 5-10 to G54 but omits MAC 4 | `test_vericut_mac_table_matches_post_work_offsets` |
 | [PP-051](#pp-051) | low | uncertain | F | Vericut K word format left at 5.3 while I/J were widened to 8.5 (f88de47) | `test_vericut_arc_center_words_keep_post_precision` |
 | [PP-052](#pp-052) | low | confirmed | F | VMID job parameters M50/M51 appear in every job dialog but the GPP never reads them | `test_every_vmid_user_parameter_is_read_by_the_post` |
@@ -434,12 +434,12 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 
 ### PP-048
 
-**SolidCAM MCO, dwell, 4x drill-point and rotate-to-plane events have no procedure (an MCO Halt produces no M0)**
+**SolidCAM MCO, dwell, spindle-stop and rotate-to-plane events have no procedure (an MCO Halt produces no M0)**
 
 - Severity: medium
 - Confidence: uncertain
-- Reachability: Only if those events are used; whether SolidCAM silently skips undefined procedures is UNVERIFIED.
-- Location: GPP: procedures absent (@halt_program, @machine_opt_stop, @delay/@dwell, @drill4x_pnt, @rotate_to_plane, MCO events); reference: the Mach3 4x template at ffd296c
+- Reachability: Only if those events are used. SolidCAM skips an event the post does not define: the reference trace of 2026-10-27 has (0)@vmid_info (3) and (0)@setup (1), which have no procedure, while defined events print at depth (1), and posting went on through all 31 operations. Whether SolidCAM delivers the MCO events to this post is UNVERIFIED. The 4x drill point (@drill4x_pnt) and the other 4x polar/Cartesian, 4x drill and 5x arc events stop the post (@usr_unsupported_motion_event).
+- Location: GPP: procedures absent (@halt_program, @machine_opt_stop, @delay/@dwell, @stop_tool, @rotate_to_plane, MCO events; @drill4x_pnt stops the post); reference: the Mach3 4x template at ffd296c
 - Evidence that would settle it: SolidCAM run with an MCO Halt/optional stop and a dwell: is anything posted?
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: critic-03
