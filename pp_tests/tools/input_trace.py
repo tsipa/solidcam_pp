@@ -2,7 +2,9 @@
 
 Works on bytes: native numeric spelling, whitespace, change flags and line endings
 are preserved. Temporary CAMDBG readouts supply missing event parameters without
-inventing flags. XZ/gzip output contains no source filename or timestamp.
+inventing flags, and restate a native number with more decimals when they agree
+with its native spelling (the native change flag is kept). XZ/gzip output contains
+no source filename or timestamp.
 """
 import argparse
 import gzip
@@ -11,6 +13,7 @@ import json
 import lzma
 import re
 from collections import Counter
+from decimal import Decimal
 from pathlib import Path
 
 
@@ -18,11 +21,23 @@ HEADER = re.compile(rb'^\((\d+)\)@(\w+)\s*==>')
 DEBUG = re.compile(rb'(?:^.{22}> ?|==>[ \t]*); CAMDBG (\w+) ([^\r\n]*)')
 DEBUG_VALUE = re.compile(rb'([A-Za-z_]\w*):([^ \t\r\n]*)')
 PARAMETER = re.compile(rb'\b([A-Za-z_]\w*)\s*:')
+NUMBER = rb'[+-]?(?:\d+(?:\.\d*)?|\.\d+)'
+# The CAMDBG readouts of the 828D post (usr_camdbg_*, trace_level 5). *_value: the number of a
+# field the trace prints as a name; d_tapping_value: the drill type constant D_Tapping.
+ARC_FIELDS = {b'xstart', b'ystart', b'zstart', b'xcenter_rel', b'ycenter_rel', b'zcenter_rel', b'arc_size'}
 DEBUG_FIELDS = {
-    b'arc': {b'xstart', b'ystart', b'zcenter_rel'},
-    b'start_of_file': {b'date', b'time'},
-    b'start_of_job': {b'angle', b'cpos', b'apos', b'bpos', b'd_drill_type'},
+    b'arc': ARC_FIELDS,
+    b'arc_yz': ARC_FIELDS,
+    b'arc_zx': ARC_FIELDS,
+    b'def_tool': {b'next_command'},
+    b'rapid_move': {b'prev_command'},
+    b'start_of_file': {b'date', b'time', b'd_tapping_value'},
+    b'start_of_job': {b'angle', b'cpos', b'apos', b'bpos', b'd_drill_type', b'rot_axis_coord_value',
+                      b'flood_coolant_value', b'mist_coolant_value', b'hp_flood_coolant_value',
+                      b'lp_flood_coolant_value', b'through_ival_coolant_value', b'lp_through_coolant_value',
+                      b'air_blast_coolant_value', b'air_through_coolant_value', b'through_coolant_val'},
 }
+STRING_FIELDS = {b'date', b'time', b'next_command', b'prev_command'}
 QUOTED = re.compile(rb"(\w+)(\s*:\s*)'((?:[^']|'')*)'")
 FIXED = {
     b'g_file_name': b'REFERENCE.MPF',
@@ -70,6 +85,32 @@ class NeutralNames:
         return original_key + separator + b"'" + replacement + b"'"
 
 
+def decimals(number):
+    return len(number.partition(b'.')[2])
+
+
+def upgrade_native(lines, key, value):
+    """Respell the one native number of ``key`` in ``lines`` as ``value``, keeping its flag.
+
+    Only when ``value`` has more decimals and lies within half a unit of the last native
+    digit (the native spelling is the CAM value rounded; either tie rule). Returns False
+    when the native value is kept: not exactly one numeric native, fewer decimals, or a
+    disagreeing readout (the extractor never chooses between disagreeing readouts)."""
+    token = re.compile(rb'(?<!\w)' + re.escape(key) + rb'\s*:\s*(' + NUMBER + rb')[TF]?(?![^ \t\r\n])')
+    hits = [(index, match) for index, line in enumerate(lines) for match in token.finditer(line)]
+    if len(hits) != 1:
+        return False
+    index, match = hits[0]
+    native = match[1]
+    if decimals(value) <= decimals(native):
+        return False
+    unit = Decimal(1).scaleb(-decimals(native))
+    if 2 * abs(Decimal(value.decode('ascii')) - Decimal(native.decode('ascii'))) > unit:
+        return False
+    lines[index] = lines[index][:match.start(1)] + value + lines[index][match.end(1):]
+    return True
+
+
 def extract(source, destination, forbidden=()):
     source, destination = Path(source), Path(destination)
     if source.resolve() == destination.resolve():
@@ -83,9 +124,23 @@ def extract(source, destination, forbidden=()):
     source_bytes = input_bytes = parameter_lines = 0
     debug_lines = 0
     debug_parameters = Counter()
+    upgraded_parameters = Counter()
+    kept_native = Counter()
     public = False
     current_event, current_fields = None, set()
+    pending = []  # neutral lines of the current public event; a later CAMDBG may respell one
     forbidden = [word.encode('ascii').lower() for word in forbidden]
+
+    def flush(output):
+        nonlocal input_bytes
+        for neutral in pending:
+            if any(word in neutral.lower() for word in forbidden):
+                raise ValueError('forbidden identity remains in a public input line')
+            output.write(neutral)
+            input_hash.update(neutral)
+            input_bytes += len(neutral)
+        pending.clear()
+
     destination.parent.mkdir(parents=True, exist_ok=True)
     try:
         with source.open('rb') as original, destination.open('wb') as compressed:
@@ -99,6 +154,7 @@ def extract(source, destination, forbidden=()):
                     if header:
                         public = int(header[1]) <= 1
                         if public:
+                            flush(output)
                             current_event, current_fields = header[2], set()
                             events[current_event.decode('ascii')] += 1
                     diagnostic = DEBUG.search(line)
@@ -111,12 +167,17 @@ def extract(source, destination, forbidden=()):
                             raise ValueError('unexpected diagnostic parameter')
                         additions = []
                         for key, value in fields:
-                            if key in current_fields:
-                                continue  # retain native data and its change flag
-                            if key in (b'date', b'time') or not value:
-                                value = b"'" + value.replace(b"'", b"''") + b"'"
-                            elif not re.fullmatch(rb'[+-]?(?:\d+(?:\.\d*)?|\.\d+)', value):
+                            if key not in STRING_FIELDS and value and not re.fullmatch(NUMBER, value):
                                 raise ValueError('nonnumeric diagnostic value')
+                            if key in current_fields:
+                                # Native data and its change flag stay; a number may gain decimals.
+                                if key not in STRING_FIELDS and value and upgrade_native(pending, key, value):
+                                    upgraded_parameters[key.decode('ascii')] += 1
+                                else:
+                                    kept_native[key.decode('ascii')] += 1
+                                continue
+                            if key in STRING_FIELDS or not value:
+                                value = b"'" + value.replace(b"'", b"''") + b"'"
                             additions.append(key + b':' + value)
                             current_fields.add(key)
                             debug_parameters[key.decode('ascii')] += 1
@@ -135,12 +196,8 @@ def extract(source, destination, forbidden=()):
                         parameter_lines += 1
                     else:
                         continue
-                    neutral = QUOTED.sub(names.replace, line)
-                    if any(word in neutral.lower() for word in forbidden):
-                        raise ValueError('forbidden identity remains in a public input line')
-                    output.write(neutral)
-                    input_hash.update(neutral)
-                    input_bytes += len(neutral)
+                    pending.append(QUOTED.sub(names.replace, line))
+                flush(output)
         if not events:
             raise ValueError('no public CAM events found')
     except BaseException:
@@ -160,6 +217,8 @@ def extract(source, destination, forbidden=()):
         'parameter_lines': parameter_lines,
         'diagnostic_lines_read': debug_lines,
         'parameters_from_diagnostics': dict(sorted(debug_parameters.items())),
+        'parameters_upgraded_from_diagnostics': dict(sorted(upgraded_parameters.items())),
+        'diagnostics_kept_native': dict(sorted(kept_native.items())),
         'neutral_identity_counts': dict(sorted(names.counts.items())),
         'renamed_fields': dict(sorted(names.changed.items())),
     }
