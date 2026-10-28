@@ -70,7 +70,7 @@ def raw(pairs):
 
 def position(session, point):
     """Feed move to point {'X','Y','Z'} (all three flagged)."""
-    session.ev('line_5x', ('xpos', 'ypos', 'zpos', 'feed'), feed=200, feed_type='feed_cut',
+    session.ev('line_5x', ('xpos', 'ypos', 'zpos', 'feed'), feed=200, feed_type='feed_rate',
                xpos=point['X'], ypos=point['Y'], zpos=point['Z'])
 
 
@@ -424,7 +424,7 @@ def compensated_job(source=None):
     """Tool 1 positioned at X12 Y13 Z-2 (in the material, G1, no compensation yet)."""
     session = job_session(source)
     session.ev('move_5x', ('xpos', 'ypos', 'zpos'), xpos=12, ypos=13, zpos=5)
-    session.ev('line_5x', ('zpos', 'feed'), zpos=-2, feed=300, feed_type='feed_cut')
+    session.ev('line_5x', ('zpos', 'feed'), zpos=-2, feed=300, feed_type='feed_rate')
     return session
 
 
@@ -641,7 +641,7 @@ class PlaneModalityTests(unittest.TestCase):
         session = compensated_job(source)
         start = {'X': 12, 'Y': 13, 'Z': -2}
         emit_arc(session, 'yz', 'ccw', 90, start, {'X': 12, 'Y': 3, 'Z': -2}, {'X': 12, 'Y': 3, 'Z': 8})
-        session.ev('line_5x', ('zpos',), zpos=50, feed_type='feed_cut')
+        session.ev('line_5x', ('zpos',), zpos=50, feed_type='feed_rate')
         session.same_tool_job(job_name='op2')
         return session
 

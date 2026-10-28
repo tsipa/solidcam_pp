@@ -70,7 +70,8 @@ def parse_trace(text):
 def sanitize(events):
     """Remove all string payloads from portable input fixtures; preserve enums."""
     result = []
-    identifiers = {'cw', 'ccw', 'xy', 'yz', 'zx', 'true', 'false', 'yes', 'no', 'no_action'}
+    identifiers = {'cw', 'ccw', 'xy', 'yz', 'zx', 'true', 'false', 'yes', 'no', 'no_action',
+                   'comp_left', 'comp_right', 'comp_off'}
     for event in events:
         values = {key: (value if not isinstance(value, str) or value.lower() in identifiers
                         else '<redacted>') for key, value in event.parameters.items()}

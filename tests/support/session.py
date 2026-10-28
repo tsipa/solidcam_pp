@@ -61,13 +61,13 @@ CAM_CONSTANTS = dict(
 # should pass it explicitly.
 CAM_JOB_DEFAULTS = dict(
     first_tool=True, last_tool=False, tool_number=1, next_tool_number=2, next_job_tool_number=2,
-    job_name='op1', msg='', tool_direction='cw', d_drill_type='none', spin=8000, spin_rate=8000,
+    job_name='op1', msg='', tool_direction='cw', d_drill_type=-1, spin=8000, spin_rate=8000,
     flood_coolant=1, Mist_coolant=0, HP_Flood_coolant=0, LP_Flood_coolant=0,
     through_ival_coolant=0, through_coolant_val=0, LP_Through_coolant=0, Air_Blast_coolant=0,
     air_through_coolant=0, xnext=10, ynext=20, cnext=0, tool_start_plane=35, tool_z_level=35,
     angle_4x_around_x=0, angle_4x_around_x_dir='cw', angle=0, cpos=0, apos=0, bpos=0,
-    x_angle_const_z=0, dir5a='cw', X5_job=True, job_type='contour', wall_offset=0, floor_offset=0,
-    feed_type='feed_cut',
+    x_angle_const_z=0, dir5a='cw', X5_job=True, job_type='profile', wall_offset=0, floor_offset=0,
+    feed_type='feed_rate',
     prev_command='', next_command='', rotate_angle_x=0, rotate_angle_y=0, rotate_angle_z=0,
     shift_x=0, shift_y=0, shift_z=0, position=1, home_number=1, home_user_name='',
     rot_axis_coord=0, transform_type=0, loop_level=0, loop_count=0, bPrintloop=False,
@@ -283,12 +283,12 @@ class Session:
             values['apos'] = apos
             changed.append('apos')
         self.ev('move_5x', changed, **values)
-        plunge = dict(zpos=depth, feed_type='feed_cut')
+        plunge = dict(zpos=depth, feed_type='feed_rate')
         if feed is not None:
             plunge['feed'] = feed
         self.ev('line_5x', ('zpos', 'feed'), **plunge)
-        self.ev('line_5x', ('xpos',), xpos=x + 5, feed_type='feed_cut')
-        self.ev('line_5x', ('zpos',), zpos=zclear, feed_type='feed_cut')
+        self.ev('line_5x', ('xpos',), xpos=x + 5, feed_type='feed_rate')
+        self.ev('line_5x', ('zpos',), zpos=zclear, feed_type='feed_rate')
 
 
 class Segment:

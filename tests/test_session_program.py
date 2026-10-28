@@ -460,7 +460,7 @@ class InitPostSessionTests(unittest.TestCase):
         s.ev('move_5x', ('xpos', 'ypos', 'zpos', 'apos'), **FIRST_RAPID)
         rapid = s.blocks(mark)
         mark = s.mark()
-        s.ev('line_5x', ('xpos',), xpos=LINE_X, feed_type='feed_cut')
+        s.ev('line_5x', ('xpos',), xpos=LINE_X, feed_type='feed_rate')
         return start, rapid, s.blocks(mark)
 
     def assert_session(self, source=None):

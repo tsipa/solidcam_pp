@@ -363,7 +363,7 @@ def representative(source=None, **options):
     p.ev('move_5x', xpos=10, ypos=0, zpos=40, apos=0, dir5a='ccw')
     p.ev('move_5x', apos=90, dir5a='ccw', prev_command='@move_5x')
     p.ev('move_5x', zpos=25)
-    p.ev('line_5x', xpos=20, apos=120, feed=300, dir5a='ccw', feed_type='feed_cut')
+    p.ev('line_5x', xpos=20, apos=120, feed=300, dir5a='ccw', feed_type='feed_rate')
     p.ev('move_5x', zpos=50)
     p.ev('end_of_job', next_job_tool_number=2)
     p.ev('start_of_job', job_name='op6', next_job_tool_number=0)

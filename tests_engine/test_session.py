@@ -143,8 +143,8 @@ class SessionReplayTests(unittest.TestCase):
             self.assertEqual(out.returncode, 0, out.stderr)
             self.assertEqual(json.loads(capture.read_text())['events'][0]['name'], 'init_post')
             code, _, summary = run_cli('replay', PP, capture, '--vmid', VMID)
-            self.assertEqual(code, 2)                       # sanitize() redacted d_drill_type: refused, no crash
-            self.assertIn('d_drill_type was redacted', summary['errors'][0])
+            self.assertEqual(code, 2)                       # sanitize() redacted job_type: refused, no crash
+            self.assertIn('job_type was redacted', summary['errors'][0])
             safe = Path(tmp) / 'safe.json'
             safe.write_text(json.dumps({'schema': 1, 'events': sanitize_for_replay(parse_trace(original.trace_text))}))
             code, nc, summary = run_cli('replay', PP, safe, '--vmid', VMID)
@@ -158,12 +158,12 @@ class SessionReplayTests(unittest.TestCase):
         self.assertEqual(captured[1]['parameters']['part_name'], '<redacted>')
         report = Session.from_paths(PP, vmid=VMID).replay(captured)
         self.assertEqual(len(report.errors), 1)              # first redacted CAM enum stops replay
-        self.assertIn('d_drill_type was redacted by trace.sanitize()', str(report.errors[0]))
+        self.assertIn('job_type was redacted by trace.sanitize()', str(report.errors[0]))
         safe = sanitize_for_replay(recorded)
         report = Session.from_paths(PP, vmid=VMID).replay(safe)
         self.assertTrue(report.ok, report.errors)
-        self.assertEqual(report.events[1].substitutions['date'], '01-Jan-2000')
-        self.assertIn(';Jan-01-2000-12:00:00PM', report.nc_text)
+        self.assertEqual(report.events[1].substitutions['date'], '01-JAN-2000')
+        self.assertIn(';JAN-01-2000-12:00:00PM', report.nc_text)
 
         def body(text):
             return [line for line in text.splitlines()

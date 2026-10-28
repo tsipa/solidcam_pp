@@ -72,10 +72,10 @@ class JobPlaneRestoreTests(unittest.TestCase):
         session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off', iCompActive=40)
         yz_arc(session)
         session.step('compensation', side='comp_left')
-        output = session.step('line_5x', ['xpos'], xpos=50, feed_type='feed_cut')
+        output = session.step('line_5x', ['xpos'], xpos=50, feed_type='feed_rate')
         self.assertRegex(' '.join(output), r'\bG17\b.*\bG41\b', output)
         session.step('compensation', side='comp_off')
-        session.step('line_5x', ['ypos'], ypos=5, feed_type='feed_cut')
+        session.step('line_5x', ['ypos'], ypos=5, feed_type='feed_rate')
         session.step('compensation', side='comp_right')
         rapid = session.step('move_5x', ['xpos', 'ypos'], xpos=60, ypos=10)
         self.assertEqual(planes(rapid), [], rapid)   # plane already G17: no repeat
@@ -86,7 +86,7 @@ class JobPlaneRestoreTests(unittest.TestCase):
         session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off', iDiametercomp=41, iCompActive=41)
         yz_arc(session)
         session.step('compensation', side='comp_off')
-        output = session.step('line_5x', ['xpos'], xpos=50, feed_type='feed_cut')
+        output = session.step('line_5x', ['xpos'], xpos=50, feed_type='feed_rate')
         self.assertEqual(planes(output), [], output)
 
     def test_side_change_after_a_yz_arc_restores_the_job_plane(self):
@@ -96,7 +96,7 @@ class JobPlaneRestoreTests(unittest.TestCase):
         session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off', iDiametercomp=41, iCompActive=41)
         yz_arc(session)
         session.step('compensation', side='comp_right')
-        output = session.step('line_5x', ['ypos'], ypos=40, feed_type='feed_cut')
+        output = session.step('line_5x', ['ypos'], ypos=40, feed_type='feed_rate')
         self.assertEqual(planes(output), ['17'], output)
         self.assertIn('G42', ' '.join(output))
 
@@ -112,7 +112,7 @@ class JobPlaneRestoreTests(unittest.TestCase):
         session = Session()
         session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off', iDiametercomp=41, iCompActive=41)
         session.step('compensation', side='comp_right')
-        output = session.step('line_5x', ['ypos'], ypos=40, feed_type='feed_cut')
+        output = session.step('line_5x', ['ypos'], ypos=40, feed_type='feed_rate')
         self.assertEqual(output, ['G42 Y40'])
 
     def test_first_tool_selection_after_yz_arc_restores_g17(self):

@@ -92,7 +92,7 @@ class MotionModeTests(unittest.TestCase):
         marks = []
         for changed, values, _, _ in self.FEEDS:
             marks.append(session.mark())
-            session.ev('line_5x', changed, feed_type='feed_cut', **values)
+            session.ev('line_5x', changed, feed_type='feed_rate', **values)
         replayed = replay(session.text())
         for mark, (_, _, axes, feed) in zip(marks, self.FEEDS):
             moves = session.event_replay(mark, replayed)
@@ -176,7 +176,7 @@ class FirstRapidTests(unittest.TestCase):
         session.same_tool_job(job_name='op2')
         session.ev('move_5x', ['apos'], apos=5, dir5a='ccw')
         session.ev('move_5x', XYZ, xpos=10, ypos=20, zpos=5)
-        session.ev('line_5x', ['zpos', 'feed'], zpos=-1, feed_type='feed_cut')
+        session.ev('line_5x', ['zpos', 'feed'], zpos=-1, feed_type='feed_rate')
         session.ev('line_5x', ['zpos'], zpos=20, feed_type='feed_link')
         blocks = parse_blocks(session.ev('move_5x', ['apos'], apos=10))
         self.assertEqual([block.rotary('A') for block in blocks if block.rotary('A')], [('ACP', 10.0)],
@@ -250,12 +250,12 @@ class HomingRestoreTests(unittest.TestCase):
         session = first_job()
         mark = session.mark()
         session.ev('move_5x', XYZ, xpos=12, ypos=23, zpos=50)
-        session.ev('line_5x', ('zpos', 'feed'), zpos=-1, feed=300, feed_type='feed_cut')
-        session.ev('line_5x', ('ypos',), ypos=-5, feed_type='feed_cut')
+        session.ev('line_5x', ('zpos', 'feed'), zpos=-1, feed=300, feed_type='feed_rate')
+        session.ev('line_5x', ('ypos',), ypos=-5, feed_type='feed_rate')
         session.ev('move_5x', ('zpos',), zpos=50)
         session.ev('move_5x', ('apos', 'ypos', 'zpos'), apos=90, ypos=0, zpos=40)
         session.ev('move_5x', ('zpos',), zpos=10)
-        session.ev('line_5x', ('zpos',), zpos=-1, feed_type='feed_cut')
+        session.ev('line_5x', ('zpos',), zpos=-1, feed_type='feed_rate')
         replayed, first = program_replay(session, mark)
         reason = xy_lost_after_homing(replayed, first)
         if reason:
@@ -274,7 +274,7 @@ class HomingRestoreTests(unittest.TestCase):
         mark = session.mark()
         session.same_tool_job(tmatrix=90, job_name='op2')
         session.ev('move_5x', ('xpos', 'zpos'), xpos=30, zpos=20)
-        session.ev('line_5x', ('zpos', 'feed'), zpos=-1, feed=300, feed_type='feed_cut')
+        session.ev('line_5x', ('zpos', 'feed'), zpos=-1, feed=300, feed_type='feed_rate')
         replayed, first = program_replay(session, mark)
         reason = xy_lost_after_homing(replayed, first)
         if reason:
@@ -293,8 +293,8 @@ class ApproachAfterHomingTests(unittest.TestCase):
         session.cut(10, 20, 50, -1)
         session.same_tool_job(job_name='op2')
         session.ev('move_5x', XYZ, xpos=40, ypos=50, zpos=30)
-        session.ev('line_5x', ('zpos', 'feed'), zpos=2, feed=300, feed_type='feed_cut')
-        session.ev('line_5x', ('xpos',), xpos=80, feed_type='feed_cut')
+        session.ev('line_5x', ('zpos', 'feed'), zpos=2, feed=300, feed_type='feed_rate')
+        session.ev('line_5x', ('xpos',), xpos=80, feed_type='feed_rate')
         session.ev('line_5x', ('zpos',), zpos=30, feed_type='feed_link')
         mark = session.mark()
         session.ev('move_5x', ('apos',) + XYZ, apos=45, xpos=40, ypos=10, zpos=8)
@@ -303,7 +303,7 @@ class ApproachAfterHomingTests(unittest.TestCase):
     def after_cutting_retract(self, source=None):
         session = first_job(source)
         session.cut(10, 20, 50, -1)
-        session.ev('line_5x', ('zpos',), zpos=20, feed_type='feed_cut')
+        session.ev('line_5x', ('zpos',), zpos=20, feed_type='feed_rate')
         mark = session.mark()
         session.ev('move_5x', ('apos',) + XYZ, apos=10, xpos=50, ypos=60, zpos=5)
         return session, mark, {'X': 50, 'Y': 60, 'Z': 5}
@@ -363,7 +363,7 @@ class RapidWithoutMotionTests(unittest.TestCase):
         if emulated:
             options['bSyncdrapid'] = False
         program = Program(source=source, options=options or None)
-        program.start(job_type='3-d model' if emulated else 'contour')
+        program.start(job_type='3-d model' if emulated else 'profile')
         return program
 
     def check_lines(self, lines):
@@ -381,9 +381,9 @@ class RapidWithoutMotionTests(unittest.TestCase):
     def check_after_cut(self, source=None, emulated=False):
         program = self.program(source, emulated)
         program.ev('move_5x', xpos=10, ypos=10, zpos=5)
-        cut = program.ev('line_5x', zpos=-1, feed=200, feed_type='feed_cut')
+        cut = program.ev('line_5x', zpos=-1, feed=200, feed_type='feed_rate')
         program.ev('move_5x', xpos=10, ypos=10, zpos=-1)
-        program.ev('line_5x', xpos=20, feed=200, feed_type='feed_cut')
+        program.ev('line_5x', xpos=20, feed=200, feed_type='feed_rate')
         self.check_lines(program.nc())
         self.assertIn(cut[-1].strip(), [raw.strip() for raw in program.nc()])
 
@@ -391,8 +391,8 @@ class RapidWithoutMotionTests(unittest.TestCase):
         # bOptstpjob (default on) puts an M1 between the MSG block and the rapid; off, they meet.
         program = self.program(source, **options)
         program.ev('move_5x', xpos=10, ypos=10, zpos=5)
-        program.ev('line_5x', zpos=-1, feed=200, feed_type='feed_cut')
-        program.ev('line_5x', zpos=5, feed=200, feed_type='feed_cut')
+        program.ev('line_5x', zpos=-1, feed=200, feed_type='feed_rate')
+        program.ev('line_5x', zpos=5, feed=200, feed_type='feed_rate')
         program.ev('end_of_job', next_job_tool_number=1)
         program.ev('start_of_job', job_name='op2')
         program.ev('move_5x', xpos=10, ypos=10, zpos=5)
@@ -436,13 +436,13 @@ class FeedEmulatedRapidTests(unittest.TestCase):
     def check_feed_restored(self, cut, source=None):
         session = self.emulated_session(source)
         session.ev('move_5x', XYZ, xpos=10, ypos=23, zpos=50)
-        session.ev('line_5x', ('zpos', 'feed'), zpos=-1, feed=100, feed_type='feed_cut')
-        session.ev('line_5x', ('xpos',), xpos=12, feed_type='feed_cut')
+        session.ev('line_5x', ('zpos', 'feed'), zpos=-1, feed=100, feed_type='feed_rate')
+        session.ev('line_5x', ('xpos',), xpos=12, feed_type='feed_rate')
         rapid = session.mark()
         session.ev('move_5x', ('zpos',), zpos=40)
         after = session.mark()
         if cut == 'line':
-            session.ev('line_5x', ('zpos',), zpos=5, feed_type='feed_cut')
+            session.ev('line_5x', ('zpos',), zpos=5, feed_type='feed_rate')
         else:
             try:
                 emit_xy_arc(session, (12, 23, 40), (2, 23, 40), 90)
@@ -501,9 +501,9 @@ class FeedEmulatedRapidTests(unittest.TestCase):
         needed for the failure."""
         session = self.emulated_session()
         session.ev('move_5x', XYZ, xpos=10, ypos=23, zpos=50)
-        session.ev('line_5x', ('zpos', 'feed'), zpos=-1, feed=100, feed_type='feed_cut')
-        session.ev('line_5x', ('xpos',), xpos=12, feed_type='feed_cut')
-        session.ev('line_5x', ('zpos',), zpos=20, feed_type='feed_cut')
+        session.ev('line_5x', ('zpos', 'feed'), zpos=-1, feed=100, feed_type='feed_rate')
+        session.ev('line_5x', ('xpos',), xpos=12, feed_type='feed_rate')
+        session.ev('line_5x', ('zpos',), zpos=20, feed_type='feed_rate')
         session.ev('move_5x', ('apos',) + XYZ, apos=10, xpos=50, ypos=60, zpos=30)
         problems = []
         replayed = replay(session.text())
@@ -538,7 +538,7 @@ class ZPrecisionTests(unittest.TestCase):
         session.ev('move_5x', XYZ, xpos=1, ypos=2, zpos=30)
         mark = session.mark()
         session.ev('line_5x', ('xpos', 'zpos', 'feed'), xpos=1.234567, zpos=1.234567, feed=300,
-                   feed_type='feed_cut')
+                   feed_type='feed_rate')
         block = parse_blocks(session.text(mark))[0]
         self.assertAlmostEqual(block.get('X'), 1.23457, delta=1e-9, msg=block.raw)
         self.assertAlmostEqual(block.get('Z'), 1.23457, delta=1e-9,
@@ -578,10 +578,10 @@ class RotaryFeedModeTests(unittest.TestCase):
         session = first_job()
         self.assertEqual(session.state['i4xfeedmode'], 1, 'the shipped option no longer selects inverse time')
         session.ev('move_5x', XYZ, xpos=10, ypos=0, zpos=50)
-        session.ev('line_5x', ('zpos', 'feed'), zpos=20, feed=200, feed_type='feed_cut')
+        session.ev('line_5x', ('zpos', 'feed'), zpos=20, feed=200, feed_type='feed_rate')
         mark = session.mark()
-        session.ev('line_4x', ('apos', 'feed'), apos=30, feed=200, feed_type='feed_cut', dir5a='ccw')
-        session.ev('line_4x', ('xpos', 'apos'), xpos=22, apos=60, feed_type='feed_cut', dir5a='ccw')
+        session.ev('line_4x', ('apos', 'feed'), apos=30, feed=200, feed_type='feed_rate', dir5a='ccw')
+        session.ev('line_4x', ('xpos', 'apos'), xpos=22, apos=60, feed_type='feed_rate', dir5a='ccw')
         replayed, first = program_replay(session, mark)
         missing = [block.raw for block, state in replayed[first:]
                    if block.rotary('A') is not None and state.motion == 1 and state.feed_mode != 93]

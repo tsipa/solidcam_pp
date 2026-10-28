@@ -38,7 +38,7 @@ MOTION_KEYS = ('xpos', 'ypos', 'zpos', 'apos', 'bpos', 'cpos', 'feed', 'spin')
 
 CONSTANTS = dict(cw='cw', ccw='ccw', xy='xy', zx='zx', yz='yz',
                  comp_left='comp_left', comp_right='comp_right', comp_off='comp_off',
-                 g81='g81', g82='g82', g83='g83', g84='g84', g86='g86', d_tapping='tapping')
+                 g81='g81', g82='g82', g83='g83', g84='g84', g86='g86', d_tapping='d_tapping')
 
 VMID = dict(iworkoffset_method=0, inumber_of_fixtures=0, blimit_3axis=False, sworkpcdir='',
             bstopm00=False, sstopmessage='', ig187_p=0, ng187_e=0.0, m50=0.0, m51=0.0,
@@ -48,15 +48,15 @@ CAM = dict(
     machine_plane='xy', first_tool=True, last_tool=False, tool_number=1, next_tool_number=2,
     next_job_tool_number=2, xnext=0, ynext=0, cnext=0, tool_start_plane=50, tool_z_level=50,
     job_name='op1', msg='', home_user_name='', home_number=1, position=1, rot_axis_coord=0,
-    x5_job=True, job_type='contour', wall_offset=0, floor_offset=0, transform_type=0, loop_level=0,
+    x5_job=True, job_type='profile', wall_offset=0, floor_offset=0, transform_type=0, loop_level=0,
     loop_count=0,
     rotate_angle_x=0, rotate_angle_y=0, rotate_angle_z=0, shift_x=0, shift_y=0, shift_z=0,
     angle_4x_around_x=0, angle_4x_around_x_dir='ccw', angle=0, cpos=0, apos=0, bpos=0,
     x_angle_const_z=0, dir5a='ccw', spin=3000, spin_rate=3000, tool_direction='cw',
-    d_drill_type='none', flood_coolant=1, mist_coolant=0, hp_flood_coolant=0, lp_flood_coolant=0,
+    d_drill_type=-1, flood_coolant=1, mist_coolant=0, hp_flood_coolant=0, lp_flood_coolant=0,
     through_ival_coolant=0, through_coolant_val=0, lp_through_coolant=0, air_blast_coolant=0,
     air_through_coolant=0, xpos=0, ypos=0, zpos=0, feed=100, prev_command='@start_program',
-    feed_type='feed_cut', tool_offset=5, side='comp_off', tool_side='comp_off', next_command='',
+    feed_type='feed_rate', tool_offset=5, side='comp_off', tool_side='comp_off', next_command='',
     tool_message='', message='', bprintloop=False,
     arc_plane='xy', arc_direction='ccw', arc_size=90, radius=10, xstart=0, ystart=0, zstart=0,
     xcenter=0, ycenter=0, zcenter=0, xcenter_rel=0, ycenter_rel=0, zcenter_rel=0,

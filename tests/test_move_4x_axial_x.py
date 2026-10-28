@@ -23,7 +23,7 @@ class Move4xAxialXTests(unittest.TestCase):
         session = Session()
         session.step('move_4x', ['xpos'], xpos=50, prev_command='@line_4x')
         changed = ['zpos'] + (['xpos'] if session.engine.state['xpos'] != 50 else [])
-        output = session.step('line_4x', changed, xpos=50, zpos=2, feed_type='feed_cut')
+        output = session.step('line_4x', changed, xpos=50, zpos=2, feed_type='feed_rate')
         self.assertFalse(re.search(r'\bX', ' '.join(output)), output)
 
     def test_vmid_rotary_axis_is_around_x(self):

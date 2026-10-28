@@ -91,7 +91,7 @@ def rotated_job(source=None, **options):
     session = job_session(source, **options)
     session.ev('move_5x', ['apos'], apos=5)
     session.ev('move_5x', ['xpos', 'ypos', 'zpos'], xpos=10, ypos=20, zpos=5)
-    session.ev('line_5x', ['zpos', 'feed'], zpos=-1, feed_type='feed_cut')
+    session.ev('line_5x', ['zpos', 'feed'], zpos=-1, feed_type='feed_rate')
     return session
 
 
@@ -99,7 +99,7 @@ def rotated_4x_job(source=None):
     """Like rotated_job, but the rotation comes from a 4x event (cpos=5, apos 0)."""
     session = job_session(source)
     session.ev('move_4x', ['cpos'], cpos=5)
-    session.ev('line_4x', ['zpos', 'feed'], zpos=-1, feed_type='feed_cut')
+    session.ev('line_4x', ['zpos', 'feed'], zpos=-1, feed_type='feed_rate')
     return session
 
 
@@ -505,7 +505,7 @@ class FourthAxisIndexTests(LinkOracle, unittest.TestCase):
         currently sums the stale apos: A=ACN(100).
         """
         session = job_session()
-        session.ev('line_5x', ['apos'], apos=10, dir5a='ccw', feed_type='feed_cut')
+        session.ev('line_5x', ['apos'], apos=10, dir5a='ccw', feed_type='feed_rate')
         mark = session.mark()
         session.same_tool_job(tmatrix=90)
         found = [value for _, value in rotations(session.blocks(mark))]
@@ -605,7 +605,7 @@ class CamLinkTransitionTests(LinkOracle, unittest.TestCase):
                     session.ev(event, **values)
                 # XYZ-only rapid (no rotation), cut, then a textbook CAM retract.
                 session.ev('move_5x', ['xpos', 'ypos'], xpos=40, ypos=50)
-                session.ev('line_5x', ['zpos'], zpos=-2, feed_type='feed_cut')
+                session.ev('line_5x', ['zpos'], zpos=-2, feed_type='feed_rate')
                 link_retract(session, z=30)
                 self.assert_rotation_after_homing(rotate(session), boundary)
 
@@ -629,7 +629,7 @@ class CamLinkTransitionTests(LinkOracle, unittest.TestCase):
         scenarios = {
             'after_rapid_climb': [('move_5x', ['zpos'], dict(zpos=50)),
                                   ('line_5x', ['zpos'], dict(zpos=30, feed_type='feed_link'))],
-            'after_feed_climb': [('line_5x', ['zpos'], dict(zpos=50, feed_type='feed_cut')),
+            'after_feed_climb': [('line_5x', ['zpos'], dict(zpos=50, feed_type='feed_rate')),
                                  ('line_5x', ['zpos'], dict(zpos=30, feed_type='feed_link'))],
             'zero_length': [('line_5x', ['feed'], dict(feed=200, feed_type='feed_link'))],
         }

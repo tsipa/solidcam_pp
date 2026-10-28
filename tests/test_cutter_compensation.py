@@ -135,7 +135,7 @@ class CutterCompensationTests(unittest.TestCase):
         session = Session()
         session.engine.set(iDiametercomp=41, iCompActive=41, **{k: v for k, v in ARC.items() if k in ('xy', 'zx', 'yz')})
         session.engine.set(COMP_LEFT='comp_left', COMP_RIGHT='comp_right', COMP_OFF='comp_off')
-        session.step('line_5x', ['zpos'], zpos=5, feed_type='feed_cut')
+        session.step('line_5x', ['zpos'], zpos=5, feed_type='feed_rate')
         session.step('compensation', side='comp_off')
         session.step('end_of_job')
         session.step('start_of_job')
@@ -147,7 +147,7 @@ class CutterCompensationTests(unittest.TestCase):
         session = Session()
         session.engine.set(iDiametercomp=41, iCompActive=41, first_tool=True, bLimit_3axis=False,
                            bWorkoffsettc=True, iWorkOffset_Method=1, home_user_name='54')
-        session.step('line_5x', ['xpos'], xpos=20, feed_type='feed_cut')
+        session.step('line_5x', ['xpos'], xpos=20, feed_type='feed_rate')
         session.step('end_of_job')
         session.engine.set(home_user_name='55')
         self.assertIn('G55', ' '.join(session.step('start_of_job')))
@@ -156,7 +156,7 @@ class CutterCompensationTests(unittest.TestCase):
 
     def test_climb_after_a_job_without_compensation_off_is_unchanged(self):
         session = Session()
-        session.step('line_5x', ['zpos'], zpos=5, feed_type='feed_cut')
+        session.step('line_5x', ['zpos'], zpos=5, feed_type='feed_rate')
         session.step('end_of_job')
         session.step('start_of_job')
         self.assertEqual(session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=100, ypos=100, zpos=50),

@@ -121,11 +121,11 @@ CONSTANT_STATUS = {name: 'used-by-4x-gpp' for name in ('xy', 'zx', 'yz', 'cw', '
 
 # Format-valid stand-ins for strings redacted by trace.sanitize().
 REDACTION_SUBSTITUTES = {
-    'date': '01-Jan-2000', 'time': '12:00:00', 'part_name': 'PART', 'g_file_name': 'PART.MPF',
+    'date': '01-JAN-2000', 'time': '12:00:00', 'part_name': 'PART', 'g_file_name': 'PART.MPF',
     'full_g_file_name': 'C:\\CAM\\PART.MPF', 'job_name': 'JOB', 'home_user_name': 'G54',
     'msg': '', 'message': '', 'tool_message': '', 'holder_name': 'HOLDER',
     'msg_mill_tool1': '', 'msg_mill_tool2': '', 'msg_mill_tool3': '', 'msg_mill_tool4': '',
-    'msg_mill_tool5': '', 'job_type': 'contour', 'feed_type': 'feed_cut',
+    'msg_mill_tool5': '', 'job_type': 'profile', 'feed_type': 'feed_rate',
 }
 REDACTED = '<redacted>'
 

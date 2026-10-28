@@ -82,7 +82,7 @@
     "tool_start_plane": 40,
     "tool_direction": "cw",
     "spin": 1000,
-    "d_drill_type": "none",
+    "d_drill_type": -1,
     "tool_message": "",
     "tool_offset": 2
    }
@@ -108,7 +108,7 @@
     "spin_rate": 1000,
     "spin": 1000,
     "tool_direction": "cw",
-    "d_drill_type": "none",
+    "d_drill_type": -1,
     "loop_level": 0,
     "loop_count": 0,
     "next_job_tool_number": 1,
@@ -155,7 +155,7 @@
     "ypos": 1,
     "zpos": 0,
     "feed": 250,
-    "feed_type": "feed_cut"
+    "feed_type": "feed_rate"
    }
   },
   {
@@ -202,7 +202,7 @@
     "tool_start_plane": 40,
     "tool_direction": "cw",
     "spin": 1200,
-    "d_drill_type": "none",
+    "d_drill_type": -1,
     "tool_message": "",
     "tool_offset": 2
    }
@@ -211,7 +211,7 @@
    "name": "start_of_job",
    "parameters": {
     "job_name": "TILTED",
-    "job_type": "contour",
+    "job_type": "profile",
     "home_user_name": "G54p4",
     "tool_z_level": 20,
     "tool_start_plane": 40,
@@ -256,7 +256,7 @@
    "name": "start_of_job",
    "parameters": {
     "job_name": "INDEX60",
-    "job_type": "contour",
+    "job_type": "profile",
     "home_user_name": "G58",
     "position": 6,
     "tool_z_level": 10,

@@ -20,7 +20,7 @@ from support import FIXTURES, PP, VMID, require_vmid, source
 ZX_ARC_EVENT = {'name': 'arc_zx', 'parameters': {
     'xpos': -40, 'ypos': 0, 'zpos': -5, 'xstart': -50, 'ystart': 0, 'zstart': 5, 'xcenter': -50, 'ycenter': 0,
     'zcenter': -5, 'xcenter_rel': 0, 'ycenter_rel': 0, 'zcenter_rel': -10, 'arc_size': 90, 'arc_direction': 'cw',
-    'arc_plane': 'zx', 'radius': 10, 'feed': 500, 'feed_type': 'feed_cut'}}
+    'arc_plane': 'zx', 'radius': 10, 'feed': 500, 'feed_type': 'feed_rate'}}
 
 
 def replay(name, **policy):

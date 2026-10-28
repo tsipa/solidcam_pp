@@ -75,7 +75,7 @@
     "tool_start_plane": 50,
     "tool_direction": "cw",
     "spin": 8000,
-    "d_drill_type": "none",
+    "d_drill_type": -1,
     "tool_message": "",
     "tool_offset": 5
    }
@@ -86,7 +86,7 @@
     "job_name": "F_CONTOUR",
     "wall_offset": 0,
     "floor_offset": 0,
-    "job_type": "contour",
+    "job_type": "profile",
     "msg": "",
     "home_number": 1,
     "home_user_name": "G54",
@@ -101,7 +101,7 @@
     "spin_rate": 8000,
     "spin": 8000,
     "tool_direction": "cw",
-    "d_drill_type": "none",
+    "d_drill_type": -1,
     "loop_level": 0,
     "loop_count": 0,
     "next_job_tool_number": 1,
@@ -154,7 +154,7 @@
     "ypos": 30,
     "zpos": -5,
     "feed": 600,
-    "feed_type": "feed_cut"
+    "feed_type": "feed_rate"
    }
   },
   {
@@ -233,7 +233,7 @@
     "tool_start_plane": 50,
     "tool_direction": "cw",
     "spin": 2000,
-    "d_drill_type": "none",
+    "d_drill_type": -1,
     "tool_message": "DRILL 6",
     "tool_offset": 3
    }
@@ -325,7 +325,7 @@
     "job_name": "F_SIDE_A90",
     "wall_offset": 0.3,
     "floor_offset": 0.3,
-    "job_type": "contour",
+    "job_type": "profile",
     "home_number": 1,
     "position": 1,
     "tool_z_level": 50,
@@ -353,7 +353,7 @@
     "ypos": 0,
     "zpos": -2,
     "feed": 400,
-    "feed_type": "feed_cut"
+    "feed_type": "feed_rate"
    }
   },
   {
@@ -385,7 +385,7 @@
    "name": "start_of_job",
    "parameters": {
     "job_name": "F_5X",
-    "job_type": "contour",
+    "job_type": "profile",
     "x5_job": true,
     "home_number": 1,
     "position": 1,
@@ -419,7 +419,7 @@
     "bpos": 0,
     "dir5a": "ccw",
     "feed": 300,
-    "feed_type": "feed_cut"
+    "feed_type": "feed_rate"
    }
   },
   {

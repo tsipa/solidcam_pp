@@ -30,7 +30,7 @@ def started(a0=20.0, source=None, options=None):
     program = Program(source=source, options=options)
     program.start()
     program.ev('move_5x', xpos=10, ypos=0, zpos=30, apos=a0, dir5a='ccw')
-    program.ev('line_5x', zpos=25, feed=200, feed_type='feed_cut')
+    program.ev('line_5x', zpos=25, feed=200, feed_type='feed_rate')
     return program
 
 
@@ -52,9 +52,9 @@ class RotaryDirectionGuardTests(unittest.TestCase):
     def test_wrong_way_feed_moves_stop_the_post(self):
         """INDEPENDENT: module oracle. CAM 20 -> 10 (-10 degrees) with ACP would turn +350 degrees while the tool feeds."""
         cases = {
-            'line_5x': dict(apos=10, dir5a='ccw', feed_type='feed_cut'),
-            'line': dict(apos=10, angle_4x_around_x_dir='ccw', feed_type='feed_cut'),
-            'line_4x': dict(cpos=-10, dir5a='ccw', feed_type='feed_cut'),
+            'line_5x': dict(apos=10, dir5a='ccw', feed_type='feed_rate'),
+            'line': dict(apos=10, angle_4x_around_x_dir='ccw', feed_type='feed_rate'),
+            'line_4x': dict(cpos=-10, dir5a='ccw', feed_type='feed_rate'),
             'line_5x link': dict(apos=10, dir5a='ccw', feed_type='feed_link', zpos=40),
         }
         for label, values in cases.items():
@@ -69,9 +69,9 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         program = Program(policies=scripted_input_policies())
         program.start()
         program.ev('move_5x', xpos=10, ypos=0, zpos=30, apos=20, dir5a='ccw')
-        program.ev('line_5x', zpos=25, feed=200, feed_type='feed_cut')
+        program.ev('line_5x', zpos=25, feed=200, feed_type='feed_rate')
         with self.assertRaises(post_abort_error()):
-            program.ev('line_5x', xpos=20, apos=10, feed=200, feed_type='feed_cut', dir5a='ccw')
+            program.ev('line_5x', xpos=20, apos=10, feed=200, feed_type='feed_rate', dir5a='ccw')
         self.assertEqual(program.nc()[-1].strip(), 'POST ERROR: A would turn another way than in CAM (ACP/ACN): '
                                                    'A20 to A10, CAM -10 deg, control 350 deg.')
 
@@ -79,23 +79,23 @@ class RotaryDirectionGuardTests(unittest.TestCase):
     def test_rounding_straddle_against_the_word_stops(self):
         """INDEPENDENT: owner rule. 20.0004 -> 20.0006 prints 20 -> 20.001; a 'cw' word makes ACN turn 359.999 degrees."""
         program = started(20.0004)
-        program.ev('line_5x', xpos=15, feed=200, feed_type='feed_cut')
+        program.ev('line_5x', xpos=15, feed=200, feed_type='feed_rate')
         self.assert_wrong_way_stop(
-            lambda: program.ev('line_5x', xpos=20, apos=20.0006, feed=200, feed_type='feed_cut', dir5a='cw'))
+            lambda: program.ev('line_5x', xpos=20, apos=20.0006, feed=200, feed_type='feed_rate', dir5a='cw'))
 
     def test_rounding_straddle_with_the_word_posts_one_step(self):
         """INDEPENDENT: module oracle. The same straddle with 'ccw' is one output step on the control."""
         program = started(20.0004)
-        program.ev('line_5x', xpos=15, feed=200, feed_type='feed_cut')
-        output = program.ev('line_5x', xpos=20, apos=20.0006, feed=200, feed_type='feed_cut', dir5a='ccw')
+        program.ev('line_5x', xpos=15, feed=200, feed_type='feed_rate')
+        output = program.ev('line_5x', xpos=20, apos=20.0006, feed=200, feed_type='feed_rate', dir5a='ccw')
         self.assertEqual(len(output), 1, output)
         self.assertIn('A=ACP(20.001)', output[0])
 
     def test_same_printed_position_is_no_rotation(self):
         """INDEPENDENT: module oracle. 20.0014 -> 20.0006 prints 20.001 twice: no A word and no G93 block."""
         program = started()
-        program.ev('line_5x', xpos=15, apos=20.0014, feed=200, feed_type='feed_cut', dir5a='ccw')
-        output = program.ev('line_5x', xpos=20, apos=20.0006, feed=200, feed_type='feed_cut', dir5a='ccw')
+        program.ev('line_5x', xpos=15, apos=20.0014, feed=200, feed_type='feed_rate', dir5a='ccw')
+        output = program.ev('line_5x', xpos=20, apos=20.0006, feed=200, feed_type='feed_rate', dir5a='ccw')
         self.assertEqual(len(output), 1, output)
         self.assertNotIn('A=', output[0])
         self.assertNotIn('G93', output[0])
@@ -124,7 +124,7 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         for options in (dict(sHomestrroth=''), dict(bHomeroth=False)):
             with self.subTest(**options):
                 program = started(options=options)
-                program.ev('line_5x', zpos=30, feed=200, feed_type='feed_cut')
+                program.ev('line_5x', zpos=30, feed=200, feed_type='feed_rate')
                 self.assert_wrong_way_stop(lambda: program.ev('rapid_move', xpos=20, apos=10,
                                                               angle_4x_around_x_dir='ccw'))
 
@@ -147,13 +147,13 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         """INDEPENDENT: owner rule. 179 -> -179 with 'ccw' is -358 degrees in CAM but +2 on the control."""
         program = started(179.0)
         self.assert_wrong_way_stop(
-            lambda: program.ev('line_5x', xpos=15, apos=-179, feed=200, feed_type='feed_cut', dir5a='ccw'))
+            lambda: program.ev('line_5x', xpos=15, apos=-179, feed=200, feed_type='feed_rate', dir5a='ccw'))
 
     def test_full_turn_hidden_by_rounding_stops_the_post(self):
         """INDEPENDENT: 20.0004 -> 379.9998 is 359.9994 degrees but prints A20 twice: the control would not turn."""
         program = started(20.0004)
         with self.assertRaises(UnsupportedGPPL) as stop:
-            program.ev('line_5x', xpos=15, apos=379.9998, feed=200, feed_type='feed_cut', dir5a='ccw')
+            program.ev('line_5x', xpos=15, apos=379.9998, feed=200, feed_type='feed_rate', dir5a='ccw')
         self.assertIn('360 degrees or more', str(stop.exception))
 
     @covers('PP-060')
@@ -164,13 +164,13 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         program.start()
         for tool in (2, 3):
             program.ev('move_5x', xpos=10, ypos=0, zpos=30, apos=37, dir5a='ccw')
-            program.ev('line_5x', zpos=25, feed=200, feed_type='feed_cut')
+            program.ev('line_5x', zpos=25, feed=200, feed_type='feed_rate')
             program.ev('move_5x', zpos=60)
             program.ev('end_of_job')
             program.ev('change_tool', tool_number=tool, next_tool_number=tool + 1, first_tool=False)
             program.ev('start_of_job', job_name=f'op{tool}')
         self.assert_wrong_way_stop(
-            lambda: program.ev('line_5x', xpos=12, zpos=50, apos=30, feed=200, feed_type='feed_cut', dir5a='cw'))
+            lambda: program.ev('line_5x', xpos=12, zpos=50, apos=30, feed=200, feed_type='feed_rate', dir5a='cw'))
 
     @covers('PP-060')
     def test_extra_turn_after_the_post_unwind_stops(self):
@@ -181,20 +181,20 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         program.start()
         for tool in (2, 3):
             program.ev('move_5x', xpos=10, ypos=0, zpos=30, apos=37, dir5a='ccw')
-            program.ev('line_5x', zpos=25, feed=200, feed_type='feed_cut')
+            program.ev('line_5x', zpos=25, feed=200, feed_type='feed_rate')
             program.ev('move_5x', zpos=60)
             program.ev('end_of_job')
             program.ev('change_tool', tool_number=tool, next_tool_number=tool + 1, first_tool=False)
             program.ev('start_of_job', job_name=f'op{tool}')
         self.assert_wrong_way_stop(
-            lambda: program.ev('line_5x', xpos=12, zpos=50, apos=40, feed=200, feed_type='feed_cut', dir5a='ccw'))
+            lambda: program.ev('line_5x', xpos=12, zpos=50, apos=40, feed=200, feed_type='feed_rate', dir5a='ccw'))
         program = started(37.0)
         program.ev('move_5x', zpos=60)
         program.ev('end_of_job')
         program.ev('start_of_job', job_name='op2')
         program.ev('fourth_axis', angle=0, angle_4x_around_x_dir='ccw')
         self.assert_wrong_way_stop(
-            lambda: program.ev('line_5x', xpos=12, zpos=50, apos=40, feed=200, feed_type='feed_cut', dir5a='ccw'))
+            lambda: program.ev('line_5x', xpos=12, zpos=50, apos=40, feed=200, feed_type='feed_rate', dir5a='ccw'))
 
     def test_recorded_slide_angles_turn_exactly_the_cam_steps(self):
         """INDEPENDENT: the 482 recorded Slide A angles (both directions, steps down to 0.001) as one
@@ -205,7 +205,7 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         program = started(angles[0])
         current, previous_cam = round(angles[0] % 360, 3), angles[0]
         for number, angle in enumerate(angles[1:]):
-            output = program.ev('line_5x', xpos=10 + 0.1 * number, apos=angle, feed=300, feed_type='feed_cut',
+            output = program.ev('line_5x', xpos=10 + 0.1 * number, apos=angle, feed=300, feed_type='feed_rate',
                                 dir5a='ccw' if angle > previous_cam else 'cw')
             words = [WORD.search(block).groups() for block in output if WORD.search(block)]
             if not words:
@@ -228,7 +228,7 @@ class RotaryDirectionGuardTests(unittest.TestCase):
                 cam += rng.uniform(-0.0009, 0.0009)
                 try:
                     output = program.ev('line_5x', xpos=10 + 0.01 * number, apos=cam, feed=300,
-                                        feed_type='feed_cut', dir5a=rng.choice(['cw', 'ccw']))
+                                        feed_type='feed_rate', dir5a=rng.choice(['cw', 'ccw']))
                 except UnsupportedGPPL as stop:
                     self.assertIn(WRONG_WAY, str(stop))
                     break
@@ -248,7 +248,7 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         def feed_case(source):
             program = started(source=source)
             self.assert_wrong_way_stop(
-                lambda: program.ev('line_5x', xpos=20, apos=10, feed=200, feed_type='feed_cut', dir5a='ccw'))
+                lambda: program.ev('line_5x', xpos=20, apos=10, feed=200, feed_type='feed_rate', dir5a='ccw'))
 
         def rapid_case(source):
             program = started(source=source)

@@ -15,7 +15,7 @@ from test_post_homing_reposition import EMULATED_RAPIDS, Session, without_emulat
 
 def same_tool_next_job(last_z, first_move, source=None):
     session = Session(source)
-    session.step('line_5x', ['zpos'], zpos=last_z, feed_type='feed_cut')
+    session.step('line_5x', ['zpos'], zpos=last_z, feed_type='feed_rate')
     session.step('end_of_job')
     session.step('start_of_job')
     changed, values = first_move
@@ -80,7 +80,7 @@ class JobStartClimbTests(unittest.TestCase):
 
     def test_climb_counts_as_the_first_move(self):
         session = Session()
-        session.step('line_5x', ['zpos'], zpos=5, feed_type='feed_cut')
+        session.step('line_5x', ['zpos'], zpos=5, feed_type='feed_rate')
         session.step('end_of_job')
         session.step('start_of_job')
         self.assertEqual(session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=100, ypos=100, zpos=50),
@@ -90,7 +90,7 @@ class JobStartClimbTests(unittest.TestCase):
 
     def test_rotation_with_homing_on_the_first_rapid_does_not_climb(self):
         session = Session()
-        session.step('line_5x', ['zpos'], zpos=5, feed_type='feed_cut')
+        session.step('line_5x', ['zpos'], zpos=5, feed_type='feed_rate')
         session.step('end_of_job')
         session.step('start_of_job')
         output = session.step('move_5x', ['apos', 'xpos', 'ypos', 'zpos'], apos=30, xpos=100, ypos=100, zpos=50,
@@ -100,7 +100,7 @@ class JobStartClimbTests(unittest.TestCase):
     def test_after_index_homing_xy_goes_first_even_if_z_is_higher(self):
         session = Session()
         session.engine.set(bR1forceOutput=True)
-        session.step('line_5x', ['zpos'], zpos=5, feed_type='feed_cut')
+        session.step('line_5x', ['zpos'], zpos=5, feed_type='feed_rate')
         session.step('end_of_job')
         session.step('tmatrix', angle_4x_around_x=90)
         self.assertIn('G75 Z1=0.', session.step('start_of_job'))
@@ -158,7 +158,7 @@ class JobStartClimbTests(unittest.TestCase):
         session = Session()
         session.engine.set(first_tool=True, bLimit_3axis=False, bWorkoffsettc=True, iWorkOffset_Method=1,
                            home_user_name='54')
-        session.step('line_5x', ['zpos'], zpos=60, feed_type='feed_cut')
+        session.step('line_5x', ['zpos'], zpos=60, feed_type='feed_rate')
         session.step('end_of_job')
         session.engine.set(home_user_name='55')
         self.assertIn('G55', ' '.join(session.step('start_of_job')))

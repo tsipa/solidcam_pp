@@ -25,7 +25,7 @@ from support.session import SOLIDCAM_EVENTS
 from support.vericut import VMID_FALLBACK
 
 TRACE = ("(1)@line_5x ==> zpos:15.833T feed_type:feed_link dir5a:cw\n"
-         "                    ..> prev_command:'@line_5x' job_type:'contour' user_name:'Person'\n"
+         "                    ..> prev_command:'@line_5x' job_type:'profile' user_name:'Person'\n"
          "(1)@move_5x ==> apos:3.035T dir5a:ccw prev_command:'@line_5x' tool_direction:cw\n"
          "(1)@drill ==> drill_type:G83 feed:100.000T\n")
 
@@ -56,7 +56,7 @@ class TraceContractTests(unittest.TestCase):
             'tool_direction': events[1]['parameters']['tool_direction'],
             'drill_type': events[2]['parameters']['drill_type'],
         }
-        self.assertEqual(kept, {'feed_type': 'feed_link', 'prev_command': '@line_5x', 'job_type': 'contour',
+        self.assertEqual(kept, {'feed_type': 'feed_link', 'prev_command': '@line_5x', 'job_type': 'profile',
                                 'tool_direction': 'cw', 'drill_type': 'G83'})
 
     @known_defect('ENGINE-016')

@@ -70,7 +70,7 @@ class RotaryModuloRangeTests(unittest.TestCase):
                 program.start()
                 program.ev('move_5x', xpos=12, ypos=0, zpos=25)
                 with self.assertRaisesRegex(UnsupportedGPPL, 'One cutting block turns A by 360 degrees or more'):
-                    program.ev('line_5x', xpos=20, apos=apos, feed=200, feed_type='feed_cut')
+                    program.ev('line_5x', xpos=20, apos=apos, feed=200, feed_type='feed_rate')
 
     def test_link_block_turning_a_full_revolution_is_dropped(self):
         program = Program()
@@ -82,7 +82,7 @@ class RotaryModuloRangeTests(unittest.TestCase):
         program = Program()
         program.start()
         program.ev('move_5x', xpos=12, ypos=0, zpos=25)
-        output = program.ev('line_5x', xpos=20, apos=359, feed=200, feed_type='feed_cut', dir5a='ccw')
+        output = program.ev('line_5x', xpos=20, apos=359, feed=200, feed_type='feed_rate', dir5a='ccw')
         self.assertIn('A=ACP(359)', ' '.join(output))
 
     def test_coordinate_system_angle_plus_simultaneous_angle_wraps(self):
@@ -244,7 +244,7 @@ class FullTurnBaselineTests(unittest.TestCase):
     def test_plain_job_after_a_post_reset_is_posted(self):
         # A 2.5D job sends no apos: the post's 0 stays, so the CAM A of the previous job is no start point.
         program = _third_tool_after(725)
-        output = program.ev('line', xpos=20, ypos=0, zpos=10, feed=200, feed_type='feed_cut')
+        output = program.ev('line', xpos=20, ypos=0, zpos=10, feed=200, feed_type='feed_rate')
         self.assertNotIn('POST ERROR', ' '.join(output))
 
     def test_whole_cam_turn_after_a_coordinate_change_still_stops(self):
@@ -298,7 +298,7 @@ class FullTurnBaselineTests(unittest.TestCase):
             program.ev('rapid_move', xpos=20, ypos=0, zpos=12)
 
         def line(program):
-            program.ev('line', xpos=20, ypos=0, zpos=10, feed=200, feed_type='feed_cut')
+            program.ev('line', xpos=20, ypos=0, zpos=10, feed=200, feed_type='feed_rate')
 
         def drill_job(program):
             program.ev('end_of_job')

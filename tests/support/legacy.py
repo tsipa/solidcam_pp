@@ -44,7 +44,7 @@ def motion_engine(source=None):
                iMotionmode=1, xpos=12, ypos=23, zpos=10, feed=100,
                tool_start_plane=35, tool_z_level=35, nPtool_z_level=35,
                nPtool_start_plane=35, prev_command='@line_5x',
-               feed_type='feed_cut', job_type='contour', bStopM00=False,
+               feed_type='feed_rate', job_type='profile', bStopM00=False,
                iWorkOffset_Method=0, rotate_angle_x=0, rotate_angle_y=0,
                rotate_angle_z=0, shift_x=0, shift_y=0, shift_z=0, position=1,
                rot_axis_coord=0, transform_type=0,

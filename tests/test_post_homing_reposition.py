@@ -203,7 +203,7 @@ class PostHomingApproachOrderTests(unittest.TestCase):
 
     def test_rotation_after_cutting_returns_xy_then_z(self):
         session = Session()
-        session.step('line_5x', ['xpos'], xpos=15, feed_type='feed_cut')
+        session.step('line_5x', ['xpos'], xpos=15, feed_type='feed_rate')
         output = session.step('move_5x', ['apos', 'xpos', 'ypos', 'zpos'], apos=30, xpos=50, ypos=60, zpos=3,
                               prev_command='@line_5x')
         self.assertEqual(output, ['G75 Z1=0.', HOME_XY, 'G0 A=ACN(30)', 'X50 Y60', 'Z3'])
@@ -224,7 +224,7 @@ class PostHomingApproachOrderTests(unittest.TestCase):
         self.assertEqual(len(pattern.findall(source)), 1, 'post-homing split changed; review this test')
         broken = pattern.sub("if bFirstMove\n", source, count=1)
         session = Session(broken)
-        session.step('line_5x', ['xpos'], xpos=15, feed_type='feed_cut')
+        session.step('line_5x', ['xpos'], xpos=15, feed_type='feed_rate')
         output = session.step('move_5x', ['apos', 'xpos', 'ypos', 'zpos'], apos=30, xpos=50, ypos=60, zpos=3,
                               prev_command='@line_5x')
         self.assertIn('X50 Y60 Z3', output)

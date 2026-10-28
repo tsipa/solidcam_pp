@@ -43,7 +43,7 @@
         {"call": "line_5x", "set": {"feed_type": "feed_link", "zpos": 20}, "changed": ["zpos"], "state": {"bCamLinkRetract": true}},
         {"call": "move_5x", "set": {"apos": 10, "dir5a": "ccw", "prev_command": "@line_5x"}, "changed": ["apos"], "contains": ["A=ACP(10)"], "absent": ["G75"], "state": {"bCamLinkRetract": true}},
         {"call": "move_5x", "set": {"apos": 20, "prev_command": "@move_5x"}, "changed": ["apos"], "contains": ["A=ACP(20)"], "absent": ["G75"], "state": {"bCamLinkRetract": true}},
-        {"call": "line_5x", "set": {"feed_type": "feed_cut", "xpos": 16}, "changed": ["xpos"], "state": {"bCamLinkRetract": false}},
+        {"call": "line_5x", "set": {"feed_type": "feed_rate", "xpos": 16}, "changed": ["xpos"], "state": {"bCamLinkRetract": false}},
         {"call": "move_5x", "set": {"apos": 30, "prev_command": "@line_5x"}, "changed": ["apos"], "order": ["G75 Z1=0", "A=ACP(30)"]}
       ]
     },
@@ -65,7 +65,7 @@
     {
       "name": "cutting_retract_is_not_cam_link",
       "steps": [
-        {"call": "line_5x", "set": {"feed_type": "feed_cut", "zpos": 20}, "changed": ["zpos"], "state": {"bCamLinkRetract": false}},
+        {"call": "line_5x", "set": {"feed_type": "feed_rate", "zpos": 20}, "changed": ["zpos"], "state": {"bCamLinkRetract": false}},
         {"call": "move_5x", "set": {"apos": 10, "prev_command": "@line_5x"}, "changed": ["apos"], "contains": ["G75 Z1=0"]}
       ]
     },

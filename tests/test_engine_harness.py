@@ -754,7 +754,7 @@ def _program_flow(engine_class, flags):
     session.first_tool(tool=1, next_tool=2)
     session.cut(10, 20, 5, -3, apos=30)
     session.ev('move_5x', ('xpos', 'ypos'), xpos=10, ypos=0, zpos=5)
-    session.ev('line_5x', ('zpos',), zpos=-3, feed_type='feed_cut')
+    session.ev('line_5x', ('zpos',), zpos=-3, feed_type='feed_rate')
     session.ev('arc', ('xpos', 'ypos', 'feed'), arc_plane='xy', arc_direction='ccw', arc_size=90, radius=10,
                xstart=10, ystart=0, zstart=-3, xcenter=0, ycenter=0, zcenter=-3, xcenter_rel=-10,
                ycenter_rel=0, zcenter_rel=0, xpos=0, ypos=10, zpos=-3, feed=300)

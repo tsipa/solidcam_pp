@@ -94,8 +94,8 @@ def five_x_job(session, apos, direction='ccw'):
     """First rapid at the job angle, plunge, retract (SolidCAM 5x/4x simultaneous job)."""
     session.ev('move_5x', ('xpos', 'ypos', 'zpos', 'apos'), xpos=12, ypos=23, zpos=35,
                apos=apos, dir5a=direction)
-    session.ev('line_5x', ('zpos', 'feed'), zpos=-2, feed_type='feed_cut')
-    session.ev('line_5x', ('zpos',), zpos=35, feed_type='feed_cut')
+    session.ev('line_5x', ('zpos', 'feed'), zpos=-2, feed_type='feed_rate')
+    session.ev('line_5x', ('zpos',), zpos=35, feed_type='feed_rate')
 
 
 def r1_output(engine):

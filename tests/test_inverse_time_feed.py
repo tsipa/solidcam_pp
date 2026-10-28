@@ -47,7 +47,7 @@ def start_at(x, y, z, apos=0, **state):
 class InverseTimeFeedTests(unittest.TestCase):
     def test_wrap_helix_block(self):
         session = start_at(12, 0, 25)
-        output = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=22, apos=30, feed=200, dir5a='ccw', feed_type='feed_cut')
+        output = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=22, apos=30, feed=200, dir5a='ccw', feed_type='feed_rate')
         self.assertEqual(len(output), 1, output)
         self.assertTrue(output[0].startswith('G1 G93 X22 A=ACP(30) F'), output)
         expected = 200 / math.hypot(10, 25 * math.pi / 6)
@@ -55,7 +55,7 @@ class InverseTimeFeedTests(unittest.TestCase):
 
     def test_pure_rotation_block(self):
         session = start_at(12, 0, 25)
-        output = session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='ccw', feed_type='feed_cut')
+        output = session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='ccw', feed_type='feed_rate')
         self.assertAlmostEqual(feed_word(output[0]), 200 / (25 * math.pi / 6), delta=0.0006)
 
     def test_lateral_motion_uses_part_frame_sign(self):
@@ -63,7 +63,7 @@ class InverseTimeFeedTests(unittest.TestCase):
         a, b = steps[2]['set'], steps[3]['set']
         session = start_at(a['xpos'], a['ypos'], a['zpos'], apos=a['apos'])
         output = session.step('line_5x', ['xpos', 'ypos', 'zpos', 'apos'], xpos=b['xpos'], ypos=b['ypos'],
-                              zpos=b['zpos'], apos=b['apos'], feed=600, dir5a='ccw', feed_type='feed_cut')
+                              zpos=b['zpos'], apos=b['apos'], feed=600, dir5a='ccw', feed_type='feed_rate')
         length = path_length((a['xpos'], a['ypos'], a['zpos'], a['apos']), (b['xpos'], b['ypos'], b['zpos'], b['apos']))
         self.assertAlmostEqual(feed_word(output[-1]), 600 / length, delta=0.001)
         wrong_sign = path_length((a['xpos'], a['ypos'], a['zpos'], -a['apos']), (b['xpos'], b['ypos'], b['zpos'], -b['apos']))
@@ -72,34 +72,34 @@ class InverseTimeFeedTests(unittest.TestCase):
     def test_varying_radius_block_matches_numeric_path(self):
         session = start_at(0, 5, 40)
         output = session.step('line_5x', ['xpos', 'ypos', 'zpos', 'apos'], xpos=3, ypos=-4, zpos=18, apos=47,
-                              feed=300, dir5a='ccw', feed_type='feed_cut')
+                              feed=300, dir5a='ccw', feed_type='feed_rate')
         length = path_length((0, 5, 40, 0), (3, -4, 18, 47))
         self.assertAlmostEqual(feed_word(output[0]), 300 / length, delta=0.002)
 
     def test_non_rotating_line_returns_to_g94_with_feed(self):
         session = start_at(12, 0, 25)
-        session.step('line_5x', ['xpos', 'apos'], xpos=22, apos=30, feed=200, dir5a='ccw', feed_type='feed_cut')
+        session.step('line_5x', ['xpos', 'apos'], xpos=22, apos=30, feed=200, dir5a='ccw', feed_type='feed_rate')
         self.assertEqual(session.step('line_5x', ['xpos'], xpos=30), ['G94 X30 F200'])
 
     def test_end_of_job_leaves_g93_and_reprograms_feed(self):
         session = start_at(12, 0, 25)
-        session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='ccw', feed_type='feed_cut')
+        session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='ccw', feed_type='feed_rate')
         self.assertEqual(session.step('end_of_job'), ['G94 F200'])
         self.assertEqual(session.step('end_of_job'), [])
 
     def test_next_job_first_feed_move_has_feed_after_g93(self):
         # Sinumerik needs F after G93 -> G94; a same-feed plunge without F would run at the inverse value.
         session = start_at(12, 0, 25)
-        session.step('line_5x', ['apos'], apos=30, feed=300, dir5a='ccw', feed_type='feed_cut')
+        session.step('line_5x', ['apos'], apos=30, feed=300, dir5a='ccw', feed_type='feed_rate')
         session.step('end_of_job')
         session.step('start_of_job')
         session.step('move_5x', ['zpos'], zpos=40, prev_command='@end_of_job')
-        output = session.step('line_5x', ['zpos'], zpos=-2, feed=300, feed_type='feed_cut')
+        output = session.step('line_5x', ['zpos'], zpos=-2, feed=300, feed_type='feed_rate')
         self.assertEqual(output, ['G1 Z-2 F300'])
 
     def test_next_job_first_arc_has_feed_after_g93(self):
         session = start_at(10, 0, 25)
-        session.step('line_5x', ['apos'], apos=30, feed=300, dir5a='ccw', feed_type='feed_cut')
+        session.step('line_5x', ['apos'], apos=30, feed=300, dir5a='ccw', feed_type='feed_rate')
         session.step('end_of_job')
         session.step('start_of_job')
         session.engine.set(arc_plane='xy', arc_direction='ccw', arc_size=90, radius=10,
@@ -110,13 +110,13 @@ class InverseTimeFeedTests(unittest.TestCase):
 
     def test_feed_emulated_rapid_leaves_g93_first(self):
         session = start_at(12, 0, 25, bSyncdrapid=False, job_type='3-d model')
-        session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='ccw', feed_type='feed_cut')
+        session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='ccw', feed_type='feed_rate')
         output = session.step('move_5x', ['zpos'], zpos=50, prev_command='@line_5x')
         self.assertEqual(output[0], 'G94 F200', output)
 
     def test_arc_after_rotation_leaves_g93_first(self):
         session = start_at(10, 0, 25)
-        session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='ccw', feed_type='feed_cut')
+        session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='ccw', feed_type='feed_rate')
         session.engine.set(arc_plane='xy', arc_direction='ccw', arc_size=90, radius=10,
                            xstart=10, ystart=0, zstart=25, xcenter=0, ycenter=0, zcenter=25,
                            xcenter_rel=-10, ycenter_rel=0, zcenter_rel=0)
@@ -126,12 +126,12 @@ class InverseTimeFeedTests(unittest.TestCase):
 
     def test_zero_radius_rotation_is_clamped(self):
         session = start_at(12, 0, 0)
-        output = session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='ccw', feed_type='feed_cut')
+        output = session.step('line_5x', ['apos'], apos=30, feed=200, dir5a='ccw', feed_type='feed_rate')
         self.assertEqual(feed_word(output[0]), 59999.99)
 
     def test_programmed_feed_mode_keeps_g94(self):
         session = start_at(12, 0, 25, i4xFeedMode=0)
-        output = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=22, apos=30, feed=200, dir5a='ccw', feed_type='feed_cut')
+        output = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=22, apos=30, feed=200, dir5a='ccw', feed_type='feed_rate')
         self.assertNotIn('G93', ' '.join(output))
         self.assertEqual(feed_word(output[0]), 200)
 
@@ -142,14 +142,14 @@ class InverseTimeFeedTests(unittest.TestCase):
         session.step('end_of_job')
         session.step('tmatrix', angle_4x_around_x=90)
         self.assertIn('G75 Z1=0.', session.step('start_of_job'))
-        output = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=22, apos=30, feed=200, dir5a='ccw', feed_type='feed_cut')
+        output = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=22, apos=30, feed=200, dir5a='ccw', feed_type='feed_rate')
         self.assertNotIn('G93', ' '.join(output))
         self.assertTrue(output[-1].endswith('F200'), output)
 
     def test_negative_direction_uses_the_travel_the_control_makes(self):
         # 0 -> -30 posted as ACN(330): the control turns 30 degrees negative, not the 330 between the positions.
         session = start_at(12, 0, 25)
-        output = session.step('line_5x', ['apos'], apos=-30, feed=200, dir5a='cw', feed_type='feed_cut')
+        output = session.step('line_5x', ['apos'], apos=-30, feed=200, dir5a='cw', feed_type='feed_rate')
         self.assertIn('A=ACN(330)', output[0])
         self.assertAlmostEqual(feed_word(output[0]), 200 / (25 * math.radians(30)), delta=0.0006)
 
@@ -167,9 +167,9 @@ class InverseTimeFeedTests(unittest.TestCase):
         # no G93 and the programmed feed.
         session = start_at(12, 0, 25, apos=30)
         first = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=20, apos=29.99999, feed=300, dir5a='cw',
-                             feed_type='feed_cut')
+                             feed_type='feed_rate')
         second = session.step('line_5x', ['xpos', 'apos'], xpos=28, apos=30.00001, feed=300, dir5a='ccw',
-                              feed_type='feed_cut')
+                              feed_type='feed_rate')
         for output in (first, second):
             self.assertEqual(len(output), 1, output)
             self.assertNotIn('A=', output[0])
@@ -231,7 +231,7 @@ class InverseTimeFeedTests(unittest.TestCase):
         self.assertEqual(source.count(anchor), 1, 'inverse-time condition changed; review this test')
         session = Session(source.replace(anchor, 'if false', 1))
         session.step('move_5x', ['xpos', 'ypos', 'zpos'], xpos=12, ypos=0, zpos=25, prev_command='@line_5x')
-        output = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=22, apos=30, feed=200, dir5a='ccw', feed_type='feed_cut')
+        output = session.step('line_5x', ['xpos', 'apos', 'feed'], xpos=22, apos=30, feed=200, dir5a='ccw', feed_type='feed_rate')
         self.assertEqual(feed_word(output[0]), 200)
 
 
