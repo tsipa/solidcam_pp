@@ -22,9 +22,11 @@ import unittest
 from collections import Counter, defaultdict
 
 from pp_tests.engine import uncomment
+from pp_tests.gppl.analysis import Analysis
 from pp_tests.gppl.program import load_program
+from pp_tests.gppl.vmid import load_vmid
 
-from support import assert_detected, covers, fresh_engine, mutate, pp_source
+from support import VMID, assert_detected, covers, fresh_engine, mutate, pp_source
 from support.paths import FIXTURES, read_text
 
 NUMERIC_FORMAT = re.compile(r"^\+?\d+\.\d+(?:\([pPnN]\))?$")
@@ -94,6 +96,34 @@ class GppStructureTests(unittest.TestCase):
         mutant = source.replace('nSegmentLengthSquared', 'dist')
         assert_detected(self, self.assert_valid_variable_names, mutant,
                         'original SolidCAM dist declaration conflict')
+
+    def assert_assignments_are_declared(self, source):
+        diagnostics = Analysis(load_program(source), load_vmid(VMID)).run()
+        self.assertEqual([str(d) for d in diagnostics if d.code == 'W-UNDECLARED-WRITE'], [])
+
+    def test_every_assigned_name_is_declared(self):
+        """INDEPENDENT: GPPL declarations (the GPPL IDE reports GPPL2007): a
+        name the post assigns is a declared global or local, a VMID parameter
+        or a SolidCAM system variable. Otherwise the assignment creates an
+        implicit global that nothing reads: a misspelt option keeps its
+        default, a misspelt SolidCAM setting (remove_blanks, feed_f) is never
+        set, and the engine runs both without complaint."""
+        self.assert_assignments_are_declared(pp_source())
+
+    def test_undeclared_assignment_is_detected(self):
+        """INDEPENDENT: mutation self-check; a misspelt SolidCAM setting, a
+        misspelt option and a misspelt SolidCAM format must each fail the
+        check with AssertionError naming the misspelt variable."""
+        option = '    bToolPreselect        = TRUE '
+        mutants = {
+            'remove_blank': ('    remove_blanks = FALSE', '    remove_blank = FALSE'),
+            'btoolpreselct': (option, '    bToolPreselct = true\n' + option),
+            'fed_f': ("    feed_f          = '4.4(P)'", "    fed_f          = '4.4(P)'"),
+        }
+        for name, (old, new) in mutants.items():
+            with self.subTest(mutant=name):
+                assert_detected(self, self.assert_assignments_are_declared, mutate(old, new), name,
+                                match=f"'{name}' assigned without a declaration")
 
     @covers('ENGINE-019')
     def test_every_statement_is_inside_a_procedure(self):

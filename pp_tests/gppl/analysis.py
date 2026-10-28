@@ -6,9 +6,9 @@
 * interprocedural definite-assignment flow -> per-event inferred SolidCAM inputs
   and change flags (the fixture-authoring checklist) and the CAM-interface
   inventory;
-* lint: unknown identifiers, unreachable/unused code, format and type issues,
-  policy-sensitive sites (doubled quotes, formats, '!' over a comparison,
-  integer assignments, tonum, Print/input/trace), constant conditions,
+* lint: unknown identifiers, undeclared assignments, unreachable/unused code,
+  format and type issues, policy-sensitive sites (doubled quotes, formats, '!'
+  over a comparison, integer assignments, tonum, Print/input/trace), constant conditions,
   statements after abort, and branches dead under the *shipped configuration*
   (variables assigned exactly once, unconditionally, to a literal inside
   @init_post's call closure);
@@ -418,8 +418,9 @@ class Analysis:
                               f'system-variable registry (typo or missing registry entry?)')
             for write, line in fact.writes.items():
                 if self.classify(write, name) == 'pp-undeclared':
-                    self.diag('info', 'I-UNDECLARED-WRITE', name, line,
-                              f'{write!r} assigned without a global declaration (implicit global)')
+                    self.diag('warning', 'W-UNDECLARED-WRITE', name, line,
+                              f'{write!r} assigned without a declaration; not a VMID parameter and not in the '
+                              f'system-variable registry (implicit global: a misspelt option or setting?)')
             for function, line in fact.functions.items():
                 if BUILTINS[function][3] == 'assumed':
                     self.diag('info', 'I-ASSUMED-BUILTIN', name, line,

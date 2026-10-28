@@ -62,12 +62,12 @@ class WholeGppTests(unittest.TestCase):
         self.assertEqual(unknown, [])
         # Every assigned name is declared, a VMID parameter or a SolidCAM variable (the IDE reports an
         # undeclared one, GPPL2007). Only SolidCAM's own formats are exempt, not every '*_f' name.
-        undeclared = [str(d) for d in self.diagnostics if d.code == 'I-UNDECLARED-WRITE']
+        undeclared = [str(d) for d in self.diagnostics if d.code == 'W-UNDECLARED-WRITE']
         self.assertEqual(undeclared, [])
         mutant = re.sub(r'(?im)^(\s*global\s+string\s.*?)\s+nArcAR_f\b', r'\1', source(), count=1)
         self.assertNotEqual(mutant, source())
         found = {d.message.split("'")[1] for d in Analysis(load_program(mutant), load_vmid(VMID), SESSION).run()
-                 if d.code == 'I-UNDECLARED-WRITE'}
+                 if d.code == 'W-UNDECLARED-WRITE'}
         self.assertEqual(found, {'narcar_f'})
         bare = Analysis(self.program).run()           # without the VMID its user params are unknown
         names = {d.message.split("'")[1] for d in bare if d.code == 'W-UNKNOWN-IDENT'}
