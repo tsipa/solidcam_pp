@@ -40,7 +40,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 31 | 30 | 1 | 3 |
+| pp | 30 | 31 | 1 | 3 |
 | engine | 19 | 2 | 0 | 0 |
 | design | 6 | 1 | 0 | 0 |
 
@@ -67,7 +67,6 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 | [PP-023](#pp-023) | low | confirmed | D | Feed-emulated rapids write G1 rotary/XY blocks without the rapid feed (stale cutting feed or "feedrate not programmed") | `test_every_g1_block_of_emulated_rapid_moves_at_rapid_feed` |
 | [PP-024](#pp-024) | medium | confirmed | A | M00 between same-tool jobs switches coolant off and never restores it; spindle restart has no ramp dwell | `test_m00_same_tool_restores_coolant_before_next_cut` [coolant] |
 | [PP-025](#pp-025) | low-medium | uncertain | A | Coolant is evaluated only at tool changes: a same-tool job's coolant request is ignored | `test_same_tool_job_applies_its_coolant_request` |
-| [PP-026](#pp-026) | low | confirmed | E | Spindle ramp dwell divides by the literal 500 instead of spindle_accel | pinned only (@covers) |
 | [PP-027](#pp-027) | low | confirmed | A | The second tool change skips the full modal reset because the first-tool path leaves bSafetyprep=true | `test_tool_change_does_not_depend_on_previous_tool_being_first` |
 | [PP-029](#pp-029) | low | confirmed | E | CYCLE86 SDIR is hard-coded to 3 (M3) even for CCW boring tools | `test_left_hand_boring_tool_runs_m4` |
 | [PP-030](#pp-030) | low | uncertain | E | First drill hole may not trigger the modal cycle (empty block after MCALL) | `test_first_drill_point_is_a_motion_block` |
@@ -314,7 +313,7 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 - Evidence that would settle it: Coolant: none needed. Dwell: MD35500 / spindle acceleration on the target 828D.
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: tc-03, pp3-m00-sametool-coolant
-- Facet `ramp-dwell`: accepted: Owner check 2026-10-27: MD35500 = 2 and a G1 after S/M3 waits for the spindle on the machine (SPINWAIT.MPF). 82eea8d makes every G04 ramp dwell optional (bSpinDwell, default off); the M00 restart never dwells.
+- Facet `ramp-dwell`: fixed: aed55e8 WAITS after the M3/M4 of the M00 restart, as after every spindle start (bSpinWait); the timed G04 is gone.
 - Reproduced by:
   - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_m00_same_tool_restores_coolant_before_next_cut` (facet `coolant`, confidence confirmed)
 - Pinned or exercised by (`@covers`):
@@ -334,21 +333,6 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 - Source findings: tc-04
 - Reproduced by:
   - `tests/test_toolchange_session.py::ToolChangeDefectTests::test_same_tool_job_applies_its_coolant_request`
-
-### PP-026
-
-**Spindle ramp dwell divides by the literal 500 instead of spindle_accel**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Latent: spindle_accel is an @init_post constant (500 rpm/s), not a user option; the dwell differs from the documented policy only if that constant is edited (tc-09 correction). Since 82eea8d the dwell exists only with bSpinDwell true (default false).
-- Location: GPP @usr_spindle_output L1969-1972 (G04 F (0.3+(sdiff/500))); spindle_accel = 500 in @init_post
-- Evidence that would settle it: None needed for the formula; MD35500 on the target 828D for the intended ramp time.
-- Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
-- Source findings: tc-09, history-misc-17
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_cycles_spindle.py::SpindleTests::test_spindle_waits`
 
 ### PP-027
 
@@ -1006,6 +990,8 @@ now a regression guard marked `@covers`.
 | [PP-020](#pp-020) | b999f65 | `test_compensation_not_activated_in_circular_block`, `test_compensation_not_deactivated_in_circular_block` | `tests/test_cutter_compensation.py` |
 | [PP-021](#pp-021) | 88695c9 | `test_drill_cycle_after_yz_arc_runs_in_g17`, `test_xy_compensation_after_yz_arc_runs_in_g17` | `tests/test_job_plane_restore.py` |
 | [PP-022](#pp-022) | d9fe31f | `test_leftover_arc_mode_setting_posts_the_sinumerik_centre` | `tests/test_arc_compensation_plane.py` |
+| [PP-024 [ramp-dwell]](#pp-024) | aed55e8 | `test_spindle_waits`, `test_m00_same_tool_restart_waits_for_the_spindle` |  |
+| [PP-026](#pp-026) | aed55e8 | `test_spindle_waits` | `tests/test_cycles_spindle.py` |
 | [PP-028](#pp-028) | a38f158 | `test_left_hand_tap_uses_negative_pitch` | `tests/test_tapping_direction.py` |
 | [PP-033](#pp-033) | f5c74cd | `test_several_fixtures_stop_the_post` | `tests/test_unsupported_features.py` |
 | [PP-034](#pp-034) | f5c74cd | `test_several_fixtures_stop_the_post` | `tests/test_unsupported_features.py` |
@@ -1190,6 +1176,23 @@ now a regression guard marked `@covers`.
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_arc_compensation_plane.py::RemovedArcModeTests::test_leftover_arc_mode_setting_posts_the_sinumerik_centre`
+
+### PP-026
+
+**Spindle ramp dwell divides by the literal 500 instead of spindle_accel**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Latent: spindle_accel is an @init_post constant (500 rpm/s), not a user option; the dwell differs from the documented policy only if that constant is edited (tc-09 correction). Since 82eea8d the dwell exists only with bSpinDwell true (default false).
+- Location: GPP @usr_spindle_output L1969-1972 (G04 F (0.3+(sdiff/500))); spindle_accel = 500 in @init_post
+- Evidence that would settle it: None needed for the formula; MD35500 on the target 828D for the intended ramp time.
+- Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
+- Source findings: tc-09, history-misc-17
+- Status: fixed: aed55e8 The G04 spindle dwell and its literal 500 are gone: WAITS lets the control decide when the spindle is at speed.
+- Tests of the fix: tests/test_cycles_spindle.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_cycles_spindle.py::SpindleTests::test_spindle_waits`
 
 ### PP-028
 

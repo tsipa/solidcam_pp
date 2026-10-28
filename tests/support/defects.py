@@ -199,9 +199,10 @@ RESOLUTIONS = {
     'PP-054[coolant-burst]': ('fixed', '82eea8d usr_init_gmstates clears the change flags of its coolant OFF '
                                        'assignments, usr_coolant_output prints each M code once, and the first tool '
                                        'change switches coolant off once like the others (bCooloffend).'),
-    'PP-024[ramp-dwell]': ('accepted', 'Owner check 2026-10-27: MD35500 = 2 and a G1 after S/M3 waits for the '
-                                       'spindle on the machine (SPINWAIT.MPF). 82eea8d makes every G04 ramp dwell '
-                                       'optional (bSpinDwell, default off); the M00 restart never dwells.'),
+    'PP-024[ramp-dwell]': ('fixed', 'aed55e8 WAITS after the M3/M4 of the M00 restart, as after every spindle '
+                                    'start (bSpinWait); the timed G04 is gone.'),
+    'PP-026': ('fixed', 'aed55e8 The G04 spindle dwell and its literal 500 are gone: WAITS lets the control '
+                        'decide when the spindle is at speed.'),
     'PP-053': ('fixed', '0667596 The first index before any rapid homes with sHomestrrotv in clearance mode 0, also with the program start homing off (bHomebegin).'),
     'PP-057': ('fixed', 'f5c74cd Remove the Fanuc template paths (follow-ups a2cb528 homing modes, 9d519d7 '
                         'O number, c06b190 G187): the post writes no Fanuc/Haas-only words.'),
@@ -245,6 +246,7 @@ FIX_TESTS = {
     'PP-049': ('tests/test_inverse_time_feed.py',),
     'PP-012': ('tests/test_toolchange_session.py', 'tests/test_cycle832.py'),
     'PP-054': ('tests/test_session_program.py', 'tests/test_coolant_codes.py'),
+    'PP-026': ('tests/test_cycles_spindle.py',),
     'PP-022': ('tests/test_arc_compensation_plane.py',),
     'PP-037': ('tests/test_rotary.py',),
     'PP-040': ('tests/test_session_program.py',),
