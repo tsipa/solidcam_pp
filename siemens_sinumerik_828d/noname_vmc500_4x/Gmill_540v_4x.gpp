@@ -386,32 +386,27 @@ endp
     ; controls). Checked once at the start of the file, after the user options are set.
     local numeric dummy_var
     if iNumber_of_Fixtures > 1
-        dummy_var = 0
         input '"POST ERROR: Multiple fixtures (more than one fixture in the job) are not supported by this post."'dummy_var
         {nb,"POST ERROR: Multiple fixtures (more than one fixture in the job) are not supported by this post."}
         abort
     endif
     if i4xIndexClearanceMode ne 0 and i4xIndexClearanceMode ne 1 and i4xIndexClearanceMode ne 2
-        dummy_var = 0
         input '"POST ERROR: i4xIndexClearanceMode must be 0, 1 or 2."'dummy_var
         {nb,"POST ERROR: i4xIndexClearanceMode must be 0, 1 or 2."}
         abort
     endif
     if i4xIndexMode ne 0 and i4xIndexMode ne 1
-        dummy_var = 0
         input '"POST ERROR: i4xIndexMode must be 0 or 1."'dummy_var
         {nb,"POST ERROR: i4xIndexMode must be 0 or 1."}
         abort
     endif
     if i4xFeedMode ne 0 and i4xFeedMode ne 1
-        dummy_var = 0
         input '"POST ERROR: i4xFeedMode must be 0 or 1."'dummy_var
         {nb,"POST ERROR: i4xFeedMode must be 0 or 1."}
         abort
     endif
     if iR1dir ne -1
         ; ACP/ACN follow dir5a as recorded with iR1dir -1; +1 would flip every turn (PP-004).
-        dummy_var = 0
         input '"POST ERROR: iR1dir must be -1 (the A direction checked against SolidCAM)."'dummy_var
         {nb,"POST ERROR: iR1dir must be -1 (the A direction checked against SolidCAM)."}
         abort
@@ -421,7 +416,6 @@ endp
 @usr_unsupported_event
     ; Stop on a SolidCAM event this post does not support (subprograms, loops, G10 offset writes).
     local numeric dummy_var
-    dummy_var = 0
     input '"POST ERROR: SolidCAM subprograms, loops and reference point changes are not supported by this post."'dummy_var
     {nb,"POST ERROR: SolidCAM subprograms, loops and reference point changes are not supported by this post."}
     abort
@@ -430,7 +424,6 @@ endp
 @usr_unsupported_transform
     ; Stop on a SolidCAM transformation (@rotate / @mirror) instead of posting the copy untransformed.
     local numeric dummy_var
-    dummy_var = 0
     input '"POST ERROR: SolidCAM rotate/mirror transformations are not supported by this post."'dummy_var
     {nb,"POST ERROR: SolidCAM rotate/mirror transformations are not supported by this post."}
     abort
@@ -440,7 +433,6 @@ endp
     ; Stop on a SolidCAM motion event this post cannot output (the procedures at the end of the file)
     ; instead of posting the job without that motion.
     local numeric dummy_var
-    dummy_var = 0
     input '"POST ERROR: SolidCAM 4x polar/Cartesian, 4x drill and 5x face arc events are not supported by this post."'dummy_var
     {nb,"POST ERROR: SolidCAM 4x polar/Cartesian, 4x drill and 5x face arc events are not supported by this post."}
     abort
@@ -862,7 +854,6 @@ endp
         if (iCompActive eq 41 or iCompActive eq 42) and (!bHometc or instr(sHomestr,'Z') eq 0)
             ; Only a Z homing deselects compensation still on here (usr_prep_home_axis); the safety
             ; block's G40 has no axis, so M06 would run with it on.
-            dummy_var = 0
             input '"POST ERROR: Cutter compensation is still on at a tool change without a Z homing. Switch it off in CAM before the job ends."'dummy_var
             {nb,"POST ERROR: Cutter compensation is still on at a tool change without a Z homing. Switch it off in CAM before the job ends."}
             abort
@@ -1240,13 +1231,11 @@ endp
     ; tolerance: 2 mm at 0.2 mm.
     local numeric dummy_var
     if !bCycle832 and (iG187_P ne 0 or nG187_E ne 0)
-        dummy_var = 0
         input '"POST ERROR: CYCLE832 is switched off (bCycle832): set the job parameters iG187_P and nG187_E to 0."'dummy_var
         {nb,"POST ERROR: CYCLE832 is switched off (bCycle832): set the job parameters iG187_P and nG187_E to 0."}
         abort
     endif
     if iG187_P < -1 or iG187_P > 3 or nG187_E < 0 or nG187_E > 0.2 or (nG187_E > 0 and nG187_E < 0.001) or (iG187_P eq -1 and nG187_E ne 0)
-        dummy_var = 0
         input '"POST ERROR: Job parameters: iG187_P -1 (no CYCLE832), 0 (by allowance), 1 (rough), 2 (semi), 3 (finish); nG187_E 0 or 0.001-0.2 mm."'dummy_var
         {nb,"POST ERROR: Job parameters: iG187_P -1 (no CYCLE832), 0 (by allowance), 1 (rough), 2 (semi), 3 (finish); nG187_E 0 or 0.001-0.2 mm."}
         abort
@@ -1388,7 +1377,6 @@ endp
     endif
     if rot_axis_coord eq 2
         ; The template zeroed X here (first move to X0) with no known reason; the owner chose a stop.
-        dummy_var = 0
         input '"POST ERROR: rot_axis_coord 2 is not supported by this post."'dummy_var
         {nb,"POST ERROR: rot_axis_coord 2 is not supported by this post."}
         abort
@@ -1770,7 +1758,6 @@ endp
     ; 359.9995 is 360 at the output step; down to 359.9985 when the printed positions hide the turn
     ; (bR1turnDropped).
     if feed_type ne 'feed_link' and (abs(nR1camstep) >= 359.9995 or (bR1turnDropped and abs(nR1camstep) >= 359.9985))
-        dummy_var = 0
         input '"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."'dummy_var
         {nb,"POST ERROR: One cutting block turns A by 360 degrees or more. Split the move in CAM."}
         abort
@@ -1987,7 +1974,6 @@ endp
     tolerance = 0.001
 
     if dx gt tolerance or dy gt tolerance or dz gt tolerance then
-        dummy_var = 0
         input '"POST ERROR: ARC end mismatch."'dummy_var
         {nb,"POST ERROR: ARC end mismatch. tolerance=", tolerance, " dX=", dx, " dY=", dy, " dZ=", dz}
         abort
@@ -2001,7 +1987,6 @@ endp
     ; MinArcAngle 0.002 keeps SolidCAM arcs above 0.
     local numeric dummy_var
     if arc_size < 0.000005 or arc_size > 360.000005
-        dummy_var = 0
         input '"POST ERROR: ARC opening angle outside AR= (above 0, up to 360 deg)."'dummy_var
         {nb,"POST ERROR: ARC opening angle outside AR= (above 0, up to 360 deg). arc_size=", arc_size}
         abort
@@ -2020,7 +2005,6 @@ endp
     ; radii.
     local numeric dummy_var
     if arc_size <= 180.000005 and (du * du + dv * dv < 0.00000001 or (iMplane eq 19 and abs(du) < 0.0001 and abs(dv) < 0.0002))
-        dummy_var = 0
         input '"POST ERROR: ARC chord too short: the control cannot place the centre (AR=)."'dummy_var
         {nb,"POST ERROR: ARC chord too short: the control cannot place the centre (AR=). dU=", du, " dV=", dv}
         abort
@@ -2088,7 +2072,6 @@ endp
     ; Depending on SolidCAM's arc_direction convention for ZX this either aborts on the end-point check
     ; or posts the complementary arc. Stop until the convention is verified (e.g. one ZX arc in Vericut).
     if iMplane eq 18 then
-        dummy_var = 0
         input '"POST ERROR: ZX arc direction is unverified in this post. Check usr_arc_math."'dummy_var
         {nb,"POST ERROR: ZX arc direction is unverified in this post. Check usr_arc_math."}
         abort
@@ -2198,7 +2181,6 @@ endp
             change(iDiametercomp) = false
         else
             ; Sinumerik selects/deselects cutter compensation only in G0/G1 blocks; G41/G42/G40 on G2/G3 alarms.
-            dummy_var = 0
             input '"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."'dummy_var
             {nb,"POST ERROR: Cutter compensation change on an arc. Use a linear lead-in/lead-out."}
             abort
@@ -2662,7 +2644,6 @@ endp
         if (iCompActive eq 41 or iCompActive eq 42) and instr(sHomeline,'Z') > 0 and (instr(sHomeline,'X') > 0 or instr(sHomeline,'Y') > 0)
             ; Compensation still on and no Z-only homing to deselect it after: G40 here would run low
             ; near the part, after the line it would undo the XY homing.
-            dummy_var = 0
             input '"POST ERROR: Cutter compensation is still on at a homing line that moves Z with X/Y. Home Z alone first."'dummy_var
             {nb,"POST ERROR: Cutter compensation is still on at a homing line that moves Z with X/Y. Home Z alone first."}
             abort
@@ -2697,7 +2678,6 @@ endp
     ; Output one homing line (cHomep + sHomeline, e.g. 'G75 Z1=0.'), then mark the axes as homed.
     local numeric dummy_var
     if iHomingmode ne 8
-        dummy_var = 0
         input '"POST ERROR: Homing string entries must start with 8: (the line as given), e.g. 8::G75 Z1=0."'dummy_var
         {nb,"POST ERROR: Homing string entries must start with 8: (the line as given), e.g. 8::G75 Z1=0."}
         abort
@@ -2769,7 +2749,6 @@ endp
     endif
     if bLimit_3axis and abs(nR1posstep) >= 0.0005
         ; A 3-axis machine (VMID bLimit_3axis) cannot follow CAM's A: stop instead of dropping it.
-        dummy_var = 0
         input '"POST ERROR: bLimit_3axis is set (3-axis machine) but this job turns A."'dummy_var
         {nb,"POST ERROR: bLimit_3axis is set (3-axis machine) but this job turns A."}
         abort
@@ -2869,7 +2848,6 @@ endp
     ; ACP/ACN would turn A another way than CAM (usr_r1_check_travel): stop instead of cutting or
     ; swinging through angles CAM did not check.
     local numeric dummy_var
-    dummy_var = 0
     input '"POST ERROR: A would turn another way than in CAM (ACP/ACN). Check the A angles of this move."'dummy_var
     {nb,"POST ERROR: A would turn another way than in CAM (ACP/ACN): A", nR1from, " to A", nR1pos, ", CAM ", nR1camstep, " deg, control ", nR1travel, " deg."}
     abort
@@ -2907,7 +2885,6 @@ endp
     ; changes only with the printed value (both are rounded to the output step).
     local numeric dummy_var
     if iR1dirMode ne 1 and iR1dirMode ne 2 and iR1dirMode ne 3
-        dummy_var = 0
         input '"POST ERROR: A-axis output direction mode is not ACP/ACN/DC."'dummy_var
         {nb,"POST ERROR: A-axis output direction mode is not ACP/ACN/DC. A=", nR1pos}
         abort

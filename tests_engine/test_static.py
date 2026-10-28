@@ -85,9 +85,11 @@ class WholeGppTests(unittest.TestCase):
         # clearance modes 1/2, the iR1dir stop; +1 the job-parameter stop with bCycle832 off; the G04
         # spindle dwell with bSpinDwell off is gone, WAITS with bSpinWait on is live). +6 / +44: the trace
         # gate and the five CAMDBG readout gates, dead at the shipped trace_level 0 since trace_level is a
-        # declared post-writer option instead of a runtime control variable.
+        # declared post-writer option instead of a runtime control variable. -5 statements: the four
+        # option stops of usr_check_options and the job-parameter stop with bCycle832 off lost the dead
+        # store 'dummy_var = 0' before their input.
         self.assertEqual(len(branches), 31)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 103)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 98)
         gates = sorted(d.line for d in branches if 'trace_level=0' in d.message)
         self.assertEqual(gates, lines_matching(r'^\s*if trace_level\s*(>|>=)\s*[05]\s*$'))
         self.assertEqual(len(gates), 6)
