@@ -10,16 +10,28 @@ DYNFINISH, CYCLE832(0.1,3,1) the same with DYNROUGH, CYCLE832(0,0,1) returns to 
 G64, SOFT, COMPOF, DYNNORM. The machine's cycle setting data hold the same tolerances
 ($SCS_MILL_TOL_VALUE_ROUGH/SEMIFIN/FINISH = 0.1/0.05/0.01).
 
+Owner decision 2026-10-28: face and thread milling, which have no allowance, go by the feed type
+(roughing, their finishing passes finishing); any other operation without an allowance stops the
+post. Recorded traces 001-005 and the reference trace (121 operations; 001 and the reference trace
+are one program): SolidCAM sends wall_offset and floor_offset with start_of_job of all 100 milling
+operations of the other types and with no face milling, thread milling, drilling or 4x morphing
+operation; the variables keep the last job's values there.
+
 The tests read the blocks each event returns (no skipline joining) unless they need the NC lines.
 """
 import unittest
 
-from program_session import Program, require_nc_stream
+from program_session import Program, post_abort_error, post_error_policies, require_nc_stream
 from support import assert_detected, mutate
+from support.session import HEADER_DEFAULTS, NOT_SENT
 
 DESELECT = 'CYCLE832(0,0,1)'
 ROUGH, SEMI, FINISH = 'CYCLE832(0.1,3,1)', 'CYCLE832(0.05,2,1)', 'CYCLE832(0.01,1,1)'
 MILLING = dict(x5_job=False, job_type='spiral_pocket')
+# start_of_job of an operation without an allowance: SolidCAM sends neither variable.
+NO_ALLOWANCE = dict(wall_offset=NOT_SENT, floor_offset=NOT_SENT)
+NO_ALLOWANCE_STOP = ('POST ERROR: CYCLE832: the operation has no wall allowance (wall_offset): set the job '
+                     'parameter iG187_P (1 rough, 2 semi, 3 finish, -1 none).')
 
 
 def calls(blocks):
@@ -225,19 +237,141 @@ class AutoModeMutationTests(unittest.TestCase):
         """INDEPENDENT: mutation self-check of the allowance rules."""
         mutants = {
             'X5_job ignored': ("iG187_P eq 0 and !X5_job and", "iG187_P eq 0 and"),
-            '3D profile floor ignored': ("        if job_type eq 'profile_3D' and floor_offset < nAllow\n",
-                                         "        if false\n"),
+            '3D profile floor ignored': ("            if job_type eq 'profile_3D' and floor_offset < nAllow\n",
+                                         "            if false\n"),
             'roughing threshold exclusive': (' if nAllow >= nCycle832RoughAllow and', ' if nAllow > 0.3 and'),
-            'semi-finishing never': ('        if nAllow >= nCycle832TolSemi\n            iMode = 2\n',
-                                     '        if false\n            iMode = 2\n'),
-            'semi-finishing above 0': ('        if nAllow >= nCycle832TolSemi\n',
-                                       '        if nAllow > 0\n'),
+            'semi-finishing never': ('            if nAllow >= nCycle832TolSemi\n                iMode = 2\n',
+                                     '            if false\n                iMode = 2\n'),
+            'semi-finishing above 0': ('            if nAllow >= nCycle832TolSemi\n',
+                                       '            if nAllow > 0\n'),
             'roughing tolerance ignored': (' and nAllow >= nCycle832TolRough\n', '\n'),
         }
         for label, (old, new) in mutants.items():
             with self.subTest(mutant=label):
                 options = dict(nCycle832TolRough=0.2) if label == 'roughing tolerance ignored' else None
                 assert_detected(self, lambda source: self.check_rules(source, options), mutate(old, new), label)
+
+
+def stop_program(source=None, **cam):
+    """A program whose POST ERROR stops it (print, then abort)."""
+    require_nc_stream()
+    return Program(cam={**MILLING, **cam}, source=source, policies=post_error_policies())
+
+
+def posted(run, *args, **values):
+    """CYCLE832 calls of what run returns; a stop of the post fails the test."""
+    try:
+        return calls(run(*args, **values))
+    except post_abort_error() as exc:
+        raise AssertionError(f'the post stopped: {exc}') from exc
+
+
+def start(p):
+    return p.start(tool=1, next_tool=2, next_job_tool_number=1)
+
+
+class NoAllowanceTests(unittest.TestCase):
+    def check_feed_type_jobs(self, source=None):
+        for job_type in ('face_milling', 'thread'):
+            p = stop_program(source, job_type='profile', wall_offset=0)
+            self.assertEqual(posted(start, p), [FINISH])
+            cut(p)
+            self.assertEqual(posted(same_tool_job, p, 'op2', job_type=job_type), [ROUGH], job_type)
+            self.assertEqual(calls(finish_pass(p)), [FINISH], job_type)
+            self.assertEqual(calls(rough_move(p)), [ROUGH], job_type)
+            # An allowance sent with them does not count: the feed type decides.
+            p = stop_program(source, job_type=job_type, wall_offset=0)
+            self.assertEqual(posted(start, p), [ROUGH], job_type)
+
+    def test_face_and_thread_milling_go_by_the_feed_type(self):
+        """INDEPENDENT: owner rule 2026-10-28. SolidCAM sends no allowance with face and thread
+        milling and marks their finishing passes: recording 004, a face job of 5032 moves at
+        feed_rate, then 148 at finish_feed; recording 005, five thread turns at feed_rate 0.02 to
+        0.05 mm apart, the last turn at finish_feed. They rough and finish those passes. The last
+        job's allowance is not theirs: after a profile at wall_offset 0 the face job roughs (before
+        the fix it took finishing for all its moves)."""
+        self.check_feed_type_jobs()
+
+    def check_missing_allowance(self, source=None):
+        p = stop_program(source, wall_offset=0.3)
+        self.assertEqual(posted(start, p), [ROUGH])
+        cut(p)
+        # wall_offset 0 is an allowance: finishing.
+        self.assertEqual(posted(same_tool_job, p, 'op2', job_type='profile', wall_offset=0), [FINISH])
+        cut(p, 20)
+        with self.assertRaises(post_abort_error()):
+            same_tool_job(p, 'op3', job_type='profile', **NO_ALLOWANCE)
+        self.assertEqual(p.nc()[-1], NO_ALLOWANCE_STOP)
+
+    def test_operation_without_an_allowance_stops(self):
+        """INDEPENDENT: owner rule 2026-10-28. An operation without an allowance that is not face or
+        thread milling stops the post: its job needs iG187_P. A wall allowance of 0 is an
+        allowance (finishing), and the last job's 0.3 mm is not this job's."""
+        self.check_missing_allowance()
+        p = stop_program(job_type='other_operation', wall_offset=0.3)
+        self.assertEqual(posted(start, p), [ROUGH])
+        cut(p)
+        with self.assertRaises(post_abort_error()):
+            same_tool_job(p, 'op2', job_type='other_operation', **NO_ALLOWANCE)
+        self.assertEqual(p.nc()[-1], NO_ALLOWANCE_STOP)
+
+    def test_job_parameters_simultaneous_and_drilling_jobs_need_no_allowance(self):
+        """INDEPENDENT: iG187_P 1/2/3/-1 sets the type without an allowance; simultaneous 4x jobs and
+        drilling jobs take no CYCLE832 by the operation (owner rules 2026-10-27)."""
+        # The first job roughs, so iG187_P 1 keeps its call.
+        for cam, expected in ((dict(iG187_P=1), []), (dict(iG187_P=2), [SEMI]), (dict(iG187_P=3), [FINISH]),
+                              (dict(iG187_P=-1), [DESELECT]), (dict(x5_job=True), [DESELECT]),
+                              (dict(job_type='drill'), [DESELECT])):
+            with self.subTest(**cam):
+                p = stop_program(wall_offset=0.3)
+                self.assertEqual(posted(start, p), [ROUGH])
+                cut(p)
+                self.assertEqual(posted(same_tool_job, p, 'op2', **{'job_type': 'profile', **NO_ALLOWANCE, **cam}),
+                                 expected)
+
+    def check_first_job(self, source=None):
+        p = stop_program(source, job_type='face_milling')
+        p.ev('start_of_file', **HEADER_DEFAULTS)
+        self.assertEqual(posted(start, p), [ROUGH])
+        p = stop_program(source, job_type='profile')
+        p.ev('start_of_file', **HEADER_DEFAULTS)
+        p.ev('start_program')
+        p.ev('change_tool', tool_number=1, next_tool_number=2, next_job_tool_number=1)
+        with self.assertRaises(post_abort_error()):
+            p.ev('start_of_job', job_name='op1', **NO_ALLOWANCE)
+        self.assertEqual(p.nc()[-1], NO_ALLOWANCE_STOP)
+
+    def test_first_job_of_the_program_has_no_allowance_until_it_sends_one(self):
+        """INDEPENDENT: recording 004 starts with a face job; nothing sent wall_offset before it (the
+        offline replay had no value to read). A first profile job without one stops."""
+        self.check_first_job()
+
+
+class NoAllowanceMutationTests(unittest.TestCase):
+    def test_mutations_are_detected(self):
+        """INDEPENDENT: mutation self-check of the rules for operations without an allowance."""
+        feed_jobs = "        if job_type eq 'face_milling' or job_type eq 'thread'\n"
+        tests = NoAllowanceTests()
+        mutants = {
+            'end_of_job keeps the allowance': (('    nPtool_start_plane = tool_start_plane\n    call @usr_allowance_reset\n',
+                                                '    nPtool_start_plane = tool_start_plane\n'),
+                                               tests.check_missing_allowance),
+            'start_of_file keeps the allowance': (('    bWorkpieceUsesA = false\n    call @usr_allowance_reset\n',
+                                                   '    bWorkpieceUsesA = false\n'), tests.check_first_job),
+            'stop removed': (('            if wall_offset eq nNoAllowance\n', '            if false\n'),
+                             tests.check_missing_allowance),
+            'marker is a real allowance': (('    nNoAllowance = -9999\n', '    nNoAllowance = 0\n'),
+                                           tests.check_missing_allowance),
+            'thread by allowance': ((feed_jobs, "        if job_type eq 'face_milling'\n"),
+                                    tests.check_feed_type_jobs),
+            'face milling by allowance': ((feed_jobs, "        if job_type eq 'thread'\n"),
+                                          tests.check_feed_type_jobs),
+            'face and thread finishing': ((feed_jobs + '            iMode = 3\n', feed_jobs + '            iMode = 1\n'),
+                                          tests.check_feed_type_jobs),
+        }
+        for label, ((old, new), check) in mutants.items():
+            with self.subTest(mutant=label):
+                assert_detected(self, check, mutate(old, new), label)
 
 
 def finish_pass(p, feed_type='finish_feed', x=10, side=None):

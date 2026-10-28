@@ -89,6 +89,38 @@ HEADER_DEFAULTS = dict(
 
 MOTION_FLAGS = ('xpos', 'ypos', 'zpos', 'apos', 'bpos', 'cpos', 'feed', 'spin')
 
+# SolidCAM sends wall_offset and floor_offset with start_of_job only for the operation types that have
+# them (recorded traces 001-005 and the reference trace: every milling operation but face_milling and
+# thread, never drilling or 4x morphing). The post resets them between jobs (@usr_allowance_reset), so
+# the drivers send them again at each start_of_job: the job's own values, else the last ones sent.
+# NOT_SENT as a value sends nothing (an operation without an allowance).
+ALLOWANCE_KEYS = ('wall_offset', 'floor_offset')
+
+
+class _NotSent:
+    def __repr__(self):
+        return 'NOT_SENT'
+
+
+NOT_SENT = _NotSent()
+
+
+def sends_allowance(job_type):
+    return job_type not in ('face_milling', 'thread', '4x_morph_between_curves') and 'drill' not in job_type
+
+
+def with_allowance(event_name, values, job_type, sent):
+    """values of one event as SolidCAM sends them; `sent` keeps the allowance last sent."""
+    values = dict(values)
+    for key in ALLOWANCE_KEYS:
+        if values.get(key) is NOT_SENT:
+            del values[key]
+        elif key in values:
+            sent[key] = values[key]
+        elif event_name == 'start_of_job' and sends_allowance(job_type):
+            values[key] = sent[key]
+    return values
+
 
 class _Auto:
     def __repr__(self):
@@ -153,6 +185,7 @@ class Session:
         if header:
             job.update(HEADER_DEFAULTS)
         job.update(cam)
+        self.allowance = {key: job[key] for key in ALLOWANCE_KEYS}
         engine.set(**job)
         _fill_flags(engine)
         for key in MOTION_FLAGS:
@@ -184,6 +217,8 @@ class Session:
         name = procedure.lstrip('@').lower()
         if self.track_prev_command and 'prev_command' not in values and self._previous:
             values['prev_command'] = '@' + self._previous
+        job_type = values.get('job_type', self.engine.state.get('job_type'))
+        values = with_allowance(name, values, job_type, self.allowance)
         text = event(self.engine, name, changed, **values)
         self.log.append((name, text))
         self._previous = name
@@ -238,6 +273,7 @@ class Session:
         """
         clone = copy.copy(self)
         clone.engine, clone.log = fork_engine(self.engine), list(self.log)
+        clone.allowance = dict(self.allowance)
         return clone
 
     @property
@@ -268,8 +304,7 @@ class Session:
         self.ev('end_of_job', **(end or {}))
         if tmatrix is not None:
             self.ev('tmatrix', angle_4x_around_x=tmatrix)
-        self.engine.set(**job)
-        return self.ev('start_of_job')
+        return self.ev('start_of_job', **job)
 
     def cut(self, x, y, zclear, depth, apos=None, feed=None):
         """First rapid of a job (move_5x), plunge, one cut, retract (line_5x).

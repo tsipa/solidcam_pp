@@ -13,6 +13,7 @@ import unittest
 
 from pp_tests.engine import Engine, UnsupportedGPPL
 from support.legacy_compat import with_stop_context
+from support.session import ALLOWANCE_KEYS, with_allowance
 from test_offline import PP
 
 # The default engine (pp_tests.gppl) joins NC lines on a one-shot skipline and runs `input` and
@@ -126,12 +127,14 @@ class Program:
         engine.output.clear()
         self.engine = engine
         self.cam_last = {k: engine.state.get(k) for k in MOTION_KEYS}
+        self.allowance = {k: engine.state[k] for k in ALLOWANCE_KEYS}
         self.prev = '@start_of_file'
 
     def ev(self, name, force=None, **values):
         """Deliver one event; return its NC blocks (stripped, empty blocks dropped)."""
         engine = self.engine
         values = {k.lower(): v for k, v in values.items()}
+        values = with_allowance(name, values, values.get('job_type', engine.state.get('job_type')), self.allowance)
         flags = {key: key in values and values[key] != self.cam_last.get(key) for key in MOTION_KEYS}
         flags.update({k.lower(): v for k, v in (force or {}).items()})
         values.setdefault('prev_command', self.prev)

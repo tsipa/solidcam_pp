@@ -212,6 +212,8 @@
    "parameters": {
     "job_name": "TILTED",
     "job_type": "profile",
+    "wall_offset": 0.05,
+    "floor_offset": 0.05,
     "home_user_name": "G54p4",
     "tool_z_level": 20,
     "tool_start_plane": 40,
@@ -257,6 +259,8 @@
    "parameters": {
     "job_name": "INDEX60",
     "job_type": "profile",
+    "wall_offset": 0.05,
+    "floor_offset": 0.05,
     "home_user_name": "G58",
     "position": 6,
     "tool_z_level": 10,

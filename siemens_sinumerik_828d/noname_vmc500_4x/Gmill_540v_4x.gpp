@@ -30,10 +30,11 @@
     global integer iCycle832Mode
     global numeric nCycle832Tol
     ; CYCLE832 the cut asks for (usr_smoothing_set), selected when cutter compensation is off
-    ; (usr_smoothing_apply); the type of the job's allowance, and bCycle832Auto when the finishing
-    ; passes of the job switch the type (usr_smoothing_feed).
+    ; (usr_smoothing_apply); the type the post chose for the job, and bCycle832Auto when the
+    ; finishing passes of the job switch the type (usr_smoothing_feed). wall_offset and floor_offset
+    ; hold nNoAllowance until an operation sends its own (usr_allowance_reset).
     global integer iCycle832Want iCycle832Job
-    global numeric nCycle832WantTol
+    global numeric nCycle832WantTol nNoAllowance
     global logical bCycle832Auto
     ; Tool change and job start
     global logical bTlchg bSafetyprep bStopM00difftool bskipline bFirstMove bFirstRapid
@@ -81,6 +82,7 @@
     ; Program state
     last_spin = 0
     bR1forceOutput = true
+    nNoAllowance = -9999
 
     ; GPPL settings and formats
     num_user_procs =    1
@@ -176,8 +178,9 @@ endp
     blknum_max            = 99999              ; Largest block number
 
     ;High Speed Settings: CYCLE832 per operation (usr_smoothing; 828D option Top Surface). The job
-    ;parameter iG187_P chooses the machining type: 0 = by the wall allowance, 1 = roughing,
-    ;2 = semi-finishing, 3 = finishing, -1 = no CYCLE832; nG187_E > 0 replaces the tolerance (mm).
+    ;parameter iG187_P chooses the machining type: 0 = by the operation (wall allowance or feed
+    ;type), 1 = roughing, 2 = semi-finishing, 3 = finishing, -1 = no CYCLE832; nG187_E > 0 replaces
+    ;the tolerance (mm).
     bCycle832             = TRUE               ; True = CYCLE832 per operation; False = none (iG187_P and nG187_E must be 0)
     nCycle832RoughAllow   = 0.1                ; Wall allowance (mm) from which iG187_P 0 is roughing (0 = finishing, between = semi)
     nCycle832TolRough     = 0.1                ; Contour tolerance (mm) of roughing
@@ -334,6 +337,7 @@ endp
     ; date and time, the VMID messages.
     bWorkpieceBuffered = false
     bWorkpieceUsesA = false
+    call @usr_allowance_reset
     call @usr_check_options
     call @usr_init_gmstates
     {,cPb}
@@ -1220,8 +1224,8 @@ endp
         abort
     endif
     if iG187_P < -1 or iG187_P > 3 or nG187_E < 0 or nG187_E > 0.2 or (nG187_E > 0 and nG187_E < 0.001) or (iG187_P eq -1 and nG187_E ne 0)
-        print 'POST ERROR: Job parameters: iG187_P -1 (no CYCLE832), 0 (by allowance), 1 (rough), 2 (semi), 3 (finish); nG187_E 0 or 0.001-0.2 mm.'
-        {nb,"POST ERROR: Job parameters: iG187_P -1 (no CYCLE832), 0 (by allowance), 1 (rough), 2 (semi), 3 (finish); nG187_E 0 or 0.001-0.2 mm."}
+        print 'POST ERROR: Job parameters: iG187_P -1 (no CYCLE832), 0 (by the operation), 1 (rough), 2 (semi), 3 (finish); nG187_E 0 or 0.001-0.2 mm.'
+        {nb,"POST ERROR: Job parameters: iG187_P -1 (no CYCLE832), 0 (by the operation), 1 (rough), 2 (semi), 3 (finish); nG187_E 0 or 0.001-0.2 mm."}
         abort
     endif
 endp
@@ -1231,14 +1235,21 @@ endp
     ; job comment of the same tool) and before the first move: CYCLE832(tolerance, type, 1) with
     ; type 3 roughing / 2 semi-finishing / 1 finishing and the tolerance nCycle832TolRough / Semi /
     ; Finish. The job parameter iG187_P (the Haas G187 P of the template) chooses the type: 1 / 2 / 3.
-    ; With iG187_P 0 the wall allowance does (wall_offset; on a 3D profile the smaller of wall_offset
-    ; and floor_offset, as its path also moves in Z): roughing from nCycle832RoughAllow, semi-
-    ; finishing from nCycle832TolSemi, finishing below, so the tolerance stays within the allowance;
-    ; the finishing passes of the job switch to finishing (usr_smoothing_feed). nG187_E > 0 replaces
-    ; the tolerance. No CYCLE832 (deselected when active) with iG187_P -1, with iG187_P 0 on a
-    ; simultaneous 4x/5x job (X5_job) or a drilling job, and with bCycle832 false. Printed when the
-    ; type or the tolerance changes, not with cutter compensation on (usr_smoothing_apply); a tool
-    ; change, a drilling cycle and the program end deselect it.
+    ; With iG187_P 0 the operation does (owner rules 2026-10-28), and its finishing passes switch to
+    ; finishing (usr_smoothing_feed):
+    ; - Face and thread milling: roughing. SolidCAM sends no allowance with them and marks their
+    ;   finishing passes (recorded traces: the last face pass, the last thread turn).
+    ; - Any other operation: the wall allowance (wall_offset; on a 3D profile the smaller of
+    ;   wall_offset and floor_offset, as its path also moves in Z) gives roughing from
+    ;   nCycle832RoughAllow, semi-finishing from nCycle832TolSemi, finishing below, so the
+    ;   tolerance stays within the allowance. Without an allowance the post stops: the job needs
+    ;   iG187_P (recorded traces: every other milling type sends one, 100 of 100 operations).
+    ; SolidCAM sends wall_offset and floor_offset with start_of_job only for the types that have
+    ; them; the others keep nNoAllowance (usr_allowance_reset), not the last job's values.
+    ; nG187_E > 0 replaces the tolerance. No CYCLE832 (deselected when active) with iG187_P -1, with
+    ; iG187_P 0 on a simultaneous 4x/5x job (X5_job) or a drilling job, and with bCycle832 false.
+    ; Printed when the type or the tolerance changes, not with cutter compensation on
+    ; (usr_smoothing_apply); a tool change, a drilling cycle and the program end deselect it.
     ; Machine 2026-10-27: CYCLE832 selects G645, SOFT, COMPSURF and DYNROUGH / DYNSEMIFIN /
     ; DYNFINISH; CYCLE832(0,0,1) returns to G64, SOFT, COMPOF, DYNNORM.
     local integer iMode
@@ -1248,16 +1259,25 @@ endp
     bCycle832Auto = false
     if bCycle832 and iG187_P eq 0 and !X5_job and instr(job_type,'drill') eq 0
         bCycle832Auto = true
-        nAllow = wall_offset
-        if job_type eq 'profile_3D' and floor_offset < nAllow
-            nAllow = floor_offset
-        endif
-        iMode = 1
-        if nAllow >= nCycle832TolSemi
-            iMode = 2
-        endif
-        if nAllow >= nCycle832RoughAllow and nAllow >= nCycle832TolRough
+        if job_type eq 'face_milling' or job_type eq 'thread'
             iMode = 3
+        else
+            if wall_offset eq nNoAllowance
+                print 'POST ERROR: CYCLE832: the operation has no wall allowance (wall_offset): set the job parameter iG187_P (1 rough, 2 semi, 3 finish, -1 none).'
+                {nb,"POST ERROR: CYCLE832: the operation has no wall allowance (wall_offset): set the job parameter iG187_P (1 rough, 2 semi, 3 finish, -1 none)."}
+                abort
+            endif
+            nAllow = wall_offset
+            if job_type eq 'profile_3D' and floor_offset < nAllow
+                nAllow = floor_offset
+            endif
+            iMode = 1
+            if nAllow >= nCycle832TolSemi
+                iMode = 2
+            endif
+            if nAllow >= nCycle832RoughAllow and nAllow >= nCycle832TolRough
+                iMode = 3
+            endif
         endif
     endif
     if bCycle832 and iG187_P eq 1
@@ -1275,11 +1295,11 @@ endp
 endp
 
 @usr_smoothing_feed
-    ; Feed move of a job with the type by allowance (bCycle832Auto): its finishing passes (feed_type
-    ; finish_feed or finish_feed_floor) take finishing, its cutting feed (feed_rate) the type of the
-    ; allowance again; plunges and links keep the type. Reference trace 2026-10-27: SolidCAM pockets
-    ; give the roughing allowance as wall_offset and finish walls and floor at its end (8 of 31
-    ; operations), which would cut the final walls in the roughing tolerance.
+    ; Feed move of a job whose type the post chose (bCycle832Auto): its finishing passes (feed_type
+    ; finish_feed or finish_feed_floor) take finishing, its cutting feed (feed_rate) the job's type
+    ; again (iCycle832Job); plunges and links keep the type. Reference trace 2026-10-27: SolidCAM
+    ; pockets give the roughing allowance as wall_offset and finish walls and floor at its end (8 of
+    ; 31 operations), which would cut the final walls in the roughing tolerance.
     if bCycle832Auto
         if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor'
             call @usr_smoothing_set((1))
@@ -1340,6 +1360,15 @@ endp
     iCycle832Mode = 0
     nCycle832Tol = 0
     iMotionmode = 9999
+endp
+
+@usr_allowance_reset
+    ; No allowance until an operation sends its own: SolidCAM sends wall_offset and floor_offset
+    ; with start_of_job only for the operation types that have them (recorded traces 2026-10-28:
+    ; none with face milling, thread milling, drilling or 4x morphing), and the variables keep the
+    ; last job's values otherwise. usr_smoothing reads nNoAllowance as none.
+    wall_offset = nNoAllowance
+    floor_offset = nNoAllowance
 endp
 
 ;--------------------
@@ -1420,6 +1449,7 @@ endp
     iPworkoffset = iWorkoffset
     nPtool_z_level = tool_z_level
     nPtool_start_plane = tool_start_plane
+    call @usr_allowance_reset
 endp
 
 ;-------------------

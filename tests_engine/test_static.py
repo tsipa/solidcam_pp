@@ -46,10 +46,10 @@ class WholeGppTests(unittest.TestCase):
     def test_compat_policy_lists_exactly_what_the_legacy_engine_would_reject(self):
         errors = sorted((d.code, d.line) for d in self.program.errors(COMPAT))
         expected = sorted(lines_matching(r"'5\.0\(n\)'") + lines_matching(r'^\s*(print|trace)\b'))
-        # The 23 POST ERROR prints (print + abort replaced input + abort), the index clearance Print
+        # The 24 POST ERROR prints (print + abort replaced input + abort), the index clearance Print
         # (usr_4x_index_rotate) and the trace_level trace (usr_ip_postwriteroptions); the '5.0(n)'
         # formats went with the fixture files
-        self.assertEqual(len(expected), 25)
+        self.assertEqual(len(expected), 26)
         self.assertEqual(errors, [('E-POLICY', line) for line in expected])
         format_vars = sorted(d.line for d in self.program.policy_diagnostics(COMPAT) if d.code == 'W-FORMAT-POLICY')
         # The only policy-sensitive formats were newshift_*_f = '+8.5', deleted with the dead

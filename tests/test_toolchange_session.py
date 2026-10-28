@@ -37,7 +37,7 @@ INDEX_NO_HOMING = "            sHomestr = sHomestrrotv\n        endif\n    endif
 START_TOOL_AFTER_TC = '        skipline = false\n        call @start_tool\n    endif\nendp\n'
 CYCLE832_OFF_STOP = ('POST ERROR: CYCLE832 is switched off (bCycle832): set the job parameters iG187_P and '
                      'nG187_E to 0.')
-CYCLE832_RANGE_STOP = ('POST ERROR: Job parameters: iG187_P -1 (no CYCLE832), 0 (by allowance), 1 (rough), '
+CYCLE832_RANGE_STOP = ('POST ERROR: Job parameters: iG187_P -1 (no CYCLE832), 0 (by the operation), 1 (rough), '
                        '2 (semi), 3 (finish); nG187_E 0 or 0.001-0.2 mm.')
 
 

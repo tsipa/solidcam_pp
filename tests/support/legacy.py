@@ -55,7 +55,7 @@ def motion_engine(source=None):
                iCycle832Job=0, bCycle832Auto=False, trace_level=0,
                sHomestrrot=engine.state['shomestrroth'],
                mcode_f='2.0(p)', clear_change_after_gen=1,
-               xpos_f='8.5', ypos_f='8.5', zpos_f='8.5', nArcAR_f='3.5')
+               xpos_f='8.5', ypos_f='8.5', zpos_f='8.5', nArcAR_f='3.5', nNoAllowance=-9999)
     engine.changed.clear()
     engine.changed.update({key: False for key in engine.state})
     engine.changed.update({key: False for key in ('apos', 'bpos', 'nrapidfeed')})
