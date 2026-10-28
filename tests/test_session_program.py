@@ -718,7 +718,7 @@ class FirstJobPersistingFlagTests(unittest.TestCase):
         The job requests flood coolant (flood_coolant=1, all other channels 0),
         so flood (M8) must be active at the first feed move, also under
         Session(flags='persist'), i.e. if SolidCAM keeps the change flags raised
-        by the @usr_init_gmstates assignments (ENGINE-001). Before 82eea8d that
+        by the @usr_init_gmstates assignments (ENGINE-001). Before 3fde1a5 that
         case printed M8 followed by seven M9; the 2026-10-27 reference trace
         replay showed the eight M9 under both policies. bCooloffend is off: its M9
         before the first safety block also prints the pending coolant codes and would

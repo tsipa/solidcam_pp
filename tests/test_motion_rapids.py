@@ -573,7 +573,7 @@ class RotaryFeedModeTests(unittest.TestCase):
         feed is wrong by a geometry-dependent factor (critic-04). Every G1 block with an A
         word must therefore run under G93. UNVERIFIED: assumes SolidCAM passes a linear
         mm/min feed to @line_4x/@line_5x and the machine keeps the default FGROUP/FGREF.
-        Regression guard of PP-049 (fixed in 9f48a3a/f0ffada; the F values are checked by
+        Regression guard of PP-049 (fixed in 9f48a3a/1bdfecc; the F values are checked by
         tests/test_inverse_time_feed.py)."""
         session = first_job()
         self.assertEqual(session.state['i4xfeedmode'], 1, 'the shipped option no longer selects inverse time')

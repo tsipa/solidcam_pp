@@ -39,9 +39,9 @@ docstring of a test that reverts nothing is not evidence). A FAIL is an
 AssertionError; ERRORs (engine gaps, or the `StaleAnchor` of an in-memory mutation
 whose anchor the reversion removed) never count as detection.
 
-Measured on the GPP of `e797c18` (default engine, 48 commits): **47 of 48 commits
+Measured on the GPP of `0ed0b78` (default engine, 48 commits): **47 of 48 commits
 are detected**: 18 by the complete reverse patch, 21 by hand-crafted reversions, 8
-by a partial reverse patch. Not detected: `595df73`, which by design does not change
+by a partial reverse patch. Not detected: `a71e102`, which by design does not change
 the output (below). With the original 35-test suite (`revert_matrix.txt` of the
 review, 26 commits from e574716 on), 14 reverse patches applied and 4 of those went
 undetected (797fc88, e4af180, 961facc, c8b79bd); the 12 others could not be applied
@@ -81,7 +81,7 @@ the `f1803b4` GPP and were not re-run.
 | `21a6334` | Add machsim (output precision 5.4 -> 5.3, end-of-program XY homing) | mixed | the precision hunk no longer applies (dc916d7 later set 8.5) | the partial reversion (end homing back to Z only) fails the program-end tests; the superseded precision is guarded at its current value by the VMID precision pins | detected (partial reverse patch) |
 | `77c03c6` | Remove extra rotation. (HVV macro, Z inversion and CTRANS frame commented out) | bug fix | 1 of 2 hunks no longer applies | `test_rotary.py` REVERSIONS (77c03c6 CTRANS frames, HVV macro, Z inversion), `test_home_data_writes_no_frames`, the DESIGN-007 pin | detected (hand-crafted) |
 
-### Review fixes (f1803b4..e797c18)
+### Review fixes (f1803b4..0ed0b78)
 
 The rows name the registry entry a commit fixed (`tests/PP_FINDINGS.md`, section
 Fixed) where there is one. Most of these commits came with their own test file;
@@ -94,21 +94,21 @@ those files are part of the suite unchanged.
 | `49f8b80` | Climb before traversing on a job's first rapid | PP-013 | 2 of 9 hunks no longer apply; the partial reversion fails 12 tests | `test_job_start_climb.py`, `test_cutter_compensation.py` climb tests | detected (partial reverse patch) |
 | `5408e5c` | Stop the post on ZX (G18) arcs | PP-003 | 1 of 2 hunks no longer applies | `PostAbortGuardTests.test_guard_detects_removed_abort` (the ZX abort site), `test_zx_arc_guard.py`, the PP-003 stop test in `test_arc_compensation_plane.py` | detected (hand-crafted) |
 | `b999f65` | Switch cutter compensation only on linear blocks | PP-019, PP-020 | 2 of 5 hunks no longer apply; the partial reversion fails 19 tests | `PostAbortGuardTests.test_guard_detects_removed_abort` (the TRC-on-arc abort site), the TRC tests in `test_arc_compensation_plane.py` and `test_cutter_compensation.py` | detected (hand-crafted) |
-| `88695c9` | Restore the machining plane at the start of each job | PP-021 | no longer applies (9767011 rewrote the call) | `PlaneModalityTests.test_88695c9_reversion_is_detected` (drill cycle after a YZ arc), `test_job_plane_restore.py` | detected (hand-crafted) |
-| `a38f158` | Post left-hand tapping with a negative CYCLE84 pitch | PP-028 | no longer applies (595df73 rewrote the line) | `RigidTappingTests.test_a38f158_reversion_is_detected`, `test_tapping_direction.py` | detected (hand-crafted) |
-| `6228b3d` | Keep A positions inside 0 <= A < 360 | PP-002 whole-turn, rounding | no longer applies (9c89feb rewrote both blocks) | `FixedRotaryDefectGuards.test_6228b3d_reversion_is_detected` (both PP-002 guards), `test_rotary_modulo_range.py` | detected (hand-crafted) |
+| `88695c9` | Restore the machining plane at the start of each job | PP-021 | no longer applies (7aeae99 rewrote the call) | `PlaneModalityTests.test_88695c9_reversion_is_detected` (drill cycle after a YZ arc), `test_job_plane_restore.py` | detected (hand-crafted) |
+| `a38f158` | Post left-hand tapping with a negative CYCLE84 pitch | PP-028 | no longer applies (a71e102 rewrote the line) | `RigidTappingTests.test_a38f158_reversion_is_detected`, `test_tapping_direction.py` | detected (hand-crafted) |
+| `6228b3d` | Keep A positions inside 0 <= A < 360 | PP-002 whole-turn, rounding | no longer applies (c33ebd0 rewrote both blocks) | `FixedRotaryDefectGuards.test_6228b3d_reversion_is_detected` (both PP-002 guards), `test_rotary_modulo_range.py` | detected (hand-crafted) |
 | `ca63502` | Post the CAM X in @move_4x | PP-007 | applied; 3 FAIL | `test_move_4x_axial_x.py`, `FixedRotaryDefectGuards.test_move_4x_preserves_axial_x` | detected (reverse patch) |
 | `9f48a3a` | Post rotating G1 blocks in G93 inverse time | PP-049 | 3 of 15 hunks no longer apply; the partial reversion fails 1 test (1 more static) | `test_inverse_time_feed.py` (`test_removing_inverse_time_is_detected`) | detected (partial reverse patch) |
-| `f0ffada` | Reprogram F when leaving G93 and use the control's A travel | PP-049 | 2 of 7 hunks no longer apply; the partial reversion fails 9 tests | `test_inverse_time_feed.py` | detected (partial reverse patch) |
-| `264be29` | Keep the post's cutter compensation state in step with the control | PP-020 | 5 of 11 hunks no longer apply; the partial reversion fails 3 tests | `test_cutter_compensation.py`, `test_arc_compensation_plane.py` TRC tests | detected (partial reverse patch) |
-| `ed07c3f` | Keep explicit Z holds after homing and avoid a diagonal feed from home | PP-001 follow-up | 3 of 5 hunks no longer apply; the partial reversion fails 1 test | `test_job_start_climb.py` (`test_removing_the_climb_branch_is_detected`) | detected (partial reverse patch) |
-| `fc664ce` | Track the current Z through drill cycles and indexing for the climb | PP-013 follow-up | applied; 5 FAIL | `test_job_start_climb.py` | detected (reverse patch) |
-| `9767011` | Fall back to G17 at job start and select TRC in the job plane | PP-021 follow-up | 3 of 4 hunks no longer apply; the partial reversion fails 2 tests | `test_job_plane_restore.py` | detected (partial reverse patch) |
-| `9c89feb` | Snap float-noise A positions to 0 and keep the wrap loops simple | PP-002 follow-up | applied; 3 FAIL | `test_rotary_modulo_range.py` | detected (reverse patch) |
-| `595df73` | Write the left-hand tap pitch as a binary minus; plain ZX error text | none | 1 of 2 hunks no longer applies | nothing behavioural: `((0-FEED)/SPIN)` posts the same value as `(-FEED/SPIN)`, and the ZX error text only lost `(G18)` and `@` (the commit's reason is GPPL string and expression syntax, which the engines do not model) | not detected (no output change) |
-| `2f5b759` | Switch TRC on the retract with explicit X/Y instead of holding it | PP-019, PP-020 | applied; 14 FAIL | `test_cutter_compensation.py`, `test_arc_compensation_plane.py` TRC off-before-rapid guard | detected (reverse patch) |
-| `b94251b` | Track Z and the feed start through indexes, M00 and subs; stop on full-turn cuts | PP-002 full-turn cut | 1 of 11 hunks no longer applies; the partial reversion fails 3 tests | `PostAbortGuardTests.test_guard_detects_removed_abort` (the full-turn abort site), `test_rotary_modulo_range.py`, `test_job_start_climb.py`, `test_post_homing_reposition.py` | detected (hand-crafted) |
-| `e797c18` | Write the new POST ERROR texts on their own NC line; harden tests | none | applied; 1 FAIL | `test_zx_arc_guard.py::test_error_text_is_its_own_nc_line_in_a_program` | detected (reverse patch) |
+| `1bdfecc` | Reprogram F when leaving G93 and use the control's A travel | PP-049 | 2 of 7 hunks no longer apply; the partial reversion fails 9 tests | `test_inverse_time_feed.py` | detected (partial reverse patch) |
+| `0cfd586` | Keep the post's cutter compensation state in step with the control | PP-020 | 5 of 11 hunks no longer apply; the partial reversion fails 3 tests | `test_cutter_compensation.py`, `test_arc_compensation_plane.py` TRC tests | detected (partial reverse patch) |
+| `3577b70` | Keep explicit Z holds after homing and avoid a diagonal feed from home | PP-001 follow-up | 3 of 5 hunks no longer apply; the partial reversion fails 1 test | `test_job_start_climb.py` (`test_removing_the_climb_branch_is_detected`) | detected (partial reverse patch) |
+| `399ef13` | Track the current Z through drill cycles and indexing for the climb | PP-013 follow-up | applied; 5 FAIL | `test_job_start_climb.py` | detected (reverse patch) |
+| `7aeae99` | Fall back to G17 at job start and select TRC in the job plane | PP-021 follow-up | 3 of 4 hunks no longer apply; the partial reversion fails 2 tests | `test_job_plane_restore.py` | detected (partial reverse patch) |
+| `c33ebd0` | Snap float-noise A positions to 0 and keep the wrap loops simple | PP-002 follow-up | applied; 3 FAIL | `test_rotary_modulo_range.py` | detected (reverse patch) |
+| `a71e102` | Write the left-hand tap pitch as a binary minus; plain ZX error text | none | 1 of 2 hunks no longer applies | nothing behavioural: `((0-FEED)/SPIN)` posts the same value as `(-FEED/SPIN)`, and the ZX error text only lost `(G18)` and `@` (the commit's reason is GPPL string and expression syntax, which the engines do not model) | not detected (no output change) |
+| `6f6f6ce` | Switch TRC on the retract with explicit X/Y instead of holding it | PP-019, PP-020 | applied; 14 FAIL | `test_cutter_compensation.py`, `test_arc_compensation_plane.py` TRC off-before-rapid guard | detected (reverse patch) |
+| `ebf9c57` | Track Z and the feed start through indexes, M00 and subs; stop on full-turn cuts | PP-002 full-turn cut | 1 of 11 hunks no longer applies; the partial reversion fails 3 tests | `PostAbortGuardTests.test_guard_detects_removed_abort` (the full-turn abort site), `test_rotary_modulo_range.py`, `test_job_start_climb.py`, `test_post_homing_reposition.py` | detected (hand-crafted) |
+| `0ed0b78` | Write the new POST ERROR texts on their own NC line; harden tests | none | applied; 1 FAIL | `test_zx_arc_guard.py::test_error_text_is_its_own_nc_line_in_a_program` | detected (reverse patch) |
 
 FAIL counts are behavioural tests; the static text checks (`test_gpp_static.py`,
 `test_machine_definition.py`) are excluded except where a row says so. Not reverted:

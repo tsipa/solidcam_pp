@@ -409,7 +409,7 @@ class PostAbortGuardTests(unittest.TestCase):
         POST ERROR guards (@usr_arc_check, @usr_arc_chord_check, @usr_arc_angle_check (AR= opening
         angle above 0 and up to 360), @usr_r1_output, the ZX arc stop of
         5408e5c in @usr_arc_math, the compensation-on-arc stop of b999f65, the
-        full-turn cutting block stop of b94251b in @usr_line, the A wrong-way
+        full-turn cutting block stop of ebf9c57 in @usr_line, the A wrong-way
         stop @usr_r1_wrong_way_stop, the bLimit_3axis stop in @usr_r1pos_calc,
         the five option stops of @usr_check_options,
         @usr_unsupported_event, @usr_unsupported_transform,

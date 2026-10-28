@@ -199,7 +199,7 @@ referenced.
 | GPP statements executed (`python -m pp_tests.coverage`, default engine) | 36.1% (534/1479) | 88.6% (1513/1708; legacy engine 88.3%) |
 | GPP branch outcomes (if/while true and false) | 32.9% (207/630) | 82.1% (591/720; same on the legacy engine) |
 | mutation kill rate, 802 mutants over 17 procedures (measured on the `f1803b4` GPP, not re-run) | 45.9% (368) | 62.8% (504) |
-| GPP commits whose reversion is detected (`tests/HISTORY_COVERAGE.md`, `e797c18` GPP) | 10 of the 14 whose reverse patch applied (12 not assessable) | 47 of 48 (595df73 changes no output) |
+| GPP commits whose reversion is detected (`tests/HISTORY_COVERAGE.md`, `0ed0b78` GPP) | 10 of the 14 whose reverse patch applied (12 not assessable) | 47 of 48 (a71e102 changes no output) |
 
 The original-suite figures were measured on the `f1803b4` GPP.
 

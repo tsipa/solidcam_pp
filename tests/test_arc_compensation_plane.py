@@ -20,7 +20,7 @@ PP-003 test checks that a ZX arc stops the post (the abort mechanics are in
 tests/test_zx_arc_guard.py). The template's other arc modes (absolute plain
 I/J, R word; PP-022) were removed.
 
-TRC: PP-019, PP-020 and PP-021 are fixed (b999f65, 264be29, 88695c9, 9767011);
+TRC: PP-019, PP-020 and PP-021 are fixed (b999f65, 0cfd586, 88695c9, 7aeae99);
 their former canonical tests are regression guards (@covers).
 
 Event order caveat: every PP-019/PP-020 test assumes SolidCAM delivers
@@ -729,7 +729,7 @@ class CompensationTests(unittest.TestCase):
         deselects TRC with G40 only in a G0/G1 block that programs an axis of the working
         plane (Siemens programming manual, TRC selection/deselection), so the G40 block must
         carry X or Y, and no X/Y motion after the COMP_OFF may run under G41. Before b999f65
-        the G40 waited for the next feed move; 264be29 waited for the next X/Y block; 2f5b759
+        the G40 waited for the next feed move; 0cfd586 waited for the next X/Y block; 6f6f6ce
         writes 'G0 G40 X.. Y.. Z50' on the Z-only retract. Regression guard of PP-019 facet
         off-before-rapid. UNVERIFIED event order: assumes SolidCAM emits @compensation(off)
         immediately before the rapid (e.g. lead-out 'None')."""
@@ -860,7 +860,7 @@ class PlaneModalityTests(unittest.TestCase):
         plane (with G19 the radius offset would be applied in Y/Z). Only a tool change calls
         @machine_plane, so G19 from the previous job's YZ arc is still modal when the next
         same-tool job selects G41. Regression guard of PP-021 facet trc (fixed in 88695c9 and
-        9767011: @start_of_job and the G41 block select the job plane). UNVERIFIED event
+        7aeae99: @start_of_job and the G41 block select the job plane). UNVERIFIED event
         semantics: assumes SolidCAM does not deliver @machine_plane at every job start
         (class docstring)."""
         session = self.after_yz_arc_job()

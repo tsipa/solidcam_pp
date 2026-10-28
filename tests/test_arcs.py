@@ -13,7 +13,7 @@ Scope after the area-D port:
 * Compensation is unchanged, so no G40/G41/G42 may appear in an arc block (TRC
   in a G2/G3 block was PP-020; b999f65 stops the post instead); the old forced
   change(iDiametercomp) is gone. The harness state includes iCompActive (the
-  TRC state last posted, 264be29) and iFeedMode (9f48a3a), which the fixed post
+  TRC state last posted, 0cfd586) and iFeedMode (9f48a3a), which the fixed post
   reads.
 * The CAD-mismatch abort is judged through the engine, which stops at the GPPL
   `input` line (ENGINE-009): real SolidCAM continues after `input`, writes the

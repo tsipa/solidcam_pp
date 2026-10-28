@@ -317,7 +317,7 @@ class GppStructureTests(unittest.TestCase):
         where; a new occurrence or a move into another procedure fails.
         Removing an occurrence passes (allowlist, not an exact pin): G187 is
         PP-012. The subprogram, loop, G10 L2 and trig-macro output went in
-        f5c74cd (PP-044, PP-045, PP-038)."""
+        dde4db6 (PP-044, PP-045, PP-038)."""
         pattern = re.compile(r"(?<![A-Z0-9])(G28|G30|G65|G10|G20|G103|G187|M98|M99|O777)(?![\d.])"
                              r"|\bL2 P|#|WHILE \[")
         found = defaultdict(set)

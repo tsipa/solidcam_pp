@@ -157,79 +157,79 @@ def _d(id, title, severity, reachability, confidence, settle_evidence, source_fi
 # entry 'PP-002[rounding]' sets one facet only. The former canonical test of a
 # fixed entry is its regression guard and carries @covers(id).
 RESOLUTIONS = {
-    'PP-001': ('fixed', '345cb49 Reprogram X, Y and Z after post-inserted homing (follow-ups ed07c3f, b94251b). '
+    'PP-001': ('fixed', '345cb49 Reprogram X, Y and Z after post-inserted homing (follow-ups 3577b70, ebf9c57). '
                         'Also covers the tool-change case whose first point keeps the previous X/Y.'),
     'PP-002[rounding]': ('fixed', '6228b3d Keep A positions inside 0 <= A < 360 (values that print as 360.000 '
-                                  'post 0; follow-up 9c89feb snaps float noise below 0.0005 to 0).'),
+                                  'post 0; follow-up c33ebd0 snaps float noise below 0.0005 to 0).'),
     'PP-002[whole-turn]': ('fixed', '6228b3d Keep A positions inside 0 <= A < 360 (mode 1 wraps into [0, 360); '
-                                    'b94251b stops the post on a cutting block that turns A by 360 degrees or more).'),
+                                    'ebf9c57 stops the post on a cutting block that turns A by 360 degrees or more).'),
     'PP-003': ('fixed', '5408e5c Stop the post on ZX (G18) arcs. Owner decision: every ZX arc stops the post with a '
-                        'POST ERROR until the arc_direction convention is verified (text simplified in 595df73, '
-                        'written on its own NC line in e797c18).'),
+                        'POST ERROR until the arc_direction convention is verified (text simplified in a71e102, '
+                        'written on its own NC line in 0ed0b78).'),
     'PP-007': ('fixed', 'ca63502 Post the CAM X in @move_4x.'),
     'PP-008': ('accepted', 'Owner decision: the machine has no through-spindle coolant and M7 stays the code for '
                            '30 bar; the test is a CHARACTERIZATION pin, not a defect.'),
-    'PP-013': ('fixed', '49f8b80 Climb before traversing on a job\'s first rapid (follow-ups fc664ce and b94251b: the '
+    'PP-013': ('fixed', '49f8b80 Climb before traversing on a job\'s first rapid (follow-ups 399ef13 and ebf9c57: the '
                         'current Z is tracked through drill cycles, indexing and M00).'),
     'PP-019': ('fixed', 'b999f65 Switch cutter compensation only on linear blocks (rapids carry the pending G40/G41/'
-                        'G42; the tool-change safety block is G17 G40 G64 G90). 264be29 deferred the TRC change of '
-                        'a Z-only rapid to the next X/Y block; 2f5b759 writes it on that rapid with explicit X and Y '
+                        'G42; the tool-change safety block is G17 G40 G64 G90). 0cfd586 deferred the TRC change of '
+                        'a Z-only rapid to the next X/Y block; 6f6f6ce writes it on that rapid with explicit X and Y '
                         "('G0 G40 X.. Y.. Z50')."),
     'PP-020': ('fixed', 'b999f65 Switch cutter compensation only on linear blocks. Owner decision: a compensation '
                         'change on an arc stops the post with a POST ERROR (use a linear lead-in/lead-out); '
-                        '264be29 compares against the TRC state last posted; e797c18 writes the text on its own NC '
+                        '0cfd586 compares against the TRC state last posted; 0ed0b78 writes the text on its own NC '
                         'line.'),
-    'PP-021': ('fixed', '88695c9 Restore the machining plane at the start of each job (follow-ups 9767011: G17 '
-                        'fallback, TRC selected in the job plane; 2f5b759: the plane is re-selected when TRC is '
+    'PP-021': ('fixed', '88695c9 Restore the machining plane at the start of each job (follow-ups 7aeae99: G17 '
+                        'fallback, TRC selected in the job plane; 6f6f6ce: the plane is re-selected when TRC is '
                         'selected from G40).'),
-    'PP-028': ('fixed', 'a38f158 Post left-hand tapping with a negative CYCLE84 pitch (follow-up 595df73).'),
-    'PP-049': ('fixed', '9f48a3a Post rotating G1 blocks in G93 inverse time (follow-ups f0ffada: F reprogrammed '
-                        'after G93, control A travel; b94251b: indexes and M00 invalidate the G93 start).'),
-    'PP-002[negative-mode]': ('fixed', '3441c5f Keep only the modulo A range: the iR1posControl 0/2 modes are '
+    'PP-028': ('fixed', 'a38f158 Post left-hand tapping with a negative CYCLE84 pitch (follow-up a71e102).'),
+    'PP-049': ('fixed', '9f48a3a Post rotating G1 blocks in G93 inverse time (follow-ups 1bdfecc: F reprogrammed '
+                        'after G93, control A travel; ebf9c57: indexes and M00 invalidate the G93 start).'),
+    'PP-002[negative-mode]': ('fixed', '71bac54 Keep only the modulo A range: the iR1posControl 0/2 modes are '
                                        'removed.'),
-    'PP-012': ('fixed', 'c06b190 A job that sets the G187 smoothing parameters stops the post; no G187 is written '
-                        '(8989278: iG187_P 2 stops too; 82eea8d: iG187_P 1/2/3/-1 and nG187_E select CYCLE832, '
+    'PP-012': ('fixed', 'd9b120b A job that sets the G187 smoothing parameters stops the post; no G187 is written '
+                        '(6ce4055: iG187_P 2 stops too; 3fde1a5: iG187_P 1/2/3/-1 and nG187_E select CYCLE832, '
                         'only values out of range or set with bCycle832 off stop).'),
-    'PP-022': ('fixed', 'd9fe31f Keep only Sinumerik arc words (incremental I/J/K): iArcmode 1/3/4 are removed.'),
-    'PP-037': ('fixed', '3441c5f Keep only the modulo A range: the shortest-distance mode is removed.'),
-    'PP-040': ('fixed', 'a2cb528 The homing parser splits entries on ; and :, the prefix is optional.'),
-    'PP-041': ('fixed', 'a2cb528 Homing modes 1-7 (G53 among them) stop the post; only mode 8 is left.'),
-    'PP-042': ('fixed', 'a2cb528 Homing modes 1-7 (mode 7 G90 G54 among them) stop the post; only mode 8 is left.'),
-    'PP-054[g187-default]': ('fixed', 'c06b190 No G187 output exists any more.'),
-    'PP-054[coolant-burst]': ('fixed', '82eea8d usr_init_gmstates clears the change flags of its coolant OFF '
+    'PP-022': ('fixed', '6ea969d Keep only Sinumerik arc words (incremental I/J/K): iArcmode 1/3/4 are removed.'),
+    'PP-037': ('fixed', '71bac54 Keep only the modulo A range: the shortest-distance mode is removed.'),
+    'PP-040': ('fixed', 'd64e209 The homing parser splits entries on ; and :, the prefix is optional.'),
+    'PP-041': ('fixed', 'd64e209 Homing modes 1-7 (G53 among them) stop the post; only mode 8 is left.'),
+    'PP-042': ('fixed', 'd64e209 Homing modes 1-7 (mode 7 G90 G54 among them) stop the post; only mode 8 is left.'),
+    'PP-054[g187-default]': ('fixed', 'd9b120b No G187 output exists any more.'),
+    'PP-054[coolant-burst]': ('fixed', '3fde1a5 usr_init_gmstates clears the change flags of its coolant OFF '
                                        'assignments, usr_coolant_output prints each M code once, and the first tool '
                                        'change switches coolant off once like the others (bCooloffend).'),
-    'PP-024[ramp-dwell]': ('fixed', 'aed55e8 WAITS after the M3/M4 of the M00 restart, as after every spindle '
+    'PP-024[ramp-dwell]': ('fixed', 'fb66cad WAITS after the M3/M4 of the M00 restart, as after every spindle '
                                     'start (bSpinWait); the timed G04 is gone.'),
-    'PP-026': ('fixed', 'aed55e8 The G04 spindle dwell and its literal 500 are gone: WAITS lets the control '
+    'PP-026': ('fixed', 'fb66cad The G04 spindle dwell and its literal 500 are gone: WAITS lets the control '
                         'decide when the spindle is at speed.'),
-    'PP-053': ('fixed', '0667596 The first index before any rapid homes with sHomestrrotv in clearance mode 0, also with the program start homing off (bHomebegin).'),
-    'PP-057': ('fixed', 'f5c74cd Remove the Fanuc template paths (follow-ups a2cb528 homing modes, 9d519d7 '
-                        'O number, c06b190 G187): the post writes no Fanuc/Haas-only words.'),
-    'PP-033': ('fixed', 'f5c74cd Remove the multiple-fixture scheme (owner decision 2026-10-27): more than one '
+    'PP-053': ('fixed', '467979d The first index before any rapid homes with sHomestrrotv in clearance mode 0, also with the program start homing off (bHomebegin).'),
+    'PP-057': ('fixed', 'dde4db6 Remove the Fanuc template paths (follow-ups d64e209 homing modes, 8e19c10 '
+                        'O number, d9b120b G187): the post writes no Fanuc/Haas-only words.'),
+    'PP-033': ('fixed', 'dde4db6 Remove the multiple-fixture scheme (owner decision 2026-10-27): more than one '
                         'fixture stops the post with a POST ERROR.'),
-    'PP-034': ('fixed', 'f5c74cd Remove the multiple-fixture scheme: more than one fixture stops the post.'),
-    'PP-035': ('fixed', 'f5c74cd Remove the multiple-fixture scheme: no fixture temp files (TEMPFILE<n>) are '
-                        'opened or deleted. The WORKPIECE body buffer (f004bdf) is a separate, balanced file.'),
-    'PP-038': ('fixed', 'f5c74cd Remove the trig macro: i4xIndexMode other than 0/1 stops the post.'),
-    'PP-043': ('fixed', '12db1de @home_data no longer writes shift_y (its only reader, the trig macro, is gone).'),
-    'PP-059': ('fixed', 'f7fb9bf A rapid without axis motion prints its pending modal words in a block of their own.'),
-    'PP-046': ('fixed', 'd8f71e8 nR1pos is rounded to the output step: a sub-step A change is no rotation (no A word, '
+    'PP-034': ('fixed', 'dde4db6 Remove the multiple-fixture scheme: more than one fixture stops the post.'),
+    'PP-035': ('fixed', 'dde4db6 Remove the multiple-fixture scheme: no fixture temp files (TEMPFILE<n>) are '
+                        'opened or deleted. The WORKPIECE body buffer (67c62fd) is a separate, balanced file.'),
+    'PP-038': ('fixed', 'dde4db6 Remove the trig macro: i4xIndexMode other than 0/1 stops the post.'),
+    'PP-043': ('fixed', '937cae2 @home_data no longer writes shift_y (its only reader, the trig macro, is gone).'),
+    'PP-059': ('fixed', 'fb78a2b A rapid without axis motion prints its pending modal words in a block of their own.'),
+    'PP-046': ('fixed', '1add48e nR1pos is rounded to the output step: a sub-step A change is no rotation (no A word, '
                         'no homing).'),
-    'PP-060': ('fixed', 'd8f71e8 A feed move or a rotary rapid at the cutting height stops when the A word would turn A '
-                        'another way than CAM; ae19fa3 extends it to every rapid not at a Z homing.'),
-    'PP-061': ('fixed', "d8f71e8 The full-turn stop counts CAM's own A step; the post's apos = 0 no longer trips it "
-                        '(ae19fa3: cpos/apos references, cnext, 3-axis events keep them).'),
-    'PP-062': ('fixed', 'ad2a22b Compensation left on is deselected at the job end (clearance height) or right after '
-                        'the Z homing; ae19fa3 adds index modes 1/2 and stops at a combined Z+X/Y homing line.'),
-    'PP-044': ('fixed', 'f5c74cd @call_proc, @proc and @end_proc stop the post with a POST ERROR (VMID GenProc=0).'),
-    'PP-045': ('fixed', 'f5c74cd @change_ref_point stops the post with a POST ERROR instead of writing G10 L2.'),
-    'PP-047': ('fixed', '8989278 @rotate and @mirror stop the post with a POST ERROR (owner rule 2026-10-28).'),
+    'PP-060': ('fixed', '1add48e A feed move or a rotary rapid at the cutting height stops when the A word would turn A '
+                        'another way than CAM; 1f3d25d extends it to every rapid not at a Z homing.'),
+    'PP-061': ('fixed', "1add48e The full-turn stop counts CAM's own A step; the post's apos = 0 no longer trips it "
+                        '(1f3d25d: cpos/apos references, cnext, 3-axis events keep them).'),
+    'PP-062': ('fixed', '01dd68f Compensation left on is deselected at the job end (clearance height) or right after '
+                        'the Z homing; 1f3d25d adds index modes 1/2 and stops at a combined Z+X/Y homing line.'),
+    'PP-044': ('fixed', 'dde4db6 @call_proc, @proc and @end_proc stop the post with a POST ERROR (VMID GenProc=0).'),
+    'PP-045': ('fixed', 'dde4db6 @change_ref_point stops the post with a POST ERROR instead of writing G10 L2.'),
+    'PP-047': ('fixed', '6ce4055 @rotate and @mirror stop the post with a POST ERROR (owner rule 2026-10-28).'),
     'DESIGN-002': ('fixed', '3e0c345 Split XY and Z when returning from post-inserted homing (owner decision; '
-                            'follow-up ed07c3f).'),
-    'ENGINE-004': ('fixed', "d5bd225 The CYCLE84 line writes ',0,' instead of the doubled-quote literal, so every "
+                            'follow-up 3577b70).'),
+    'ENGINE-004': ('fixed', "6d4ea82 The CYCLE84 line writes ',0,' instead of the doubled-quote literal, so every "
                             'reading of GPPL quoting gives the same quote-free argument list.'),
-    'ENGINE-021': ('fixed', '0eb3cef Clamp right() to the whole string when the count exceeds its length.'),
+    'ENGINE-021': ('fixed', '709e40f Clamp right() to the whole string when the count exceeds its length.'),
 }
 
 # Test files that came with the fixing commits (git show <commit> --stat).
@@ -496,8 +496,8 @@ _ENTRIES = [
        ['tc-04'], 'A'),
     _d('PP-026', 'Spindle ramp dwell divides by the literal 500 instead of spindle_accel', 'low',
        'Latent: spindle_accel is an @init_post constant (500 rpm/s), not a user option; the dwell differs '
-       'from the documented policy only if that constant is edited (tc-09 correction). From 82eea8d until '
-       'aed55e8 removed it, the dwell existed only with the option bSpinDwell true (default false).',
+       'from the documented policy only if that constant is edited (tc-09 correction). From 3fde1a5 until '
+       'fb66cad removed it, the dwell existed only with the option bSpinDwell true (default false).',
        'confirmed',
        'None needed for the formula; MD35500 on the target 828D for the intended ramp time.',
        ['tc-09', 'history-misc-17'], 'E'),
@@ -980,8 +980,8 @@ LOCATIONS = {
     'PP-044': "GPP @call_proc L2000-2041 (L2015 'G20 ', L2031 @usr_4x_index, L2036 'cR1' literal, L2037 'M98 H')",
     'PP-045': "GPP @change_ref_point L1759-1766 ('G91 G10 L2 P..')",
     'PP-046': "GPP @usr_r1pos_calc ('if nPR1pos ne nR1pos' on the unrounded angle, refactoring branch before "
-              "d8f71e8); @usr_rapid",
-    'PP-047': 'GPP @rotate L1770-1773 and @mirror L1776-1779 (empty, refactoring branch before 8989278); VMID '
+              "1add48e); @usr_rapid",
+    'PP-047': 'GPP @rotate L1770-1773 and @mirror L1776-1779 (empty, refactoring branch before 6ce4055); VMID '
               'SoftwareTransform="0"',
     'PP-048': 'GPP: procedures absent (@halt_program, @machine_opt_stop, @delay/@dwell, @stop_tool, '
               '@rotate_to_plane, MCO events; @drill4x_pnt stops the post); reference: the Mach3 4x template at '
@@ -1001,12 +1001,12 @@ LOCATIONS = {
     'PP-057': 'GPP @call_proc L2015/L2036-2037, @proc/@end_proc L2043-2061, @end_loop L2080-2087, @start_of_job '
               'L1163-1168, @usr_trig_macro_* L2551-2614, @usr_4x_index L2483',
     'PP-058': 'mach3/4x/Mach3_4X_Y.gpp at 6efcad8 (@line_5x and @arc lack the feed re-statement of @line)',
-    'PP-059': "GPP @usr_rapid_xyz (refactoring branch before f7fb9bf): 'skipline = false' when no axis moved",
-    'PP-060': 'GPP @usr_r1pos_calc / @usr_r1_select_dir / @usr_r1_output (refactoring branch before d8f71e8): the '
+    'PP-059': "GPP @usr_rapid_xyz (refactoring branch before fb78a2b): 'skipline = false' when no axis moved",
+    'PP-060': 'GPP @usr_r1pos_calc / @usr_r1_select_dir / @usr_r1_output (refactoring branch before 1add48e): the '
               'word followed dir5a or angle_4x_around_x_dir whatever the two positions were',
-    'PP-061': "GPP @usr_line (refactoring branch before d8f71e8): 'abs(nR1posstep) >= 359.9995' with nPR1postemp "
+    'PP-061': "GPP @usr_line (refactoring branch before 1add48e): 'abs(nR1posstep) >= 359.9995' with nPR1postemp "
               'taken after the post zeroed apos',
-    'PP-062': 'GPP @end_of_job and @usr_prep_home_axis (refactoring branch before ad2a22b): no G40 unless a G0/G1 '
+    'PP-062': 'GPP @end_of_job and @usr_prep_home_axis (refactoring branch before 01dd68f): no G40 unless a G0/G1 '
               'block carried the CAM compensation change',
     'ENGINE-001': 'pp_tests/gppl/legacy.py Engine.call assignment branch (a flag is raised only when the value changes '
                   'and never cleared)',

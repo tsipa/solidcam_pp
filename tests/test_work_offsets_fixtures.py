@@ -175,7 +175,7 @@ class SameToolWorkOffsetChangeTests(unittest.TestCase):
         """INDEPENDENT: X/Y of the new offset are another machine position. Two fixtures with one
         program (G54, G55, same tool, CAM's first point equal to the last one of the first job): the
         new job must program X and Y before it goes down, else it cuts at the first fixture's X/Y.
-        Same rule as after a tool change (e16058e, bTcReprogram)."""
+        Same rule as after a tool change (600fa30, bTcReprogram)."""
         self.check_unchanged_xy_in_a_new_offset()
 
     def test_unchanged_xy_guard_detects_the_reversion(self):

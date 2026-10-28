@@ -373,7 +373,7 @@ def representative(source=None, **options):
     return p.nc()
 
 
-# The pre-option post (cd52658) printed exactly this without the two job M1 lines (after MSG("op2")
+# The pre-option post (2394bff) printed exactly this without the two job M1 lines (after MSG("op2")
 # and MSG("op6")), without the M9 before the first tool change (bCooloffend, as before the others)
 # and with a G04 F6.3 spindle dwell after each 'M3 S3000' block; WAITS now follows each spindle
 # start and each M5 (bSpinWait). Compared old vs new on 2026-10-27.

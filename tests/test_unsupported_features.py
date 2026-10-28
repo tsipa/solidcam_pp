@@ -4,7 +4,7 @@ Oracle (INDEPENDENT): Sinumerik 828D (Siemens mode) has no Fanuc macro B (G65 P7
 WHILE/END loops, G103), no M98/M99 subprogram calls, no G10 L2 data setting, and G112 is polar
 programming, not a work offset. The SolidCAM GPP '!!open/copy/delete file!!' multiple-fixture scheme
 was never verified on this machine (owner decision 2026-10-27: remove it; the WORKPIECE header buffer
-of f004bdf uses the same directives for one balanced file and is not part of it). A post that meets such a
+of 67c62fd uses the same directives for one balanced file and is not part of it). A post that meets such a
 setting or event must stop with a POST ERROR (GPPL: input prompts, abort ends generation), not write
 NC for another control. The same holds for SolidCAM motion events the post has no output for (4x
 polar/Cartesian motion, 4x drill, 5x arcs): SolidCAM skips an event the post does not define (the

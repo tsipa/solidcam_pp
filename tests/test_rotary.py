@@ -655,7 +655,7 @@ class FixedRotaryDefectGuards(unittest.TestCase):
         exact float compare and round-to-nearest of '7.3'), and the exclusive upper
         bound: whether the 828D rejects 360 itself is uncertain (correction to
         history-rotary-07). Forced DC and directed output are both checked. Regression
-        guard of PP-002 facet rounding (fixed in 6228b3d; float noise: 9c89feb)."""
+        guard of PP-002 facet rounding (fixed in 6228b3d; float noise: c33ebd0)."""
         self.check_rounded_whole_turns()
 
     def check_rounded_whole_turns(self, source=None):

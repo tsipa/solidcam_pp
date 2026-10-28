@@ -81,7 +81,7 @@ class WholeGppTests(unittest.TestCase):
         config_dead_procs = {d.proc for d in self.diagnostics if d.code == 'I-CONFIG-DEAD-PROC'}
         self.assertEqual(config_dead_procs, set())       # the bSubs and trig-macro procedures are deleted
         branches = [d for d in self.diagnostics if d.code == 'I-CONFIG-DEAD']
-        # Branches the shipped user options never take: 33 branches / 80 statements at 058b0e9, fewer
+        # Branches the shipped user options never take: 33 branches / 80 statements at f518a3f, fewer
         # with each removal of template options for other controls (+2: the G40 before an index in
         # clearance modes 1/2, the iR1dir stop; +1 the job-parameter stop with bCycle832 off; the G04
         # spindle dwell with bSpinDwell off is gone, WAITS with bSpinWait on is live). +6 / +44: the trace
@@ -232,7 +232,7 @@ class IdeGrammarTests(unittest.TestCase):
         self.assertIn('per-line findings: 0', [line.strip() for line in lines])
         self.assertIn('whole-file rule post accepts: True', [line.strip() for line in lines])
         self.assertEqual([line for line in lines if line.startswith('SEM ')], [])
-        # Self-check: the state before 690774d (trace_level never declared) gives a SEM line.
+        # Self-check: the state before 649daae (trace_level never declared) gives a SEM line.
         mutant = re.sub(r'(?im)^(\s*global\s+integer\s.*?)\s+trace_level\b', r'\1', source(), count=1)
         self.assertNotEqual(mutant, source())
         with tempfile.TemporaryDirectory() as tmp:
@@ -315,7 +315,7 @@ class SolidCamCatalogTests(unittest.TestCase):
 
     def test_every_identifier_is_declared_a_vmid_name_or_a_solidcam_variable(self):
         self.assertEqual(self.unresolved(source()), set())
-        # The state before 690774d: trace_level assigned and read, never declared.
+        # The state before 649daae: trace_level assigned and read, never declared.
         mutant = re.sub(r'(?im)^(\s*global\s+integer\s.*?)\s+trace_level\b', r'\1', source(), count=1)
         self.assertNotEqual(mutant, source())
         self.assertEqual(self.unresolved(mutant), {'trace_level'})
