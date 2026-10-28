@@ -756,11 +756,6 @@ endp
     iAbsincmode = 90
 endp
 
-@usr_abs_inc_output
-    ; G90/G91 when it changed (optional word).
-    {['G'iAbsincmode, ' ']}
-endp
-
 ;-------------------
 
 @machine_plane
@@ -2306,7 +2301,8 @@ endp
     sHomestr = sHomestrstpsame
     call @usr_stop_m00
     {nb}
-    call @usr_abs_inc_output
+    ; G90/G91 when it changed (optional word).
+    {['G'iAbsincmode, ' ']}
     ; One WAITS after the M3/M4 of the restart, also when the S word is printed again before it.
     last_spin = spin
     call @m_feed_spin
