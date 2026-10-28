@@ -207,6 +207,21 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(events[0].output, ['A=ACN(270)'])
         self.assertEqual(sanitize(events)[0]['parameters']['user_account'], '<redacted>')
 
+    def test_empty_job_parameter_keeps_the_next_one(self):
+        """INDEPENDENT: SolidCAM trace of 2026-10-27 (tests/fixtures/reference_multijob.trace.txt.xz):
+        VMID job parameters print as 'name : value' with string values unquoted, so an empty string
+        is followed directly by the next name or by the line end; the next parameter keeps its
+        value (iG187_P was read as the value of sStopMessage)."""
+        events = parse_trace("(1)@start_of_job ==> job_name:'op1' machine_plane:xy omachine_plane:zc\n"
+                             "                    ..> bStopM00 : 0  sStopMessage :   iG187_P : 2  nG187_E : 0.00000  \n"
+                             "                    ..> Message1 :   Message2 :   Message3 : text  sWorkpcDir :   \n")
+        parameters = events[0].parameters
+        self.assertEqual((parameters['bstopm00'], parameters['sstopmessage'], parameters['ig187_p'],
+                          parameters['ng187_e']), (0, '', 2, 0))
+        self.assertEqual((parameters['message1'], parameters['message2'], parameters['message3'],
+                          parameters['sworkpcdir']), ('', '', 'text', ''))
+        self.assertEqual((parameters['machine_plane'], parameters['omachine_plane']), ('xy', 'zc'))
+
     def test_plain_nc_is_not_a_trace(self):
         """INDEPENDENT: harness contract: plain NC text is rejected as a trace."""
         with self.assertRaises(ValueError):

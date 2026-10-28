@@ -3,7 +3,10 @@ import re
 from dataclasses import dataclass, field
 
 HEADER = re.compile(r'^\((\d+)\)@(\w+)\s*==>\s*(.*)$')
-PARAM = re.compile(r"(\w+)\s*:\s*('(?:[^']|'')*'|[^\s]+)")
+# SolidCAM prints VMID job parameters as 'name : value' with the string value unquoted, so an empty
+# string leaves nothing before the next 'name :' ('sStopMessage :   iG187_P : 0') or the line end:
+# a value is never a name followed by ':'.
+PARAM = re.compile(r"(\w+)\s*:\s*('(?:[^']|'')*'|(?!\w+\s*:)[^\s]+)?")
 
 
 @dataclass
@@ -18,7 +21,9 @@ def parameters(text, event):
     for match in PARAM.finditer(text):
         key, token = match.groups()
         key = key.lower()
-        if token.startswith("'"):
+        if token is None:
+            value = ''
+        elif token.startswith("'"):
             value = token[1:-1].replace("''", "'")
         else:
             number = re.fullmatch(r'([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)([TF]?)', token)
