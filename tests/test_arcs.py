@@ -131,7 +131,9 @@ class ArcTests(unittest.TestCase):
         GPPL `input` line (ENGINE-009). Real SolidCAM continues after `input`, writes the
         'POST ERROR ...' text and stops at `abort`; that text block is deliberately not
         asserted (neither its presence nor the engine's empty output), so the test does not
-        pin the engine model."""
+        pin the engine model. The tiny-chord cases stop the same way with 'POST ERROR: ARC
+        chord below 0.0001 mm' (usr_arc_chord_check): an end point that rounds onto the start
+        is a full circle on the control (FB1 03/2006, GEOAX example)."""
         for case in FIXTURE['cases']:
             if 'error' not in case:
                 continue

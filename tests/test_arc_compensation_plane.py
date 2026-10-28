@@ -239,7 +239,7 @@ OFF_AXIS_CASES = [
 def fixture_cases():
     """fixtures/ambiguous_arcs.json cases as XY/YZ arc cases (ZX orientation is PP-003)."""
     fixture = json.loads((FIXTURES / 'ambiguous_arcs.json').read_text())
-    return [dict(case, planes=('xy', 'yz'), error='error' in case) for case in fixture['cases']]
+    return [dict(case, planes=('xy', 'yz')) for case in fixture['cases']]
 
 
 class ArcGuardTests(unittest.TestCase):
@@ -256,7 +256,8 @@ class ArcGuardTests(unittest.TestCase):
         session = job_session(source)
         position(session, start)
         if case.get('error'):
-            with self.assertRaisesRegex(UnsupportedGPPL, 'POST ERROR: ARC end mismatch', msg=label):
+            error = case['error'] if isinstance(case['error'], str) else 'ARC end mismatch'
+            with self.assertRaisesRegex(UnsupportedGPPL, 'POST ERROR: ' + error, msg=label):
                 emit_arc(session, plane, case['direction'], case['size'], start, center, cad_end)
             return
         try:
@@ -323,6 +324,12 @@ class ArcGuardTests(unittest.TestCase):
         'yz_k_rel_sign': ("{'J'ycenter_rel ' ', 'K'zcenter_rel ' '}", "{'J'ycenter_rel ' ', 'K'(-zcenter_rel) ' '}"),
         'check_or_to_and': ('if dx gt tolerance or dy gt tolerance or dz gt tolerance then',
                             'if dx gt tolerance and dy gt tolerance and dz gt tolerance then'),
+        'no_chord_check': ('    call @usr_arc_chord_check(du, dv)\n', ''),
+        'yz_chord_in_xy': ('    if iMplane eq 19 then\n        du = calculated_ypos - ystart\n',
+                           '    if false then\n        du = calculated_ypos - ystart\n'),
+        'chord_limit_looser': ('du * du + dv * dv < 0.00000001', 'du * du + dv * dv < 0.000000001'),
+        'chord_limit_tighter': ('du * du + dv * dv < 0.00000001', 'du * du + dv * dv < 0.0000001'),
+        'full_circle_not_exempt': ('    if arc_size < 360 and du * du', '    if du * du'),
     }
 
     def test_arc_math_mutants_are_detected_by_assertions(self):

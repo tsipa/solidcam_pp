@@ -1869,11 +1869,29 @@ endp
     endif
 endp
 
+@usr_arc_chord_check(numeric du, numeric dv)
+    ; POST ERROR when an arc below 360 degrees ends within 0.0001 mm of its start in the arc plane (du,
+    ; dv): the control goes from the start to the end around the centre in the programmed direction
+    ; (PGsl 03/2013 9.6.2), and an end point on the start is a full circle (FB1 03/2006, GEOAX example
+    ; 'G17 G2 X20 I10 ; Full circle'). The control resolution is 0.00001 mm (INT_INCR_PER_MM 100000 in
+    ; backups/NOLOG.ard), the output has 5 decimals, and start, end and centre each round by up to
+    ; 0.000005 mm: a chord of 10 increments cannot round onto the start or behind it, a shorter one can
+    ; turn a tiny arc into a full circle. VMID MinArcLength 0.0003 keeps SolidCAM arcs above it.
+    local numeric dummy_var
+    if arc_size < 360 and du * du + dv * dv < 0.00000001
+        dummy_var = 0
+        input '"POST ERROR: ARC chord below 0.0001 mm: the control may cut a full circle."'dummy_var
+        {nb,"POST ERROR: ARC chord below 0.0001 mm: the control may cut a full circle. dU=", du, " dV=", dv}
+        abort
+    endif
+endp
+
 @usr_arc_math
     ; Arc geometry: G2/G3 (iMotionmode) and G17/G18/G19 (iMplane) from arc_direction and arc_plane,
     ; and the end point recomputed from the start point, the incremental centre (x/y/zcenter_rel) and
     ; arc_size in the arc plane; the axis normal to the plane keeps the CAD end value (helical arcs).
-    ; usr_arc_check stops the post when the result misses the CAD end point by more than 0.001.
+    ; usr_arc_check stops the post when the result misses the CAD end point by more than 0.001,
+    ; usr_arc_chord_check when it lies within 0.0001 mm of the start point (full circle on the control).
     local numeric cx, cy, cz
     local numeric vx, vy, vz
     local numeric rx, ry, rz
@@ -1881,6 +1899,7 @@ endp
     local numeric c, s
     local numeric calculated_xpos, calculated_ypos, calculated_zpos
     local numeric dx, dy, dz
+    local numeric du, dv
     local numeric dummy_var
 
     ; --- motion mode ---
@@ -1964,6 +1983,14 @@ endp
     dy = abs(calculated_ypos - ypos)
     dz = abs(calculated_zpos - zpos)
     call @usr_arc_check(dx, dy, dz)
+    ; --- chord in the arc plane ---
+    du = calculated_xpos - xstart
+    dv = calculated_ypos - ystart
+    if iMplane eq 19 then
+        du = calculated_ypos - ystart
+        dv = calculated_zpos - zstart
+    endif
+    call @usr_arc_chord_check(du, dv)
     ; --- commit end point ---
     xpos = calculated_xpos
     ypos = calculated_ypos
