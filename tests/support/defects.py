@@ -291,8 +291,9 @@ GPPL_NOTES = {
     'ENGINE-005': 'Policy declared_flag=false implements it (default none).',
     'ENGINE-008': 'Policy print_stmt=console implements it (default error).',
     'ENGINE-009': 'input and abort are separate statements: policy input_stmt=scripted answers the prompt and abort '
-                  'raises PostAbort (tests/test_zx_arc_guard.py uses it); the default input_stmt=abort still stops at '
-                  'input.',
+                  'raises PostAbort; the default input_stmt=abort still stops at input. The POST ERROR stops print '
+                  'instead, and tests/program_session.post_error_policies (print_stmt=console) runs them up to their '
+                  'abort.',
     'ENGINE-010': 'Policy tonum=atof implements it (default strict).',
     'ENGINE-013': 'Policy integer_assign=truncate or round_half_away implements it (default keep).',
     'ENGINE-016': 'Not engine code: pp_tests/trace.py is shared by both engines.',
@@ -770,16 +771,19 @@ _ENTRIES = [
        'None needed (shipped template code); clamp right() to the string length.',
        ['R1-10', 'efc-06', 'engine-impl-critic-14', 'pp-region-4-cycles-rotary-25'], 'F'),
     _d('ENGINE-008', 'Print statement is unsupported (assumed: message window, generation continues)', 'low',
-       '@usr_4x_index index clearance warnings (L2426/L2456).',
+       '@usr_4x_index index clearance warnings (L2426/L2456) and, since they replaced input, the message of '
+       'every POST ERROR stop (print, then abort).',
        'uncertain',
-       'GPPL manual or a SolidCAM run showing where Print output goes.',
+       'GPPL manual or a SolidCAM run showing where Print output goes. A SolidCAM run by the post owner '
+       '(2026-10-28) showed that print followed by abort works.',
        ['efc-06', 'pp-region-4-cycles-rotary-25'], 'F'),
     _d('ENGINE-009', 'input is treated as a terminal stop and abort raises the same exception as engine gaps; '
        'deleting abort leaves the suite green', 'medium',
        'The POST ERROR guards (@usr_arc_check, @usr_r1_output, and since the review fixes the ZX arc, '
        'TRC-on-arc and full-turn cutting block stops).',
        'confirmed',
-       'GPPL semantics: input prompts and continues, abort terminates (dummy_var idiom in the GPP).',
+       'GPPL semantics: input prompts and continues, abort terminates (the dummy_var idiom the GPP used '
+       'before its POST ERROR stops switched to print).',
        ['engine-impl-critic-01'], 'F'),
     _d('ENGINE-010', "tonum() of a non-numeric string raises (tonum('G5'))", 'low',
        '@home_number and @home_data with operator-entered CoordSys names.',

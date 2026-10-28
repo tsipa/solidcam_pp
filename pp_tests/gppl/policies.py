@@ -25,7 +25,9 @@ CHOICES = {
     'quote_escape': ('double', 'none'),          # 'can''t' -> can't | two adjacent literals
     'string_escapes': ('literal', 'c'),          # '\n' stays 2 chars | becomes LF
     # --- constructs the legacy engine rejected -------------------------------
-    'print_stmt': ('error', 'console'),          # Print 'x': unsupported | recorded in engine.console
+    # Print 'x': unsupported | recorded in engine.console. print + abort works in SolidCAM (post owner's
+    # run, 2026-10-28); compat still rejects it because compat is the legacy engine.
+    'print_stmt': ('error', 'console'),
     'trace_stmt': ('error', 'ignore'),           # trace "all":5: unsupported | no-op
     'input_stmt': ('abort', 'scripted'),         # input: stop | answer from engine.scripted_inputs
     'format_grammar': ('legacy', 'extended'),    # 'N.M[(p)]' only | '+', (n), (*k), /k, <pre>/<suf>, 0-pad

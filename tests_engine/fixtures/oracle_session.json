@@ -590,7 +590,9 @@
    },
    "expect": {
     "error": "POST ERROR: ARC end mismatch",
-    "blocks": []
+    "blocks": [
+     "POST ERROR: ARC end mismatch. tolerance=0.001 dX=0.002 dY=0 dZ=0"
+    ]
    }
   }
  ]

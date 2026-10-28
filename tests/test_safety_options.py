@@ -239,10 +239,10 @@ class ToolChangeCompensationTests(unittest.TestCase):
     def test_tool_change_without_z_homing_stops_the_post(self):
         """INDEPENDENT: bHometc off, or a tool-change homing without Z: POST ERROR before M06."""
         require_nc_stream()
-        from program_session import post_abort_error, scripted_input_policies
+        from program_session import post_abort_error, post_error_policies
         for options in (dict(bHometc=False), dict(sHomestrtc='8::G75 Y1=0 X1=0')):
             with self.subTest(**options):
-                p = Program(options=options, policies=scripted_input_policies())
+                p = Program(options=options, policies=post_error_policies())
                 p.start(tool=1, next_tool=2, next_job_tool_number=2)
                 p.ev('rapid_move', xpos=10, ypos=10, zpos=5)
                 p.ev('line', zpos=-1, feed=200)

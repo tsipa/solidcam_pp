@@ -289,9 +289,10 @@ class StatementGaps(unittest.TestCase):
     @known_defect('ENGINE-009', facet='input-terminal', match='postprocessor stopped')
     def test_engine_input_prompt_is_not_terminal(self):
         """INDEPENDENT: GPPL `input` prompts for a value and generation
-        continues; only `abort` terminates (the GPP's dummy_var idiom: it asks
-        for a value it never uses, then aborts explicitly). The engine treats
-        input as a terminal stop."""
+        continues; only `abort` terminates (the GPP's former dummy_var idiom
+        asked for a value it never used, then aborted explicitly; its POST
+        ERROR stops now print instead). The engine treats input as a terminal
+        stop."""
         engine = Engine("@test\nx = 0\ninput 'value?' x\ny = 1\nendp")
         run_stock(self, engine.call, 'test', gap='postprocessor stopped: input')
         self.assertEqual(engine.state['y'], 1)
@@ -426,17 +427,17 @@ class PostAbortGuardTests(unittest.TestCase):
             mutant = '\n'.join(line for index, line in enumerate(lines) if index != removed)
             assert_detected(self, self.assert_post_errors_abort, mutant, f'abort at line {removed + 1} removed')
 
-    @known_defect('ENGINE-009', facet='abort-observable', match='postprocessor stopped')
+    @known_defect('ENGINE-009', facet='abort-observable', match='unsupported statement: print')
     def test_removed_abort_changes_observable_result(self):
         """INDEPENDENT: GPPL semantics: without `abort`, @usr_r1_output's invalid
-        direction path prompts, writes the POST ERROR text and continues. On a
+        direction path prints, writes the POST ERROR text and continues. On a
         GPP copy with every abort deleted the engine must therefore not report
-        a stopped post; the stock engine stops at `input`, so the deleted abort
-        is invisible to every behaviour test. Structural probe: iR1dirMode=0
-        (the state an unknown CAM direction leads to) is preset directly on
-        the legacy rotary harness."""
+        a stopped post; the stock engine stops at the `print` before it
+        (ENGINE-008), so the deleted abort is invisible to the stock engine.
+        Structural probe: iR1dirMode=0 (the state an unknown CAM direction
+        leads to) is preset directly on the legacy rotary harness."""
         engine = rotary_engine(without_abort_lines(pp_source()), iR1dirMode=0, nR1pos=90)
-        run_stock(self, engine.call, 'usr_r1_output', gap='postprocessor stopped: input')
+        run_stock(self, engine.call, 'usr_r1_output', gap='unsupported statement: print')
 
 
 # --------------------------------------------------------------------------

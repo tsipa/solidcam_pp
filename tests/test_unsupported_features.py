@@ -14,7 +14,7 @@ have no procedure, and posting went on), so without a procedure the motion would
 import re
 import unittest
 
-from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
+from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
 from support import Session, covers
 from support.session import HEADER_DEFAULTS
 from test_offline import PP
@@ -43,7 +43,7 @@ def start_of_file(program):
 class UnsupportedOptionTests(unittest.TestCase):
     def program(self, source=None, options=None, **cam):
         require_nc_stream()
-        return Program(options=options, cam=cam, source=source, policies=scripted_input_policies())
+        return Program(options=options, cam=cam, source=source, policies=post_error_policies())
 
     @covers('PP-033', 'PP-034', 'PP-035')
     def test_several_fixtures_stop_the_post(self):
@@ -131,7 +131,7 @@ class UnsupportedEventTests(unittest.TestCase):
         require_nc_stream()
         for event in ('call_proc', 'proc', 'end_proc', 'loop', 'end_loop', 'change_ref_point'):
             with self.subTest(event=event):
-                program = Program(policies=scripted_input_policies())
+                program = Program(policies=post_error_policies())
                 program.start()
                 nc = stopped_with(self, program, event, label=1)
                 self.assertEqual(nc[-1], EVENT_STOP)
@@ -144,7 +144,7 @@ class UnsupportedEventTests(unittest.TestCase):
         require_nc_stream()
         for event in MOTION_EVENTS:
             with self.subTest(event=event):
-                session = Session(start=True, engine_options=dict(policies=scripted_input_policies()))
+                session = Session(start=True, engine_options=dict(policies=post_error_policies()))
                 session.ev('start_of_job', job_name='op1')
                 engine = session.engine
                 before = len(engine.output)

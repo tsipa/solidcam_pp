@@ -18,7 +18,7 @@ import unittest
 from pp_tests.engine import Engine, UnsupportedGPPL
 from test_history_regressions import history_engine
 from test_offline import PP
-from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
+from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
 from support import covers
 from test_post_homing_reposition import Session
 
@@ -105,7 +105,7 @@ class CutterCompensationTests(unittest.TestCase):
     def test_abort_stops_the_post_after_the_prompt(self):
         require_nc_stream()
         engine = history_engine()
-        scripted = Engine(PP.read_text(encoding='utf-8-sig'), policies=scripted_input_policies())
+        scripted = Engine(PP.read_text(encoding='utf-8-sig'), policies=post_error_policies())
         scripted.set(**engine.state)
         scripted.changed.update(engine.changed)
         scripted.set(iDiametercomp=40, iCompActive=40, **ARC)
@@ -372,7 +372,7 @@ class CompensationAtPostHomingTests(unittest.TestCase):
         require_nc_stream()
         homing = '8::G75 Z1=0. Y1=0 X1=0'
         program = compensation_left_on(self, options=dict(sHomestrtc=homing, sHomestrend=homing), retract=20,
-                                       policies=scripted_input_policies())
+                                       policies=post_error_policies())
         program.ev('end_of_job')
         with self.assertRaises(post_abort_error()):
             program.ev('end_program', last_tool=True)

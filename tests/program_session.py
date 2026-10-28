@@ -11,7 +11,8 @@ integer literals (`07`) are read as numbers.
 import re
 import unittest
 
-from pp_tests.engine import Engine
+from pp_tests.engine import Engine, UnsupportedGPPL
+from support.legacy_compat import with_stop_context
 from test_offline import PP
 
 # The default engine (pp_tests.gppl) joins NC lines on a one-shot skipline and runs `input` and
@@ -24,10 +25,12 @@ def require_nc_stream():
         raise unittest.SkipTest('needs the default GPPL engine (skipline joining, input/abort)')
 
 
-def scripted_input_policies():
-    """`input` answers 0 and continues, so a following `abort` is what stops the post."""
+def post_error_policies():
+    """`print` goes to the console and generation continues, so the `abort` after a POST ERROR is
+    what stops the post (print + abort checked in SolidCAM by the post owner, 2026-10-28). `input`
+    answers 0 and continues, for GPP revisions that still prompt."""
     from pp_tests.gppl.policies import Policies
-    return Policies(input_stmt='scripted')
+    return Policies(input_stmt='scripted', print_stmt='console')
 
 
 def post_abort_error():
@@ -83,6 +86,17 @@ def declared_globals(text):
 
 
 class ProgramEngine(Engine):
+    def call(self, procedure, arguments=()):
+        try:
+            return super().call(procedure, arguments)
+        except UnsupportedGPPL as exc:
+            # The legacy engine's abort stop carries no text (GPPL_ENGINE=legacy); the GPPL engine
+            # already names the last NC line, so with_stop_context leaves its PostAbort unchanged.
+            stop = with_stop_context(exc, [], self.output)
+            if stop is exc:
+                raise
+            raise stop from exc
+
     def expression(self, value):
         chunks = re.split(r'''('(?:[^']|'')*'|"(?:[^"]|"")*")''', value)
         for index in range(0, len(chunks), 2):

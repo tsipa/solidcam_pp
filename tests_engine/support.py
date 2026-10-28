@@ -55,7 +55,8 @@ STATEMENT_PATTERNS = {
 
 
 def statement_kinds_from_text():
-    return {kind: len(lines_matching(pattern)) for kind, pattern in STATEMENT_PATTERNS.items()}
+    counts = {kind: len(lines_matching(pattern)) for kind, pattern in STATEMENT_PATTERNS.items()}
+    return {kind: count for kind, count in counts.items() if count}
 
 
 def declared_global_count():

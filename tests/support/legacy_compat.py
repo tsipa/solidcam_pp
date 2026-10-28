@@ -43,6 +43,19 @@ def declared_globals(source):
     return names
 
 
+def with_stop_context(exc, messages, output):
+    """The legacy `abort` stop carries no text. Add the last NC line and the Print messages, as the
+    GPPL engine's PostAbort does, so a POST ERROR stop names its error (the GPP's stops are print,
+    {nb,"POST ERROR..."}, abort). Any other exception is returned unchanged."""
+    text = str(exc)
+    if not text.endswith('postprocessor stopped: abort'):
+        return exc
+    lines = ''.join(output).strip().splitlines()
+    extra = (f'; last output: {lines[-1].strip()!r}' if lines else '') + \
+        (f"; messages: {'; '.join(map(str, messages))}" if messages else '')
+    return type(exc)(text + extra) if extra else exc
+
+
 class LegacyCompatEngine(Engine):
     """Legacy engine (pp_tests/gppl/legacy.py) plus documented GPPL workarounds.
 
@@ -53,7 +66,10 @@ class LegacyCompatEngine(Engine):
                                          descriptor also in a variable (tostr(v:xpos_f)).
       print_statement        ENGINE-008  `Print <expr>` records the message in
                                          self.messages and continues (assumed
-                                         SolidCAM message-window semantics).
+                                         SolidCAM message-window semantics); an
+                                         `abort` stop names the last NC line and
+                                         the messages, like the GPPL engine's
+                                         PostAbort.
       trace_statement        ENGINE-018  `trace ...` lines are ignored (needed to run
                                          historical revisions with an active trace).
       extended_formats       ENGINE-018  '<(>5.3<)>', '+8.5', '(n)', '(*k)' descriptors.
@@ -105,6 +121,11 @@ class LegacyCompatEngine(Engine):
             return None
         try:
             return super().call(procedure, arguments)
+        except UnsupportedGPPL as exc:
+            stop = with_stop_context(exc, self.messages, self.output)
+            if stop is exc:
+                raise
+            raise stop from exc
         finally:
             if self.options['declared_global_flags'] and not self.stack:
                 for variable in self.global_types:

@@ -669,9 +669,9 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 
 - Severity: low
 - Confidence: uncertain
-- Reachability: @usr_4x_index index clearance warnings (L2426/L2456).
+- Reachability: @usr_4x_index index clearance warnings (L2426/L2456) and, since they replaced input, the message of every POST ERROR stop (print, then abort).
 - Location: pp_tests/gppl/legacy.py Engine.call (Print is an unsupported statement); GPP @usr_4x_index L2426/L2456
-- Evidence that would settle it: GPPL manual or a SolidCAM run showing where Print output goes.
+- Evidence that would settle it: GPPL manual or a SolidCAM run showing where Print output goes. A SolidCAM run by the post owner (2026-10-28) showed that print followed by abort works.
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: efc-06, pp-region-4-cycles-rotary-25
 - GPPL engine: Policy print_stmt=console implements it (default error).
@@ -690,10 +690,10 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 - Confidence: confirmed
 - Reachability: The POST ERROR guards (@usr_arc_check, @usr_r1_output, and since the review fixes the ZX arc, TRC-on-arc and full-turn cutting block stops).
 - Location: pp_tests/gppl/legacy.py Engine.call ('abort' and 'input' raise UnsupportedGPPL); GPP @usr_arc_check L1460-1462, @usr_r1_output L2399-2401
-- Evidence that would settle it: GPPL semantics: input prompts and continues, abort terminates (dummy_var idiom in the GPP).
+- Evidence that would settle it: GPPL semantics: input prompts and continues, abort terminates (the dummy_var idiom the GPP used before its POST ERROR stops switched to print).
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: engine-impl-critic-01
-- GPPL engine: input and abort are separate statements: policy input_stmt=scripted answers the prompt and abort raises PostAbort (tests/test_zx_arc_guard.py uses it); the default input_stmt=abort still stops at input.
+- GPPL engine: input and abort are separate statements: policy input_stmt=scripted answers the prompt and abort raises PostAbort; the default input_stmt=abort still stops at input. The POST ERROR stops print instead, and tests/program_session.post_error_policies (print_stmt=console) runs them up to their abort.
 - Reproduced by:
   - `tests/test_engine_harness.py::PostAbortGuardTests::test_removed_abort_changes_observable_result` (facet `abort-observable`, confidence confirmed)
   - `tests/test_engine_harness.py::StatementGaps::test_engine_input_prompt_is_not_terminal` (facet `input-terminal`, confidence confirmed)

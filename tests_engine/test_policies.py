@@ -227,10 +227,11 @@ class PolicyTests(unittest.TestCase):
         e.call('t')
         self.assertEqual(e.output, ['abctext'])
 
-    def test_real_arc_mismatch_under_scripted_input_writes_the_error_then_aborts(self):
-        e = Engine.from_path(PP, policies=Policies(input_stmt='scripted'))
+    def test_real_arc_mismatch_prints_writes_the_error_then_aborts(self):
+        e = Engine.from_path(PP, policies=Policies(print_stmt='console'))
         with self.assertRaisesRegex(PostAbort, 'ARC end mismatch') as caught:
             e.call('usr_arc_check', [0.002, 0, 0])
+        self.assertEqual(e.console, [('print', 'POST ERROR: ARC end mismatch.')])
         self.assertIn('POST ERROR: ARC end mismatch. tolerance=0.001 dX=0.002', e.nc_lines()[-1])
         self.assertEqual(caught.exception.gppl_stack[0][0], 'usr_arc_check')
 

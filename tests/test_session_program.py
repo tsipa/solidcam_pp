@@ -22,7 +22,7 @@ a CHARACTERIZATION of how the engine renders nb/nl (TSR-16).
 import re
 import unittest
 
-from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
+from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
 from support import (Session, assert_detected, covers, g_function_whitelist, index_of, mutate,
                      parse_blocks, replay, state_before)
 from pp_tests.file_commands import assemble_files
@@ -659,7 +659,7 @@ class HomingStringTests(unittest.TestCase):
 
     def check_fanuc_homing_modes_stop(self, source=None):
         for mode in range(1, 8):
-            program = Program(source=source, policies=scripted_input_policies())
+            program = Program(source=source, policies=post_error_policies())
             with self.assertRaises(post_abort_error(), msg=f'mode {mode}'):
                 program.ev('usr_prep_home_axis', sHomestr=f'{mode}::Z0;{mode}::X0 Y0')
             self.assertEqual(program.nc(), [HOMING_STOP], f'mode {mode}')

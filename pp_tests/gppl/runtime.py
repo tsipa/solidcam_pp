@@ -420,10 +420,10 @@ class Engine:
     def _exec_abort(self, stmt, frame):
         tail = self.stream.lines_since(max(len(self.stream.lines) - 1, 0))
         last = tail[-1].full if tail else ''
-        prompts = '; '.join(text for what, text in self.console if what == 'input')
+        messages = '; '.join(text for what, text in self.console if what in ('input', 'print'))
         raise PostAbort(f'postprocessor stopped: abort (line {stmt.line})'
                         + (f'; last output: {last!r}' if last else '')
-                        + (f'; prompts: {prompts}' if prompts else ''))
+                        + (f'; messages: {messages}' if messages else ''))
 
     def _exec_print(self, stmt, frame):
         if self.policies.print_stmt == 'error':

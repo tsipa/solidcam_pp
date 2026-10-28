@@ -18,7 +18,7 @@ import re
 import unittest
 
 from pp_tests.engine import UnsupportedGPPL
-from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
+from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
 from support import assert_detected, covers, mutate
 from test_offline import ROOT
 
@@ -66,7 +66,7 @@ class RotaryDirectionGuardTests(unittest.TestCase):
     def test_wrong_way_stop_names_both_angles(self):
         """INDEPENDENT: module oracle; the POST ERROR line names both printed angles, CAM's turn and the control's."""
         require_nc_stream()
-        program = Program(policies=scripted_input_policies())
+        program = Program(policies=post_error_policies())
         program.start()
         program.ev('move_5x', xpos=10, ypos=0, zpos=30, apos=20, dir5a='ccw')
         program.ev('line_5x', zpos=25, feed=200, feed_type='feed_rate')

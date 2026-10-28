@@ -7,7 +7,7 @@ a ZX arc must not be posted silently.
 import unittest
 
 from pp_tests.engine import Engine, UnsupportedGPPL
-from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
+from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
 from test_offline import PP
 
 MESSAGE = r'POST ERROR: ZX arc direction is unverified'
@@ -45,7 +45,7 @@ class ZxArcGuardTests(unittest.TestCase):
     def test_abort_stops_the_post_after_the_prompt(self):
         # With the prompt answered, the post must still stop: no G18 arc block after the error line.
         require_nc_stream()
-        engine = arc_engine('zx', policies=scripted_input_policies())
+        engine = arc_engine('zx', policies=post_error_policies())
         engine.set(zpos=10)
         with self.assertRaises(post_abort_error()):
             engine.call('arc_zx')
@@ -57,14 +57,14 @@ class ZxArcGuardTests(unittest.TestCase):
         anchor = '"POST ERROR: ZX arc direction is unverified in this post. Check usr_arc_math."}\n        abort\n'
         self.assertEqual(source.count(anchor), 1, 'ZX stop changed; review this test')
         engine = arc_engine('zx', source.replace(anchor, anchor.replace('        abort\n', ''), 1),
-                            scripted_input_policies())
+                            post_error_policies())
         engine.set(zpos=10)
         engine.call('arc_zx')
         self.assertTrue(any(line.startswith('G') for line in engine.nc_lines()))
 
     def test_error_text_is_its_own_nc_line_in_a_program(self):
         require_nc_stream()
-        program = Program(policies=scripted_input_policies())
+        program = Program(policies=post_error_policies())
         program.start()
         program.ev('move_5x', xpos=10, ypos=0, zpos=5)
         program.ev('line_5x', zpos=0, feed=100)

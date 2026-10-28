@@ -24,7 +24,7 @@ checks that must fail with AssertionError.
 """
 import unittest
 
-from program_session import Program, post_abort_error, require_nc_stream, scripted_input_policies
+from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
 from support import (Segment, Session, assert_detected, covers, g_function_whitelist, index_of, known_defect,
                      last_index_of, mutate, parse_blocks)
 
@@ -733,7 +733,7 @@ class ToolChangeDefectTests(unittest.TestCase):
                 (dict(bCycle832=False), dict(iG187_P=1), CYCLE832_OFF_STOP),
                 (dict(bCycle832=False), dict(nG187_E=0.05), CYCLE832_OFF_STOP)):
             with self.subTest(options=options, values=values):
-                program = Program(options=options, cam=values, policies=scripted_input_policies())
+                program = Program(options=options, cam=values, policies=post_error_policies())
                 with self.assertRaises(post_abort_error()):
                     program.start()
                 nc = program.nc()
