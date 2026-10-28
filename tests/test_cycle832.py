@@ -339,7 +339,11 @@ class CompensationTests(unittest.TestCase):
     def test_call_waits_for_the_move_after_g40(self):
         """INDEPENDENT: no CYCLE832 while compensation is on at the control: its blocks without
         motion count as empty blocks of TRC (MD20250 CUTCOM_MAXNUM_DUMMY_BLOCKS = 5 on this machine,
-        backups/NOLOG.ard; alarm 10762 above). The call follows the block that writes G40."""
+        backups/NOLOG.ard; alarm 10762 above). The call follows the block that writes G40.
+        CHARACTERIZATION of the late call: a finishing pass that starts while compensation is
+        already on keeps the job's type (here roughing) until G40. With the VMID's
+        CompensationRoughPasses="0" SolidCAM compensates only finishing passes, which select G41
+        on their first move and get the call before it (test_call_precedes_the_compensation_selection)."""
         self.check_waits_for_g40()
 
     def test_same_tool_job_with_compensation_on_waits(self):

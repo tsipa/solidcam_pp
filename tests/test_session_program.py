@@ -703,8 +703,8 @@ class HomingStringTests(unittest.TestCase):
 # First job under the persisting change-flag policy (ENGINE-001)
 # ---------------------------------------------------------------------------
 
-def persisting_first_job():
-    s = Session(flags='persist')
+def persisting_first_job(**options):
+    s = Session(flags='persist', options=options or None)
     s.first_tool(flood_coolant=1)
     s.cut(10, 20, 5, -1)
     return s
@@ -720,10 +720,12 @@ class FirstJobPersistingFlagTests(unittest.TestCase):
         Session(flags='persist'), i.e. if SolidCAM keeps the change flags raised
         by the @usr_init_gmstates assignments (ENGINE-001). Before 82eea8d that
         case printed M8 followed by seven M9; the 2026-10-27 reference trace
-        replay showed the eight M9 under both policies. A missing first cut is a
-        precondition failure.
+        replay showed the eight M9 under both policies. bCooloffend is off: its M9
+        before the first safety block also prints the pending coolant codes and would
+        hide a missing reset of their flags in @usr_init_gmstates. A missing first cut
+        is a precondition failure.
         """
-        s = persisting_first_job()
+        s = persisting_first_job(bCooloffend=False)
         blocks = s.blocks()
         replayed = replay(blocks)
         cut = index_of(blocks, lambda b: b.is_motion and 1 in b.g)

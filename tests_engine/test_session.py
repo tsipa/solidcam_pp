@@ -95,6 +95,16 @@ class SessionReplayTests(unittest.TestCase):
                 self.assertEqual(want.changed, numeric)
                 self.assertEqual(want.output, [line.rstrip() for line in got.nc])
 
+    def test_unquoted_vmid_strings(self):
+        """SolidCAM prints VMID job parameters as 'name : value', strings unquoted (reference trace
+        2026-10-27): an empty string must not take the next name, a value may contain ':'."""
+        events = parse_trace("(1)@start_of_job ==> bStopM00 : 0  sStopMessage :   iG187_P : 2  nG187_E : 0.00000\n"
+                             "(1)@start_of_job ==> sStopMessage : CHECK:PART  iG187_P : 0\n"
+                             "(1)@start_of_job ==> sStopMessage : \n")
+        self.assertEqual([event.parameters for event in events],
+                         [{'bstopm00': 0, 'sstopmessage': '', 'ig187_p': 2, 'ng187_e': 0},
+                          {'sstopmessage': 'CHECK:PART', 'ig187_p': 0}, {'sstopmessage': ''}])
+
     def test_replaying_a_parsed_trace_reproduces_the_nc_and_diffs_clean(self):
         events, extension, recorded = load_events(MAIN)
         self.assertIsNone(recorded)

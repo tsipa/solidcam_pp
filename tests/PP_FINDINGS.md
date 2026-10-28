@@ -1183,7 +1183,7 @@ now a regression guard marked `@covers`.
 
 - Severity: low
 - Confidence: confirmed
-- Reachability: Latent: spindle_accel is an @init_post constant (500 rpm/s), not a user option; the dwell differs from the documented policy only if that constant is edited (tc-09 correction). Since 82eea8d the dwell exists only with bSpinDwell true (default false).
+- Reachability: Latent: spindle_accel is an @init_post constant (500 rpm/s), not a user option; the dwell differs from the documented policy only if that constant is edited (tc-09 correction). From 82eea8d until aed55e8 removed it, the dwell existed only with the option bSpinDwell true (default false).
 - Location: GPP @usr_spindle_output L1969-1972 (G04 F (0.3+(sdiff/500))); spindle_accel = 500 in @init_post
 - Evidence that would settle it: None needed for the formula; MD35500 on the target 828D for the intended ramp time.
 - Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)

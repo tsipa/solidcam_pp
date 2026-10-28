@@ -495,8 +495,8 @@ _ENTRIES = [
        ['tc-04'], 'A'),
     _d('PP-026', 'Spindle ramp dwell divides by the literal 500 instead of spindle_accel', 'low',
        'Latent: spindle_accel is an @init_post constant (500 rpm/s), not a user option; the dwell differs '
-       'from the documented policy only if that constant is edited (tc-09 correction). Since 82eea8d the dwell '
-       'exists only with bSpinDwell true (default false).',
+       'from the documented policy only if that constant is edited (tc-09 correction). From 82eea8d until '
+       'aed55e8 removed it, the dwell existed only with the option bSpinDwell true (default false).',
        'confirmed',
        'None needed for the formula; MD35500 on the target 828D for the intended ramp time.',
        ['tc-09', 'history-misc-17'], 'E'),

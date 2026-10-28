@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 HEADER = re.compile(r'^\((\d+)\)@(\w+)\s*==>\s*(.*)$')
 # SolidCAM prints VMID job parameters as 'name : value' with the string value unquoted, so an empty
 # string leaves nothing before the next 'name :' ('sStopMessage :   iG187_P : 0') or the line end:
-# a value is never a name followed by ':'.
-PARAM = re.compile(r"(\w+)\s*:\s*('(?:[^']|'')*'|(?!\w+\s*:)[^\s]+)?")
+# a value is never a name followed by blanks and ':'. A value may contain ':' ('CHECK:PART').
+PARAM = re.compile(r"(\w+)\s*:\s*('(?:[^']|'')*'|(?!\w+\s+:)[^\s]+)?")
 
 
 @dataclass
