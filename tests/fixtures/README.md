@@ -5,6 +5,16 @@
 including XYZ lines/arcs, indexed planes, simultaneous rotary motion, tool
 definitions, tool changes, and compensation events.
 
+To replay this program, use `recorded_cam_001` instead: the same program recorded
+again on 2026-10-28, with the same 154,995 events in the same order and the same
+values, apart from `date`/`time`, the added CAMDBG fields and `arc_size`, which it
+has at 9 decimals. Here `arc_size` has the trace's 3 decimals, and the post checks
+an arc's computed end point against CAM's to 0.001, so a replay of this file stops
+at the seventh arc of the first job (replay event 44, `ARC end mismatch`, dX 0.00576).
+This file stays as the input record that the tests' "reference trace 2026-10-27"
+citations refer to; `tests_engine/test_input_trace.py` checks it against its
+manifest, and no test replays it.
+
 Public depth-0/depth-1 event headers and their parameter continuation lines are
 retained. The updated recording also supplies missing parameters from 50,199
 temporary `CAMDBG` readouts, promoted into parameter continuation lines:
