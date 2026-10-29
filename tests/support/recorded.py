@@ -33,7 +33,6 @@ CHUNK = 1000
 # replay must stop exactly there while the entry is open; once it is fixed the entry goes and
 # the recording must reach @end_of_file.
 KNOWN_STOPS = {
-    'recorded_cam_004': ('PP-063', 'start_of_job', r"@usr_smoothing:\d+: missing variable 'wall_offset'"),
 }
 REGENERATE = 'python -m pp_tests.tools.recorded_pins --write'
 

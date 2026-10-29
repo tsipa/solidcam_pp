@@ -255,8 +255,10 @@ class CoverageTests(unittest.TestCase):
         # homing; two more since 2026-10-28: the YZ/ZX machining-plane and arc stops), TRC fallback, the
         # recomputed arc end (since 2026-10-28 an arc keeps the CAM end within the input rounding, as
         # every session arc does; tests/test_arc_compensation_plane.py ArcEndPointTests). The YZ/ZX arc
-        # math and plane branches behind the stops were deleted 2026-10-28 (85.9 from 84.3).
-        self.assertGreaterEqual(summary['percent'], 85.8)
+        # math and plane branches behind the stops were deleted 2026-10-28 (85.9 from 84.3). The index at
+        # a tool change and the stale apos/cpos reset at a job start (claude-fixes) add branches the
+        # sessions do not reach (tests/test_indexing_link.py covers them).
+        self.assertGreaterEqual(summary['percent'], 85.4)
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
         # arc_yz, arc_zx, usr_side_arc_stop: no session has a YZ or ZX arc since they stop the post (ZX
         # since 5408e5c, both since 2026-10-28: G18/G19 move the tool length compensation off Z);

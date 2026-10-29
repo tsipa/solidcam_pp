@@ -6,7 +6,7 @@ the session API, stopping at the first error. Per recording:
 
 * posts_to_end_of_file (INDEPENDENT): the replay reaches @end_of_file without an error and nothing
   says POST ERROR. recorded_cam_004 does not today: its first job is face milling, which sends no
-  wall_offset (PP-063, open; this is its canonical test).
+  wall_offset (PP-063, fixed by 2e7cc30; this test guards it).
 * nc_matches_pin (CHARACTERIZATION): the replay ends where expected (at @end_of_file, or exactly at
   the stop of an open registry entry, support.recorded.KNOWN_STOPS), no POST ERROR, and the sha256
   of its normalized NC equals the pin in tests/fixtures/recorded_cam_nc_pins.json. A mismatch
@@ -22,7 +22,7 @@ import os
 import re
 import unittest
 
-from support import REGISTRY, known_defect
+from support import REGISTRY, covers
 from support import recorded
 from support.engines import ENGINE_NAME
 
@@ -88,12 +88,12 @@ class RecordedReplayTests(unittest.TestCase):
         without a POST ERROR."""
         self.assert_posts_to_end_of_file('recorded_cam_003')
 
-    @known_defect('PP-063', match="missing variable 'wall_offset'")
+    @covers('PP-063')
     def test_recorded_cam_004_posts_to_end_of_file(self):
         """INDEPENDENT: SolidCAM's input of a real program must post to @end_of_file without a POST ERROR.
         Its face_milling jobs send no wall_offset/floor_offset (operation_001, the first job, and 002, 009,
-        011), so their CYCLE832 type cannot come from them: today @usr_smoothing reads wall_offset and the
-        replay stops at the first job."""
+        011), so their CYCLE832 type cannot come from them (PP-063, fixed by 2e7cc30: face and thread
+        milling choose by feed type)."""
         self.assert_posts_to_end_of_file('recorded_cam_004')
 
     def test_recorded_cam_005_posts_to_end_of_file(self):
@@ -113,7 +113,7 @@ class RecordedReplayTests(unittest.TestCase):
         self.assert_nc_matches_pin('recorded_cam_003')
 
     def test_recorded_cam_004_nc_matches_pin(self):
-        """CHARACTERIZATION: the NC of recorded_cam_004 up to its PP-063 stop is the pinned one."""
+        """CHARACTERIZATION: the NC of recorded_cam_004 is the pinned one."""
         self.assert_nc_matches_pin('recorded_cam_004')
 
     def test_recorded_cam_005_nc_matches_pin(self):

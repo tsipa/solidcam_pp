@@ -40,13 +40,13 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 29 | 33 | 1 | 4 |
+| pp | 28 | 34 | 1 | 4 |
 | engine | 19 | 2 | 0 | 0 |
 | design | 5 | 2 | 0 | 0 |
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 48. `@covers` references: 105.
+Canonical `@known_defect` tests: 47. `@covers` references: 106.
 
 ## Index of open entries
 
@@ -80,7 +80,6 @@ Canonical `@known_defect` tests: 48. `@covers` references: 105.
 | [PP-054](#pp-054) | low | likely-engine-artifact | A | First job under persisting init flags: 'G187 P2' and flood M8 cancelled by seven M9 | pinned only (@covers) |
 | [PP-056](#pp-056) | low | confirmed | A | bStopM00difftool is set and cleared in the same @end_of_job: the skip path is dead and is what keeps the G75 retract before M06 | pinned only (@covers) |
 | [PP-058](#pp-058) | low | uncertain | F | Mach3 4x post (6efcad8): the feed re-statement remedy is missing on @line_5x and @arc | `test_line_5x_and_arc_feed_changes_are_restated_too` |
-| [PP-063](#pp-063) | medium | confirmed | A | face_milling and thread jobs: @usr_smoothing takes the CYCLE832 type from wall_offset/floor_offset, which SolidCAM does not send for them | `test_recorded_cam_004_posts_to_end_of_file` |
 | [ENGINE-001](#engine-001) | medium | uncertain | F | Change-flag rule for equal-value assignment is unverified (engine: only a value change raises a flag, nothing clears it) | pinned only (@covers) |
 | [ENGINE-002](#engine-002) | low-medium | confirmed | F | skipline block joining is not emulated (nb/nl always start a new block) | `test_skipline_false_joins_the_next_block` |
 | [ENGINE-003](#engine-003) | low-medium | confirmed | F | numeric_def_f / integer_def_f are ignored: unformatted numbers use 3 decimals instead of '8.5' | `test_numeric_def_f_formats_unformatted_numeric_variables` |
@@ -523,20 +522,6 @@ Canonical `@known_defect` tests: 48. `@covers` references: 105.
 - Source findings: history-misc-18
 - Reproduced by:
   - `tests/test_mach3_feed_force.py::Mach3FeedForceTests::test_line_5x_and_arc_feed_changes_are_restated_too`
-
-### PP-063
-
-**face_milling and thread jobs: @usr_smoothing takes the CYCLE832 type from wall_offset/floor_offset, which SolidCAM does not send for them**
-
-- Severity: medium
-- Confidence: confirmed
-- Reachability: Default config (bCycle832, job parameter iG187_P 0): every face_milling and thread job. Their @start_of_job has neither wall_offset nor floor_offset (recorded_cam_004 operation_001/002/009/011 face_milling, recorded_cam_005 operation_025 thread), so a job after one that sent them takes that allowance silently. One before any job that sent them reads a variable SolidCAM never set: recorded_cam_004 starts with face milling and its replay stops at event 25; which value SolidCAM gives an unset variable is UNVERIFIED (presumably 0, finishing).
-- Location: GPP @usr_smoothing L1251-1256 (nAllow = wall_offset, or floor_offset on profile_3D, when bCycle832, iG187_P 0, not X5_job and not a drill job), called by @start_of_job L1412
-- Evidence that would settle it: None needed for the inputs (the recordings show which jobs send no allowance); the owner decides the CYCLE832 type of face and thread milling (a fix is in progress on the refactoring branch).
-- Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
-- Source findings: recorded-cam-replay-2026-10-28
-- Reproduced by:
-  - `tests/test_recorded_replays.py::RecordedReplayTests::test_recorded_cam_004_posts_to_end_of_file`
 
 ## Engine gaps and fidelity issues (ENGINE-xxx)
 
@@ -990,6 +975,7 @@ now a regression guard marked `@covers`.
 | [PP-060](#pp-060) | 1add48e | `test_angles_that_jump_by_a_turn_stop_in_a_cut`, `test_extra_turn_after_the_post_unwind_stops`, `test_first_feed_move_after_toolchange_unwind_stops`, `test_rounding_straddle_against_the_word_stops`, `test_wrong_way_feed_moves_stop_the_post`, `test_wrong_way_rapid_with_a_rotation_homing_without_z_stops_the_post`, `test_wrong_way_rapid_without_rotation_homing_stops_the_post`, `test_wrong_way_rotary_link_rapid_stops_the_post`, `test_wrong_way_three_axis_rapid_without_rotation_homing_stops_the_post` | `tests/test_rotary_direction_guard.py` |
 | [PP-061](#pp-061) | 1add48e | `test_fourth_axis_and_offset_change_resets_are_not_cutting_turns`, `test_post_reset_of_a_is_not_a_cutting_turn` | `tests/test_rotary_modulo_range.py` |
 | [PP-062](#pp-062) | 01dd68f | `test_compensation_left_on_at_a_tool_change_is_deselected_after_the_z_homing`, `test_compensation_left_on_at_an_index_is_deselected_before_the_index`, `test_compensation_left_on_at_an_index_without_homing_is_deselected_at_the_clearance_height`, `test_compensation_left_on_at_program_end_is_deselected_after_the_z_homing`, `test_compensation_left_on_at_the_job_end_is_deselected_at_the_clearance_height` | `tests/test_cutter_compensation.py` |
+| [PP-063](#pp-063) | 2e7cc30 | `test_recorded_cam_004_posts_to_end_of_file` | `tests/test_recorded_replays.py`, `tests/test_cycle832.py` |
 | [ENGINE-004](#engine-004) | 6d4ea82 | `test_cycle84_arguments_are_numeric_and_ordered`, `test_cycle84_rigid_tapping_fields`, `test_string_case_and_escaped_quotes` |  |
 | [ENGINE-021](#engine-021) | 709e40f | `test_right_count_beyond_the_string_returns_the_whole_string` |  |
 | [DESIGN-002](#design-002) | 3e0c345 | `test_homed_rotary_rapid_returns_xy_then_z` | `tests/test_post_homing_reposition.py` |
@@ -1579,6 +1565,23 @@ now a regression guard marked `@covers`.
   - `tests/test_cutter_compensation.py::CompensationAtPostHomingTests::test_compensation_left_on_at_an_index_without_homing_is_deselected_at_the_clearance_height`
   - `tests/test_cutter_compensation.py::CompensationAtPostHomingTests::test_compensation_left_on_at_program_end_is_deselected_after_the_z_homing`
   - `tests/test_cutter_compensation.py::CompensationAtPostHomingTests::test_compensation_left_on_at_the_job_end_is_deselected_at_the_clearance_height`
+
+### PP-063
+
+**face_milling and thread jobs: @usr_smoothing takes the CYCLE832 type from wall_offset/floor_offset, which SolidCAM does not send for them**
+
+- Severity: medium
+- Confidence: confirmed
+- Reachability: Default config (bCycle832, job parameter iG187_P 0): every face_milling and thread job. Their @start_of_job has neither wall_offset nor floor_offset (recorded_cam_004 operation_001/002/009/011 face_milling, recorded_cam_005 operation_025 thread), so a job after one that sent them takes that allowance silently. One before any job that sent them reads a variable SolidCAM never set: recorded_cam_004 starts with face milling and its replay stops at event 25; which value SolidCAM gives an unset variable is UNVERIFIED (presumably 0, finishing).
+- Location: GPP @usr_smoothing L1251-1256 (nAllow = wall_offset, or floor_offset on profile_3D, when bCycle832, iG187_P 0, not X5_job and not a drill job), called by @start_of_job L1412
+- Evidence that would settle it: None needed for the inputs (the recordings show which jobs send no allowance); the owner decides the CYCLE832 type of face and thread milling (a fix is in progress on the refactoring branch).
+- Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
+- Source findings: recorded-cam-replay-2026-10-28
+- Status: fixed: 2e7cc30 CYCLE832: face and thread milling by feed type; no allowance stops the post (@usr_allowance_reset marks a job that sent no allowance).
+- Tests of the fix: tests/test_recorded_replays.py, tests/test_cycle832.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_recorded_replays.py::RecordedReplayTests::test_recorded_cam_004_posts_to_end_of_file`
 
 ### ENGINE-004
 

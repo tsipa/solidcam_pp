@@ -246,6 +246,8 @@ RESOLUTIONS = {
     'PP-055': ('fixed', '6e5bb01 Drill cycles: RFP is the hole top below Z0 too (no DPR 0 branch): every hole gets '
                         'RFP = drill_upper_z - safety and SDIS = safety (SolidCAM sends drill_upper_z = hole top + '
                         'safety), so FDPR counts from the hole top on both sides of Z0.'),
+    'PP-063': ('fixed', '2e7cc30 CYCLE832: face and thread milling by feed type; no allowance stops the post '
+                        '(@usr_allowance_reset marks a job that sent no allowance).'),
 }
 
 # Test files that came with the fixing commits (git show <commit> --stat).
@@ -285,6 +287,7 @@ FIX_TESTS = {
     'DESIGN-003': ('tests/test_indexing_link.py', 'tests/test_safety_options.py'),
     'PP-005': ('tests/test_indexing_link.py',),
     'PP-055': ('tests/test_cycles_spindle.py',),
+    'PP-063': ('tests/test_recorded_replays.py', 'tests/test_cycle832.py'),
 }
 
 # Engine scope and GPPL engine handling of the ENGINE entries.
