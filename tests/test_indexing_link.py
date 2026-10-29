@@ -709,7 +709,7 @@ class CamLinkTransitionTests(LinkOracle, unittest.TestCase):
         job: a completed arc revokes the link and records its endpoint Z, so a
         later feed_link that descends from the arc endpoint does not authorize
         the rotation. The fixture-driven helix case is test_arc_link_boundary.py;
-        YZ and ZX arcs stop the post (usr_arc_math). The event mixture (a helix
+        YZ and ZX arcs stop the post (usr_side_arc_stop). The event mixture (a helix
         inside a 5x job) is synthetic; its reachability in a SolidCAM job is not
         established (ARC_LINK_FINDING.md)."""
         self._check_arc()
@@ -873,9 +873,10 @@ class DesignPinTests(LinkOracle, unittest.TestCase):
 # ---------------------------------------------------------------------------
 _INDEX_BLOCK = ('    if bTmatrixIndexPending\n        change(cWo) = true\n        change(iWorkoffset) = true\n'
                 '        call @usr_4x_index\n        bTmatrixIndexPending = false\n    endif\n')
-# 88695c9 put the job-plane restore between @home_number and the deferred index.
-_JOB_PLANE = ("    ; The job's machining plane for its first motion block (G17; YZ/ZX stop the post, usr_xy_plane_check).\n"
-              '    call @usr_job_plane\n')
+# 88695c9 put the job-plane restore between @home_number and the deferred index; the plane check took
+# its place when YZ/ZX started to stop the post.
+_JOB_PLANE = ("    ; The job's machining plane, sent with start_of_job (G17; YZ/ZX stop the post).\n"
+              '    call @usr_xy_plane_check\n')
 
 # (label, [(old, new), ...], holder class, check method)
 REVERSIONS = [

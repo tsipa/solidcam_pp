@@ -88,9 +88,10 @@ class WholeGppTests(unittest.TestCase):
         # gate and the five CAMDBG readout gates, dead at the shipped trace_level 0 since trace_level is a
         # declared post-writer option instead of a runtime control variable. -5 statements: the four
         # option stops of usr_check_options and the job-parameter stop with bCycle832 off lost the dead
-        # store 'dummy_var = 0' before their input (now a print).
+        # store 'dummy_var = 0' before their input (now a print). -4: the YZ/ZX labels of the CAMDBG arc
+        # readout went with the YZ/ZX code (only XY arcs get past the stop).
         self.assertEqual(len(branches), 31)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 98)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 94)
         gates = sorted(d.line for d in branches if 'trace_level=0' in d.message)
         self.assertEqual(gates, lines_matching(r'^\s*if trace_level\s*(>|>=)\s*[05]\s*$'))
         self.assertEqual(len(gates), 6)
@@ -123,9 +124,8 @@ class WholeGppTests(unittest.TestCase):
         self.assertNotIn('xpos', contracts['change_tool']['inferred'])
         self.assertIn('stock_x', contracts['def_tool']['persisted_from_earlier_events'])
         self.assertEqual(contracts['move_4x']['flags'], ['xpos', 'ypos', 'zpos'])
-        # X/Y of an XY arc print whatever their flags (usr_arc_point); the xpos flag is the optional X of
-        # its YZ branch, not reached behind the YZ/ZX arc stop of usr_arc_math (static analysis reads it).
-        self.assertEqual(contracts['arc']['flags'], ['feed', 'xpos', 'zpos'])
+        # X/Y of an XY arc print whatever their flags (usr_arc_point); Z prints by its flag (helix).
+        self.assertEqual(contracts['arc']['flags'], ['feed', 'zpos'])
 
     def test_cam_interface_inventory(self):
         interface = self.analysis.interface()

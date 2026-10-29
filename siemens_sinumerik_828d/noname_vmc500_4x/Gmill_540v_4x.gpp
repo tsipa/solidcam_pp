@@ -312,12 +312,6 @@ endp
     local numeric nDbg1 nDbg2 nDbg3 nDbg4 nDbg5 nDbg6 nDbg7
     if trace_level >= 5
         sDbg1 = 'arc'
-        if arc_plane eq YZ
-            sDbg1 = 'arc_yz'
-        endif
-        if arc_plane eq ZX
-            sDbg1 = 'arc_zx'
-        endif
         nDbg1 = xstart
         nDbg2 = ystart
         nDbg3 = zstart
@@ -743,40 +737,17 @@ endp
 ;-------------------
 
 @machine_plane
-    ; SolidCAM event: the job's machining plane (iMplane); the motion blocks print it. YZ and ZX stop
-    ; the post (usr_xy_plane_check); their branches below are not reached while that stop is in place.
+    ; SolidCAM event: the job's machining plane (iMplane, G17); the motion blocks print it. YZ and ZX
+    ; stop the post (usr_xy_plane_check).
     call @usr_xy_plane_check
     if machine_plane eq XY
         iMplane = 17
     endif
-    if machine_plane eq ZX
-        iMplane = 18
-    endif
-    if machine_plane eq YZ
-        iMplane = 19
-    endif
-endp
-
-@usr_job_plane
-    ; Select the job's machining plane (G17 when SolidCAM leaves machine_plane empty or unknown).
-    ; Assign only on a change: an equal-value assignment could clear a pending change flag. YZ and ZX
-    ; stop the post (usr_xy_plane_check); their branches below are not reached while it is in place.
-    local integer iJobPlane
-    call @usr_xy_plane_check
-    iJobPlane = 17
-    if machine_plane eq ZX
-        iJobPlane = 18
-    endif
-    if machine_plane eq YZ
-        iJobPlane = 19
-    endif
-    if iMplane ne iJobPlane
-        iMplane = iJobPlane
-    endif
 endp
 
 @usr_xy_plane_check
-    ; Stop on a YZ or ZX machining plane. On this machine G18/G19 move the length compensation of a
+    ; Stop on a YZ or ZX machining plane: iMplane stays 17 (G17), also when SolidCAM leaves
+    ; machine_plane empty or unknown. On this machine G18/G19 move the length compensation of a
     ; milling tool from Z to Y/X (SD42940 $SC_TOOL_LENGTH_CONST = 0 in backups/NOLOG.ard; PGsl 03/2013
     ; 8.2: the plane sets the infeed axis of the tool length). Machine 2026-10-28: 'G19 G3 Y-10 Z55
     ; AR=90' of ARTEST.MPF drove Z down by about the tool length.
@@ -1395,8 +1366,8 @@ endp
     call @usr_camdbg_start_of_job
     call @usr_link_boundary
     call @home_number
-    ; The job's machining plane for its first motion block (G17; YZ/ZX stop the post, usr_xy_plane_check).
-    call @usr_job_plane
+    ; The job's machining plane, sent with start_of_job (G17; YZ/ZX stop the post).
+    call @usr_xy_plane_check
     if bTmatrixIndexPending
         change(cWo) = true
         change(iWorkoffset) = true
@@ -1448,7 +1419,7 @@ endp
     bBoundaryStop = false
     call @usr_feedmode_94
     call @usr_link_boundary
-    if (iCompActive eq 41 or iCompActive eq 42) and iMplane eq 17 and bClimbZValid and nLastPathZ >= tool_start_plane
+    if (iCompActive eq 41 or iCompActive eq 42) and bClimbZValid and nLastPathZ >= tool_start_plane
         ; Compensation is still on at the control (CAM switched it off after the retract, or not at
         ; all) and the tool stands at or above the clearance plane: deselect it here, before a stop,
         ; homing, index or tool change, so no G75 or M block runs with it on.
@@ -1484,8 +1455,8 @@ endp
     ; (usr_rapid_tc_block: work offset and A, plus Y with a vertical head; no X or Z).
     ; The homings run here and not in the helpers to keep the procedure nesting low. The deepest
     ; chains are 7 levels (start_of_job or end_of_job -> ... -> usr_rapid -> usr_rapid_xyz ->
-    ; usr_rapid_trc_axes -> usr_job_plane), as deep as the original post went; the GPPL limit is not
-    ; known, so usr_rapid_trc_axes, usr_rapid_climb_then_xy, usr_rapid_xy_then_z, usr_job_plane and
+    ; usr_rapid_climb_then_xy -> usr_emulated_rapid_feed), as deep as the original post went; the GPPL
+    ; limit is not known, so usr_rapid_trc_axes, usr_rapid_climb_then_xy, usr_rapid_xy_then_z and
     ; usr_emulated_rapid_feed call nothing deeper.
     call @usr_rapid_cam_link
     call @usr_rapid_motion_mode
@@ -1636,7 +1607,7 @@ endp
         if bFirstMove
             bClimbFirst = true
         endif
-        if change(iDiametercomp) and iDiametercomp eq 40 and iMplane eq 17
+        if change(iDiametercomp) and iDiametercomp eq 40
             bClimbFirst = true
         endif
     endif
@@ -1661,20 +1632,9 @@ endp
 
 @usr_rapid_trc_axes
     ; Sinumerik switches cutter compensation only in a G0/G1 block that programs an axis of the
-    ; working plane: give the TRC block one at the current position when CAM sent none. In G18/G19 the
-    ; Z word is one, unless it goes to its own block (first move of a job).
-    if iDiametercomp ne 40
-        ; TRC works in the job plane: a YZ/ZX arc earlier in the job must not leave another one.
-        call @usr_job_plane
-    endif
-    if iMplane eq 17 and !change(xpos) and !change(ypos)
+    ; working plane (G17: X or Y): give the TRC block both at the current position when CAM sent none.
+    if !change(xpos) and !change(ypos)
         change(xpos) = true
-        change(ypos) = true
-    endif
-    if iMplane eq 18 and !change(xpos) and (!change(zpos) or bFirstMove)
-        change(xpos) = true
-    endif
-    if iMplane eq 19 and !change(ypos) and (!change(zpos) or bFirstMove)
         change(ypos) = true
     endif
     iCompActive = iDiametercomp
@@ -1815,10 +1775,6 @@ endp
         bFeedoutput  = false
     endif
     if change(iDiametercomp)
-        if iDiametercomp ne 40
-            ; TRC works in the job plane: a YZ/ZX arc earlier in the job must not leave another one.
-            call @usr_job_plane
-        endif
         iCompActive = iDiametercomp
     endif
     if bPostHomed or bTcReprogram
@@ -1975,25 +1931,34 @@ endp
 
 ; -----------
 @arc
-    ; SolidCAM event: XY arc. All arcs go through usr_arc, after the CYCLE832 of the cut
-    ; (usr_smoothing_feed).
+    ; SolidCAM event: XY arc, through usr_arc after the CYCLE832 of the cut (usr_smoothing_feed). A
+    ; YZ or ZX arc_plane stops the post first.
+    if arc_plane ne XY then
+        call @usr_side_arc_stop
+    endif
     call @usr_camdbg_arc
     call @usr_smoothing_feed
     call @usr_arc
 endp
 
 @arc_yz
-    ; SolidCAM event: YZ arc (usr_smoothing_feed, usr_arc).
-    call @usr_camdbg_arc
-    call @usr_smoothing_feed
-    call @usr_arc
+    ; SolidCAM event: YZ arc: stops the post.
+    call @usr_side_arc_stop
 endp
 
 @arc_zx
-    ; SolidCAM event: ZX arc (usr_smoothing_feed, usr_arc).
-    call @usr_camdbg_arc
-    call @usr_smoothing_feed
-    call @usr_arc
+    ; SolidCAM event: ZX arc: stops the post.
+    call @usr_side_arc_stop
+endp
+
+@usr_side_arc_stop
+    ; Stop on a YZ or ZX arc. On this machine G18/G19 move the length compensation of a milling tool
+    ; from Z to Y/X (usr_xy_plane_check; machine 2026-10-28: 'G19 G3 Y-10 Z55 AR=90' drove Z down by
+    ; about the tool length). ZX had a stop of its own before (PP-003): Sinumerik G18 G3 turns Z->X
+    ; (viewed from +Y), and SolidCAM's arc_direction convention for ZX is unverified.
+    print 'POST ERROR: YZ/ZX arc: G18/G19 would move the tool length compensation off Z (SD42940 = 0 on this machine). Only XY arcs are supported.'
+    {nb,"POST ERROR: YZ/ZX arc: G18/G19 would move the tool length compensation off Z (SD42940 = 0 on this machine). Only XY arcs are supported."}
+    abort
 endp
 
 @usr_arc_check(numeric dx, numeric dy, numeric dz)
@@ -2026,11 +1991,9 @@ endp
     ; 9.6.4), and an end point that rounds onto the start leaves it undefined. The control resolution
     ; is 0.00001 mm (INT_INCR_PER_MM 100000 in backups/NOLOG.ard); X and Y print with 5 decimals and
     ; round by up to 0.000005 mm, so a chord of 0.0001 mm (10 increments) cannot round onto the start.
-    ; Z prints with 4 decimals (zpos_f '5.4' from the first homing, PP-006): in a YZ arc the end must
-    ; also leave the start by 0.0001 mm in Y or 0.0002 mm in Z. VMID MinArcLength 0.0003 keeps
-    ; SolidCAM arcs above both; usr_arc writes a longer arc in halves, whose chords are at least 1.4
-    ; radii.
-    if arc_size <= 180.000005 and (du * du + dv * dv < 0.00000001 or (iMplane eq 19 and abs(du) < 0.0001 and abs(dv) < 0.0002))
+    ; VMID MinArcLength 0.0003 keeps SolidCAM arcs above it; usr_arc writes a longer arc in halves,
+    ; whose chords are at least 1.4 radii.
+    if arc_size <= 180.000005 and du * du + dv * dv < 0.00000001
         print 'POST ERROR: ARC chord too short: the control cannot place the centre (AR=).'
         {nb,"POST ERROR: ARC chord too short: the control cannot place the centre (AR=). dU=", du, " dV=", dv}
         abort
@@ -2041,35 +2004,27 @@ endp
     ; End point of an arc block: both axes of the arc plane in every block, whatever their change
     ; flags (an AR= block without them ends on its start and leaves the centre undefined), and the
     ; axis normal to the plane when it is flagged or leaves its start (helix): usr_arc_math may
-    ; replace the end with an assignment that may clear the flag of an equal value. YZ and ZX arcs stop the
-    ; post before (usr_arc_math); the YZ branch is not reached while that stop is in place.
-    if arc_plane eq XY then
-        if zpos ne zstart then
-            change(zpos) = true
-        endif
-        {'X'xpos ' ','Y'ypos ' ',['Z'zpos ' ']}
+    ; replace the end with an assignment that may clear the flag of an equal value. Only XY arcs get
+    ; here (YZ and ZX stop in their events).
+    if zpos ne zstart then
+        change(zpos) = true
     endif
-    if arc_plane eq YZ then
-        if xpos ne xstart then
-            change(xpos) = true
-        endif
-        {['X'xpos ' '],'Y'ypos ' ','Z'zpos ' '}
-    endif
+    {'X'xpos ' ','Y'ypos ' ',['Z'zpos ' ']}
 endp
 
 @usr_arc_math
-    ; Arc geometry: G2/G3 (iMotionmode) and G17/G18/G19 (iMplane) from arc_direction and arc_plane,
-    ; and the end point recomputed from the start point, the incremental centre (x/y/zcenter_rel) and
-    ; arc_size in the arc plane; the axis normal to the plane keeps the CAD end value (helical arcs).
+    ; Arc geometry of an XY arc (YZ and ZX stop in their events): G2/G3 (iMotionmode) from
+    ; arc_direction, G17 (iMplane), and the end point recomputed from the start point, the incremental
+    ; centre (x/ycenter_rel) and arc_size in the XY plane; Z keeps the CAD end value (helical arcs).
     ; The block keeps SolidCAM's end point when the recomputed one agrees with it up to the rounding
     ; of the inputs (the arc is unambiguous), else it takes the recomputed one (dc916d7).
     ; usr_arc_check stops the post when the result misses the CAD end point by more than 0.001,
     ; usr_arc_angle_check when AR= cannot take the angle, usr_arc_chord_check when the end lies within
     ; 0.0001 mm of the start point. An arc above 180 degrees also gets the point halfway (nArcMidX/Y/Z),
     ; where usr_arc ends its first half.
-    local numeric cx, cy, cz
-    local numeric vx, vy, vz
-    local numeric rx, ry, rz
+    local numeric cx, cy
+    local numeric vx, vy
+    local numeric rx, ry
     local numeric angle_deg
     local numeric c, s
     local numeric calculated_xpos, calculated_ypos, calculated_zpos
@@ -2085,37 +2040,15 @@ endp
     endif
 
     ; --- plane ---
-    if arc_plane eq XY
-        iMplane = 17
-    endif
-    if arc_plane eq ZX
-        iMplane = 18
-    endif
-    if arc_plane eq YZ
-        iMplane = 19
-    endif
-
-    ; --- YZ and ZX planes: stop ---
-    ; On this machine G18/G19 move the length compensation of a milling tool from Z to Y/X
-    ; (usr_xy_plane_check; machine 2026-10-28: 'G19 G3 Y-10 Z55 AR=90' drove Z down by about the tool
-    ; length). The YZ and ZX branches below are not reached while this stop is in place. ZX had a stop
-    ; of its own before: Sinumerik G18 G3 turns Z->X (viewed from +Y), while the end-point math below
-    ; turns X->Z for CCW, and SolidCAM's arc_direction convention for ZX is unverified.
-    if arc_plane ne XY then
-        print 'POST ERROR: YZ/ZX arc: G18/G19 would move the tool length compensation off Z (SD42940 = 0 on this machine). Only XY arcs are supported.'
-        {nb,"POST ERROR: YZ/ZX arc: G18/G19 would move the tool length compensation off Z (SD42940 = 0 on this machine). Only XY arcs are supported."}
-        abort
-    endif
+    iMplane = 17
 
     ; --- absolute center ---
     cx = xstart + xcenter_rel
     cy = ystart + ycenter_rel
-    cz = zstart + zcenter_rel
 
     ; --- vector from center to start ---
     vx = xstart - cx
     vy = ystart - cy
-    vz = zstart - cz
 
     ; --- signed angle (degrees) ---
     angle_deg = arc_size
@@ -2126,35 +2059,13 @@ endp
     c = cos(angle_deg)
     s = sin(angle_deg)
 
-    ; --- XY plane: keep Z from CAD end ---
-    if iMplane eq 17 then
-        rx = vx * c - vy * s
-        ry = vx * s + vy * c
+    ; --- rotate in XY, keep Z from CAD end ---
+    rx = vx * c - vy * s
+    ry = vx * s + vy * c
 
-        calculated_xpos = cx + rx
-        calculated_ypos = cy + ry
-        calculated_zpos = zpos
-    endif
-
-    ; --- ZX plane: keep Y from CAD end (not reached while the stop above is in place) ---
-    if iMplane eq 18 then
-        rx = vx * c - vz * s
-        rz = vx * s + vz * c
-
-        calculated_xpos = cx + rx
-        calculated_ypos = ypos
-        calculated_zpos = cz + rz
-    endif
-
-    ; --- YZ plane: keep X from CAD end (not reached while the stop above is in place) ---
-    if iMplane eq 19 then
-        ry = vy * c - vz * s
-        rz = vy * s + vz * c
-
-        calculated_xpos = xpos
-        calculated_ypos = cy + ry
-        calculated_zpos = cz + rz
-    endif
+    calculated_xpos = cx + rx
+    calculated_ypos = cy + ry
+    calculated_zpos = zpos
     dx = abs(calculated_xpos - xpos)
     dy = abs(calculated_ypos - ypos)
     dz = abs(calculated_zpos - zpos)
@@ -2169,19 +2080,15 @@ endp
     ; (start, centre offset, end) plus radius * 0.000005 deg (0.0000000873 rad) for arc_size; the
     ; radius is bounded by the sum of the components, without a square root. Beyond that, up to the
     ; 0.001 of usr_arc_check, the recomputed end replaces the CAM end as before.
-    nEndTol = 0.00003 + (abs(vx) + abs(vy) + abs(vz)) * 0.0000000873
+    nEndTol = 0.00003 + (abs(vx) + abs(vy)) * 0.0000000873
     if dx > nEndTol or dy > nEndTol or dz > nEndTol
         xpos = calculated_xpos
         ypos = calculated_ypos
         zpos = calculated_zpos
     endif
-    ; --- chord in the arc plane, to the end point the block prints ---
+    ; --- chord in XY, to the end point the block prints ---
     du = xpos - xstart
     dv = ypos - ystart
-    if iMplane eq 19 then
-        du = ypos - ystart
-        dv = zpos - zstart
-    endif
     call @usr_arc_chord_check(du, dv)
 
     ; --- point halfway for an arc above 180 degrees (AR= above 180 with nArcAR_f); the normal axis
@@ -2189,16 +2096,9 @@ endp
     if arc_size > 180.000005 then
         c = cos(angle_deg / 2)
         s = sin(angle_deg / 2)
-        if iMplane eq 17 then
-            nArcMidX = cx + vx * c - vy * s
-            nArcMidY = cy + vx * s + vy * c
-            nArcMidZ = (zstart + calculated_zpos) / 2
-        endif
-        if iMplane eq 19 then
-            nArcMidX = (xstart + calculated_xpos) / 2
-            nArcMidY = cy + vy * c - vz * s
-            nArcMidZ = cz + vy * s + vz * c
-        endif
+        nArcMidX = cx + vx * c - vy * s
+        nArcMidY = cy + vx * s + vy * c
+        nArcMidZ = (zstart + calculated_zpos) / 2
     endif
 endp
 
@@ -2698,9 +2598,9 @@ endp
 
 @usr_trc_cancel
     ; G40 for compensation still on at the control, in a G0 block with the last programmed X and Y:
-    ; Sinumerik deselects it only in a G0/G1 block with an axis of the working plane (X and Y cover
-    ; G17, G18 and G19). The deselection move (one tool radius) runs at the current height. CAM
-    ; compensation still requested is selected again on the next linear block.
+    ; Sinumerik deselects it only in a G0/G1 block with an axis of the working plane (G17: X or Y).
+    ; The deselection move (one tool radius) runs at the current height. CAM compensation still
+    ; requested is selected again on the next linear block.
     {nb,'G0 G40 X'nFeedPrevX:xpos_f ' ','Y'nFeedPrevY:ypos_f ' '}
     ; The control is in G0 now: the caller's next motion block prints its G code again.
     change(iMotionmode) = true

@@ -460,7 +460,7 @@ class CompensationPlaneAxisTests(unittest.TestCase):
 
     def test_removing_the_retract_split_is_detected(self):
         source = without(PP.read_text(encoding='utf-8-sig'),
-                         '        if change(iDiametercomp) and iDiametercomp eq 40 and iMplane eq 17\n'
+                         '        if change(iDiametercomp) and iDiametercomp eq 40\n'
                          '            bClimbFirst = true\n        endif\n')
         program = Program(source=source)
         program.start()

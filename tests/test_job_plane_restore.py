@@ -3,9 +3,9 @@
 Oracle (INDEPENDENT): G17/G18/G19 are modal on Sinumerik, so a plane word is needed only when the
 plane changes. On this machine G18/G19 move the tool length compensation of a milling tool from Z to
 Y/X (SD42940 $SC_TOOL_LENGTH_CONST = 0), so a YZ/ZX machining plane or arc stops the post
-(usr_xy_plane_check, usr_arc_math) and every job runs in G17; usr_job_plane selects G17 when
-machine_plane is empty or unknown. The plane restore after a YZ/ZX arc is not reached while those
-stops are in place and is not tested here.
+(usr_xy_plane_check, usr_side_arc_stop) and every job runs in G17: iMplane stays 17 when
+machine_plane is empty or unknown. The plane restore after a YZ/ZX arc was deleted with the YZ/ZX
+code 2026-10-28.
 """
 import re
 import unittest

@@ -19,9 +19,9 @@ the machine has SD42940 $SC_TOOL_LENGTH_CONST = 0, so G18/G19 move the tool
 length compensation from Z to Y/X ('G19 G3 Y-10 Z55 AR=90' drove Z down by
 about the tool length). The arc guards below run in XY, and the former PP-003
 test checks that a ZX arc stops the post (the abort mechanics are in
-tests/test_side_plane_guard.py). The YZ/ZX output code behind the stops is dormant
-and not tested here; the PP-021 guards (G19 left modal by a YZ arc into the
-next job) went with it. The template's other arc modes (absolute plain I/J, R
+tests/test_side_plane_guard.py). The YZ/ZX output code behind the stops was
+deleted 2026-10-28, and the PP-021 guards (G19 left modal by a YZ arc into the
+next job) with it. The template's other arc modes (absolute plain I/J, R
 word; PP-022) were removed.
 
 TRC: PP-019, PP-020 and PP-021 are fixed (b999f65, 0cfd586, 88695c9, 7aeae99);
@@ -367,19 +367,19 @@ class ArcGuardTests(unittest.TestCase):
         self.run_cases(OFF_AXIS_CASES)
 
     # YZ and ZX mutants (dc916d7's ZX K-word revert, ZX K sign, the YZ/ZX rotation, orthogonal
-    # axis, chord, Z resolution and halfway point) are gone: those lines run only after the
-    # YZ/ZX arc stop, so no behaviour test can see them. center_z_sign and dz_signed_reversed
-    # went with them: cz and dz do not change an XY arc.
+    # axis, chord, Z resolution and halfway point) went with the YZ/ZX code behind the arc stop
+    # (deleted 2026-10-28), and center_z_sign with the Z centre it read. dz_signed_reversed is
+    # gone too: dz is 0 for an XY arc, whose Z end comes from CAD.
     MUTANTS = {
         'no_end_point_commit': ('        xpos = calculated_xpos\n        ypos = calculated_ypos\n        zpos = calculated_zpos\n',
                                 ''),
         'no_mismatch_check': ('    call @usr_arc_check(dx, dy, dz)\n', ''),
-        'xy_rotation_flipped': ('        rx = vx * c - vy * s\n        ry = vx * s + vy * c\n',
-                                '        rx = vx * c + vy * s\n        ry = -vx * s + vy * c\n'),
-        'xy_ordinate_term_sign': ('        ry = vx * s + vy * c\n', '        ry = vx * s - vy * c\n'),
+        'xy_rotation_flipped': ('    rx = vx * c - vy * s\n    ry = vx * s + vy * c\n',
+                                '    rx = vx * c + vy * s\n    ry = -vx * s + vy * c\n'),
+        'xy_ordinate_term_sign': ('    ry = vx * s + vy * c\n', '    ry = vx * s - vy * c\n'),
         'center_y_sign': ('    cy = ystart + ycenter_rel\n', '    cy = ystart - ycenter_rel\n'),
         'cw_sign_dropped': ('        angle_deg = -angle_deg\n', '        angle_deg = angle_deg\n'),
-        'xy_orthogonal_from_start': ('        calculated_zpos = zpos\n', '        calculated_zpos = zstart\n'),
+        'xy_orthogonal_from_start': ('    calculated_zpos = zpos\n', '    calculated_zpos = zstart\n'),
         'dx_signed_reversed': ('dx = abs(calculated_xpos - xpos)', 'dx = (xpos - calculated_xpos)'),
         'dy_signed_reversed': ('dy = abs(calculated_ypos - ypos)', 'dy = (ypos - calculated_ypos)'),
         'ar_complement': ("'AR='arc_size:nArcAR_f", "'AR='(360 - arc_size):nArcAR_f"),
@@ -387,8 +387,8 @@ class ArcGuardTests(unittest.TestCase):
                              '    if arc_size > 360 then\n        ; First half'),
         'mid_at_full_angle': ('        c = cos(angle_deg / 2)\n        s = sin(angle_deg / 2)\n',
                               '        c = cos(angle_deg)\n        s = sin(angle_deg)\n'),
-        'xy_mid_normal_at_end': ('            nArcMidZ = (zstart + calculated_zpos) / 2\n',
-                                 '            nArcMidZ = calculated_zpos\n'),
+        'xy_mid_normal_at_end': ('        nArcMidZ = (zstart + calculated_zpos) / 2\n',
+                                 '        nArcMidZ = calculated_zpos\n'),
         'second_half_full_angle': ("        {'AR='nArcAR:nArcAR_f ' '}\n", "        {'AR='arc_size:nArcAR_f ' '}\n"),
         'no_angle_check': ('    call @usr_arc_angle_check\n', ''),
         'angle_limit_looser': ('arc_size > 360.000005', 'arc_size > 361'),
@@ -397,9 +397,9 @@ class ArcGuardTests(unittest.TestCase):
         'no_chord_check': ('    call @usr_arc_chord_check(du, dv)\n', ''),
         'chord_limit_looser': ('du * du + dv * dv < 0.00000001', 'du * du + dv * dv < 0.000000001'),
         'chord_limit_tighter': ('du * du + dv * dv < 0.00000001', 'du * du + dv * dv < 0.0000001'),
-        'halves_not_exempt': ('    if arc_size <= 180.000005 and (du * du', '    if (du * du'),
-        'mid_xy_ordinate_sign': ('            nArcMidX = cx + vx * c - vy * s\n',
-                                 '            nArcMidX = cx + vx * c + vy * s\n'),
+        'halves_not_exempt': ('    if arc_size <= 180.000005 and du * du', '    if du * du'),
+        'mid_xy_ordinate_sign': ('        nArcMidX = cx + vx * c - vy * s\n',
+                                 '        nArcMidX = cx + vx * c + vy * s\n'),
     }
 
     def test_arc_math_mutants_are_detected_by_assertions(self):
@@ -497,9 +497,9 @@ class ArcEndWordTests(unittest.TestCase):
         """INDEPENDENT: mutation self-check; modal plane words in @usr_arc_point drop X, and
         without the helix check the helix Z is dropped (XY; YZ and ZX arcs stop the post)."""
         checks = [
-            ("        {'X'xpos ' ','Y'ypos ' ',['Z'zpos ' ']}\n", "        {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}\n",
+            ("    {'X'xpos ' ','Y'ypos ' ',['Z'zpos ' ']}\n", "    {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}\n",
              lambda source: self.assertEqual(self.semicircle(source), ['G3 X-10 Y0 AR=180']), 'modal X/Y'),
-            ('        if zpos ne zstart then\n            change(zpos) = true\n        endif\n', '',
+            ('    if zpos ne zstart then\n        change(zpos) = true\n    endif\n', '',
              lambda source: self.assertEqual(self.semicircle(source, zpos=-2, xpos=self.AMBIGUOUS_X),
                                              ['G3 X-10 Y0 Z-2 AR=180']),
              'helix Z by flag'),
@@ -589,7 +589,7 @@ class ArcEndPointTests(unittest.TestCase):
 
     def test_end_point_choice_mutants_are_detected(self):
         """INDEPENDENT: mutation self-check of the end point choice in @usr_arc_math."""
-        tolerance = '    nEndTol = 0.00003 + (abs(vx) + abs(vy) + abs(vz)) * 0.0000000873\n'
+        tolerance = '    nEndTol = 0.00003 + (abs(vx) + abs(vy)) * 0.0000000873\n'
         mutants = {
             'always_recomputed': (tolerance, '    nEndTol = 0\n', self.assert_unambiguous_kept),
             'never_recomputed': (tolerance, '    nEndTol = 1\n', self.assert_ambiguous_recomputed),

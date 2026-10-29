@@ -34,6 +34,6 @@ independent contiguous-rapid correction in `usr_rapid` intact.
   harness, compares parsed NC words and includes an in-memory reversion of the
   `@usr_arc` endpoint tracking that must fail with an AssertionError.
 - `test_indexing_link.py::CamLinkTransitionTests::test_arc_revokes_and_tracks_endpoint`
-  generalises the contract to ZX and YZ arcs on realistic sessions. Its arc
-  endpoints satisfy the PP's own rotation formula; the ZX direction convention
-  itself is the open item PP-003 (area D) and is not asserted there.
+  checks the contract on a realistic rotated 5x session with an XY arc. YZ and
+  ZX arcs stop the post since the machine run of 2026-10-28 (SD42940 = 0), and
+  their arc code is deleted.

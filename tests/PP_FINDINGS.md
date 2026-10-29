@@ -1048,7 +1048,7 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: One real @arc trace in the ZX plane (start, center_rel, arc_size, arc_direction, CAD end point) plus the meaning of the VMID ArcDirectionBy setting, or a Vericut run of a posted ZX arc.
 - Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
 - Source findings: pp3-zx-orientation, history-misc-04, pp-weird-hunter-02, pp3-test-arcs-pins-wrong-conventions
-- Status: fixed: 5408e5c Stop the post on ZX (G18) arcs. Owner decision: every ZX arc stops the post with a POST ERROR until the arc_direction convention is verified (text simplified in a71e102, written on its own NC line in 0ed0b78). Since the machine run of 2026-10-28 one stop in @usr_arc_math covers every YZ and ZX arc instead (G18/G19 move the tool length compensation off Z, SD42940 = 0); its text no longer names the ZX direction.
+- Status: fixed: 5408e5c Stop the post on ZX (G18) arcs. Owner decision: every ZX arc stops the post with a POST ERROR until the arc_direction convention is verified (text simplified in a71e102, written on its own NC line in 0ed0b78). Since the machine run of 2026-10-28 one stop, @usr_side_arc_stop, covers every YZ and ZX arc instead (G18/G19 move the tool length compensation off Z, SD42940 = 0); its text no longer names the ZX direction, and the ZX arc math behind it is deleted.
 - Tests of the fix: tests/test_side_plane_guard.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
@@ -1154,7 +1154,7 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: Trace of a ZX/YZ arc job followed by a same-tool XY profile or drill job.
 - Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
 - Source findings: pp3-plane-persistence
-- Status: fixed: 88695c9 Restore the machining plane at the start of each job (follow-ups 7aeae99: G17 fallback, TRC selected in the job plane; 6f6f6ce: the plane is re-selected when TRC is selected from G40). Since the machine run of 2026-10-28 YZ/ZX arcs and machining planes stop the post, so no arc leaves G18/G19 modal and the restore after one is not reached.
+- Status: fixed: 88695c9 Restore the machining plane at the start of each job (follow-ups 7aeae99: G17 fallback, TRC selected in the job plane; 6f6f6ce: the plane is re-selected when TRC is selected from G40). Since the machine run of 2026-10-28 YZ/ZX arcs and machining planes stop the post, so no arc leaves G18/G19 modal; the restore after one is deleted.
 - Tests of the fix: tests/test_job_plane_restore.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):

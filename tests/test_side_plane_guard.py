@@ -24,7 +24,7 @@ ARC_STOP = ('POST ERROR: YZ/ZX arc: G18/G19 would move the tool length compensat
             'this machine). Only XY arcs are supported.')
 PLANE_STOP = ('POST ERROR: YZ/ZX machining plane: G18/G19 would move the tool length compensation off Z '
               '(SD42940 = 0 on this machine). Only the XY plane is supported.')
-ARC_ABORT = '{nb,"' + ARC_STOP + '"}\n        abort\n'
+ARC_ABORT = '{nb,"' + ARC_STOP + '"}\n    abort\n'
 PLANE_ABORT = '{nb,"' + PLANE_STOP + '"}\n        abort\n'
 NOT_STOPPED = 'PostAbort not raised'
 
@@ -127,13 +127,16 @@ class SidePlaneArcStopTests(unittest.TestCase):
 
     def test_removing_the_arc_abort_is_detected(self):
         """INDEPENDENT: self-check of test_error_text_is_the_last_nc_line_and_no_arc_block_is_written:
-        without the abort of the arc stop every YZ/ZX arc event goes on past the error line."""
+        without the abort of the arc stop every YZ/ZX arc event goes on past the error line: arc_yz and
+        arc_zx return without a stop, and arc with a YZ/ZX arc_plane runs on into the XY arc math (whose
+        end mismatch stop adds a line after the error)."""
         require_nc_stream()
-        mutant = mutate(ARC_ABORT, ARC_ABORT.replace('        abort\n', ''))
+        mutant = mutate(ARC_ABORT, ARC_ABORT.replace('    abort\n', ''))
         for label, (event, arc) in SIDE_ARCS.items():
             with self.subTest(label):
                 assert_detected(self, lambda source: self.assert_arc_stop(event, arc, source), mutant,
-                                f'arc stop without abort, {label}', match=NOT_STOPPED)
+                                f'arc stop without abort, {label}',
+                                match=NOT_STOPPED if event != 'arc' else 'Lists differ')
 
     def test_error_text_without_a_block_of_its_own_is_detected(self):
         """INDEPENDENT: self-check of the own-line assertion of
@@ -238,13 +241,11 @@ class SidePlaneMachiningPlaneStopTests(unittest.TestCase):
     def test_job_start_plane_check_reversions_are_detected(self):
         """INDEPENDENT: self-check of the same-tool case of test_yz_and_zx_planes_stop_at_start_of_job (a
         job after a tool change also reaches @machine_plane through usr_tc_init_gmstates): without the
-        check in usr_job_plane, or without the usr_job_plane call of start_of_job (88695c9 reverted), a
+        plane check of start_of_job (88695c9 reverted; it took the place of the job-plane restore), a
         same-tool YZ or ZX job starts without a stop."""
         require_nc_stream()
         mutants = {
-            'no plane check in usr_job_plane': mutate('    local integer iJobPlane\n    call @usr_xy_plane_check\n',
-                                                      '    local integer iJobPlane\n'),
-            '88695c9 reverted': mutate('    call @usr_job_plane\n    if bTmatrixIndexPending\n',
+            '88695c9 reverted': mutate('    call @usr_xy_plane_check\n    if bTmatrixIndexPending\n',
                                        '    if bTmatrixIndexPending\n'),
         }
         for label, mutant in mutants.items():

@@ -230,15 +230,15 @@ class CoverageTests(unittest.TestCase):
             program = session.engine.program
         summary = total.summary(program)
         self.assertEqual(summary['total'], sum(statement_kinds_from_text().values()))
-        # YZ/ZX arc math and plane branches after their stops (options_session lost its YZ arc and its YZ
-        # and ZX planes 2026-10-28), POST ERROR paths (one more since 2026-10-27: compensation on at a
-        # tool change without a Z homing; one more since 2026-10-28: the YZ/ZX machining-plane stop), TRC
-        # fallback, the recomputed arc end (since 2026-10-28 an arc keeps the CAM end within the input
-        # rounding, as every session arc does; tests/test_arc_compensation_plane.py ArcEndPointTests)
-        self.assertGreaterEqual(summary['percent'], 84.3)
+        # POST ERROR paths (one more since 2026-10-27: compensation on at a tool change without a Z
+        # homing; two more since 2026-10-28: the YZ/ZX machining-plane and arc stops), TRC fallback, the
+        # recomputed arc end (since 2026-10-28 an arc keeps the CAM end within the input rounding, as
+        # every session arc does; tests/test_arc_compensation_plane.py ArcEndPointTests). The YZ/ZX arc
+        # math and plane branches behind the stops were deleted 2026-10-28 (85.9 from 84.3).
+        self.assertGreaterEqual(summary['percent'], 85.8)
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
-        # arc_yz, arc_zx: no session has a YZ or ZX arc since they stop the post (ZX since 5408e5c, both
-        # since 2026-10-28: G18/G19 move the tool length compensation off Z);
+        # arc_yz, arc_zx, usr_side_arc_stop: no session has a YZ or ZX arc since they stop the post (ZX
+        # since 5408e5c, both since 2026-10-28: G18/G19 move the tool length compensation off Z);
         # test_replay_findings.test_zx_arc_stops_the_session runs arc_zx. The unsupported events stop the post
         # (tests/test_unsupported_features.py, also the 4x polar/Cartesian, 4x drill and 5x arc events;
         # @rotate/@mirror: tests/test_contracts.py). usr_line_homed_return: a feed move right after a post homing,
@@ -251,8 +251,8 @@ class CoverageTests(unittest.TestCase):
                        'drill4x_pnt', 'drill4x_cartesian', 'drill4x_polar', 'move4x_polar', 'line4x_polar',
                        'arc_4x_polar', 'arc4x_polar', 'move4x_cartesian', 'line4x_cartesian', 'arc_4x_cartesian',
                        'arc4x_cartesian', 'arc_5x'}
-        self.assertEqual(never, {'arc_yz', 'arc_zx', 'usr_line_homed_return', 'usr_r1_wrong_way_stop',
-                                 'usr_trc_cancel'} | unsupported)
+        self.assertEqual(never, {'arc_yz', 'arc_zx', 'usr_side_arc_stop', 'usr_line_homed_return',
+                                 'usr_r1_wrong_way_stop', 'usr_trc_cancel'} | unsupported)
         self.assertIn('Branch gaps', total.markdown(program))
 
     def test_coverage_file_merges_across_processes_and_ignores_mutants(self):
