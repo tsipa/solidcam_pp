@@ -2360,8 +2360,10 @@ endp
 
 @drill
     ; Sinumerik drilling cycle MCALL CYCLE8x(RTP, RFP, SDIS, DP, DPR, ...), modal on the following
-    ; drill_point blocks until @end_drill. RTP = clearance Z, DP = hole bottom. Hole top above Z0:
-    ; RFP = top - safety, SDIS = safety, DPR empty; otherwise RFP = top, SDIS empty and DPR 0.
+    ; drill_point blocks until @end_drill. RTP = clearance Z, DP = hole bottom (absolute, DPR empty).
+    ; drill_upper_z is the feed start, the hole top plus the safety distance (every recorded drill
+    ; job: job_upper_plane + safety, below Z0 too): RFP = drill_upper_z - safety (the hole top),
+    ; SDIS = safety.
     local numeric rtp rfp sdis dp
     rtp = drill_clearance_z
     rfp = (drill_upper_z - safety)
@@ -2393,11 +2395,7 @@ endp
     call @usr_feedmode_94
     {nb,' F'feed }
     {nb,'MCALL CYCLE',gcode}
-    if drill_upper_z > 0
-        {' (',rtp,','rfp,','sdis,',',dp,','}
-    else
-        {' (',rtp,','drill_upper_z,',,',dp,',','0.'}
-    endif
+    {' (',rtp,','rfp,','sdis,',',dp,','}
     ; The parameters after DPR. CYCLE81(RTP,RFP,SDIS,DP,DPR) has none.
     if drill_type eq G82 then
         ; CYCLE82(RTP,RFP,SDIS,DP,DPR,DTB): DTB = dwell at the bottom.

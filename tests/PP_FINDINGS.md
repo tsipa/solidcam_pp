@@ -46,7 +46,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 48. `@covers` references: 104.
+Canonical `@known_defect` tests: 47. `@covers` references: 105.
 
 ## Index of open entries
 
@@ -78,7 +78,7 @@ Canonical `@known_defect` tests: 48. `@covers` references: 104.
 | [PP-051](#pp-051) | low | uncertain | F | Vericut K word format left at 5.3 while I/J were widened to 8.5 (f88de47) | `test_vericut_arc_center_words_keep_post_precision` |
 | [PP-052](#pp-052) | low | confirmed | F | VMID job parameters M50/M51 appear in every job dialog but the GPP never reads them | `test_every_vmid_user_parameter_is_read_by_the_post` |
 | [PP-054](#pp-054) | low | likely-engine-artifact | A | First job under persisting init flags: 'G187 P2' and flood M8 cancelled by seven M9 | pinned only (@covers) |
-| [PP-055](#pp-055) | low | confirmed | E | CYCLE83 first peck depth jumps by SDIS when drill_upper_z crosses 0 (FDPR relative to RFP) | `test_cycle83_first_peck_is_continuous_across_z0` |
+| [PP-055](#pp-055) | low | confirmed | E | CYCLE83 first peck depth jumps by SDIS when drill_upper_z crosses 0 (FDPR relative to RFP) | pinned only (@covers) |
 | [PP-056](#pp-056) | low | confirmed | A | bStopM00difftool is set and cleared in the same @end_of_job: the skip path is dead and is what keeps the G75 retract before M06 | pinned only (@covers) |
 | [PP-058](#pp-058) | low | uncertain | F | Mach3 4x post (6efcad8): the feed re-statement remedy is missing on @line_5x and @arc | `test_line_5x_and_arc_feed_changes_are_restated_too` |
 | [ENGINE-001](#engine-001) | medium | uncertain | F | Change-flag rule for equal-value assignment is unverified (engine: only a value change raises a flag, nothing clears it) | pinned only (@covers) |
@@ -506,7 +506,8 @@ Canonical `@known_defect` tests: 48. `@covers` references: 104.
 - Evidence that would settle it: Siemens CYCLE83 FDPR definition; owner decides fix vs documentation.
 - Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
 - Source findings: pp-weird-hunter-21(missed)
-- Reproduced by:
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
+- Pinned or exercised by (`@covers`):
   - `tests/test_cycles_spindle.py::DrillCycleGeometryTests::test_cycle83_first_peck_is_continuous_across_z0`
 
 ### PP-056

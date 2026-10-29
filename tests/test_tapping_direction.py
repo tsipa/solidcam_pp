@@ -17,7 +17,7 @@ FIELDS = ('RTP', 'RFP', 'SDIS', 'DP', 'DPR', 'DTB', 'SDAC', 'MPIT', 'PIT', 'POSS
           '_AXN', '_PTAB', '_TECHNO')
 RIGHT_HAND_SUFFIX = ['0.', '3', '', '1.25', '0', '500', '1000', '', '', '1221']
 LEFT_HAND_SUFFIX = ['0.', '4', '', '-1.25', '0', '500', '1000', '', '', '1221']
-PREFIX_BY_UPPER = {12: ['30', '10', '2', '-15', ''], -2: ['30', '-2', '', '-15', '0.']}
+PREFIX_BY_UPPER = {12: ['30', '10', '2', '-15', ''], -2: ['30', '-4', '2', '-15', '']}
 
 
 def cycle84_arguments(source=None, **state):

@@ -72,14 +72,14 @@
       "regression": {"find": ",,0.5,1,1'}", "replace": ",,1.,1,1'}"}
     },
     {
-      "name": "cycle83_nonpositive_reference_keeps_relative_depth_zero",
+      "name": "cycle83_nonpositive_reference_and_upper_dwell",
       "kind": "cycle",
       "commit": "1710187d018f99c30085790a4b3d761db5f81496",
       "related_commits": ["bea8c623d6d1bae588c36b696aa3bc93340dc961"],
-      "reason": "The same dwell change for drill_upper_z<=0 (RFP=-2, SDIS empty and DPR=0); one CYCLE83 tail serves both branches since the shared CYCLE8x head.",
+      "reason": "The same dwell change for drill_upper_z<=0; one CYCLE83 tail serves every hole since the shared CYCLE8x head, and since the hole-top fix RFP=drill_upper_z-safety, SDIS=safety and DPR empty below Z0 too (before: RFP=-2, SDIS empty, DPR=0).",
       "initial": {"drill_type": 2, "drill_upper_z": -2, "tool_direction": "cw", "spin": 1000},
       "expected_cycle": 83,
-      "expected_parameters": ["30", "-2", "", "-15", "0.", "", {"unpinned": "FDPR: PP-055, the first peck relative to RFP jumps by SDIS across drill_upper_z=0; a fix changes FDPR in one branch"}, "3", "", "0.5", "1", "1"],
+      "expected_parameters": ["30", "-4", "2", "-15", "", "", {"unpinned": "FDPR: PP-055, the first peck relative to RFP jumps by SDIS across drill_upper_z=0; a fix changes FDPR in one branch"}, "3", "", "0.5", "1", "1"],
       "regression": {"find": ",,0.5,1,1'}", "replace": ",,1.,1,1'}"}
     },
     {

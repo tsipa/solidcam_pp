@@ -13,7 +13,8 @@ Oracles
             _VARI,_DAM,_VRT)
     CYCLE86(RTP,RFP,SDIS,DP,DPR,DTB,SDIR,RPA,RPO,RPAP,POSS)
   The control rapids to RFP+SDIS and feeds from there; DP is the absolute final
-  depth; an empty or zero DPR means "not programmed", so DP is used. FDPR is the
+  depth; with DPR programmed as well the cycle takes DPR (whether a DPR 0 counts
+  as programmed is not settled), so the PP leaves DPR empty. FDPR is the
   first drilling depth relative to RFP. SolidCAM's drill_upper_z is the
   feed-start plane (the Fanuc R plane), drill_clearance_z the retract plane
   (RTP) and drill_lower_z the hole bottom (DP).
@@ -66,14 +67,27 @@ SIGNATURES = {
 }
 DRILL_TYPES = tuple((DRILL_TYPE[f'G{cycle}'], cycle) for cycle in (81, 82, 83, 84, 86))
 # drill_upper_z: above the safety distance, between 0 and safety, the Z0 boundary
-# (the PP branches on drill_upper_z > 0) and below Z0.
+# (the PP branched on drill_upper_z > 0 before the hole-top fix) and below Z0.
 UPPER_LEVELS = (12, 1, 0, -2)
 HOLE = dict(xpos=10, ypos=20, zpos=30)
+# recorded_cam_003 operation_006: job_upper_plane -4, safety 2, depth 2.3; SolidCAM sends
+# drill_upper_z -2 (top + safety, as in every recorded drill job) and drill_lower_z -6.3.
+HOLE_TOP_BELOW_Z0 = dict(top=-4, safety=2, bottom=-6.3)
 
 # bea8c62 "Fix Sinumerik drill cycle parameters", positive branch; one shared CYCLE8x head since the
 # @drill rewrite, so reverting it reverts every cycle, CYCLE84 included.
 G84_FIX = "{' (',rtp,','rfp,','sdis,',',dp,','}"
 G84_BEFORE_BEA8C62 = "{' (',rtp,',,'sdis,',',dp,',',rfp}"
+# The CYCLE8x head for every hole. Before the hole-top fix @drill wrote it only for drill_upper_z > 0
+# and Z0_BRANCH_HEAD otherwise (RFP = drill_upper_z, SDIS empty, DPR 0).
+CYCLE_HEAD = f'    {G84_FIX}\n'
+Z0_BRANCH_HEAD = "{' (',rtp,','drill_upper_z,',,',dp,',','0.'}"
+Z0_BRANCH_RFP_SHIFTED = "{' (',rtp,','rfp,',,',dp,',','0.'}"
+
+
+def z0_branch(head):
+    """(old, new) for mutate(): @drill writes `head` for drill_upper_z <= 0, CYCLE_HEAD above."""
+    return CYCLE_HEAD, f'    if drill_upper_z > 0\n    {CYCLE_HEAD}    else\n        {head}\n    endif\n'
 
 
 # --------------------------------------------------------------------------- helpers
@@ -176,7 +190,7 @@ def dwell_seconds(blocks):
 # --------------------------------------------------------------------------- guards
 
 def check_cycle_geometry(tc, source=None):
-    """Every cycle in both drill_upper_z branches: Siemens geometry plus cycle extras."""
+    """Every cycle above, at and below Z0: Siemens geometry plus cycle extras."""
     session = drilling_session(source)
     feeds = []
     for drill_type, cycle in DRILL_TYPES:
@@ -219,6 +233,23 @@ def check_drill_continuity(tc, source=None):
             tc.assertAlmostEqual(number(values['RFP']) + number(values['SDIS']), upper, delta=1e-6, msg=where)
             sides[upper] = tuple(number(values[name]) for name in ('RTP', 'DP', 'DPR'))
         tc.assertEqual(sides[0.001], sides[-0.001], f'CYCLE{cycle}: RTP/DP/DPR differ across Z0')
+
+
+def check_hole_top_below_z0(tc, source=None):
+    """Every cycle for a hole whose top is below Z0 (HOLE_TOP_BELOW_Z0): RFP = top, SDIS = safety,
+    DP = bottom, DPR empty, and the parameters after DPR in the places of a hole above Z0."""
+    session = drilling_session(source)
+    top, safety, bottom = (HOLE_TOP_BELOW_Z0[key] for key in ('top', 'safety', 'bottom'))
+    for drill_type, cycle in DRILL_TYPES:
+        where = f'CYCLE{cycle} hole top Z{top}'
+        _, above = cycle_parameters(tc, session, drill_type, cycle, f'CYCLE{cycle} hole top Z10')
+        values, fields = cycle_parameters(tc, session, drill_type, cycle, where, drill_upper_z=top + safety,
+                                          safety=safety, drill_lower_z=bottom)
+        tc.assertEqual(tuple(number(values[name]) for name in ('RTP', 'RFP', 'SDIS', 'DP')),
+                       (DRILL_DEFAULTS['drill_clearance_z'], top, safety, bottom),
+                       f'{where}: RTP, RFP = hole top, SDIS = safety, DP = hole bottom: {fields}')
+        tc.assertEqual(values['DPR'], '', f'{where}: DPR must be empty (absolute depth DP only): {fields}')
+        tc.assertEqual(fields[5:], above[5:], f'{where}: parameters after DPR differ from a hole above Z0')
 
 
 TAPPING_CASES = (
@@ -407,7 +438,7 @@ class DrillCycleGeometryTests(unittest.TestCase):
     def test_feed_start_plane_and_depth_in_every_cycle_and_branch(self):
         """INDEPENDENT: Siemens CYCLE81/82/83/84/86 signatures and SolidCAM drill levels.
 
-        CYCLE81..86 at drill_upper_z 12, 1, 0 and -2 (both branches of the PP's
+        CYCLE81..86 at drill_upper_z 12, 1, 0 and -2 (either side of the PP's former
         drill_upper_z > 0 test): RTP = drill_clearance_z, DP = drill_lower_z, DPR
         empty or 0, RFP+SDIS = drill_upper_z (bea8c62), SDIS >= 0, and the job's F is
         modal at the MCALL block. CYCLE82 DTB = delay. CYCLE83 DAM = down_step, VARI 1
@@ -420,18 +451,40 @@ class DrillCycleGeometryTests(unittest.TestCase):
     def test_pin_effective_cycle_geometry_is_continuous_across_z0(self):
         """INDEPENDENT: Siemens CYCLE8x semantics give the same hole on both sides of Z0.
 
-        The PP writes two layouts (RFP=upper-safety, SDIS=safety above Z0; RFP=upper,
-        SDIS empty, DPR 0 at or below). At drill_upper_z = +/-0.001 the feed start
-        RFP+SDIS must follow drill_upper_z and RTP/DP/DPR must be identical.
+        Before the hole-top fix the PP wrote two layouts (RFP=upper-safety, SDIS=safety
+        above Z0; RFP=upper, SDIS empty, DPR 0 at or below). At drill_upper_z = +/-0.001
+        the feed start RFP+SDIS must follow drill_upper_z and RTP/DP/DPR must be identical.
         """
         check_drill_continuity(self)
 
     def test_pin_drill_continuity_detects_mutation(self):
-        """INDEPENDENT: the continuity guard kills an RFP shift in the Z0 branch of the shared
-        CYCLE8x head."""
-        mutant = mutate("{' (',rtp,','drill_upper_z,',,',dp,',','0.'}", "{' (',rtp,','rfp,',,',dp,',','0.'}")
+        """INDEPENDENT: the continuity guard kills a drill_upper_z <= 0 branch of the CYCLE8x
+        head that shifts RFP (RFP = upper - safety with SDIS empty)."""
+        mutant = mutate(*z0_branch(Z0_BRANCH_RFP_SHIFTED))
         assert_detected(self, lambda source: check_drill_continuity(self, source), mutant,
-                        'RFP = upper - safety in the drill_upper_z <= 0 branch')
+                        'RFP = upper - safety in a drill_upper_z <= 0 branch')
+
+    def test_hole_top_below_z0_is_the_reference_plane(self):
+        """INDEPENDENT: Siemens CYCLE8x signatures and the recorded SolidCAM drill levels.
+
+        RFP is the reference plane (the hole top), SDIS the safety distance above it,
+        DP the absolute final depth; with DP and DPR both programmed the cycle takes
+        the relative DPR, so a DPR 0 may mean depth 0. Every drill job of the five
+        recordings sends drill_upper_z = job_upper_plane + safety, also below Z0
+        (recorded_cam_003 operation_006, recorded_cam_005 operation_022/023). For the
+        hole of recorded_cam_003 operation_006 (top -4, safety 2, bottom -6.3) every
+        cycle must get RFP -4, SDIS 2, DP -6.3 and an empty DPR, with the parameters
+        after DPR in the places they have for a hole above Z0.
+        """
+        check_hole_top_below_z0(self)
+
+    def test_hole_top_below_z0_detects_the_removed_branch(self):
+        """INDEPENDENT: the hole-top guard kills the drill_upper_z <= 0 branch the hole-top fix
+        removed (RFP = drill_upper_z, SDIS empty, DPR 0)."""
+        mutant = mutate(*z0_branch(Z0_BRANCH_HEAD))
+        assert_detected(self, lambda source: check_hole_top_below_z0(self, source), mutant,
+                        'drill_upper_z <= 0 branch: RFP = drill_upper_z, SDIS empty, DPR 0',
+                        match='RFP = hole top')
 
     def test_cycle83_documentation_matches_output(self):
         """INDEPENDENT: Siemens CYCLE83 signature and the e4af180/1710187 commit intent.
@@ -458,14 +511,15 @@ class DrillCycleGeometryTests(unittest.TestCase):
                              f'{where}: FRF/VARI differ from the comment')
             self.assertEqual((values['FRF'], values['VARI']), ('1', '1'), f'{where}: FRF 1, VARI 1 (swarf removal)')
 
-    @known_defect('PP-055', match='first peck')
+    @covers('PP-055')
     def test_cycle83_first_peck_is_continuous_across_z0(self):
         """INDEPENDENT: Siemens CYCLE83, FDPR is the first drilling depth relative to RFP.
 
         Two holes whose feed-start planes differ by 0.002 mm (drill_upper_z +0.001
-        and -0.001) must get first pecks that differ by 0.002 mm. Above Z0 the PP
-        writes RFP = upper - safety, at or below Z0 RFP = upper, and FDPR = down_step
-        in both branches, so the first peck jumps by SDIS (-4.999 vs -3.001).
+        and -0.001) must get first pecks that differ by 0.002 mm. Before the hole-top
+        fix the PP wrote RFP = upper - safety above Z0, RFP = upper at or below Z0, and
+        FDPR = down_step in both branches, so the first peck jumped by SDIS (-4.999 vs
+        -3.001). Regression guard of PP-055: RFP = upper - safety for every hole.
         Tolerance 0.001: one output step of the 3-decimal RFP.
         """
         session = drilling_session()
@@ -704,8 +758,7 @@ MUTATIONS = (
     ('drill_point_drops_y', 'modal_cycle_cancel',
      "{nb,['X'xpos ' '], ['Y'ypos ' '], ['Z'zpos ' ']}", "{nb,['X'xpos ' '], ['Z'zpos ' ']}", 1),
     ('cycle_feed_not_programmed', 'cycle_geometry', "    {nb,' F'feed }\n", '', 1),
-    ('nonpositive_rfp_shifted', 'cycle_geometry',
-     "        {' (',rtp,','drill_upper_z,',,',dp,',','0.'}\n", "        {' (',rtp,','rfp,',,',dp,',','0.'}\n", 1),
+    ('nonpositive_rfp_shifted', 'cycle_geometry', *z0_branch(Z0_BRANCH_RFP_SHIFTED), 1),
     ('cycle86_spindle_mode_lost', 'cycle_geometry', "        {',,3'}\n", "        {',,'}\n", 1),
     ('cycle84_variable_retract_ignored', 'tapping_fields',
      "{',1,'Step_Down:feed_f ',' VarRetract:feed_f}", "{',1,'Step_Down:feed_f ',' Step_Down:feed_f}", 1),
