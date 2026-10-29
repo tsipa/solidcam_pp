@@ -23,7 +23,7 @@ allowance too. SolidCAM sends Stock_to_leave and Drive_surface_Offset with it, n
 Cut_tolerance 0.01); the smaller decides. Without TRAORI (none on this machine) the control holds A
 to ATOL[A] or else MD33100 COMPRESS_POS_TOL (0.1 deg here, 0.087 mm at R50), not to the contour
 tolerance (Job Planning 08/2018 12.11), so ATOL[A] follows each CYCLE832 of a 4x/5x job: the
-contour tolerance at nCycle832RadiusA (50 mm) in degrees.
+contour tolerance in degrees at the stock's largest radius about A, which is at Y0 Z0 (owner rule).
 
 The tests read the blocks each event returns (no skipline joining) unless they need the NC lines.
 """
@@ -262,8 +262,14 @@ class AutoModeMutationTests(unittest.TestCase):
 
 
 # A simultaneous 4x job as SolidCAM sends it (recorded traces: 4x morphing, X5_job 1).
-SIMULTANEOUS = dict(x5_job=True, job_type='4x_morph_between_curves')
-ATOL_FINISH, ATOL_SEMI, ATOL_ROUGH = 'ATOL[A]=0.01146', 'ATOL[A]=0.0573', 'ATOL[A]=0.11459'
+# Its stock (start_of_file): Y and Z -19.5 to 19.5, the farthest corner 27.577 mm from the A axis.
+SIMULTANEOUS = dict(x5_job=True, job_type='4x_morph_between_curves', stock_y=39, stock_y_minus=-19.5,
+                    stock_z_plus=19.5, stock_z_minus=-19.5)
+# tolerance * 180 / pi / 27.577: 0.01 mm -> 0.02078 deg, 0.05 -> 0.10388, 0.1 -> 0.20777.
+ATOL_FINISH, ATOL_SEMI, ATOL_ROUGH = 'ATOL[A]=0.02078', 'ATOL[A]=0.10388', 'ATOL[A]=0.20777'
+# Off-centre stocks with the same farthest corner (Y 30, Z 32: 43.863 mm): 0.01 mm -> 0.01306 deg.
+OFF_CENTRE_STOCKS = (dict(stock_y_minus=-10, stock_y=40, stock_z_minus=-32, stock_z_plus=0),
+                     dict(stock_y_minus=-30, stock_y=40, stock_z_minus=-5, stock_z_plus=32))
 
 
 def stock(stock_to_leave, drive_surface_offset=NOT_SENT):
@@ -298,19 +304,32 @@ class SimultaneousJobTests(unittest.TestCase):
         self.check_option_off()
 
     def test_atol_follows_the_call_on_simultaneous_jobs(self):
-        """INDEPENDENT: ATOL[A] in degrees = the contour tolerance at nCycle832RadiusA (50 mm):
-        0.01 mm -> 0.01146 deg, 0.05 -> 0.0573, 0.1 -> 0.11459. It follows the CYCLE832 call of a
-        4x/5x job, also one selected by iG187_P; none with nCycle832RadiusA 0 or on a job without
-        simultaneous moves."""
+        """INDEPENDENT: ATOL[A] in degrees = the contour tolerance at the stock's largest radius
+        about A (Y0 Z0): the corner of the stock's Y/Z extent. It follows the CYCLE832 call of a
+        4x/5x job, also one selected by iG187_P; none with bCycle832AtolA false, with a stock of no
+        Y/Z extent, or on a job without simultaneous moves."""
         for options, cam, expected in ((None, stock(0, 0), [FINISH, ATOL_FINISH]),
                                        (None, stock(0.06), [SEMI, ATOL_SEMI]),
                                        (None, stock(0.3), [ROUGH, ATOL_ROUGH]),
                                        (None, dict(iG187_P=1), [ROUGH, ATOL_ROUGH]),
-                                       (dict(nCycle832RadiusA=25), stock(0), [FINISH, 'ATOL[A]=0.02292']),
-                                       (dict(nCycle832RadiusA=0), stock(0), [FINISH]),
+                                       (dict(bCycle832AtolA=False), stock(0), [FINISH]),
+                                       (None, dict(stock_y_minus=0, stock_y=0, stock_z_minus=0, stock_z_plus=0,
+                                                   **stock(0)), [FINISH]),
                                        (None, dict(x5_job=False, job_type='profile', wall_offset=0), [FINISH])):
             with self.subTest(options=options, **cam):
                 self.assertEqual(smoothing(first_job(options=options, **{**SIMULTANEOUS, **cam})[1]), expected)
+
+    def check_stock_radius(self, source=None):
+        for cam in OFF_CENTRE_STOCKS:
+            with self.subTest(**cam):
+                blocks = first_job(source, **{**SIMULTANEOUS, **cam, **stock(0)})[1]
+                self.assertEqual(smoothing(blocks), [FINISH, 'ATOL[A]=0.01306'])
+
+    def test_atol_radius_is_the_farthest_stock_corner_from_the_axis(self):
+        """INDEPENDENT: the stock's farthest point from the A axis (Y0 Z0) is the corner of its Y/Z
+        extent, Y from stock_y_minus to stock_y_minus + stock_y and Z from stock_z_minus to
+        stock_z_plus as WORKPIECE takes them: Y 30 and Z 32 give 43.863 mm on either side."""
+        self.check_stock_radius()
 
     def check_atol_state(self, source=None):
         # Same tool: a finishing profile, then a 4x job with the same call: ATOL[A] alone.
@@ -433,9 +452,14 @@ class SimultaneousJobMutationTests(unittest.TestCase):
             'leads take finishing': (("        if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor'\n",
                                       "        if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor' or feed_type eq 'feed_lead_in' or feed_type eq 'feed_lead_out'\n"),
                                      tests.check_simultaneous_moves),
-            'ATOL under compensation': (('    if iCycle832Mode ne 0 and nCycle832RadiusA > 0 and iCompActive ne 41 and iCompActive ne 42\n',
-                                         '    if iCycle832Mode ne 0 and nCycle832RadiusA > 0\n'), tests.check_atol_waits_for_g40),
-            'ATOL only by allowance': (('            if nTolA ne nCycle832TolA\n', '            if nTolA ne nCycle832TolA and bCycle832X5\n'),
+            'ATOL under compensation': (('    if iCycle832Mode ne 0 and bCycle832AtolA and iCompActive ne 41 and iCompActive ne 42\n',
+                                         '    if iCycle832Mode ne 0 and bCycle832AtolA\n'), tests.check_atol_waits_for_g40),
+            'radius from Y alone': (('            nR = nY * nY + nZ * nZ\n', '            nR = nY * nY\n'), tests.check_stock_radius),
+            'far Y side ignored': (('            if abs(stock_y_minus + stock_y) > nY\n', '            if false\n'),
+                                   tests.check_stock_radius),
+            'near Y side ignored': (('            nY = abs(stock_y_minus)\n', '            nY = 0\n'), tests.check_stock_radius),
+            'upper Z ignored': (('            if abs(stock_z_plus) > nZ\n', '            if false\n'), tests.check_stock_radius),
+            'ATOL only by allowance': (('    if iCycle832Mode ne 0 and bCycle832AtolA and', '    if iCycle832Mode ne 0 and bCycle832AtolA and bCycle832X5 and'),
                                        tests.check_option_off),
             'start_of_file resets only the wall allowance': (('    bWorkpieceUsesA = false\n    call @usr_allowance_reset\n',
                                                               '    bWorkpieceUsesA = false\n    wall_offset = nNoAllowance\n'
@@ -445,9 +469,8 @@ class SimultaneousJobMutationTests(unittest.TestCase):
             'larger allowance decides': ((' or Drive_surface_Offset < nAllow)', ' or Drive_surface_Offset > nAllow)'),
                                          self.check_rules),
             'option ignored': (('    if X5_job and bCycle832X5\n', '    if X5_job\n'), self.check_rules),
-            'ATOL in mm': (('nCycle832Tol * 57.2957795 / nCycle832RadiusA', 'nCycle832Tol / nCycle832RadiusA'),
-                           self.check_rules),
-            'ATOL on every job': (('        if X5_job\n            nTolA', '        if true\n            nTolA'),
+            'ATOL in mm': (('(nCycle832Tol * 57.2957795 / nR)', '(nCycle832Tol / nR)'), self.check_rules),
+            'ATOL on every job': (('        if X5_job and nCycle832Tol ne nCycle832TolA\n', '        if nCycle832Tol ne nCycle832TolA\n'),
                                   self.check_rules),
             'ATOL kept over a call': (('            nCycle832TolA = -1\n            ; The next move',
                                        '            ; The next move'), tests.check_atol_state),

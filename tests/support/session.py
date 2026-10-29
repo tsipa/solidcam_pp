@@ -78,6 +78,7 @@ CAM_JOB_DEFAULTS = dict(
     shift_x=0, shift_y=0, shift_z=0, position=1, home_number=1, home_user_name='',
     rot_axis_coord=0, transform_type=0, loop_level=0, loop_count=0, bPrintloop=False,
     xpos=0, ypos=0, zpos=0, feed=500, tool_offset=1, side='comp_off', tool_side='comp_off',
+    stock_y=39, stock_y_minus=-19.5, stock_z_plus=19.5, stock_z_minus=-19.5,
 )
 
 # CAM inputs of a drilling job (@drill/@drill_point/@end_drill); pass them to

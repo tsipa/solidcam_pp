@@ -66,6 +66,7 @@ CAM = dict(
     xcenter=0, ycenter=0, zcenter=0, xcenter_rel=0, ycenter_rel=0, zcenter_rel=0,
     drill_type=DRILL_TYPE['G81'], drill_clearance_z=10, drill_upper_z=0, drill_lower_z=-10, safety=2,
     delay=0, down_step=1, step_down=0, varretract=0, gcode=0,
+    stock_y=39, stock_y_minus=-19.5, stock_z_plus=19.5, stock_z_minus=-19.5,
 )
 
 
