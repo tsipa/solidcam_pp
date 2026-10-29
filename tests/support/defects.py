@@ -234,16 +234,16 @@ RESOLUTIONS = {
     'ENGINE-004': ('fixed', "6d4ea82 The CYCLE84 line writes ',0,' instead of the doubled-quote literal, so every "
                             'reading of GPPL quoting gives the same quote-free argument list.'),
     'ENGINE-021': ('fixed', '709e40f Clamp right() to the whole string when the count exceeds its length.'),
-    'DESIGN-003': ('fixed', '996a97f Index at a tool change: the tool-change block turns A, no separate M1 and homing '
+    'DESIGN-003': ('fixed', 'f6e4e4d Index at a tool change: the tool-change block turns A, no separate M1 and homing '
                             '(owner decision 2026-10-28; the index M1 only without bOptstptc, none before the first '
                             'tool).'),
-    'PP-015[first-tool-index]': ('fixed', "996a97f Index at a tool change: the tool-change block turns A, no separate "
+    'PP-015[first-tool-index]': ('fixed', "f6e4e4d Index at a tool change: the tool-change block turns A, no separate "
                                           "M1 and homing (the first job's tmatrix index moves no Z; the first-job "
                                           '@fourth_axis facet stays open).'),
-    'PP-005': ('fixed', '16e19f6 Start of a job that is not simultaneous: drop the apos/cpos the last 4x/5x job left '
+    'PP-005': ('fixed', 'd3e51a6 Start of a job that is not simultaneous: drop the apos/cpos the last 4x/5x job left '
                         '(SolidCAM keeps them: recorded_cam_001 operation_023, X5_job 0, starts with apos -88.693; a '
                         'job with X5_job true keeps them, its first 4x/5x move sets A).'),
-    'PP-055': ('fixed', '6e5bb01 Drill cycles: RFP is the hole top below Z0 too (no DPR 0 branch): every hole gets '
+    'PP-055': ('fixed', 'aece7d6 Drill cycles: RFP is the hole top below Z0 too (no DPR 0 branch): every hole gets '
                         'RFP = drill_upper_z - safety and SDIS = safety (SolidCAM sends drill_upper_z = hole top + '
                         'safety), so FDPR counts from the hole top on both sides of Z0.'),
     'PP-063': ('fixed', '2e7cc30 CYCLE832: face and thread milling by feed type; no allowance stops the post '

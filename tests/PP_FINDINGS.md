@@ -224,7 +224,7 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Evidence that would settle it: SolidCAM trace of the first job in mode 1 (trace '@usr_4x_index':5).
 - Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
 - Source findings: history-indexing-link-06, tc-02
-- Facet `first-tool-index`: fixed: 996a97f Index at a tool change: the tool-change block turns A, no separate M1 and homing (the first job's tmatrix index moves no Z; the first-job @fourth_axis facet stays open).
+- Facet `first-tool-index`: fixed: f6e4e4d Index at a tool change: the tool-change block turns A, no separate M1 and homing (the first job's tmatrix index moves no Z; the first-job @fourth_axis facet stays open).
 - Reproduced by:
   - `tests/test_indexing_link.py::FirstIndexClearanceTests::test_first_job_fourth_axis_tool_level_clearance_never_plunges_to_z0` (facet `fourth-axis`, confidence confirmed)
 - Pinned or exercised by (`@covers`):
@@ -940,11 +940,11 @@ now a regression guard marked `@covers`.
 | [PP-002 [whole-turn]](#pp-002) | 6228b3d | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-002 [negative-mode]](#pp-002) | 71bac54 | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-003](#pp-003) | 5408e5c | `test_zx_arc_stops_the_post`, `test_arc_zx_event_stops_the_post` | `tests/test_side_plane_guard.py` |
-| [PP-005](#pp-005) | 16e19f6 | `test_tmatrix_index_ignores_previous_job_apos`, `test_same_tool_index_after_a_simultaneous_job_goes_straight_to_the_index_angle` | `tests/test_indexing_link.py` |
+| [PP-005](#pp-005) | d3e51a6 | `test_tmatrix_index_ignores_previous_job_apos`, `test_same_tool_index_after_a_simultaneous_job_goes_straight_to_the_index_angle` | `tests/test_indexing_link.py` |
 | [PP-007](#pp-007) | ca63502 | `test_move_4x_preserves_axial_x` | `tests/test_move_4x_axial_x.py` |
 | [PP-012](#pp-012) | d9b120b | `test_hsm_job_parameters_select_cycle832_or_stop` | `tests/test_toolchange_session.py`, `tests/test_cycle832.py` |
 | [PP-013](#pp-013) | 49f8b80 | `test_same_tool_job_climbs_before_xy_traverse` | `tests/test_job_start_climb.py` |
-| [PP-015 [first-tool-index]](#pp-015) | 996a97f | `test_first_tool_index_tool_level_clearance_never_plunges_to_z0` |  |
+| [PP-015 [first-tool-index]](#pp-015) | f6e4e4d | `test_first_tool_index_tool_level_clearance_never_plunges_to_z0` |  |
 | [PP-019](#pp-019) | b999f65 | `test_compensation_off_before_retract_reaches_controller_before_next_tool_cuts`, `test_compensation_off_emitted_on_following_rapid`, `test_compensation_on_emitted_on_following_rapid` | `tests/test_cutter_compensation.py` |
 | [PP-020](#pp-020) | b999f65 | `test_compensation_not_activated_in_circular_block`, `test_compensation_not_deactivated_in_circular_block` | `tests/test_cutter_compensation.py` |
 | [PP-021](#pp-021) | 88695c9 | `test_error_text_is_the_last_nc_line_and_no_arc_block_is_written` | `tests/test_job_plane_restore.py` |
@@ -969,7 +969,7 @@ now a regression guard marked `@covers`.
 | [PP-053](#pp-053) | 467979d | `test_first_index_in_z_homing_mode_homes_z` |  |
 | [PP-054 [g187-default]](#pp-054) | d9b120b | `test_flood_coolant_is_not_cancelled_before_the_first_cut`, `test_no_fanuc_g187_in_a_default_program` | `tests/test_session_program.py`, `tests/test_coolant_codes.py` |
 | [PP-054 [coolant-burst]](#pp-054) | 3fde1a5 | `test_flood_coolant_is_not_cancelled_before_the_first_cut`, `test_no_fanuc_g187_in_a_default_program` | `tests/test_session_program.py`, `tests/test_coolant_codes.py` |
-| [PP-055](#pp-055) | 6e5bb01 | `test_cycle83_first_peck_is_continuous_across_z0` | `tests/test_cycles_spindle.py` |
+| [PP-055](#pp-055) | aece7d6 | `test_cycle83_first_peck_is_continuous_across_z0` | `tests/test_cycles_spindle.py` |
 | [PP-057](#pp-057) | dde4db6 | `test_fanuc_only_output_is_pinned_to_legacy_procedures`, `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` |  |
 | [PP-059](#pp-059) | fb78a2b | `test_emulated_rapid_without_motion_leaves_the_cut_feed_alone`, `test_rapid_without_motion_leaves_the_cut_alone`, `test_rapid_without_motion_leaves_the_job_comment_alone` | `tests/test_motion_rapids.py` |
 | [PP-060](#pp-060) | 1add48e | `test_angles_that_jump_by_a_turn_stop_in_a_cut`, `test_extra_turn_after_the_post_unwind_stops`, `test_first_feed_move_after_toolchange_unwind_stops`, `test_rounding_straddle_against_the_word_stops`, `test_wrong_way_feed_moves_stop_the_post`, `test_wrong_way_rapid_with_a_rotation_homing_without_z_stops_the_post`, `test_wrong_way_rapid_without_rotation_homing_stops_the_post`, `test_wrong_way_rotary_link_rapid_stops_the_post`, `test_wrong_way_three_axis_rapid_without_rotation_homing_stops_the_post` | `tests/test_rotary_direction_guard.py` |
@@ -979,7 +979,7 @@ now a regression guard marked `@covers`.
 | [ENGINE-004](#engine-004) | 6d4ea82 | `test_cycle84_arguments_are_numeric_and_ordered`, `test_cycle84_rigid_tapping_fields`, `test_string_case_and_escaped_quotes` |  |
 | [ENGINE-021](#engine-021) | 709e40f | `test_right_count_beyond_the_string_returns_the_whole_string` |  |
 | [DESIGN-002](#design-002) | 3e0c345 | `test_homed_rotary_rapid_returns_xy_then_z` | `tests/test_post_homing_reposition.py` |
-| [DESIGN-003](#design-003) | 996a97f | `test_index_at_a_tool_change_turns_in_the_tool_change_block`, `test_program_start_index_adds_only_the_a_word` | `tests/test_indexing_link.py`, `tests/test_safety_options.py` |
+| [DESIGN-003](#design-003) | f6e4e4d | `test_index_at_a_tool_change_turns_in_the_tool_change_block`, `test_program_start_index_adds_only_the_a_word` | `tests/test_indexing_link.py`, `tests/test_safety_options.py` |
 
 ### PP-001
 
@@ -1028,7 +1028,7 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: SolidCAM trace of a 4x simultaneous job followed by an indexed job: apos in the second job's @tmatrix and @start_of_job parameter dump.
 - Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
 - Source findings: TSR-14, history-rotary-08, pp-region-4-cycles-rotary(missed-3)
-- Status: fixed: 16e19f6 Start of a job that is not simultaneous: drop the apos/cpos the last 4x/5x job left (SolidCAM keeps them: recorded_cam_001 operation_023, X5_job 0, starts with apos -88.693; a job with X5_job true keeps them, its first 4x/5x move sets A).
+- Status: fixed: d3e51a6 Start of a job that is not simultaneous: drop the apos/cpos the last 4x/5x job left (SolidCAM keeps them: recorded_cam_001 operation_023, X5_job 0, starts with apos -88.693; a job with X5_job true keeps them, its first 4x/5x move sets A).
 - Tests of the fix: tests/test_indexing_link.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
@@ -1459,7 +1459,7 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: Siemens CYCLE83 FDPR definition; owner decides fix vs documentation.
 - Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
 - Source findings: pp-weird-hunter-21(missed)
-- Status: fixed: 6e5bb01 Drill cycles: RFP is the hole top below Z0 too (no DPR 0 branch): every hole gets RFP = drill_upper_z - safety and SDIS = safety (SolidCAM sends drill_upper_z = hole top + safety), so FDPR counts from the hole top on both sides of Z0.
+- Status: fixed: aece7d6 Drill cycles: RFP is the hole top below Z0 too (no DPR 0 branch): every hole gets RFP = drill_upper_z - safety and SDIS = safety (SolidCAM sends drill_upper_z = hole top + safety), so FDPR counts from the hole top on both sides of Z0.
 - Tests of the fix: tests/test_cycles_spindle.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
@@ -1648,7 +1648,7 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: Owner policy: index before or after the tool change.
 - Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
 - Source findings: efc-13, tc-12, pp-weird-hunter-15
-- Status: fixed: 996a97f Index at a tool change: the tool-change block turns A, no separate M1 and homing (owner decision 2026-10-28; the index M1 only without bOptstptc, none before the first tool).
+- Status: fixed: f6e4e4d Index at a tool change: the tool-change block turns A, no separate M1 and homing (owner decision 2026-10-28; the index M1 only without bOptstptc, none before the first tool).
 - Tests of the fix: tests/test_indexing_link.py, tests/test_safety_options.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):

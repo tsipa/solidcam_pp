@@ -549,7 +549,7 @@ class FourthAxisIndexTests(LinkOracle, unittest.TestCase):
         """INDEPENDENT: geometry: the A position of a tmatrix-indexed job is the
         CoordSys rotation alone (angle_4x_around_x = 90 -> A90).
 
-        Regression guard of PP-005 (16e19f6): SolidCAM keeps the last apos of a
+        Regression guard of PP-005 (d3e51a6): SolidCAM keeps the last apos of a
         simultaneous job (here apos=10) into the next job (recorded_cam_001
         operation_023, X5_job 0, starts with apos -88.693). The indexed job is
         not simultaneous (X5_job false), so @start_of_job drops it; the index
