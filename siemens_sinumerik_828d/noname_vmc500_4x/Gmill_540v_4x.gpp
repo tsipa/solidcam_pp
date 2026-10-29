@@ -169,7 +169,8 @@ endp
     bOptstptc             = true               ; True = M1 before each tool change after the first
     bOptstpend            = false              ; True = M1 before the program end
     bOptstpjob            = true               ; True = M1 between two operations of the same tool (not after an M0 or index M1 there)
-    bOptstpindex          = true               ; True = M1 before each A index turn (CoordSys change, @fourth_axis)
+    bOptstpindex          = true               ; True = M1 before each A index turn (CoordSys change, @fourth_axis); at a
+                                               ; tool change only without the M1 of bOptstptc, none before the first tool
     bWorkoffsettc         = true               ; True = work offset repeated at each tool change
     bNnumtc               = False              ; True = N<2001, 2002, ...> on the safety block of each tool change
     blknum_exist          = False              ; True = block numbers (SolidCAM blknum settings below)
@@ -216,7 +217,8 @@ endp
     iR2dir                = 1                  ; Second rotary axis of the template (none on this machine)
     cR1                   = 'A'                ; Rotary axis letter
     i4xIndexMode          = 0                  ; Index: 0 = turn A, 1 = turn A and step the work offset (G54, G55, ...)
-    i4xIndexClearanceMode = 0                  ; Index clearance: 0 = home, 1 = tool Z level, 2 = tool start plane
+    i4xIndexClearanceMode = 0                  ; Index clearance: 0 = home, 1 = tool Z level, 2 = tool start plane. At a tool
+                                               ; change A turns in its positioning block after its Z homing (usr_rapid)
     i4xFeedMode           = 1                  ; Rotating G1: 1 = G93 inverse time, 0 = programmed feed (G94)
     nMaxInverseFeed       = 59999.99           ; G93 F limit, 1/min (VMID MaxInverseFeed)
 
@@ -1363,6 +1365,8 @@ endp
 @start_of_job
     ; Start of an operation: work offset and job plane, a pending index, then the tool change
     ; (usr_ct) or, for the same tool, the job comment, the M1 (bOptstpjob) and a work-offset change.
+    ; With a tool change the pending index has no block of its own: the tool change's positioning
+    ; block turns A (usr_rapid).
     call @usr_camdbg_start_of_job
     call @usr_link_boundary
     call @home_number
@@ -1371,8 +1375,10 @@ endp
     if bTmatrixIndexPending
         change(cWo) = true
         change(iWorkoffset) = true
-        call @usr_4x_index
-        bTmatrixIndexPending = false
+        if !bTlchg
+            call @usr_4x_index
+            bTmatrixIndexPending = false
+        endif
     endif
     if rot_axis_coord eq 2
         ; The template zeroed X here (first move to X0) with no known reason; the owner chose a stop.
@@ -1383,6 +1389,7 @@ endp
     if bTlchg
         call @usr_ct
         bTlchg = false
+        bTmatrixIndexPending = false
     else
         ; Same tool: the job comment, the M1 (bOptstpjob) and, when the work offset changes (not with
         ; the VMID 3-axis limit bLimit_3axis), one G0 block with the new offset and A.
@@ -1458,6 +1465,7 @@ endp
     ; usr_rapid_climb_then_xy -> usr_emulated_rapid_feed), as deep as the original post went; the GPPL
     ; limit is not known, so usr_rapid_trc_axes, usr_rapid_climb_then_xy, usr_rapid_xy_then_z and
     ; usr_emulated_rapid_feed call nothing deeper.
+    local logical bIndexTurn
     call @usr_rapid_cam_link
     call @usr_rapid_motion_mode
     if bR1useDir5a
@@ -1465,6 +1473,16 @@ endp
         bR1StepReset = false
     endif
     call @usr_r1pos_calc
+    ; A turn in the positioning block of a tool change with the index start_of_job left pending
+    ; (bTmatrixIndexPending) is that index. Its M1 (bOptstpindex) comes first, unless the tool change
+    ; stopped already (bOptstptc); none before the first tool.
+    bIndexTurn = false
+    if bTlchg and bTmatrixIndexPending and change(nR1pos)
+        bIndexTurn = true
+        if bOptstpindex and !bStopSinceMotion and !first_tool
+            call @usr_optionalstop
+        endif
+    endif
     if bFirstRapid or bTlchg
         ; First rapid of a job or of a tool change: home if the head orientation changes (bHomerotv;
         ; usr_rapid_head_check still selects, so the head state and the Z format follow).
@@ -1480,15 +1498,40 @@ endp
         ; Outside a CAM link CAM planned no clearance for the swing: home first (bHomeroth). The
         ; string becomes the index homing (sHomestrrot) also when this homing is switched off.
         sHomestrrot = sHomestrroth
-        if bHomeroth
-            sHomestr = sHomestrrot
-            call @usr_prep_home_axis
+        if bIndexTurn
+            ; The index of a tool change: Z homed since the last positioning move (the tool change's
+            ; homing, bHometc; for the first tool the program start or head homing) is its clearance,
+            ; with M06 in between. Without one, i4xIndexClearanceMode 0 homes like the index (the head
+            ; homing string while sHomestrrot is ''); modes 1/2 home with bHomeroth: their Z levels
+            ; are the previous tool's job. Index mode 1 steps the work offset of the block.
+            if !(bPostHomed and bPostHomedZ)
+                if i4xIndexClearanceMode eq 0
+                    sHomestr = sHomestrrot
+                    if sHomestr eq ''
+                        sHomestr = sHomestrrotv
+                    endif
+                    call @usr_prep_home_axis
+                else
+                    if bHomeroth
+                        sHomestr = sHomestrrot
+                        call @usr_prep_home_axis
+                    endif
+                endif
+            endif
+            if i4xIndexMode eq 1
+                iWorkoffset = iWorkoffset + (position-1)
+            endif
+        else
+            if bHomeroth
+                sHomestr = sHomestrrot
+                call @usr_prep_home_axis
+            endif
         endif
     endif
-    if bR1wrongWay and !(bPostHomed and bPostHomedZ)
+    if bR1wrongWay and !(bPostHomed and bPostHomedZ) and !bIndexTurn
         ; A turns another way than CAM and the tool does not stand at a Z homing (a CAM link, a rotation
         ; homing without Z or switched off): stop. After a Z homing the turn follows the word like an
-        ; index.
+        ; index, as the index of a tool change always does.
         call @usr_r1_wrong_way_stop
     endif
     if bTlchg
@@ -2843,6 +2886,7 @@ endp
 
 @usr_4x_index
     ; Index A between operations (tmatrix in start_of_job, fourth_axis): M1 (bOptstpindex), then the turn.
+    ; A tmatrix index at a tool change runs in the tool change's positioning block instead (usr_rapid).
     ;   i4xIndexMode: 0 = turn A in the current work offset, 1 = also step the work offset by
     ;   position-1 (G54, G55, ...).
     ;   i4xIndexClearanceMode: 0 = home first (sHomestrrot, the last A-turn or head homing string;
@@ -2933,8 +2977,9 @@ endp
 endp
 
 @tmatrix
-    ; SolidCAM CoordSys change: the index runs at the next @start_of_job (bTmatrixIndexPending). It ends
-    ; a CAM link; clearance is required even when only the translation changed.
+    ; SolidCAM CoordSys change: the index runs at the next @start_of_job (bTmatrixIndexPending), with a
+    ; tool change in its positioning block. It ends a CAM link; clearance is required even when only the
+    ; translation changed.
     bIndexClearancePending = true
     bCamLinkRetract = false
     bTmatrixIndexPending = true

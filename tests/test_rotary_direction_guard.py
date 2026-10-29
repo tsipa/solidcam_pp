@@ -243,7 +243,7 @@ class RotaryDirectionGuardTests(unittest.TestCase):
         """INDEPENDENT: mutation self-check; without the feed-move stop or the link-rapid stop the
         wrong-way cases post."""
         feed = mutate('    if bR1wrongWay\n        call @usr_r1_wrong_way_stop\n    endif\n', '')
-        rapid = mutate('    if bR1wrongWay and !(bPostHomed and bPostHomedZ)\n', '    if false\n')
+        rapid = mutate('    if bR1wrongWay and !(bPostHomed and bPostHomedZ) and !bIndexTurn\n', '    if false\n')
 
         def feed_case(source):
             program = started(source=source)

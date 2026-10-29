@@ -571,16 +571,18 @@ class RealisticSessionTests(unittest.TestCase):
 
     def test_two_job_session_mutations_are_detected(self):
         """INDEPENDENT: historical reversions and safety mutations fail the two-job invariant."""
+        # Both indexes are tool-change blocks (DESIGN-003): c03e1b4's 9999 start value of the motion
+        # mode reaches neither (the block writes its G0 itself), and the index clearance is the tool
+        # change's homing or, without one, the homing of the index in usr_rapid.
+        no_tc_homing = mutate('        if bHometc\n            call @usr_prep_home_axis\n        endif\n', '')
         cases = {
-            'c03e1b4 reverted (no G0 on the first index)':
-                (mutate('first block.\n    iMotionmode     = 9999', 'first block.\n    iMotionmode     = 0'), 'without effective G0'),
             '961facc reverted (no final line feed)': (mutate(END_ANCHOR_M30, "        {nb, 'M30'}\n"), 'line feed'),
             'no spindle start after the tool change': (mutate(
                 '        skipline = false\n        call @start_tool\n    endif\nendp\n',
                 '        skipline = false\n    endif\nendp\n'), 'spindle must be started'),
-            'no homing before an index': (mutate(
-                "            sHomestr = sHomestrrotv\n        endif\n        call @usr_prep_home_axis\n    endif\n",
-                "            sHomestr = sHomestrrotv\n        endif\n    endif\n"),
+            'no homing before the index of a tool change': (mutate(
+                '            if !(bPostHomed and bPostHomedZ)\n                if i4xIndexClearanceMode eq 0\n',
+                '            if false\n                if i4xIndexClearanceMode eq 0\n', source=no_tc_homing),
                 'without preceding Z homing'),
             'no initial DC force': (mutate('    bR1forceOutput = true\n', '    bR1forceOutput = false\n'), 'must be DC'),
             'D1 removed (420c4ab reverted)': (mutate("    {nb, 'D1 '}\n", ''), 'D1'),

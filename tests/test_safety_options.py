@@ -6,12 +6,15 @@ bOptstpindex). Switching one off removes exactly that point and nothing else. Th
 operations of the same tool (bOptstpjob) is not repeated where the boundary already stopped
 (the M0 of bStopM00, the M1 of an A index), and an index right after the job M1 adds no second M1.
 Without a Z homing at a tool change, compensation still on would run through M06: the post stops.
+Owner decision 2026-10-28 (DESIGN-003): an index pending at a tool change has no M1, homing or A block
+of its own; the tool change's positioning block turns A after the tool change's homing and M1.
 
 The tests read the blocks each event returns (no skipline joining), so they run on both engines.
 """
 import difflib
 import unittest
 
+from pp_tests.engine import UnsupportedGPPL
 from program_session import Program, require_nc_stream
 from support import assert_detected, mutate
 
@@ -115,7 +118,8 @@ class HomingOptionTests(unittest.TestCase):
         """INDEPENDENT: mutation self-check; a homing that ignores its option fails the guards."""
         checks = {
             'bHomebegin ignored': ('    if bHomebegin\n', '    if true\n', self.check_start_off),
-            'bHomeroth ignored': ('        if bHomeroth\n', '        if true\n', self.check_a_turn_off),
+            'bHomeroth ignored': ('        else\n            if bHomeroth\n', '        else\n            if true\n',
+                                  self.check_a_turn_off),
         }
         for label, (old, new, check) in checks.items():
             with self.subTest(mutant=label):
@@ -293,16 +297,116 @@ class IndexStopTests(unittest.TestCase):
         self.assertEqual(p.ev('fourth_axis', angle=45, angle_4x_around_x_dir='ccw'), ['M1', *HOMING, 'G0 A=ACP(45)'])
 
     def test_first_index_homes_without_the_program_start_homing(self):
-        """INDEPENDENT: an index before the first rapid homes after its M1 (i4xIndexClearanceMode 0)
-        also with bHomebegin off: the tool stands wherever the last program left it (PP-053)."""
-        p = program(bHomebegin=False)
-        self.assertEqual(p.ev('start_program'), [])
-        p.ev('change_tool', tool_number=1, next_tool_number=2)
-        p.ev('tmatrix', angle_4x_around_x=90, angle_4x_around_x_dir='ccw')
-        blocks = p.ev('start_of_job', job_name='op1', next_job_tool_number=0)
-        turn = next(i for i, block in enumerate(blocks) if 'A=' in block)
-        self.assertEqual(blocks[:3], ['M1', *HOMING])
-        self.assertLess(2, turn)
+        """INDEPENDENT: the first index of a program, the positioning block of the first tool change
+        (DESIGN-003), turns A after a Z homing also with bHomebegin off: the tool stands wherever the
+        last program left it (PP-053). With the first-rapid and A-turn homings off too, the index
+        homes itself (i4xIndexClearanceMode 0). No M1 before the first tool."""
+        for options in (dict(bHomebegin=False), dict(bHomebegin=False, bHomerotv=False, bHomeroth=False)):
+            with self.subTest(**options):
+                p = program(**options)
+                self.assertEqual(p.ev('start_program'), [])
+                p.ev('change_tool', tool_number=1, next_tool_number=2)
+                p.ev('tmatrix', angle_4x_around_x=90, angle_4x_around_x_dir='ccw')
+                blocks = p.ev('start_of_job', job_name='op1', next_job_tool_number=0)
+                turn = next(i for i, block in enumerate(blocks) if 'A=' in block)
+                self.assertEqual(blocks[turn - 2:turn + 1], [*HOMING, 'G0 G17 G90 G54 A=DC(90)'])
+                self.assertLess(blocks.index('M06'), turn - 2)
+                self.assertNotIn('M1', blocks)
+
+
+def indexed_tool_change(source=None, direction='ccw', **options):
+    """first_job, then T2 for job op2 on a CoordSys at 90 (index position 2); returns the blocks of
+    that start_of_job."""
+    p, _ = first_job(source, **options)
+    p.ev('end_of_job', next_job_tool_number=2)
+    p.ev('change_tool', tool_number=2, next_tool_number=1, first_tool=False, last_tool=True, xnext=0, ynext=0)
+    p.ev('tmatrix', angle_4x_around_x=90, angle_4x_around_x_dir=direction, position=2)
+    return p.ev('start_of_job', job_name='op2', next_job_tool_number=0)
+
+
+TOOL_CHANGE_T2 = [';', 'G17 G40 G64 G90', 'T2', 'M06', 'D1', 'MSG("op2")']
+
+
+class IndexAtToolChangeTests(unittest.TestCase):
+    """The index of a tool change is the tool change's positioning block. What the index did on its
+    own (M1, clearance, index mode 1 offset, turning the word's way) stays where the tool change
+    does not do it already."""
+
+    def test_default_one_stop_one_homing_then_the_turn(self):
+        """INDEPENDENT: owner decision 2026-10-28; M5, one homing, one M1, M06, then the A turn of
+        the positioning block."""
+        self.assertEqual(indexed_tool_change()[:13],
+                         ['M9', 'M5', 'WAITS', *HOMING, 'M1', *TOOL_CHANGE_T2, 'G0 G17 G90 G54 A=ACP(90)'])
+
+    def check_index_stop(self, source=None):
+        self.assertEqual(indexed_tool_change(source, bOptstptc=False)[:12],
+                         ['M9', 'M5', 'WAITS', *HOMING, *TOOL_CHANGE_T2, 'M1'])
+        self.assertNotIn('M1', indexed_tool_change(source, bOptstptc=False, bOptstpindex=False))
+
+    def test_index_stop_without_the_tool_change_stop(self):
+        """INDEPENDENT: bOptstpindex = M1 before an A index turn: without the tool change's M1
+        (bOptstptc off) the index stops after M06, before the turn; with both off, no M1."""
+        self.check_index_stop()
+
+    def check_index_clearance(self, source=None):
+        cases = {  # options: blocks between the message and the positioning block
+            (('bHometc', False),): HOMING,
+            (('bHometc', False), ('bHomeroth', False)): HOMING,
+            (('bHometc', False), ('i4xIndexClearanceMode', 1)): HOMING,
+            (('bHometc', False), ('i4xIndexClearanceMode', 2), ('bHomeroth', False)): [],
+        }
+        for options, expected in cases.items():
+            blocks = indexed_tool_change(source, **dict(options))
+            turn = next(i for i, block in enumerate(blocks) if 'A=' in block)
+            self.assertEqual(blocks[blocks.index('MSG("op2")') + 1:turn], expected, f'{dict(options)}: {blocks}')
+            self.assertEqual(homings(blocks[:turn]), expected, f'{dict(options)}: {blocks}')
+
+    def test_index_clearance_without_the_tool_change_homing(self):
+        """INDEPENDENT: option documentation. Without a Z homing at the tool change (bHometc off)
+        the index clearance i4xIndexClearanceMode 0 homes before the turn, also with bHomeroth off;
+        modes 1/2 (Z levels of the previous tool's job) home with bHomeroth like any A turn outside
+        a CAM link, else A turns where M06 left the tool."""
+        self.check_index_clearance()
+
+    def check_index_mode_offset(self, source=None):
+        blocks = indexed_tool_change(source, i4xIndexMode=1)
+        self.assertIn('G0 G17 G90 G55 A=ACP(90)', blocks)
+
+    def test_index_mode_1_steps_the_offset_of_the_positioning_block(self):
+        """INDEPENDENT: i4xIndexMode 1 = turn A and step the work offset: index position 2 is G55,
+        stated by the positioning block that turns A."""
+        self.check_index_mode_offset()
+
+    def check_unhomed_index_follows_the_word(self, source=None):
+        try:
+            blocks = indexed_tool_change(source, 'cw', bHometc=False, i4xIndexClearanceMode=1, bHomeroth=False)
+        except UnsupportedGPPL as stop:
+            self.fail(f'the index of a tool change stopped the post: {stop}')
+        self.assertIn('G0 G17 G90 G54 A=ACN(90)', blocks)
+
+    def test_unhomed_index_of_a_tool_change_follows_the_word(self):
+        """INDEPENDENT: an index turns A the way its word says (angle_4x_around_x_dir), like every
+        index and every turn after a Z homing; the wrong-way stop (PP-060) is for CAM motion. Here
+        'cw' 0 -> 90 (ACN, -270 degrees) with no homing at all."""
+        self.check_unhomed_index_follows_the_word()
+
+    def test_removing_an_index_duty_is_detected(self):
+        """INDEPENDENT: mutation self-check of the index duties the positioning block took over."""
+        mutants = {
+            'no index M1': ('        if bOptstpindex and !bStopSinceMotion and !first_tool\n            call @usr_optionalstop\n',
+                            '        if false\n            call @usr_optionalstop\n', self.check_index_stop),
+            'mode 0 does not home': ('                if i4xIndexClearanceMode eq 0\n                    sHomestr = sHomestrrot\n',
+                                     '                if false\n                    sHomestr = sHomestrrot\n',
+                                     self.check_index_clearance),
+            'no offset step': ('            if i4xIndexMode eq 1\n                iWorkoffset = iWorkoffset + (position-1)\n',
+                               '            if false\n                iWorkoffset = iWorkoffset + (position-1)\n',
+                               self.check_index_mode_offset),
+            'wrong-way stop': (' and !(bPostHomed and bPostHomedZ) and !bIndexTurn\n', ' and !(bPostHomed and bPostHomedZ)\n',
+                               self.check_unhomed_index_follows_the_word),
+        }
+        for label, (old, new, check) in mutants.items():
+            with self.subTest(mutant=label):
+                assert_detected(self, check, mutate(old, new), label)
 
 
 class RepositionWithoutHomingTests(unittest.TestCase):

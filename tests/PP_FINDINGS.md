@@ -46,7 +46,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 49. `@covers` references: 100.
+Canonical `@known_defect` tests: 49. `@covers` references: 102.
 
 ## Index of open entries
 
@@ -60,7 +60,7 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 | [PP-010](#pp-010) | low | confirmed | A | bCoolofftc/bSpinofftc ('between tool changes') are dead; tool-change M9/M5 follow the end-of-program flags bCooloffend/bSpinoffend | `test_tool_change_options_control_spindle_and_coolant_off` |
 | [PP-011](#pp-011) | low | confirmed | E | Spindle M3/M4 is emitted one block before its S word | `test_spindle_speed_programmed_with_or_before_start` |
 | [PP-014](#pp-014) | medium | confirmed | C | Same-tool work-offset change traverses XY in the new offset at the previous job's machine Z | `test_new_work_offset_is_entered_from_a_machine_z_retract` |
-| [PP-015](#pp-015) | medium | confirmed | C | First-job deferred index with i4xIndexClearanceMode 1/2 retracts to the uninitialised Z0 before rotating A | `test_first_index_tool_level_clearance_never_plunges_to_z0` |
+| [PP-015](#pp-015) | medium | confirmed | C | First-job deferred index with i4xIndexClearanceMode 1/2 retracts to the uninitialised Z0 before rotating A | `test_first_job_fourth_axis_tool_level_clearance_never_plunges_to_z0` [fourth-axis] |
 | [PP-016](#pp-016) | low-medium | confirmed | C | i4xIndexMode=1: the next job at the same index position is machined in G54 | `test_same_index_position_keeps_new_workoffset` |
 | [PP-017](#pp-017) | medium | confirmed | C | i4xIndexMode=1 accumulates position-1 over successive @fourth_axis events (54->55->57->60) | `test_new_workoffset_mode_maps_position_to_offset` |
 | [PP-018](#pp-018) | low | uncertain | C | Straight-retract (CAM-link) check ignores cpos, the rotary input of @line_4x/@move_4x | `test_rotary_4x_link_is_not_a_straight_retract` |
@@ -242,7 +242,9 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 - Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
 - Source findings: history-indexing-link-06, tc-02
 - Reproduced by:
-  - `tests/test_indexing_link.py::FirstIndexClearanceTests::test_first_index_tool_level_clearance_never_plunges_to_z0`
+  - `tests/test_indexing_link.py::FirstIndexClearanceTests::test_first_job_fourth_axis_tool_level_clearance_never_plunges_to_z0` (facet `fourth-axis`, confidence confirmed)
+- Pinned or exercised by (`@covers`):
+  - `tests/test_indexing_link.py::FirstIndexClearanceTests::test_first_tool_index_tool_level_clearance_never_plunges_to_z0`
 
 ### PP-016
 
@@ -909,7 +911,8 @@ Canonical `@known_defect` tests: 49. `@covers` references: 100.
 - Source findings: efc-13, tc-12, pp-weird-hunter-15
 - Reproduced by: none (owner decision; pinned by the CHARACTERIZATION test below)
 - Pinned or exercised by (`@covers`):
-  - `tests/test_indexing_link.py::DesignPinTests::test_deferred_tmatrix_index_runs_before_tool_change`
+  - `tests/test_indexing_link.py::DesignPinTests::test_index_at_a_tool_change_turns_in_the_tool_change_block`
+  - `tests/test_indexing_link.py::DesignPinTests::test_program_start_index_adds_only_the_a_word`
 
 ### DESIGN-004
 

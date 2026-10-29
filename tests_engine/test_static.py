@@ -89,9 +89,10 @@ class WholeGppTests(unittest.TestCase):
         # declared post-writer option instead of a runtime control variable. -5 statements: the four
         # option stops of usr_check_options and the job-parameter stop with bCycle832 off lost the dead
         # store 'dummy_var = 0' before their input (now a print). -4: the YZ/ZX labels of the CAMDBG arc
-        # readout went with the YZ/ZX code (only XY arcs get past the stop).
-        self.assertEqual(len(branches), 31)
-        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 94)
+        # readout went with the YZ/ZX code (only XY arcs get past the stop). +2 / +4: the index of a tool
+        # change in usr_rapid (the bHomeroth homing of clearance modes 1/2, the offset step of index mode 1).
+        self.assertEqual(len(branches), 33)
+        self.assertEqual(self.analysis.summary()['statements_dead_under_shipped_configuration'], 98)
         gates = sorted(d.line for d in branches if 'trace_level=0' in d.message)
         self.assertEqual(gates, lines_matching(r'^\s*if trace_level\s*(>|>=)\s*[05]\s*$'))
         self.assertEqual(len(gates), 6)

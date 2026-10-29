@@ -32,8 +32,8 @@ NO_COOLANT = dict(flood_coolant=0, Mist_coolant=0, HP_Flood_coolant=0, LP_Flood_
                   through_ival_coolant=0, through_coolant_val=0, LP_Through_coolant=0,
                   Air_Blast_coolant=0, air_through_coolant=0)
 TC_HOMING_CALL = "        else\n            sHomestr = sHomestrtc\n"
-INDEX_HOMING = "            sHomestr = sHomestrrotv\n        endif\n        call @usr_prep_home_axis\n    endif\n"
-INDEX_NO_HOMING = "            sHomestr = sHomestrrotv\n        endif\n    endif\n"
+TC_HOMING = '        if bHometc\n            call @usr_prep_home_axis\n        endif\n'
+TC_INDEX_CLEARANCE = '            if !(bPostHomed and bPostHomedZ)\n                if i4xIndexClearanceMode eq 0\n'
 START_TOOL_AFTER_TC = '        skipline = false\n        call @start_tool\n    endif\nendp\n'
 CYCLE832_OFF_STOP = ('POST ERROR: CYCLE832 is switched off (bCycle832): set the job parameters iG187_P and '
                      'nG187_E to 0.')
@@ -448,8 +448,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
         rotations = [index for index, block in enumerate(seg.blocks)
                      if block.rotary('A') is not None and abs(block.rotary('A')[1] - 90) < 1e-9]
         self.assertEqual(len(rotations), 1, f'exactly one A90 index expected:\n{seg.shown}')
-        # Order-independent (DESIGN-003 decides index before/after the change):
-        # each event happens with Z at the fixed point and no Z move since.
+        # Each event happens with Z at the fixed point and no Z move since (the A turn is the
+        # tool-change block after M06, DESIGN-003).
         for label, event in (('A90 index', rotations[0]), ('M06', seg.find(m_code(6)))):
             home = seg.find_last(z_homing, 0, event)
             self.assertGreaterEqual(home, 0, f'G75 Z required before {label}:\n{seg.shown}')
@@ -459,16 +459,19 @@ class ToolChangeSafetyTests(unittest.TestCase):
     def test_tool_change_with_pending_index_retracts_before_rotation_and_m06(self):
         """INDEPENDENT: Z at the fixed point before both a table rotation and a tool change.
 
-        Order-independent: whichever of the deferred A90 index and the tool
-        change comes first (DESIGN-003), each one follows a G75 Z with no Z move
-        in between.
+        Order-independent: the deferred A90 index and the tool change each
+        follow a G75 Z with no Z move in between (the index is the tool-change
+        block after M06, DESIGN-003).
         """
         self.check_pending_index()
 
     def test_pending_index_mutations_are_detected(self):
-        """INDEPENDENT: an index without its G75 Z homing fails the guard."""
+        """INDEPENDENT: a tool change without its G75 Z homing, and an index without any, fail the guard."""
+        no_tc_homing = mutate(TC_HOMING, '')
+        assert_detected(self, self.check_pending_index, no_tc_homing, 'tool change without homing', 'M06')
         assert_detected(self, self.check_pending_index,
-               mutate(INDEX_HOMING, INDEX_NO_HOMING), 'index without homing', 'A90 index')
+                        mutate(TC_INDEX_CLEARANCE, '            if false\n                if i4xIndexClearanceMode eq 0\n',
+                               source=no_tc_homing), 'index without homing', 'A90 index')
 
     # -- coolant channels ---------------------------------------------------------------
     def check_coolant_channels(self, source=None):

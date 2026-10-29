@@ -45,13 +45,12 @@ ReversionDetectionTests re-runs the regression checks against focused
 in-memory mutants of the GPP and requires an AssertionError from each.
 """
 import re
-import textwrap
 import unittest
 
 from pp_tests.engine import UnsupportedGPPL
 
 from support import (DRILL_DEFAULTS, DRILL_TYPE, SETTABLE_OFFSETS, Session, assert_detected, covers, index_of,
-                     known_defect, last_index_of, mutate, parse_blocks, replay)
+                     known_defect, last_index_of, mutate, parse_blocks, replay, state_before)
 
 
 # ---------------------------------------------------------------------------
@@ -145,25 +144,46 @@ class IndexHistoryTests(LinkOracle, unittest.TestCase):
         self.assertEqual(state.motion, 0, f'first index is not a G0 move (c03e1b4): {blocks[rotation].raw!r}')
         self.assertEqual(state.work_offset, 54, f'first index is not in G54 (3696aa2): {blocks[rotation].raw!r}')
         self.assertEqual(blocks[rotation].rotary('A'), ('DC', 45.125), blocks[rotation].raw)
-        self.assertGreaterEqual(index_of(blocks, is_optional_stop, 0, rotation), 0,
-                                f'no M1 before the first index (92e2b23): {session.text()!r}')
+        self.assertGreater(rotation, index_of(blocks, lambda block: 6 in block.m),
+                           f'the first index is not the tool-change block: {session.text()!r}')
         sentinels = [word.raw for block in blocks for word in block.words if word.value == 9999]
         self.assertEqual(sentinels, [], 'modal 9999 sentinel leaked into the NC output')
 
     def test_first_program_index_is_explicit_rapid_with_resolved_offset(self):
-        """INDEPENDENT: c03e1b4, 3696aa2 and 92e2b23 on a real program start.
+        """INDEPENDENT: c03e1b4 and 3696aa2 on a real program start.
 
         c03e1b4: the first index block was 'G54 A45.' without G0 and the 828D
         stopped with 'Feedrate not programmed'; Sinumerik keeps G0/G1 modal, so
-        the motion in effect at the index block must be an explicit G0 (the
-        9999 motion sentinel of @usr_init_gmstates forces it). Its format half
-        ('7.3') matches VMID RotaryAxisPrecision=0.001: A=DC(45.125) exactly.
-        The first A output of a program is DC (position unknown, ab853be).
-        3696aa2: the deferred index block states G54, never the 9999 sentinel.
-        92e2b23: an optional stop M1 precedes the rotation.
+        the motion in effect at the index block must be an explicit G0. Its
+        format half ('7.3') matches VMID RotaryAxisPrecision=0.001:
+        A=DC(45.125) exactly. The first A output of a program is DC (position
+        unknown, ab853be). 3696aa2: the index states G54, never the 9999
+        sentinel. Owner decision 2026-10-28 (DESIGN-003): the first index is
+        the positioning block of the first tool change, after M06 (no index of
+        its own before the tool; the program start M1 is bOptstpbegin, see
+        test_program_start_index_adds_only_the_a_word).
         Absorbs test-suite-review test_first_index_move_is_an_explicit_rapid_with_work_offset.
         """
         self._check_first_program_index()
+
+    def _check_index_states_its_job_offset(self, source=None):
+        # VMID iWorkOffset_Method 1: job 1 on CoordSys '54', the indexed same-tool job 2 on '55'.
+        session = Session(source=source, vmid=dict(iWorkOffset_Method=1), home_user_name='54')
+        session.first_tool()
+        session.cut(10, 20, 5, -1)
+        mark = session.mark()
+        session.same_tool_job(tmatrix=90, home_user_name='55')
+        replayed = session.replay_tail(mark)
+        rotation = index_of([block for block, _ in replayed], is_rotation)
+        self.assertGreaterEqual(rotation, 0, session.text(mark))
+        self.assertEqual(replayed[rotation][1].work_offset, 55, f'index outside its job offset: {session.text(mark)!r}')
+
+    def test_index_states_the_work_offset_of_its_job(self):
+        """INDEPENDENT: 3696aa2 (the deferred index runs after @home_number): a
+        same-tool index of a job on CoordSys '55' (VMID iWorkOffset_Method 1)
+        turns A in G55, the offset of the job it belongs to, not in the G54 of
+        the job before."""
+        self._check_index_states_its_job_offset()
 
     def _check_index_after_feed_moves(self, source=None):
         cases = [(index_mode, offset, clearance, retract, approach)
@@ -281,28 +301,27 @@ class IndexHistoryTests(LinkOracle, unittest.TestCase):
 # First index of a program (known defects)
 # ---------------------------------------------------------------------------
 class FirstIndexClearanceTests(unittest.TestCase):
-    """The first tmatrix index runs in the first @start_of_job, before the first
-    tool change, before any @end_of_job stored nPtool_z_level /
-    nPtool_start_plane and before @usr_rapid assigned sHomestrrot."""
+    """The first index of a program: a tmatrix index of the first job is turned by the
+    positioning block of the first tool change (owner decision 2026-10-28, DESIGN-003); a
+    @fourth_axis index of the first job runs before any @end_of_job stored nPtool_z_level /
+    nPtool_start_plane."""
 
-    @known_defect('PP-015')
-    def test_first_index_tool_level_clearance_never_plunges_to_z0(self):
+    @covers('PP-015')
+    def test_first_tool_index_tool_level_clearance_never_plunges_to_z0(self):
         """INDEPENDENT: PP header definition of i4xIndexClearanceMode 1/2
         (retract to the tool Z level / tool start plane before the rotation)
         and the tool-change order of a program start.
 
-        Merged tc-02 oracle with the verifier's correction: on the first job the
-        deferred index runs before 'T1 M06 D1', while the previous program's
-        tool and length offset are still active, so no Z word may be programmed
-        before the first M06 (G75 Z1= homing is allowed; a 'Z60' with an
-        unknown tool length is not a clearance). In addition, between program
-        start and the first rotation no Z move goes below the job's clearance
-        level, and when A rotates Z is either homed (G75, modal replay 'homed')
-        or at least at that level. Z0 (part zero, often the rotary centreline)
-        is neither. Currently the retract uses the not yet assigned nPtool_*
-        (0): 'G0 G54 Z0', A=DC(90), then the new level, all before M06. A fix
-        that only substitutes the job's level still programs Z before M06 and
-        keeps this test red (tc-02 correction).
+        Merged tc-02 oracle with the verifier's correction: the previous
+        program's tool and length offset are active until 'T1 M06 D1', so no Z
+        word may be programmed before the first M06 (G75 Z1= homing is
+        allowed); between program start and the first rotation no Z move goes
+        below the job's clearance level, and when A rotates Z is homed (G75,
+        modal replay 'homed') or at least at that level. Z0 (part zero, often
+        the rotary centreline) is neither. Regression guard of the first-tool
+        facet of PP-015: the deferred index used the not yet assigned nPtool_*
+        (0), 'G0 G54 Z0' before M06; it is now the tool-change block, after the
+        homings of the program start.
         """
         problems = {}
         for clearance, level in ((1, 60), (2, 50)):
@@ -325,26 +344,57 @@ class FirstIndexClearanceTests(unittest.TestCase):
         self.assertEqual(problems, {}, 'first index: Z programmed with the previous tool or A rotated '
                                        'below the job clearance')
 
+    @known_defect('PP-015', facet='fourth-axis')
+    def test_first_job_fourth_axis_tool_level_clearance_never_plunges_to_z0(self):
+        """INDEPENDENT: PP header definition of i4xIndexClearanceMode 1/2
+        (retract to the tool Z level / tool start plane before the rotation).
+
+        A @fourth_axis index in the first job (history-indexing-link-06): no Z
+        move below the job's clearance level before the rotation, and Z at the
+        rotation homed or at least at that level. Currently the retract uses the
+        not yet assigned nPtool_* (0): 'Z0', A=ACP(90), then the new level.
+        """
+        problems = {}
+        for clearance, level in ((1, 60), (2, 50)):
+            session = Session(options=dict(i4xIndexClearanceMode=clearance))
+            session.first_tool(tool_z_level=60, tool_start_plane=50)
+            session.ev('fourth_axis', angle=90, angle_4x_around_x_dir='ccw')
+            # The first A word is the forced A=DC(0) of the tool-change block; the index is the second.
+            replayed = session.replay()
+            blocks = [block for block, _ in replayed]
+            first = index_of(blocks, is_rotation)
+            rotation = index_of(blocks, is_rotation, first + 1)
+            if first < 0 or rotation < 0 or blocks[first].rotary('A') != ('DC', 0.0):
+                raise RuntimeError(f'scenario precondition failed (no A=DC(0), then an index): {session.text()!r}')
+            low = [block.raw for block in blocks[first + 1:rotation] if block.axes.get('Z', level) < level]
+            at_rotation = replayed[rotation][1]
+            z_at_rotation = 'homed' if 'Z' in at_rotation.homed else at_rotation.position[2]
+            if low or (z_at_rotation != 'homed' and (z_at_rotation is None or z_at_rotation < level)):
+                problems[clearance] = dict(below_clearance=low, z_at_rotation=z_at_rotation)
+        self.assertEqual(problems, {}, 'first-job @fourth_axis: A rotated below the job clearance')
+
     @covers('PP-053')
     def test_first_index_in_z_homing_mode_homes_z(self):
         """INDEPENDENT: PP header '0=Z-Homing' for i4xIndexClearanceMode: every
-        index homes Z after its optional stop, as all later indexes do
-        ('M1 / G75 Z1=0. / G75 Y1=0 X1=0 / A').
+        index turns A with Z homed.
 
-        The first index of a program, before any rapid, homes with the head
-        homing string (sHomestrrot is still empty there): the axes may have
-        moved during the M1 and the program start homing may be off
-        (bHomebegin). Regression guard of PP-053.
+        The first index of a program is the first tool change's positioning
+        block (DESIGN-003); Z is homed when it turns, also with the program
+        start homing off (bHomebegin) and with the first-rapid and A-turn
+        homings off (bHomerotv, bHomeroth): the index then homes itself
+        (i4xIndexClearanceMode 0). Regression guard of PP-053.
         """
-        session = Session()
-        session.first_tool(tmatrix=90)
-        blocks = session.blocks()
-        rotation = index_of(blocks, is_rotation)
-        stop = last_index_of(blocks, is_optional_stop, 0, rotation)
-        if rotation < 0 or stop < 0:
-            raise RuntimeError(f'scenario precondition failed (index or M1 missing): {session.text()!r}')
-        self.assertGreaterEqual(last_index_of(blocks, is_home_z, stop, rotation), 0,
-                                f'the first index has no Z homing of its own: {session.text()!r}')
+        for options in ({}, dict(bHomebegin=False), dict(bHomebegin=False, bHomerotv=False),
+                        dict(bHomebegin=False, bHomerotv=False, bHomeroth=False)):
+            session = Session(options=options)
+            session.first_tool(tmatrix=90)
+            replayed = session.replay()
+            blocks = [block for block, _ in replayed]
+            rotation = index_of(blocks, is_rotation)
+            if rotation < 0:
+                raise RuntimeError(f'scenario precondition failed (no index): {session.text()!r}')
+            self.assertIn('Z', state_before(replayed, rotation).homed,
+                          f'{options}: the first index turns A without Z homing: {session.text()!r}')
 
 
 # ---------------------------------------------------------------------------
@@ -837,42 +887,86 @@ class DesignPinTests(LinkOracle, unittest.TestCase):
         """
         self._check_link_trust()
 
-    def _check_index_before_tool_change(self, source=None):
-        session = job_session(source)
+    def _check_index_at_tool_change(self, source=None):
+        # Tools 1 and 2 cut at A0, a 5x job of tool 2 ends at A37 (apos 37), then the third tool
+        # change (the first two skip the apos reset, PP-027) brings a job on a CoordSys at 90.
+        session = Session(source=source)
+        session.first_tool()
+        session.cut(10, 20, 5, -1)
+        session.next_tool(2, 3)
+        session.cut(10, 20, 5, -1)
+        session.ev('move_5x', ('xpos', 'ypos', 'zpos', 'apos'), xpos=12, ypos=23, zpos=35, apos=37, dir5a='ccw')
+        session.ev('line_5x', ('zpos', 'feed'), zpos=-2, feed_type='feed_rate')
+        session.ev('line_5x', ('zpos',), zpos=35, feed_type='feed_rate')
         mark = session.mark()
-        session.next_tool(2, 3, tmatrix=90)
+        session.next_tool(3, 4, tmatrix=90, angle_4x_around_x_dir='ccw')
+        session.cut(30, 40, 5, -1)
         replayed = session.replay_tail(mark)
         blocks = [block for block, _ in replayed]
         text = session.text(mark)
-        rotation = index_of(blocks, is_rotation)
         spindle_off = index_of(blocks, lambda block: 5 in block.m)
         tool_change = index_of(blocks, lambda block: 6 in block.m)
-        self.assertTrue(0 <= rotation < spindle_off < tool_change, text)
-        state = replayed[rotation][1]
-        self.assertEqual((state.spindle, state.tool), (3, 1), 'old tool spinning at the rotation')
-        self.assertEqual(len([block for block in blocks if is_optional_stop(block)]), 2, text)
-        self.assertEqual(len([block for block in blocks if is_home_z(block)]), 2, text)
+        cut = next(index for index, (block, state) in enumerate(replayed) if block.is_motion and state.motion == 1)
+        rotation = index_of(blocks, is_rotation)
+        self.assertEqual(len([block for block in blocks[:cut] if is_optional_stop(block)]), 1, f'one M1:\n{text}')
+        self.assertEqual([block.homing_axes for block in blocks[:cut] if 75 in block.g], [{'Z'}, {'X', 'Y'}],
+                         f'one homing pair:\n{text}')
+        self.assertTrue(0 <= spindle_off < tool_change < rotation < cut, f'M5, M06, then the A turn:\n{text}')
+        self.assertEqual(rotations(blocks[:cut]), [('ACP', 90.0)], text)
+        block, state = replayed[rotation]
+        self.assertEqual((block.axes, state.motion, state.work_offset, state.tool), ({}, 0, 54, 3),
+                         f'A is not turned by the G0 G54 block of the new tool: {block.raw!r}\n{text}')
+        self.assertIn('Z', state_before(replayed, rotation).homed, f'A turns without Z homing:\n{text}')
+        self.assertEqual(replayed[cut][1].a, 90, text)
 
     @covers('DESIGN-003')
-    def test_deferred_tmatrix_index_runs_before_tool_change(self):
-        """CHARACTERIZATION of DESIGN-003 (open owner decision; current behaviour).
-
-        @start_of_job runs the deferred tmatrix index before usr_ct: the table
-        rotates with the previous tool still spinning (M3, coolant on), then the
-        tool change follows with its own M5/M9, homing and M1, i.e. two M1 and
-        two G75 Z for one transition (Z is homed before the rotation, so it is
-        safe). Alternative: run the index after the tool change (also removes
-        the PP-015/PP-034 couplings). From pp-weird-hunter
-        test_pin_tmatrix_index_runs_before_tool_change.
+    def test_index_at_a_tool_change_turns_in_the_tool_change_block(self):
+        """CHARACTERIZATION of the owner decision on DESIGN-003 (2026-10-28):
+        an index pending at a tool change has no block of its own; the
+        positioning block of the tool change turns A, after M5, the tool
+        change's homing, its M1 and M06. A 5x job that ends at A37 followed by
+        a job on a CoordSys at 90 with another tool: one M1, one homing pair
+        (G75 Z, G75 Y X), no A word before M5 or M06, 'G0 G17 G90 G54
+        A=ACP(90)' with the new tool and Z homed, A90 at the first cut. Before,
+        the index turned A with the old tool still spinning, to A127 (the 5x
+        job's stale apos, PP-005), and the tool change homed and stopped again.
         """
-        self._check_index_before_tool_change()
+        self._check_index_at_tool_change()
+
+    def _check_program_start_index(self, source=None):
+        def program(**job):
+            session = Session(source=source)
+            session.first_tool(**job)
+            session.cut(10, 20, 5, -1)
+            return [re.sub(r'A=(DC|ACP|ACN)\([^)]*\)', 'A=..', block.raw) for block in session.blocks()], session
+
+        plain, _ = program()
+        indexed, session = program(tmatrix=90)
+        self.assertEqual(indexed, plain, f'the index adds blocks to the program start:\n{session.text()}')
+        self.assertEqual(rotations(session.blocks()), [('DC', 90.0)], session.text())
+
+    @covers('DESIGN-003')
+    def test_program_start_index_adds_only_the_a_word(self):
+        """CHARACTERIZATION of the owner decision on DESIGN-003 (2026-10-28) at
+        the program start: a first job on a CoordSys at 90 gives the same blocks
+        as one at 0, except the A word of the tool-change block (A=DC(90)
+        instead of A=DC(0)): no M1 and no homing of an index before the first
+        tool. Both keep the program start homing (bHomebegin) before M06 and
+        the first-rapid homing (bHomerotv) after it.
+        """
+        self._check_program_start_index()
 
 
 # ---------------------------------------------------------------------------
 # Negative validation: focused reversions must fail with AssertionError
 # ---------------------------------------------------------------------------
 _INDEX_BLOCK = ('    if bTmatrixIndexPending\n        change(cWo) = true\n        change(iWorkoffset) = true\n'
-                '        call @usr_4x_index\n        bTmatrixIndexPending = false\n    endif\n')
+                '        if !bTlchg\n            call @usr_4x_index\n            bTmatrixIndexPending = false\n'
+                '        endif\n    endif\n')
+# DESIGN-003 (owner decision 2026-10-28): with a tool change the pending index has no block of its own.
+_INDEX_SKIPPED_AT_TOOL_CHANGE = ('        if !bTlchg\n            call @usr_4x_index\n            bTmatrixIndexPending = false\n'
+                                 '        endif\n')
+_INDEX_BEFORE_TOOL_CHANGE = '        call @usr_4x_index\n        bTmatrixIndexPending = false\n'
 # 88695c9 put the job-plane restore between @home_number and the deferred index; the plane check took
 # its place when YZ/ZX started to stop the post.
 _JOB_PLANE = ("    ; The job's machining plane, sent with start_of_job (G17; YZ/ZX stop the post).\n"
@@ -883,15 +977,14 @@ REVERSIONS = [
     ('rotary format precision reduced (c03e1b4 format half)',
      [("    nR1pos_f        = '7.3'", "    nR1pos_f        = '7.1'")],
      IndexHistoryTests, '_check_first_program_index'),
-    ('c03e1b4: motion mode initialised to 0',
-     [('    iMotionmode     = 9999\n    iMplane', '    iMotionmode     = 0\n    iMplane')],
-     IndexHistoryTests, '_check_first_program_index'),
+    # c03e1b4's start value 9999 of iMotionmode reaches no index any more: the first index is the
+    # tool-change block (DESIGN-003), which writes its G0 itself; usr_tc_init_gmstates sets 9999 too.
     ('3696aa2: index before home_number',
      [('    call @home_number\n' + _JOB_PLANE + _INDEX_BLOCK, _JOB_PLANE + _INDEX_BLOCK + '    call @home_number\n')],
-     IndexHistoryTests, '_check_first_program_index'),
+     IndexHistoryTests, '_check_index_states_its_job_offset'),
     ('3696aa2: work offset not forced for the deferred index',
-     [('        change(cWo) = true\n        change(iWorkoffset) = true\n        call @usr_4x_index',
-       '        call @usr_4x_index')],
+     [('        change(cWo) = true\n        change(iWorkoffset) = true\n        if !bTlchg\n',
+       '        if !bTlchg\n')],
      IndexHistoryTests, '_check_index_after_feed_moves'),
     ('c03e1b4: index mode 0 does not force G0',
      [('    iMotionmode = 0\n    if i4xIndexClearanceMode eq 0\n        sHomestr = sHomestrrot\n',
@@ -1062,11 +1155,22 @@ REVERSIONS = [
      [('    if bCamLinkRapid\n        bCamLinkRetract = true',
        '    if bCamLinkRapid and zpos ge nLastPathZ\n        bCamLinkRetract = true')],
      DesignPinTests, '_check_link_trust'),
-    ('DESIGN-003 alternative: index after the tool change',
-     [('    call @home_number\n' + _JOB_PLANE + _INDEX_BLOCK, '    call @home_number\n' + _JOB_PLANE),
-      ('        call @usr_ct\n        bTlchg = false\n',
-       '        call @usr_ct\n' + textwrap.indent(_INDEX_BLOCK, '    ') + '        bTlchg = false\n')],
-     DesignPinTests, '_check_index_before_tool_change'),
+    ('DESIGN-003 reverted: the pending index runs before the tool change',
+     [(_INDEX_SKIPPED_AT_TOOL_CHANGE, _INDEX_BEFORE_TOOL_CHANGE)],
+     DesignPinTests, '_check_index_at_tool_change'),
+    ('DESIGN-003 reverted: an index before the first tool',
+     [(_INDEX_SKIPPED_AT_TOOL_CHANGE, _INDEX_BEFORE_TOOL_CHANGE)],
+     DesignPinTests, '_check_program_start_index'),
+    ('the tool-change block homes again for its index turn',
+     [('            if !(bPostHomed and bPostHomedZ)\n                if i4xIndexClearanceMode eq 0\n',
+       '            if true\n                if i4xIndexClearanceMode eq 0\n')],
+     DesignPinTests, '_check_index_at_tool_change'),
+    ('the index M1 repeats the M1 of the tool change',
+     [('        if bOptstpindex and !bStopSinceMotion and !first_tool\n', '        if bOptstpindex and !first_tool\n')],
+     DesignPinTests, '_check_index_at_tool_change'),
+    ('an index M1 before the first tool',
+     [('        if bOptstpindex and !bStopSinceMotion and !first_tool\n', '        if bOptstpindex and !bStopSinceMotion\n')],
+     DesignPinTests, '_check_program_start_index'),
 ]
 
 
