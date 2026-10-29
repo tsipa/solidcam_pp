@@ -1368,6 +1368,16 @@ endp
     ; With a tool change the pending index has no block of its own: the tool change's positioning
     ; block turns A (usr_rapid).
     call @usr_camdbg_start_of_job
+    if !X5_job
+        ; SolidCAM keeps the last 4x/5x rotary positions in apos/bpos/cpos (recorded_cam_001: apos
+        ; -88.693 at the start of a 3-axis job after a 4x simultaneous one). A job without simultaneous
+        ; rotary motion has none: they must not add to its A (usr_r1_cam_angle) in the index below, a
+        ; work offset change or its first rapid. CAM did not zero them: keep the CAM-side references.
+        apos = 0
+        bpos = 0
+        cpos = 0
+        bR1StepReset = true
+    endif
     call @usr_link_boundary
     call @home_number
     ; The job's machining plane, sent with start_of_job (G17; YZ/ZX stop the post).

@@ -46,7 +46,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 49. `@covers` references: 102.
+Canonical `@known_defect` tests: 49. `@covers` references: 103.
 
 ## Index of open entries
 
@@ -157,6 +157,8 @@ Canonical `@known_defect` tests: 49. `@covers` references: 102.
 - Source findings: TSR-14, history-rotary-08, pp-region-4-cycles-rotary(missed-3)
 - Reproduced by:
   - `tests/test_indexing_link.py::FourthAxisIndexTests::test_tmatrix_index_ignores_previous_job_apos`
+- Pinned or exercised by (`@covers`):
+  - `tests/test_indexing_link.py::SimultaneousJobCarryOverTests::test_same_tool_index_after_a_simultaneous_job_goes_straight_to_the_index_angle`
 
 ### PP-006
 

@@ -564,6 +564,93 @@ class FourthAxisIndexTests(LinkOracle, unittest.TestCase):
         self.assertEqual(found, [90.0], session.text(mark))
 
 
+def simultaneous_cut(session, rotary='apos', angle=37):
+    """A 5x (apos) or 4x (cpos) cut at CAM angle `angle`, then the retract to Z35."""
+    move, line = ('move_5x', 'line_5x') if rotary == 'apos' else ('move_4x', 'line_4x')
+    session.ev(move, ('xpos', 'ypos', 'zpos', rotary), xpos=12, ypos=23, zpos=35, dir5a='ccw', **{rotary: angle})
+    session.ev(line, ('zpos', 'feed'), zpos=-2, feed_type='feed_rate')
+    session.ev(line, ('zpos',), zpos=35, feed_type='feed_rate')
+
+
+class SimultaneousJobCarryOverTests(unittest.TestCase):
+    """SolidCAM keeps the last apos/cpos of a 4x/5x job into the next job: recorded_cam_001
+    operation_023, a profile job (X5_job 0) after a 4x simultaneous one, starts with apos -88.693
+    (CAMDBG readout). A job that is not simultaneous (X5_job false) has no rotary motion of its
+    own: @start_of_job drops those values."""
+
+    def _check_index_after_simultaneous_job(self, source=None):
+        cases = {
+            '5x job': ('apos', 0, False),
+            '4x job': ('cpos', 0, False),
+            '5x job, work offset change on the third tool': ('apos', 1, True),
+        }
+        for label, (rotary, method, third_tool) in cases.items():
+            with self.subTest(label):
+                session = Session(source=source, vmid=dict(iWorkOffset_Method=method), home_user_name='54')
+                session.first_tool()
+                session.cut(10, 20, 5, -1)
+                if third_tool:
+                    # The third tool change is the first with the full apos reset (PP-027), so the
+                    # offset change of a same-tool job resets A as well.
+                    session.next_tool(2, 3)
+                    session.cut(10, 20, 5, -1)
+                    session.next_tool(3, 4)
+                    session.cut(10, 20, 5, -1)
+                simultaneous_cut(session, rotary)
+                mark = session.mark()
+                session.same_tool_job(tmatrix=90, X5_job=False, angle_4x_around_x_dir='ccw',
+                                      home_user_name='55' if method else '54')
+                session.ev('rapid_move', ('xpos', 'ypos', 'zpos'), xpos=30, ypos=40, zpos=5)
+                session.ev('line', ('zpos', 'feed'), zpos=-1, feed_type='feed_rate')
+                replayed = session.replay_tail(mark)
+                text = session.text(mark)
+                cut = next((index for index, (block, state) in enumerate(replayed)
+                            if block.is_motion and state.motion == 1), -1)
+                if cut < 0:
+                    raise RuntimeError(f'scenario precondition failed (no cut): {text!r}')
+                self.assertEqual([value for _, value in rotations([block for block, _ in replayed[:cut]])], [90.0],
+                                 f'A does not go straight to the index angle:\n{text}')
+                self.assertEqual(replayed[cut][1].a, 90, text)
+
+    @covers('PP-005')
+    def test_same_tool_index_after_a_simultaneous_job_goes_straight_to_the_index_angle(self):
+        """INDEPENDENT: geometry: a job that is not simultaneous (X5_job false) on a CoordSys
+        turned by 90 is machined at A90 (angle_4x_around_x alone). Same tool, the job before ends
+        at CAM A37 (a 5x cut, apos 37, or a 4x cut, cpos 37): the index turns A to 90 in one
+        word, and with a work offset change (CoordSys 55) the offset block turns it no further.
+        Before, the index added the kept 37: A127, and the 3-axis job was cut there, or the
+        offset block turned A on to 90 after the tool change reset of the third tool.
+        """
+        self._check_index_after_simultaneous_job()
+
+    def _check_cam_reference_across_a_three_axis_job(self, source=None):
+        # A 5x job turns CAM's A to 720 (the control's A stays at 0), a 3-axis job of the same tool
+        # follows, then a 5x job whose first cut stays at CAM A 720 (apos sent, not changed).
+        session = Session(source=source)
+        session.first_tool()
+        session.cut(10, 20, 5, -1)
+        for apos in range(90, 721, 90):
+            session.ev('line_5x', ('xpos', 'apos'), xpos=10 + apos / 90, apos=apos, dir5a='ccw',
+                       feed_type='feed_rate')
+        session.ev('line_5x', ('zpos',), zpos=35, apos=720, feed_type='feed_rate')
+        session.same_tool_job(X5_job=False, job_name='op2')
+        session.ev('rapid_move', ('xpos', 'ypos', 'zpos'), xpos=30, ypos=40, zpos=5)
+        session.ev('line', ('zpos', 'feed'), zpos=-1, feed_type='feed_rate')
+        session.ev('rapid_move', ('zpos',), zpos=35)
+        session.same_tool_job(X5_job=True, job_name='op3')
+        try:
+            session.ev('line_5x', ('xpos', 'zpos'), xpos=25, zpos=10, apos=720, dir5a='ccw', feed_type='feed_rate')
+        except UnsupportedGPPL as stop:
+            self.fail(f'the first cut at CAM A720 stops the post: {stop}')
+
+    def test_three_axis_job_keeps_the_cam_a_reference(self):
+        """INDEPENDENT: owner rule 2026-10-28 (usr_r1pos_calc): CAM's own A step is measured from
+        CAM's last A, not from the post's zero. A 3-axis job between two 5x jobs of one tool brings
+        no CAM A, so the next 5x cut at CAM A720, where the last 5x job ended, is no turn: no
+        full-turn stop."""
+        self._check_cam_reference_across_a_three_axis_job()
+
+
 # ---------------------------------------------------------------------------
 # CAM-link authorization state machine (d5952a2 / 37ab3b9 / f1803b4)
 # ---------------------------------------------------------------------------
@@ -967,6 +1054,9 @@ _INDEX_BLOCK = ('    if bTmatrixIndexPending\n        change(cWo) = true\n      
 _INDEX_SKIPPED_AT_TOOL_CHANGE = ('        if !bTlchg\n            call @usr_4x_index\n            bTmatrixIndexPending = false\n'
                                  '        endif\n')
 _INDEX_BEFORE_TOOL_CHANGE = '        call @usr_4x_index\n        bTmatrixIndexPending = false\n'
+# @start_of_job drops the rotary positions a simultaneous job left for a job that is not one (PP-005).
+_JOB_START_RESET = ('        apos = 0\n        bpos = 0\n        cpos = 0\n        bR1StepReset = true\n    endif\n'
+                    '    call @usr_link_boundary\n')
 # 88695c9 put the job-plane restore between @home_number and the deferred index; the plane check took
 # its place when YZ/ZX started to stop the post.
 _JOB_PLANE = ("    ; The job's machining plane, sent with start_of_job (G17; YZ/ZX stop the post).\n"
@@ -1023,6 +1113,15 @@ REVERSIONS = [
     ('fourth_axis angle 0 does not reset the index position',
      [('    if angle eq 0\n        position = 1', '    if false\n        position = 1')],
      FourthAxisIndexTests, '_check_fourth_axis_return_to_zero'),
+    ('a job that is not simultaneous keeps the last apos/cpos',
+     [('    if !X5_job\n        ; SolidCAM keeps', '    if false\n        ; SolidCAM keeps')],
+     SimultaneousJobCarryOverTests, '_check_index_after_simultaneous_job'),
+    ('a job that is not simultaneous keeps the last cpos',
+     [(_JOB_START_RESET, _JOB_START_RESET.replace('        cpos = 0\n', ''))],
+     SimultaneousJobCarryOverTests, '_check_index_after_simultaneous_job'),
+    ("the CAM A reference follows the post's zero of a job that is not simultaneous",
+     [(_JOB_START_RESET, _JOB_START_RESET.replace('        bR1StepReset = true\n', ''))],
+     SimultaneousJobCarryOverTests, '_check_cam_reference_across_a_three_axis_job'),
     ('initial index clearance not armed',
      [('    bIndexClearancePending = true\n    bCamLinkRetract = false\n    bJobPositioned = false\n'
        '    bPostHomed = false\n',
