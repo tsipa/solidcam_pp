@@ -96,7 +96,7 @@ class BackupCredentialTests(unittest.TestCase):
             # Run the actual tracked hook too, without contacting any remote.
             hooks = root / '.githooks'
             hooks.mkdir()
-            for name in ('pre-commit', 'pre-push'):
+            for name in ('pre-commit', 'pre-push', 'check_commit_identity.py'):
                 shutil.copyfile(SCRIPT.parents[4] / '.githooks' / name, hooks / name)
                 (hooks / name).chmod(0o755)
             bundled = root / '.codex/skills/sinumerik-backups/scripts/check_credentials.py'

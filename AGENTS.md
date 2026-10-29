@@ -19,6 +19,13 @@
   The pre-push hook checks outgoing commit contents, including intermediate
   commits, before Git sends them to the remote.
 
+# Commit identity
+
+- Every commit is authored and committed as `Sergei Iudin <tsipa740@gmail.com>`.
+  Set `git config user.name "Sergei Iudin"` and `git config user.email tsipa740@gmail.com`
+  before committing. The hooks refuse any other identity
+  (`.githooks/check_commit_identity.py`, also in pre-push for every outgoing commit).
+
 # VERICUT
 
 - For VERICUT project/control work, use
