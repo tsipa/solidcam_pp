@@ -2040,8 +2040,8 @@ endp
 @usr_arc_point
     ; End point of an arc block: both axes of the arc plane in every block, whatever their change
     ; flags (an AR= block without them ends on its start and leaves the centre undefined), and the
-    ; axis normal to the plane when it is flagged or leaves its start (helix): usr_arc_math commits
-    ; the end with an assignment that may clear the flag of an equal value. YZ and ZX arcs stop the
+    ; axis normal to the plane when it is flagged or leaves its start (helix): usr_arc_math may
+    ; replace the end with an assignment that may clear the flag of an equal value. YZ and ZX arcs stop the
     ; post before (usr_arc_math); the YZ branch is not reached while that stop is in place.
     if arc_plane eq XY then
         if zpos ne zstart then
@@ -2061,6 +2061,8 @@ endp
     ; Arc geometry: G2/G3 (iMotionmode) and G17/G18/G19 (iMplane) from arc_direction and arc_plane,
     ; and the end point recomputed from the start point, the incremental centre (x/y/zcenter_rel) and
     ; arc_size in the arc plane; the axis normal to the plane keeps the CAD end value (helical arcs).
+    ; The block keeps SolidCAM's end point when the recomputed one agrees with it up to the rounding
+    ; of the inputs (the arc is unambiguous), else it takes the recomputed one (dc916d7).
     ; usr_arc_check stops the post when the result misses the CAD end point by more than 0.001,
     ; usr_arc_angle_check when AR= cannot take the angle, usr_arc_chord_check when the end lies within
     ; 0.0001 mm of the start point. An arc above 180 degrees also gets the point halfway (nArcMidX/Y/Z),
@@ -2073,6 +2075,7 @@ endp
     local numeric calculated_xpos, calculated_ypos, calculated_zpos
     local numeric dx, dy, dz
     local numeric du, dv
+    local numeric nEndTol
 
     ; --- motion mode ---
     if arc_direction eq CCW then
@@ -2157,12 +2160,27 @@ endp
     dz = abs(calculated_zpos - zpos)
     call @usr_arc_check(dx, dy, dz)
     call @usr_arc_angle_check
-    ; --- chord in the arc plane ---
-    du = calculated_xpos - xstart
-    dv = calculated_ypos - ystart
+    ; --- end point ---
+    ; Owner 2026-10-28: an unambiguous arc ends where SolidCAM ends it. With AR= the control derives
+    ; the centre from the end point, so the CAM end needs no correction; the recomputed end moved the
+    ; path off the CAM arc by up to 0.00014 mm in the recorded traces (radius 2000: the 5-decimal
+    ; arc_size alone turns the end by up to 0.00017 mm). Unambiguous: start, centre, end and angle
+    ; agree up to the rounding of the inputs, 0.00003 mm per axis for the 5-decimal coordinates
+    ; (start, centre offset, end) plus radius * 0.000005 deg (0.0000000873 rad) for arc_size; the
+    ; radius is bounded by the sum of the components, without a square root. Beyond that, up to the
+    ; 0.001 of usr_arc_check, the recomputed end replaces the CAM end as before.
+    nEndTol = 0.00003 + (abs(vx) + abs(vy) + abs(vz)) * 0.0000000873
+    if dx > nEndTol or dy > nEndTol or dz > nEndTol
+        xpos = calculated_xpos
+        ypos = calculated_ypos
+        zpos = calculated_zpos
+    endif
+    ; --- chord in the arc plane, to the end point the block prints ---
+    du = xpos - xstart
+    dv = ypos - ystart
     if iMplane eq 19 then
-        du = calculated_ypos - ystart
-        dv = calculated_zpos - zstart
+        du = ypos - ystart
+        dv = zpos - zstart
     endif
     call @usr_arc_chord_check(du, dv)
 
@@ -2182,10 +2200,6 @@ endp
             nArcMidZ = cz + vy * s + vz * c
         endif
     endif
-    ; --- commit end point ---
-    xpos = calculated_xpos
-    ypos = calculated_ypos
-    zpos = calculated_zpos
 endp
 
 @usr_arc

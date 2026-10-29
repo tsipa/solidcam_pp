@@ -233,8 +233,9 @@ class CoverageTests(unittest.TestCase):
         # YZ/ZX arc math and plane branches after their stops (options_session lost its YZ arc and its YZ
         # and ZX planes 2026-10-28), POST ERROR paths (one more since 2026-10-27: compensation on at a
         # tool change without a Z homing; one more since 2026-10-28: the YZ/ZX machining-plane stop), TRC
-        # fallback
-        self.assertGreaterEqual(summary['percent'], 84.4)
+        # fallback, the recomputed arc end (since 2026-10-28 an arc keeps the CAM end within the input
+        # rounding, as every session arc does; tests/test_arc_compensation_plane.py ArcEndPointTests)
+        self.assertGreaterEqual(summary['percent'], 84.3)
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
         # arc_yz, arc_zx: no session has a YZ or ZX arc since they stop the post (ZX since 5408e5c, both
         # since 2026-10-28: G18/G19 move the tool length compensation off Z);

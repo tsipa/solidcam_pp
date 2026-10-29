@@ -360,7 +360,8 @@ class ArcGuardTests(unittest.TestCase):
         word (PGsl 03/2013 9.6.4), and the arc the control derives from it follows the CAM
         arc; above 180 deg it is two halves, a helix rising half its lead in each; dc916d7
         aborts on a CAD end point more than 0.001 off the circle in either direction of any
-        axis and writes the corrected end point within tolerance. Starts lie off the
+        axis and writes the recomputed end point within tolerance (a CAD end off by more than the
+        rounding of the inputs; ArcEndPointTests keeps one within it). Starts lie off the
         abscissa (absorbs the TSR off-axis test). The abort is observed as the engine
         exception at the GPPL `input` line (ENGINE-009)."""
         self.run_cases(OFF_AXIS_CASES)
@@ -370,7 +371,8 @@ class ArcGuardTests(unittest.TestCase):
     # YZ/ZX arc stop, so no behaviour test can see them. center_z_sign and dz_signed_reversed
     # went with them: cz and dz do not change an XY arc.
     MUTANTS = {
-        'no_end_point_commit': ('    xpos = calculated_xpos\n    ypos = calculated_ypos\n    zpos = calculated_zpos\n', ''),
+        'no_end_point_commit': ('        xpos = calculated_xpos\n        ypos = calculated_ypos\n        zpos = calculated_zpos\n',
+                                ''),
         'no_mismatch_check': ('    call @usr_arc_check(dx, dy, dz)\n', ''),
         'xy_rotation_flipped': ('        rx = vx * c - vy * s\n        ry = vx * s + vy * c\n',
                                 '        rx = vx * c + vy * s\n        ry = -vx * s + vy * c\n'),
@@ -460,29 +462,36 @@ class ArcGuardTests(unittest.TestCase):
 class ArcEndWordTests(unittest.TestCase):
     """Both end words of the arc plane in every AR= block (@usr_arc_point)."""
 
-    def semicircle(self, source=None, zpos=-1):
+    # A CAM end 0.0005 off in X: beyond the input rounding, so @usr_arc_math assigns the recomputed end.
+    AMBIGUOUS_X = -10.0005
+
+    def semicircle(self, source=None, zpos=-1, xpos=-10):
         require_nc_stream()
         with mock.patch.dict(os.environ, GPPL_POLICY='change_on_equal_assign=clear'):
             program = Program(source=source)
             program.start()
             program.ev('rapid_move', xpos=10, ypos=0, zpos=5)
             program.ev('line', zpos=-1, feed=200)
-            return program.ev('arc', xpos=-10, ypos=0, zpos=zpos, xstart=10, ystart=0, zstart=-1, xcenter_rel=-10,
+            return program.ev('arc', xpos=xpos, ypos=0, zpos=zpos, xstart=10, ystart=0, zstart=-1, xcenter_rel=-10,
                               ycenter_rel=0, zcenter_rel=0, arc_size=180, arc_direction='ccw', arc_plane='xy',
                               feed=200)
 
     def test_ar_block_keeps_both_plane_words_when_an_equal_assignment_clears_the_flag(self):
         """INDEPENDENT: PGsl 03/2013 9.6.4: AR= with the end point; a missing end word keeps the
         start coordinate, and an end on the start leaves the centre undefined. Whether an equal
-        assignment clears a change flag is UNVERIFIED (policy change_on_equal_assign);
-        @usr_arc_math commits the computed end by such an assignment (X = 10 * cos 180 = -10
-        exactly, the CAM value), so the block must carry X and Y whatever the flags say."""
+        assignment clears a change flag is UNVERIFIED (policy change_on_equal_assign). The CAM end
+        of a semicircle back to its start Y comes without the Y flag, and when @usr_arc_math
+        replaces an ambiguous end it does so by such an assignment (Y = 0, the CAM value), so the
+        block must carry X and Y whatever the flags say."""
         self.assertEqual(self.semicircle(), ['G3 X-10 Y0 AR=180'])
+        self.assertEqual(self.semicircle(xpos=self.AMBIGUOUS_X), ['G3 X-10 Y0 AR=180'])
 
     def test_helix_keeps_its_normal_axis_when_an_equal_assignment_clears_the_flag(self):
-        """INDEPENDENT: a helical arc ends at the CAM Z (here -2 from a start at -1); the same
-        commit by assignment may clear the Z flag, and an arc block without Z runs flat."""
+        """INDEPENDENT: a helical arc ends at the CAM Z (here -2 from a start at -1); replacing an
+        ambiguous end assigns Z its own value, which may clear the Z flag, and an arc block
+        without Z runs flat."""
         self.assertEqual(self.semicircle(zpos=-2), ['G3 X-10 Y0 Z-2 AR=180'])
+        self.assertEqual(self.semicircle(zpos=-2, xpos=self.AMBIGUOUS_X), ['G3 X-10 Y0 Z-2 AR=180'])
 
     def test_modal_end_words_are_detected(self):
         """INDEPENDENT: mutation self-check; modal plane words in @usr_arc_point drop X, and
@@ -491,7 +500,8 @@ class ArcEndWordTests(unittest.TestCase):
             ("        {'X'xpos ' ','Y'ypos ' ',['Z'zpos ' ']}\n", "        {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}\n",
              lambda source: self.assertEqual(self.semicircle(source), ['G3 X-10 Y0 AR=180']), 'modal X/Y'),
             ('        if zpos ne zstart then\n            change(zpos) = true\n        endif\n', '',
-             lambda source: self.assertEqual(self.semicircle(source, zpos=-2), ['G3 X-10 Y0 Z-2 AR=180']),
+             lambda source: self.assertEqual(self.semicircle(source, zpos=-2, xpos=self.AMBIGUOUS_X),
+                                             ['G3 X-10 Y0 Z-2 AR=180']),
              'helix Z by flag'),
         ]
         for old, new, check, label in checks:
@@ -502,8 +512,9 @@ class ArcEndWordTests(unittest.TestCase):
 class ArcLimitTests(unittest.TestCase):
     """The AR= format and the stops that keep an AR= block defined, with the post's real formats."""
 
-    def arc(self, source=None, start=(10, 0), center=(0, 0), size=90.0, plane='xy', applicate=14):
-        """One CCW arc of size degrees from start about center after the program start (real formats)."""
+    def arc(self, source=None, start=(10, 0), center=(0, 0), size=90.0, plane='xy', applicate=14, end_delta=(0, 0)):
+        """One CCW arc of size degrees from start about center after the program start (real formats);
+        end_delta moves the CAM end point off the exact end."""
         require_nc_stream()
         program = Program(source=source)
         program.start()
@@ -511,6 +522,7 @@ class ArcLimitTests(unittest.TestCase):
         su, sv = start
         cu, cv = center
         eu, ev = rotated(start, center, size)
+        eu, ev = eu + end_delta[0], ev + end_delta[1]
         point = {abscissa: su, ordinate: sv, normal: applicate}
         program.ev('rapid_move', xpos=point['X'], ypos=point['Y'], zpos=5)
         program.ev('line', zpos=point['Z'], feed=200)
@@ -540,6 +552,54 @@ class ArcLimitTests(unittest.TestCase):
         coarse = mutate("    nArcAR_f        = '3.5'\n", "    nArcAR_f        = '3.4'\n")
         assert_detected(self, lambda source: self.assertEqual(self.arc(source, size=37.123456),
                                                               ['G3 X7.97337 Y6.03534 AR=37.12346']), coarse, '3.4')
+
+
+class ArcEndPointTests(unittest.TestCase):
+    """The end point an XY arc block prints: SolidCAM's when the arc is unambiguous (owner 2026-10-28).
+
+    Unambiguous: the end recomputed from the start, the centre and arc_size agrees with the CAM end up
+    to the rounding of those inputs, 0.00003 mm per axis plus radius * 0.000005 deg. Beyond that, up to
+    the 0.001 stop, the recomputed end replaces the CAM end (dc916d7, ArcGuardTests roundoff cases).
+    """
+
+    arc = ArcLimitTests.arc
+
+    def assert_unambiguous_kept(self, source=None):
+        self.assertEqual(self.arc(source, end_delta=(0.00002, 0.00002)), ['G3 X0.00002 Y10.00002 AR=90'])
+        self.assertEqual(self.arc(source, start=(2000, 0), size=0.01, end_delta=(0, 0.00015)),
+                         ['G3 X1999.99997 Y0.34922 AR=0.01'])
+
+    def assert_ambiguous_recomputed(self, source=None):
+        self.assertEqual(self.arc(source, end_delta=(0.00004, 0)), ['G3 X0 Y10 AR=90'])
+        self.assertEqual(self.arc(source, end_delta=(0, -0.00004)), ['G3 X0 Y10 AR=90'])
+        self.assertEqual(self.arc(source, start=(2000, 0), size=0.01, end_delta=(0, 0.00025)),
+                         ['G3 X1999.99997 Y0.34907 AR=0.01'])
+
+    def test_unambiguous_arc_keeps_the_cam_end_point(self):
+        """INDEPENDENT: owner 2026-10-28 ('take the end from SolidCAM if the arc is unambiguous'):
+        with AR= the control derives the centre from the end point, so the CAM end prints as sent.
+        On radius 2000 (VMID MaxArcRadius) the 5-decimal arc_size alone turns the end by up to
+        0.00017 mm, so a CAM end 0.00015 mm off the exact end is still unambiguous."""
+        self.assert_unambiguous_kept()
+
+    def test_ambiguous_arc_takes_the_recomputed_end_point(self):
+        """INDEPENDENT: dc916d7: a CAM end off by more than the input rounding in any axis, up to the
+        0.001 stop, gives way to the end recomputed from the start, the centre and arc_size."""
+        self.assert_ambiguous_recomputed()
+
+    def test_end_point_choice_mutants_are_detected(self):
+        """INDEPENDENT: mutation self-check of the end point choice in @usr_arc_math."""
+        tolerance = '    nEndTol = 0.00003 + (abs(vx) + abs(vy) + abs(vz)) * 0.0000000873\n'
+        mutants = {
+            'always_recomputed': (tolerance, '    nEndTol = 0\n', self.assert_unambiguous_kept),
+            'never_recomputed': (tolerance, '    nEndTol = 1\n', self.assert_ambiguous_recomputed),
+            'no_radius_term': (tolerance, '    nEndTol = 0.00003\n', self.assert_unambiguous_kept),
+            'or_to_and': ('    if dx > nEndTol or dy > nEndTol or dz > nEndTol\n',
+                          '    if dx > nEndTol and dy > nEndTol and dz > nEndTol\n', self.assert_ambiguous_recomputed),
+        }
+        for label, (old, new, check) in mutants.items():
+            with self.subTest(label):
+                assert_detected(self, check, mutate(old, new), label)
 
 
 class RemovedArcModeTests(unittest.TestCase):
