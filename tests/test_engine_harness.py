@@ -391,7 +391,7 @@ class PostAbortGuardTests(unittest.TestCase):
     def assert_post_errors_abort(self, source):
         found = list(post_error_blocks(source))
         self.assertGreaterEqual(len(found), 5, 'expected POST ERROR paths in usr_arc_check, usr_r1_output, '
-                                'usr_arc_math (ZX arcs), usr_arc (compensation change on an arc) and '
+                                'usr_arc_math (YZ/ZX arcs), usr_arc (compensation change on an arc) and '
                                 'usr_line (a cutting block that turns A by 360 degrees or more)')
         for name, number, line, following in found:
             self.assertIn('abort', following, f'@{name}:{number}: POST ERROR statement is not followed by abort')
@@ -405,10 +405,11 @@ class PostAbortGuardTests(unittest.TestCase):
         self.assert_post_errors_abort(pp_source())
 
     def test_guard_detects_removed_abort(self):
-        """INDEPENDENT: mutation self-check. Deleting any abort of the twenty-four
+        """INDEPENDENT: mutation self-check. Deleting any abort of the twenty-five
         POST ERROR guards (@usr_arc_check, @usr_arc_chord_check, @usr_arc_angle_check (AR= opening
-        angle above 0 and up to 360), @usr_r1_output, the ZX arc stop of
-        5408e5c in @usr_arc_math, the compensation-on-arc stop of b999f65, the
+        angle above 0 and up to 360), @usr_r1_output, the YZ/ZX arc stop in @usr_arc_math (replaces
+        the ZX arc stop of 5408e5c), the YZ/ZX machining-plane stop of @usr_xy_plane_check, the
+        compensation-on-arc stop of b999f65, the
         full-turn cutting block stop of ebf9c57 in @usr_line, the A wrong-way
         stop @usr_r1_wrong_way_stop, the bLimit_3axis stop in @usr_r1pos_calc,
         the five option stops of @usr_check_options,
@@ -423,7 +424,7 @@ class PostAbortGuardTests(unittest.TestCase):
         with AssertionError."""
         lines = pp_source().split('\n')
         abort_lines = [index for index, line in enumerate(lines) if line.strip().lower() == 'abort']
-        self.assertEqual(len(abort_lines), 24, 'abort sites changed; review the guard')
+        self.assertEqual(len(abort_lines), 25, 'abort sites changed; review the guard')
         for removed in abort_lines:
             mutant = '\n'.join(line for index, line in enumerate(lines) if index != removed)
             assert_detected(self, self.assert_post_errors_abort, mutant, f'abort at line {removed + 1} removed')

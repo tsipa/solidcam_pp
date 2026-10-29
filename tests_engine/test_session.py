@@ -230,12 +230,15 @@ class CoverageTests(unittest.TestCase):
             program = session.engine.program
         summary = total.summary(program)
         self.assertEqual(summary['total'], sum(statement_kinds_from_text().values()))
-        # ZX arc math after its stop, POST ERROR paths (one more since 2026-10-27: compensation on at a
-        # tool change without a Z homing), TRC fallback
-        self.assertGreaterEqual(summary['percent'], 84.5)
+        # YZ/ZX arc math and plane branches after their stops (options_session lost its YZ arc and its YZ
+        # and ZX planes 2026-10-28), POST ERROR paths (one more since 2026-10-27: compensation on at a
+        # tool change without a Z homing; one more since 2026-10-28: the YZ/ZX machining-plane stop), TRC
+        # fallback
+        self.assertGreaterEqual(summary['percent'], 84.4)
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
-        # arc_zx: no session has a ZX arc since a ZX arc stops the post (5408e5c);
-        # test_replay_findings.test_zx_arc_stops_the_session runs it. The unsupported events stop the post
+        # arc_yz, arc_zx: no session has a YZ or ZX arc since they stop the post (ZX since 5408e5c, both
+        # since 2026-10-28: G18/G19 move the tool length compensation off Z);
+        # test_replay_findings.test_zx_arc_stops_the_session runs arc_zx. The unsupported events stop the post
         # (tests/test_unsupported_features.py, also the 4x polar/Cartesian, 4x drill and 5x arc events;
         # @rotate/@mirror: tests/test_contracts.py). usr_line_homed_return: a feed move right after a post homing,
         # which only the removed subprogram session recorded (tests/test_post_homing_reposition.py runs it).
@@ -247,8 +250,8 @@ class CoverageTests(unittest.TestCase):
                        'drill4x_pnt', 'drill4x_cartesian', 'drill4x_polar', 'move4x_polar', 'line4x_polar',
                        'arc_4x_polar', 'arc4x_polar', 'move4x_cartesian', 'line4x_cartesian', 'arc_4x_cartesian',
                        'arc4x_cartesian', 'arc_5x'}
-        self.assertEqual(never, {'arc_zx', 'usr_line_homed_return', 'usr_r1_wrong_way_stop', 'usr_trc_cancel'}
-                         | unsupported)
+        self.assertEqual(never, {'arc_yz', 'arc_zx', 'usr_line_homed_return', 'usr_r1_wrong_way_stop',
+                                 'usr_trc_cancel'} | unsupported)
         self.assertIn('Branch gaps', total.markdown(program))
 
     def test_coverage_file_merges_across_processes_and_ignores_mutants(self):
@@ -280,7 +283,9 @@ class CoverageTests(unittest.TestCase):
                                 str(FIXTURES / f'{name}.json'), '--vmid', str(VMID)],
                                cwd=ROOT, env=env, capture_output=True, check=True)
             merged = load_for(program, cov).summary(program)
-            self.assertGreaterEqual(merged['percent'], 92.0)
+            # 93.3 before 2026-10-28; the YZ/ZX arc math, plane branches and YZ arc point behind the
+            # YZ/ZX arc and machining-plane stops are no longer reached (about 92.0 after).
+            self.assertGreaterEqual(merged['percent'], 91.9)
             out = Path(tmp) / 'cov.md'
             text = subprocess.run([sys.executable, '-m', 'pp_tests.gppl', 'coverage', str(PP), str(cov), str(out),
                                    '--vmid', str(VMID)], cwd=ROOT, capture_output=True, text=True, check=True).stdout

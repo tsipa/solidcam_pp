@@ -46,13 +46,17 @@ the output (below). With the original 35-test suite (`revert_matrix.txt` of the
 review, 26 commits from e574716 on), 14 reverse patches applied and 4 of those went
 undetected (797fc88, e4af180, 961facc, c8b79bd); the 12 others could not be applied
 and were not assessed. The mutation figures in `pp_tests/README.md` were measured on
-the `f1803b4` GPP and were not re-run.
+the `f1803b4` GPP and were not re-run. Since the machine run of 2026-10-28 every
+YZ/ZX arc and machining plane stops the post (SD42940 = 0: G18/G19 move the tool
+length compensation off Z; `test_side_plane_guard.py`). The YZ/ZX output code behind
+the stops is dormant, and the tests that only reverted it (the dc916d7 ZX K word, the
+88695c9 drill cycle after a YZ arc) went with it; the figures above were not re-run.
 
 ### Commits before the review fixes
 
 | commit | subject | kind | reverse patch on HEAD | guarded by | verdict |
 | --- | --- | --- | --- | --- | --- |
-| `f1803b4` | Add offline GPPL regression tests and refresh arc link tracking | bug fix | applied; 4 FAIL | `test_arc_link_boundary.py` (an arc revokes the link and tracks Z and offset), `test_motion.py` descending link after an arc, `test_indexing_link.py::CamLinkTransitionTests.test_arc_in_any_plane_revokes_and_tracks_endpoint` | detected (reverse patch) |
+| `f1803b4` | Add offline GPPL regression tests and refresh arc link tracking | bug fix | applied; 4 FAIL | `test_arc_link_boundary.py` (an arc revokes the link and tracks Z and offset), `test_motion.py` descending link after an arc, `test_indexing_link.py::CamLinkTransitionTests.test_arc_revokes_and_tracks_endpoint` | detected (reverse patch) |
 | `37ab3b9` | Preserve CAM link clearance across consecutive rotary rapids | bug fix | applied; 2 FAIL | `test_motion.py` shit2 contiguous link and recorded sequences, `CamLinkBoundaryTests` | detected (reverse patch) |
 | `d5952a2` | Preserve index clearance while skipping homing on confirmed CAM links | bug fix | 4 of 11 hunks no longer apply | `test_indexing_link.py` `CamLink*Tests` and `ReversionDetectionTests` (state-machine reversions), `test_motion.py` one-rotation authorization regression; the partial reversion (7 of 11 hunks) fails 17 tests | detected (hand-crafted) |
 | `797fc88` | Add holder name and tool stickout to tool list comments | comment format | applied; 2 FAIL | `test_session_program.py::ToolListTests` (CHARACTERIZATION of the tool-list comment) and `test_tool_list_reversion_797fc88_is_detected` | detected (reverse patch) |
@@ -76,7 +80,7 @@ the `f1803b4` GPP and were not re-run.
 | `8d6b044` | Fix 4-axis indexing from SolidCAM tmatrix | bug fix | applied; 1 FAIL, 288 ERROR | `IndexHistoryTests.test_tmatrix_index_uses_angle_4x_around_x`; the errors come from the old formula reading inputs the harness does not supply | detected (reverse patch) |
 | `92e2b23` | Add optional stop before 4th-axis index moves | safety feature | no longer applies (later index fixes rewrote the line) | the `92e2b23` reversion (no M1) in `test_indexing_link.py` (two tests) | detected (hand-crafted) |
 | `c03e1b4` | Fix missing G0 on first 4th-axis index move | bug fix | 1 of 3 hunks no longer applies | `test_indexing_link.py` reversions `iMotionmode 9999 -> 0` and `nR1pos_f 7.3 -> 7.1`, the two-job session mutation; the parent GPP needs CAM variables a Session does not supply, so the hand-crafted reversion is the evidence (area A check) | detected (hand-crafted) |
-| `dc916d7` | Arcs must be handled mathematically in post | bug fix | 3 of 4 hunks no longer apply | `test_arc_compensation_plane.py::ArcGuardTests` (19 arc-math mutants including the dc916d7 ZX K-word and precision reversions), `test_arcs.py` mismatch tests; the VMID half by the precision pins (below) | detected (hand-crafted) |
+| `dc916d7` | Arcs must be handled mathematically in post | bug fix | 3 of 4 hunks no longer apply | `test_arc_compensation_plane.py::ArcGuardTests` (the XY arc-math mutants; the dc916d7 ZX K-word revert went with the dormant YZ/ZX code), `test_arcs.py` mismatch tests; the VMID half by the precision pins (below) | detected (hand-crafted) |
 | `e574716` | Fix indexing | bug fix | applied; 53 FAIL (2 more static) | `FourthAxisIndexTests.test_default_indexing_is_simple_rotation`, `test_fourth_axis_emits_single_index_word`, the CAM-link state-machine tests | detected (reverse patch) |
 | `21a6334` | Add machsim (output precision 5.4 -> 5.3, end-of-program XY homing) | mixed | the precision hunk no longer applies (dc916d7 later set 8.5) | the partial reversion (end homing back to Z only) fails the program-end tests; the superseded precision is guarded at its current value by the VMID precision pins | detected (partial reverse patch) |
 | `77c03c6` | Remove extra rotation. (HVV macro, Z inversion and CTRANS frame commented out) | bug fix | 1 of 2 hunks no longer applies | `test_rotary.py` REVERSIONS (77c03c6 CTRANS frames, HVV macro, Z inversion), `test_home_data_writes_no_frames`, the DESIGN-007 pin | detected (hand-crafted) |
@@ -85,16 +89,17 @@ the `f1803b4` GPP and were not re-run.
 
 The rows name the registry entry a commit fixed (`tests/PP_FINDINGS.md`, section
 Fixed) where there is one. Most of these commits came with their own test file;
-those files are part of the suite unchanged.
+those files are part of the suite. The `test_zx_arc_guard.py` of 5408e5c became
+`test_side_plane_guard.py` (the YZ/ZX arc and machining-plane stops, 2026-10-28).
 
 | commit | subject | registry | reverse patch on HEAD | guarded by | verdict |
 | --- | --- | --- | --- | --- | --- |
 | `345cb49` | Reprogram X, Y and Z after post-inserted homing | PP-001 | 3 of 5 hunks no longer apply; the partial reversion fails 16 tests | `test_post_homing_reposition.py`, `test_motion_rapids.py` X/Y re-establishment after homing | detected (partial reverse patch) |
 | `3e0c345` | Split XY and Z when returning from post-inserted homing | DESIGN-002 | 1 of 3 hunks no longer applies; the partial reversion only errors | `ApproachAfterHomingTests.test_3e0c345_reversion_is_detected` (Z back on the XY block), `test_post_homing_reposition.py` | detected (hand-crafted) |
 | `49f8b80` | Climb before traversing on a job's first rapid | PP-013 | 2 of 9 hunks no longer apply; the partial reversion fails 12 tests | `test_job_start_climb.py`, `test_cutter_compensation.py` climb tests | detected (partial reverse patch) |
-| `5408e5c` | Stop the post on ZX (G18) arcs | PP-003 | 1 of 2 hunks no longer applies | `PostAbortGuardTests.test_guard_detects_removed_abort` (the ZX abort site), `test_zx_arc_guard.py`, the PP-003 stop test in `test_arc_compensation_plane.py` | detected (hand-crafted) |
+| `5408e5c` | Stop the post on ZX (G18) arcs | PP-003 | 1 of 2 hunks no longer applies | `PostAbortGuardTests.test_guard_detects_removed_abort` (the YZ/ZX arc abort site, which replaced the ZX one), `test_side_plane_guard.py` (`test_removing_the_arc_abort_is_detected`), the PP-003 stop test in `test_arc_compensation_plane.py` | detected (hand-crafted) |
 | `b999f65` | Switch cutter compensation only on linear blocks | PP-019, PP-020 | 2 of 5 hunks no longer apply; the partial reversion fails 19 tests | `PostAbortGuardTests.test_guard_detects_removed_abort` (the TRC-on-arc abort site), the TRC tests in `test_arc_compensation_plane.py` and `test_cutter_compensation.py` | detected (hand-crafted) |
-| `88695c9` | Restore the machining plane at the start of each job | PP-021 | no longer applies (7aeae99 rewrote the call) | `PlaneModalityTests.test_88695c9_reversion_is_detected` (drill cycle after a YZ arc), `test_job_plane_restore.py` | detected (hand-crafted) |
+| `88695c9` | Restore the machining plane at the start of each job | PP-021 | no longer applies (7aeae99 rewrote the call) | `test_side_plane_guard.py::SidePlaneMachiningPlaneStopTests.test_job_start_plane_check_reversions_are_detected` (88695c9 reverted: a same-tool YZ/ZX job no longer stops at start_of_job; the former `PlaneModalityTests.test_88695c9_reversion_is_detected`, a drill cycle after a YZ arc, went with the dormant YZ arc code), `test_job_plane_restore.py` | detected (hand-crafted) |
 | `a38f158` | Post left-hand tapping with a negative CYCLE84 pitch | PP-028 | no longer applies (a71e102 rewrote the line) | `RigidTappingTests.test_a38f158_reversion_is_detected`, `test_tapping_direction.py` | detected (hand-crafted) |
 | `6228b3d` | Keep A positions inside 0 <= A < 360 | PP-002 whole-turn, rounding | no longer applies (c33ebd0 rewrote both blocks) | `FixedRotaryDefectGuards.test_6228b3d_reversion_is_detected` (both PP-002 guards), `test_rotary_modulo_range.py` | detected (hand-crafted) |
 | `ca63502` | Post the CAM X in @move_4x | PP-007 | applied; 3 FAIL | `test_move_4x_axial_x.py`, `FixedRotaryDefectGuards.test_move_4x_preserves_axial_x` | detected (reverse patch) |
@@ -108,7 +113,7 @@ those files are part of the suite unchanged.
 | `a71e102` | Write the left-hand tap pitch as a binary minus; plain ZX error text | none | 1 of 2 hunks no longer applies | nothing behavioural: `((0-FEED)/SPIN)` posts the same value as `(-FEED/SPIN)`, and the ZX error text only lost `(G18)` and `@` (the commit's reason is GPPL string and expression syntax, which the engines do not model) | not detected (no output change) |
 | `6f6f6ce` | Switch TRC on the retract with explicit X/Y instead of holding it | PP-019, PP-020 | applied; 14 FAIL | `test_cutter_compensation.py`, `test_arc_compensation_plane.py` TRC off-before-rapid guard | detected (reverse patch) |
 | `ebf9c57` | Track Z and the feed start through indexes, M00 and subs; stop on full-turn cuts | PP-002 full-turn cut | 1 of 11 hunks no longer applies; the partial reversion fails 3 tests | `PostAbortGuardTests.test_guard_detects_removed_abort` (the full-turn abort site), `test_rotary_modulo_range.py`, `test_job_start_climb.py`, `test_post_homing_reposition.py` | detected (hand-crafted) |
-| `0ed0b78` | Write the new POST ERROR texts on their own NC line; harden tests | none | applied; 1 FAIL | `test_zx_arc_guard.py::test_error_text_is_its_own_nc_line_in_a_program` | detected (reverse patch) |
+| `0ed0b78` | Write the new POST ERROR texts on their own NC line; harden tests | none | applied; 1 FAIL | then `test_zx_arc_guard.py::test_error_text_is_its_own_nc_line_in_a_program`; now `test_side_plane_guard.py` (`SidePlaneArcStopTests.test_error_text_without_a_block_of_its_own_is_detected` reverts the hunk of the YZ/ZX arc stop in memory) | detected (reverse patch) |
 
 FAIL counts are behavioural tests; the static text checks (`test_gpp_static.py`,
 `test_machine_definition.py`) are excluded except where a row says so. Not reverted:

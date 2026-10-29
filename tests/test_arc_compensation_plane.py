@@ -6,19 +6,23 @@ Area D. Tests drive a SolidCAM-like Session after the first tool change, put
 the tool at the arc start with a feed move and judge the emitted G2/G3 block
 the way a Sinumerik 828D executes it:
 * support.nc.arc_path_error is the DIN 66025 / Siemens oracle: G17 is X/Y
-  viewed from +Z, G18 is Z/X viewed from +Y (abscissa Z, ordinate X), G19 is
-  Y/Z viewed from +X; the post writes the end point and the opening angle AR=
+  viewed from +Z; the post writes the end point and the opening angle AR=
   (PGsl 03/2013 9.6.4) and the control derives the centre, so the oracle
   compares the arc the control runs with the CAM arc; an arc above 180 deg is
   two blocks of half the angle;
-* plane (G17/G18/G19) and TRC (G40/G41/G42) states come from support.modal.replay.
+* plane and TRC (G40/G41/G42) states come from support.modal.replay.
 
-ZX (G18) orientation was registered as PP-003. The owner's fix (5408e5c) stops
-the post with a POST ERROR on every ZX arc until SolidCAM's arc_direction
-convention is verified, so the arc guards below run in XY and YZ, and the former
-PP-003 test checks that a ZX arc stops the post (the abort mechanics are in
-tests/test_zx_arc_guard.py). The template's other arc modes (absolute plain
-I/J, R word; PP-022) were removed.
+XY (G17) arcs only. ZX (G18) orientation was registered as PP-003; the owner's
+fix (5408e5c) stopped the post on every ZX arc. Since the machine test of
+2026-10-28 every YZ and ZX arc and every YZ/ZX machining plane stops the post:
+the machine has SD42940 $SC_TOOL_LENGTH_CONST = 0, so G18/G19 move the tool
+length compensation from Z to Y/X ('G19 G3 Y-10 Z55 AR=90' drove Z down by
+about the tool length). The arc guards below run in XY, and the former PP-003
+test checks that a ZX arc stops the post (the abort mechanics are in
+tests/test_side_plane_guard.py). The YZ/ZX output code behind the stops is dormant
+and not tested here; the PP-021 guards (G19 left modal by a YZ arc into the
+next job) went with it. The template's other arc modes (absolute plain I/J, R
+word; PP-022) were removed.
 
 TRC: PP-019, PP-020 and PP-021 are fixed (b999f65, 0cfd586, 88695c9, 7aeae99);
 their former canonical tests are regression guards (@covers).
@@ -35,20 +39,20 @@ from unittest import mock
 
 from pp_tests.engine import UnsupportedGPPL
 from program_session import Program, require_nc_stream
-from support import (DRILL_DEFAULTS, FIXTURES, Session, arc_center, arc_path_error, assert_detected, covers,
-                     mutate, parse_blocks, replay, state_before)
+from support import (FIXTURES, Session, arc_center, arc_path_error, assert_detected, covers, mutate, parse_blocks,
+                     replay, state_before)
 
 # plane: (abscissa, ordinate, applicate, SolidCAM event, G code), DIN 66025 / Siemens 828D.
+# ZX only feeds the stop guard (test_zx_arc_stops_the_post): YZ and ZX arcs stop the post.
 PLANES = {
     'xy': ('X', 'Y', 'Z', 'arc', 17),
     'zx': ('Z', 'X', 'Y', 'arc_zx', 18),
-    'yz': ('Y', 'Z', 'X', 'arc_yz', 19),
 }
 # Coarsest coordinate format in effect after the first tool change is zpos_f '5.4'
 # (PP-006): rounding moves a written coordinate by at most 5e-5 mm.
 COORDINATE_TOLERANCE = 5.1e-5
-# The arc the control runs through rounded end points: an end moves by up to 5.0e-5 mm in YZ
-# (Y '8.5', Z '5.4'), 0.71e-5 mm in XY ('8.5'); the AR= bulge error is below 1e-6 here.
+# The arc the control runs through rounded end points: an end moves by up to 0.71e-5 mm in XY
+# ('8.5'); the AR= bulge error is below 1e-6 here.
 PATH_TOLERANCE = 1.0e-4
 
 
@@ -214,20 +218,21 @@ class ArcSweepConventionTests(unittest.TestCase):
                                       f'for {block.raw!r}')
         return errors
 
-    def test_pin_xy_yz_arcs_sweep_cam_angle_on_control(self):
-        """INDEPENDENT: DIN 66025 / Siemens 828D circle direction (G17 viewed from +Z, G19
-        from +X) and PGsl 03/2013 9.6.4 (end point and AR=): for XY and YZ arcs of
-        45/90/135 deg, both labels, the block the PP writes must make the control run the
-        CAM arc (the start turned about the CAM centre by arc_size in the label's sense)."""
-        errors = self.sweep_errors(('xy', 'yz'))
+    def test_pin_xy_arcs_sweep_cam_angle_on_control(self):
+        """INDEPENDENT: DIN 66025 / Siemens 828D circle direction (G17 viewed from +Z) and
+        PGsl 03/2013 9.6.4 (end point and AR=): for XY arcs of 45/90/135 deg, both labels,
+        the block the PP writes must make the control run the CAM arc (the start turned
+        about the CAM centre by arc_size in the label's sense). YZ and ZX arcs stop the
+        post."""
+        errors = self.sweep_errors(('xy',))
         self.assertEqual(errors, [])
 
-    def test_pin_xy_yz_arc_sweep_detects_mutation(self):
-        """INDEPENDENT: swapping G3/G2 for the CCW label in @usr_arc_math must make the XY/YZ
+    def test_pin_xy_arc_sweep_detects_mutation(self):
+        """INDEPENDENT: swapping G3/G2 for the CCW label in @usr_arc_math must make the XY
         sweep check fail with AssertionError."""
         mutant = mutate('    if arc_direction eq CCW then\n        iMotionmode = 3\n    else\n        iMotionmode = 2',
                         '    if arc_direction eq CCW then\n        iMotionmode = 2\n    else\n        iMotionmode = 3')
-        assert_detected(self, lambda source: self.assertEqual(self.sweep_errors(('xy', 'yz'), source), []),
+        assert_detected(self, lambda source: self.assertEqual(self.sweep_errors(('xy',), source), []),
                         mutant, 'G2/G3 swapped')
 
     @covers('PP-003')
@@ -235,11 +240,13 @@ class ArcSweepConventionTests(unittest.TestCase):
         """INDEPENDENT: DIN 66025 / Sinumerik G18 is viewed from +Y with Z as abscissa and X
         as ordinate, so G3 turns Z->X, while @usr_arc_math rotates X->Z for a positive
         angle; which end point SolidCAM sends for a CCW label is UNVERIFIED (VMID
-        ArcDirectionBy="0"). Owner decision (5408e5c, PP-003): until that is verified a ZX
-        arc must not be posted at all. For both labels, three sizes and both candidate CAD
-        end points the post must stop with the ZX POST ERROR and no G2/G3 or G18 block may
-        reach the NC program. Regression guard of PP-003; the input/abort mechanics are
-        tests/test_zx_arc_guard.py."""
+        ArcDirectionBy="0"). Owner decision (5408e5c, PP-003): a ZX arc must not be posted
+        at all. Since the machine test of 2026-10-28 one stop covers YZ and ZX arcs: with
+        SD42940 $SC_TOOL_LENGTH_CONST = 0 (backups/NOLOG.ard) G18/G19 move the tool length
+        compensation from Z to Y/X. For both labels, three sizes and both candidate CAD end
+        points the post must stop with the YZ/ZX arc POST ERROR and no G2/G3 or G18 block
+        may reach the NC program. Regression guard of PP-003; the input/abort mechanics are
+        tests/test_side_plane_guard.py."""
         abscissa, ordinate = PLANES['zx'][:2]
         start = dict(self.CENTER)
         start[abscissa] += 10
@@ -254,35 +261,28 @@ class ArcSweepConventionTests(unittest.TestCase):
                         session = job_session()
                         position(session, start)
                         first = len(session.engine.output)
-                        with self.assertRaisesRegex(UnsupportedGPPL, 'POST ERROR: ZX arc direction is unverified',
-                                                    msg=label):
+                        with self.assertRaisesRegex(UnsupportedGPPL, 'POST ERROR: YZ/ZX arc: G18/G19 would move the '
+                                                    'tool length compensation off Z', msg=label):
                             emit_arc(session, 'zx', direction, size, start, self.CENTER, end)
                         written = parse_blocks(''.join(session.engine.output[first:]))
                         self.assertEqual([block.raw for block in written if set(block.g) & {2, 3, 18}], [], label)
 
 
 # Off-axis vectors (TSR-07: every fixture case starts on the +abscissa axis, so the
-# ordinate terms of the rotation were untested). (abscissa, ordinate) in DIN order.
-# Semicircles end at 2*center - start for either direction, so they run in all three
-# planes; quarter arcs only where the PP rotation sense is DIN-verified (G17, G19).
+# ordinate terms of the rotation were untested). (abscissa, ordinate) in DIN order, XY
+# (G17) only: YZ and ZX arcs stop the post.
 OFF_AXIS_CASES = [
     dict(name='semicircle_off_axis_ccw', size=180, direction='ccw', start=(6, 8), center=(0, 0), end=(-6, -8)),
     dict(name='semicircle_off_axis_cw', size=180, direction='cw', start=(6, 8), center=(0, 0), end=(-6, -8)),
     dict(name='semicircle_offset_center_ccw', size=180, direction='ccw', start=(5, 1), center=(2, 5), end=(-1, 9)),
     dict(name='semicircle_offset_center_cw', size=180, direction='cw', start=(5, 1), center=(2, 5), end=(-1, 9)),
-    dict(name='quarter_off_axis_ccw', size=90, direction='ccw', start=(6, 8), center=(0, 0), end=(-8, 6),
-         planes=('xy', 'yz')),
-    dict(name='quarter_off_axis_cw', size=90, direction='cw', start=(6, 8), center=(0, 0), end=(8, -6),
-         planes=('xy', 'yz')),
-    dict(name='quarter_offset_center_ccw', size=90, direction='ccw', start=(5, 1), center=(2, 5), end=(6, 8),
-         planes=('xy', 'yz')),
+    dict(name='quarter_off_axis_ccw', size=90, direction='ccw', start=(6, 8), center=(0, 0), end=(-8, 6)),
+    dict(name='quarter_off_axis_cw', size=90, direction='cw', start=(6, 8), center=(0, 0), end=(8, -6)),
+    dict(name='quarter_offset_center_ccw', size=90, direction='ccw', start=(5, 1), center=(2, 5), end=(6, 8)),
     # Above 180 deg (two halves): the start off the abscissa exercises both terms of the halfway rotation.
-    dict(name='major_off_axis_ccw', size=270, direction='ccw', start=(6, 8), center=(0, 0), end=(8, -6),
-         planes=('xy', 'yz')),
-    dict(name='major_off_axis_cw', size=270, direction='cw', start=(6, 8), center=(0, 0), end=(-8, 6),
-         planes=('xy', 'yz')),
-    dict(name='major_offset_center_ccw', size=270, direction='ccw', start=(5, 1), center=(2, 5), end=(-2, 2),
-         planes=('xy', 'yz')),
+    dict(name='major_off_axis_ccw', size=270, direction='ccw', start=(6, 8), center=(0, 0), end=(8, -6)),
+    dict(name='major_off_axis_cw', size=270, direction='cw', start=(6, 8), center=(0, 0), end=(-8, 6)),
+    dict(name='major_offset_center_ccw', size=270, direction='ccw', start=(5, 1), center=(2, 5), end=(-2, 2)),
     # A CAD end point off the circle in the NEGATIVE direction of each in-plane axis aborts too.
     dict(name='negative_abscissa_mismatch_aborts', size=180, direction='ccw', start=(6, 8), center=(0, 0),
          end=(-6, -8), cad_delta=(-0.0011, 0), error=True),
@@ -294,9 +294,9 @@ OFF_AXIS_CASES = [
 
 
 def fixture_cases():
-    """fixtures/ambiguous_arcs.json cases as XY/YZ arc cases (ZX orientation is PP-003)."""
+    """fixtures/ambiguous_arcs.json cases as XY arc cases (YZ and ZX arcs stop the post)."""
     fixture = json.loads((FIXTURES / 'ambiguous_arcs.json').read_text())
-    return [dict(case, planes=tuple(case.get('planes', ('xy', 'yz')))) for case in fixture['cases']]
+    return [dict(case, planes=tuple(case.get('planes', ('xy',)))) for case in fixture['cases']]
 
 
 class ArcGuardTests(unittest.TestCase):
@@ -342,9 +342,9 @@ class ArcGuardTests(unittest.TestCase):
                                    msg=f'{label} {axis}: {written}')
 
     def run_cases(self, cases, source=None, subtests=True):
-        # XY and YZ only: every ZX arc stops the post since 5408e5c (test_zx_arc_stops_the_post).
+        # XY only: every YZ and ZX arc stops the post (test_zx_arc_stops_the_post).
         for case in cases:
-            for plane in case.get('planes', ('xy', 'yz')):
+            for plane in case.get('planes', ('xy',)):
                 if not subtests:   # mutant runs: the first AssertionError propagates
                     self.assert_arc_case(case, plane, source)
                     continue
@@ -353,9 +353,9 @@ class ArcGuardTests(unittest.TestCase):
 
     @covers('ENGINE-009')
     def test_off_axis_arcs_and_negative_mismatch(self):
-        """INDEPENDENT: geometry and Sinumerik words, in XY (G17) and YZ (G19); ZX arcs stop
-        the post since 5408e5c (test_zx_arc_stops_the_post). A semicircle ends at
-        2*center - start for either direction; quarter arcs rotate +abscissa -> +ordinate
+        """INDEPENDENT: geometry and Sinumerik words in XY (G17); YZ and ZX arcs stop the post
+        (test_zx_arc_stops_the_post). A semicircle ends at 2*center - start for either
+        direction; quarter arcs rotate +abscissa -> +ordinate
         for CCW (DIN 66025); the block carries the end point and AR= and no centre or radius
         word (PGsl 03/2013 9.6.4), and the arc the control derives from it follows the CAM
         arc; above 180 deg it is two halves, a helix rising half its lead in each; dc916d7
@@ -365,25 +365,21 @@ class ArcGuardTests(unittest.TestCase):
         exception at the GPPL `input` line (ENGINE-009)."""
         self.run_cases(OFF_AXIS_CASES)
 
-    # ZX mutants (dc916d7's ZX K-word revert, ZX K sign, ZX orthogonal axis) are gone:
-    # since 5408e5c the ZX output and rotation lines run only after the ZX stop, so
-    # they are unreachable and no behaviour test can see them.
+    # YZ and ZX mutants (dc916d7's ZX K-word revert, ZX K sign, the YZ/ZX rotation, orthogonal
+    # axis, chord, Z resolution and halfway point) are gone: those lines run only after the
+    # YZ/ZX arc stop, so no behaviour test can see them. center_z_sign and dz_signed_reversed
+    # went with them: cz and dz do not change an XY arc.
     MUTANTS = {
         'no_end_point_commit': ('    xpos = calculated_xpos\n    ypos = calculated_ypos\n    zpos = calculated_zpos\n', ''),
         'no_mismatch_check': ('    call @usr_arc_check(dx, dy, dz)\n', ''),
         'xy_rotation_flipped': ('        rx = vx * c - vy * s\n        ry = vx * s + vy * c\n',
                                 '        rx = vx * c + vy * s\n        ry = -vx * s + vy * c\n'),
-        'yz_rotation_flipped': ('        ry = vy * c - vz * s\n        rz = vy * s + vz * c\n',
-                                '        ry = vy * c + vz * s\n        rz = -vy * s + vz * c\n'),
         'xy_ordinate_term_sign': ('        ry = vx * s + vy * c\n', '        ry = vx * s - vy * c\n'),
         'center_y_sign': ('    cy = ystart + ycenter_rel\n', '    cy = ystart - ycenter_rel\n'),
-        'center_z_sign': ('    cz = zstart + zcenter_rel\n', '    cz = zstart - zcenter_rel\n'),
         'cw_sign_dropped': ('        angle_deg = -angle_deg\n', '        angle_deg = angle_deg\n'),
         'xy_orthogonal_from_start': ('        calculated_zpos = zpos\n', '        calculated_zpos = zstart\n'),
-        'yz_orthogonal_from_start': ('        calculated_xpos = xpos\n', '        calculated_xpos = xstart\n'),
         'dx_signed_reversed': ('dx = abs(calculated_xpos - xpos)', 'dx = (xpos - calculated_xpos)'),
         'dy_signed_reversed': ('dy = abs(calculated_ypos - ypos)', 'dy = (ypos - calculated_ypos)'),
-        'dz_signed_reversed': ('dz = abs(calculated_zpos - zpos)', 'dz = (zpos - calculated_zpos)'),
         'ar_complement': ("'AR='arc_size:nArcAR_f", "'AR='(360 - arc_size):nArcAR_f"),
         'halves_above_360': ('    if arc_size > 180.000005 then\n        ; First half',
                              '    if arc_size > 360 then\n        ; First half'),
@@ -391,32 +387,25 @@ class ArcGuardTests(unittest.TestCase):
                               '        c = cos(angle_deg)\n        s = sin(angle_deg)\n'),
         'xy_mid_normal_at_end': ('            nArcMidZ = (zstart + calculated_zpos) / 2\n',
                                  '            nArcMidZ = calculated_zpos\n'),
-        'yz_mid_normal_at_end': ('            nArcMidX = (xstart + calculated_xpos) / 2\n',
-                                 '            nArcMidX = calculated_xpos\n'),
         'second_half_full_angle': ("        {'AR='nArcAR:nArcAR_f ' '}\n", "        {'AR='arc_size:nArcAR_f ' '}\n"),
         'no_angle_check': ('    call @usr_arc_angle_check\n', ''),
         'angle_limit_looser': ('arc_size > 360.000005', 'arc_size > 361'),
         'check_or_to_and': ('if dx gt tolerance or dy gt tolerance or dz gt tolerance then',
                             'if dx gt tolerance and dy gt tolerance and dz gt tolerance then'),
         'no_chord_check': ('    call @usr_arc_chord_check(du, dv)\n', ''),
-        'yz_chord_in_xy': ('    if iMplane eq 19 then\n        du = calculated_ypos - ystart\n',
-                           '    if false then\n        du = calculated_ypos - ystart\n'),
         'chord_limit_looser': ('du * du + dv * dv < 0.00000001', 'du * du + dv * dv < 0.000000001'),
         'chord_limit_tighter': ('du * du + dv * dv < 0.00000001', 'du * du + dv * dv < 0.0000001'),
         'halves_not_exempt': ('    if arc_size <= 180.000005 and (du * du', '    if (du * du'),
-        'yz_z_resolution_ignored': (' or (iMplane eq 19 and abs(du) < 0.0001 and abs(dv) < 0.0002)', ''),
         'mid_xy_ordinate_sign': ('            nArcMidX = cx + vx * c - vy * s\n',
                                  '            nArcMidX = cx + vx * c + vy * s\n'),
-        'mid_yz_ordinate_sign': ('            nArcMidY = cy + vy * c - vz * s\n',
-                                 '            nArcMidY = cy + vy * c + vz * s\n'),
     }
 
     def test_arc_math_mutants_are_detected_by_assertions(self):
         """INDEPENDENT: every in-memory mutant of @usr_arc_math/@usr_arc/@usr_arc_check below
         (dc916d7 reverts, rotation/sign/centre/orthogonal-axis/tolerance mutants, the AR=
         word, the halves and the angle/chord stops) must make one of the geometric oracles
-        above raise AssertionError, never an interpreter error. ZX mutants are absent: the
-        ZX lines are unreachable behind the ZX stop."""
+        above raise AssertionError, never an interpreter error. YZ/ZX mutants are absent:
+        those lines are unreachable behind the YZ/ZX arc stop."""
         cases = OFF_AXIS_CASES + fixture_cases()
         for name, (old, new) in self.MUTANTS.items():
             with self.subTest(mutant=name):
@@ -495,38 +484,15 @@ class ArcEndWordTests(unittest.TestCase):
         commit by assignment may clear the Z flag, and an arc block without Z runs flat."""
         self.assertEqual(self.semicircle(zpos=-2), ['G3 X-10 Y0 Z-2 AR=180'])
 
-    def yz_quarter(self, source=None, xpos=5):
-        """YZ arc from Y10 Z0 about Y0 Z0 by 90 deg CCW to Y0 Z10 (Z = 10 * sin 90 exactly), X from 5."""
-        require_nc_stream()
-        with mock.patch.dict(os.environ, GPPL_POLICY='change_on_equal_assign=clear'):
-            program = Program(source=source)
-            program.start()
-            program.ev('rapid_move', xpos=5, ypos=10, zpos=5)
-            program.ev('line', zpos=0, feed=200)
-            return program.ev('arc_yz', xpos=xpos, ypos=0, zpos=10, xstart=5, ystart=10, zstart=0, xcenter_rel=0,
-                              ycenter_rel=-10, zcenter_rel=0, arc_size=90, arc_direction='ccw', arc_plane='yz',
-                              feed=200)
-
-    def test_yz_arc_keeps_y_z_and_its_helix_x_when_an_equal_assignment_clears_the_flag(self):
-        """INDEPENDENT: the same rules in G19 (Y abscissa, Z ordinate): Y and Z in every block,
-        X when the helix moves it (here 5 -> 7)."""
-        self.assertEqual((self.yz_quarter(), self.yz_quarter(xpos=7)),
-                         (['G3 G19 Y0 Z10 AR=90'], ['G3 G19 X7 Y0 Z10 AR=90']))
-
     def test_modal_end_words_are_detected(self):
-        """INDEPENDENT: mutation self-check; modal plane words in @usr_arc_point drop X (XY) or
-        Z (YZ), and without the helix checks the helix Z (XY) or X (YZ) is dropped."""
+        """INDEPENDENT: mutation self-check; modal plane words in @usr_arc_point drop X, and
+        without the helix check the helix Z is dropped (XY; YZ and ZX arcs stop the post)."""
         checks = [
             ("        {'X'xpos ' ','Y'ypos ' ',['Z'zpos ' ']}\n", "        {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}\n",
              lambda source: self.assertEqual(self.semicircle(source), ['G3 X-10 Y0 AR=180']), 'modal X/Y'),
             ('        if zpos ne zstart then\n            change(zpos) = true\n        endif\n', '',
              lambda source: self.assertEqual(self.semicircle(source, zpos=-2), ['G3 X-10 Y0 Z-2 AR=180']),
              'helix Z by flag'),
-            ("        {['X'xpos ' '],'Y'ypos ' ','Z'zpos ' '}\n", "        {['X'xpos ' '],'Y'ypos ' ',['Z'zpos ' ']}\n",
-             lambda source: self.assertEqual(self.yz_quarter(source), ['G3 G19 Y0 Z10 AR=90']), 'modal YZ Z'),
-            ('        if xpos ne xstart then\n            change(xpos) = true\n        endif\n', '',
-             lambda source: self.assertEqual(self.yz_quarter(source, xpos=7), ['G3 G19 X7 Y0 Z10 AR=90']),
-             'helix X by flag'),
         ]
         for old, new, check, label in checks:
             with self.subTest(label):
@@ -574,24 +540,6 @@ class ArcLimitTests(unittest.TestCase):
         coarse = mutate("    nArcAR_f        = '3.5'\n", "    nArcAR_f        = '3.4'\n")
         assert_detected(self, lambda source: self.assertEqual(self.arc(source, size=37.123456),
                                                               ['G3 X7.97337 Y6.03534 AR=37.12346']), coarse, '3.4')
-
-    def test_yz_chord_that_z_rounds_onto_the_start_stops(self):
-        """INDEPENDENT: Z prints with 4 decimals after the first homing (zpos_f '5.4', PP-006). A
-        YZ arc from Y0 Z-1 to Y0.000009 Z-0.9999004 (chord 0.0001000058 mm, 90 deg) prints its end
-        as 'Y0.00001 Z-0.9999' next to a start of 'Y0 Z-1'; one Z increment and the rounding of
-        the start leave no margin, so the post stops ('ARC chord too short') instead of writing an
-        AR= block whose end may print onto its start."""
-        with self.assertRaisesRegex(UnsupportedGPPL, 'POST ERROR: ARC chord too short'):
-            self.arc(start=(0, -1), center=(-4.53e-05, -0.9999457), size=90, plane='yz')
-
-    def test_ignoring_the_z_resolution_is_detected(self):
-        """INDEPENDENT: mutation self-check; without the YZ clause the chord of 0.0001000058 mm passes."""
-        mutant = mutate(' or (iMplane eq 19 and abs(du) < 0.0001 and abs(dv) < 0.0002)', '')
-
-        def check(source):
-            with self.assertRaisesRegex(UnsupportedGPPL, 'POST ERROR: ARC chord too short'):
-                self.arc(source=source, start=(0, -1), center=(-4.53e-05, -0.9999457), size=90, plane='yz')
-        assert_detected(self, check, mutant, 'YZ Z resolution ignored')
 
 
 class RemovedArcModeTests(unittest.TestCase):
@@ -810,17 +758,17 @@ class CompensationTests(unittest.TestCase):
 class PlaneModeTests(unittest.TestCase):
     """Machine plane and absolute/incremental mode events."""
 
-    def test_machine_plane_event_selects_din_plane_codes(self):
-        """INDEPENDENT: DIN 66025 / Siemens 828D plane selection: XY = G17, ZX = G18,
-        YZ = G19; the next linear block must make the plane active on the control."""
+    def test_machine_plane_xy_event_selects_g17(self):
+        """INDEPENDENT: DIN 66025 / Siemens 828D plane selection: XY = G17; the next linear
+        block must make the plane active on the control. YZ and ZX machining planes stop the
+        post (SD42940 = 0 on this machine)."""
         session = compensated_job()
-        for x, (plane, code) in enumerate((('zx', 18), ('yz', 19), ('xy', 17)), start=20):
-            session.ev('machine_plane', machine_plane=plane)
-            self.assertEqual(session.state['implane'], code, plane)
-            mark = session.mark()
-            session.ev('line', ('xpos',), xpos=x)
-            pairs = session.event_replay(mark)
-            self.assertEqual([state.plane for _, state in pairs], [code], f'{plane}: {raw(pairs)}')
+        session.ev('machine_plane', machine_plane='xy')
+        self.assertEqual(session.state['implane'], 17)
+        mark = session.mark()
+        session.ev('line', ('xpos',), xpos=20)
+        pairs = session.event_replay(mark)
+        self.assertEqual([state.plane for _, state in pairs], [17], raw(pairs))
 
     def test_relative_and_absolute_mode_events_select_g91_g90(self):
         """INDEPENDENT: DIN 66025 / Siemens 828D: @relative_mode selects incremental
@@ -833,74 +781,6 @@ class PlaneModeTests(unittest.TestCase):
             session.ev('line', ('xpos',), xpos=x)
             pairs = session.event_replay(mark)
             self.assertEqual([state.distance for _, state in pairs], [code], f'{event_name}: {raw(pairs)}')
-
-
-class PlaneModalityTests(unittest.TestCase):
-    """A G19 set by a YZ arc and the next same-tool job (PP-021, fixed in 88695c9).
-
-    YZ (G19) is used because ZX arcs stop the post (PP-003); @usr_arc_math sets
-    the modal plane. Caveat (verifier): @machine_plane is also a SolidCAM event;
-    if SolidCAM called it at every job start the symptom would disappear. These
-    tests deliver no @machine_plane event between the jobs; before 88695c9 the
-    GPP called @machine_plane itself only on the tool-change path
-    (@usr_tc_init_gmstates).
-    """
-
-    def after_yz_arc_job(self, source=None):
-        session = compensated_job(source)
-        start = {'X': 12, 'Y': 13, 'Z': -2}
-        emit_arc(session, 'yz', 'ccw', 90, start, {'X': 12, 'Y': 3, 'Z': -2}, {'X': 12, 'Y': 3, 'Z': 8})
-        session.ev('line_5x', ('zpos',), zpos=50, feed_type='feed_rate')
-        session.same_tool_job(job_name='op2')
-        return session
-
-    @covers('PP-021')
-    def test_xy_compensation_after_yz_arc_runs_in_g17(self):
-        """INDEPENDENT: on a VMC an XY profile needs G17; Sinumerik TRC acts in the active
-        plane (with G19 the radius offset would be applied in Y/Z). Only a tool change calls
-        @machine_plane, so G19 from the previous job's YZ arc is still modal when the next
-        same-tool job selects G41. Regression guard of PP-021 facet trc (fixed in 88695c9 and
-        7aeae99: @start_of_job and the G41 block select the job plane). UNVERIFIED event
-        semantics: assumes SolidCAM does not deliver @machine_plane at every job start
-        (class docstring)."""
-        session = self.after_yz_arc_job()
-        session.ev('move_5x', ('xpos', 'ypos', 'zpos'), xpos=0, ypos=-10, zpos=5)
-        session.ev('line', ('zpos', 'feed'), zpos=-2, feed=300)
-        session.ev('compensation', side='comp_left')
-        session.ev('line', ('ypos',), ypos=0)
-        replayed = replay(session.text())
-        selections = [(block.raw, state.plane) for block, state in replayed if 41 in block.g]
-        self.assertEqual(len(selections), 1, [block.raw for block, _ in replayed])
-        self.assertEqual(selections[0][1], 17, f'TRC selected in plane G{selections[0][1]}: {selections[0][0]!r}')
-
-    @covers('PP-021')
-    def test_drill_cycle_after_yz_arc_runs_in_g17(self):
-        """INDEPENDENT: Sinumerik CYCLE81 drills along the applicate of the active plane (X in
-        G19); a spindle-axis drill job on a VMC needs G17 when the modal cycle is called.
-        Before 88695c9 @drill did not reset the plane left by the previous job's YZ arc.
-        Regression guard of PP-021 facet drill-cycle. UNVERIFIED event semantics: assumes
-        SolidCAM does not deliver @machine_plane at every job start (class docstring)."""
-        self.check_drill_cycle_after_yz_arc()
-
-    def check_drill_cycle_after_yz_arc(self, source=None):
-        session = self.after_yz_arc_job(source)
-        session.ev('drill', ('xpos', 'ypos', 'zpos'), xpos=30, ypos=40, zpos=30, drill_type='g81', **DRILL_DEFAULTS)
-        replayed = replay(session.text())
-        calls = [(block.raw, state.plane) for block, state in replayed
-                 if block.cycle is not None and block.find('MCALL')]
-        self.assertEqual(len(calls), 1, [block.raw for block, _ in replayed])
-        self.assertEqual(calls[0][1], 17, f'modal drill cycle called in plane G{calls[0][1]}: {calls[0][0]!r}')
-
-    def test_88695c9_reversion_is_detected(self):
-        """INDEPENDENT: negative validation of the PP-021 drill-cycle guard. Reverting
-        88695c9 in memory (no plane restore in @start_of_job) must make
-        check_drill_cycle_after_yz_arc fail with AssertionError. The TRC guard is not
-        used here: a later follow-up also selects the job plane in the G41 block."""
-        anchor = ('    call @home_number\n'
-                  "    ; Arcs in YZ/ZX leave iMplane at 19/18; restore the job's machining plane for its first motion block.\n"
-                  '    call @usr_job_plane\n')
-        mutant = mutate(anchor, '    call @home_number\n')
-        assert_detected(self, self.check_drill_cycle_after_yz_arc, mutant, '88695c9 reverted', match='plane G19')
 
 
 if __name__ == '__main__':

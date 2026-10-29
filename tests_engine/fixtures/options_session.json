@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "description": "Synthetic session exercising user options (N-number tool changes with skipline joining, block numbers, coolant/spindle right after tool change, separations, optional stops, tool change at end), new-work-offset indexing (i4xIndexMode=1), every coolant type incl. through-coolant 30 bar (the 07 literal), home_data, ZX/YZ arcs, 4x moves, M00 with a different tool and all drill cycle types.",
+ "description": "Synthetic session exercising user options (N-number tool changes with skipline joining, block numbers, coolant/spindle right after tool change, separations, optional stops, tool change at end), new-work-offset indexing (i4xIndexMode=1), every coolant type incl. through-coolant 30 bar (the 07 literal), home_data, the XY plane and an XY full-circle arc (a YZ or ZX plane or arc stops the post), 4x moves, M00 with a different tool and all drill cycle types.",
  "session": {
   "user_params": {"sworkpcdir": "JOBS", "message2": "SECOND MESSAGE"},
   "overrides": {"i4xIndexMode": 1, "bNnumtc": true, "bCoolspinaftertc": true, "bTlseperation": true, "bTcseperation": true, "bOptstpbegin": true, "bToolChangeAtEnd": true, "bOptstpend": true, "blknum_exist": true}
@@ -13,10 +13,8 @@
   {"name": "change_tool", "parameters": {"tool_number": 3, "first_tool": true, "last_tool": false, "next_tool_number": 4, "xnext": -50, "ynext": 0, "cnext": 0, "tool_start_plane": 60, "tool_direction": "ccw", "spin": 3000, "d_drill_type": -1, "tool_message": "FACE MILL", "tool_offset": 25}},
   {"name": "start_of_job", "parameters": {"job_name": "FACE", "job_type": "face", "wall_offset": 0.15, "floor_offset": 0.15, "msg": "LINE ONE\\nLINE TWO", "home_number": 1, "home_user_name": "G55P2", "position": 1, "rot_axis_coord": 0, "x5_job": false, "transform_type": 0, "tool_z_level": 60, "tool_start_plane": 60, "xnext": -50, "ynext": 0, "spin_rate": 3000, "spin": 3000, "tool_direction": "ccw", "d_drill_type": -1, "loop_level": 0, "loop_count": 0, "next_job_tool_number": 4, "apos": 0, "bpos": 0, "cpos": 0, "angle": 0, "shift_x": 1, "shift_y": 2, "shift_z": 3, "rotate_angle_x": 0, "rotate_angle_y": 0, "rotate_angle_z": 0, "flood_coolant": 0, "mist_coolant": 1, "hp_flood_coolant": 2, "lp_flood_coolant": 1, "through_ival_coolant": 1, "through_coolant_val": 30, "lp_through_coolant": 1, "air_blast_coolant": 1, "air_through_coolant": 1, "angle_4x_around_x": 0, "angle_4x_around_x_dir": "ccw", "x_angle_const_z": 0, "y_angle_const_z": 0, "machine_plane": "xy", "dir5a": "ccw", "bstopm00": true, "sstopmessage": "SWAP TOOL"}},
   {"name": "rapid_move", "parameters": {"xpos": -50, "ypos": 0, "zpos": 5}},
-  {"name": "machine_plane", "parameters": {"machine_plane": "zx"}},
   {"name": "line", "parameters": {"xpos": -40, "ypos": 0, "zpos": -5, "feed": 500, "feed_type": "feed_rate"}},
-  {"name": "machine_plane", "parameters": {"machine_plane": "yz"}},
-  {"name": "arc_yz", "parameters": {"xpos": -40, "ypos": 10, "zpos": -15, "xstart": -40, "ystart": 0, "zstart": -5, "xcenter": -40, "ycenter": 0, "zcenter": -15, "xcenter_rel": 0, "ycenter_rel": 0, "zcenter_rel": -10, "arc_size": 270, "arc_direction": "ccw", "arc_plane": "yz", "radius": 10, "feed": 500}},
+  {"name": "line", "parameters": {"xpos": -40, "ypos": 10, "zpos": -15, "feed": 500, "feed_type": "feed_rate"}},
   {"name": "machine_plane", "parameters": {"machine_plane": "xy"}},
   {"name": "arc", "parameters": {"xpos": -40, "ypos": 10, "zpos": -15, "xstart": -40, "ystart": 10, "zstart": -15, "xcenter": -40, "ycenter": 0, "zcenter": -15, "xcenter_rel": 0, "ycenter_rel": -10, "zcenter_rel": 0, "arc_size": 360, "arc_direction": "ccw", "arc_plane": "xy", "radius": 10, "feed": 500}},
   {"name": "relative_mode", "parameters": {}},

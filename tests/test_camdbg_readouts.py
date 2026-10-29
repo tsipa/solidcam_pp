@@ -27,8 +27,6 @@ TOOL = dict(tool_number=1, tool_offset=1, tool_message='', holder_name='H', tool
 XY_ARC = dict(xpos=0, ypos=10.123456789012, zpos=50, xstart=10.123456789012, ystart=0, zstart=50,
               xcenter_rel=-10.123456789012, ycenter_rel=0, zcenter_rel=0, arc_size=90, arc_direction='ccw',
               arc_plane='xy')
-YZ_ARC = dict(xpos=0, ypos=0, zpos=60, xstart=0, ystart=10, zstart=50, xcenter_rel=0, ycenter_rel=-10,
-              zcenter_rel=0, arc_size=90, arc_direction='ccw', arc_plane='yz')
 
 
 def readouts(blocks):
@@ -44,8 +42,7 @@ def program_readouts(source=None, trace_level=5):
               readouts(p.ev('rapid_move', xpos=10, ypos=10, zpos=50)),
               readouts(p.ev('move_5x', xpos=10, ypos=10, zpos=50, apos=100, dir5a='ccw', prev_command='@line_5x')),
               readouts(p.ev('move_4x', xpos=10, ypos=10, zpos=50, apos=110, dir5a='ccw')),
-              readouts(p.ev('arc', **XY_ARC)),
-              readouts(p.ev('arc_yz', **YZ_ARC))]
+              readouts(p.ev('arc', **XY_ARC))]
     return result
 
 
@@ -83,13 +80,11 @@ class ReadoutTests(unittest.TestCase):
             ['; CAMDBG move_4x prev_command:@move_5x'],
             ['; CAMDBG arc xstart:10.123456789 ystart:0 zstart:50',
              '; CAMDBG arc xcenter_rel:-10.123456789 ycenter_rel:0 zcenter_rel:0 arc_size:90'],
-            ['; CAMDBG arc_yz xstart:0 ystart:10 zstart:50',
-             '; CAMDBG arc_yz xcenter_rel:0 ycenter_rel:-10 zcenter_rel:0 arc_size:90'],
         ])
 
     def test_trace_level_0_writes_no_readout(self):
         """INDEPENDENT: the shipped post (trace_level 0) writes the NC for the machine."""
-        self.assertEqual(program_readouts(trace_level=0), [[]] * 8)
+        self.assertEqual(program_readouts(trace_level=0), [[]] * 7)
 
     def test_readouts_keep_the_change_flags(self):
         """INDEPENDENT: printing a variable clears its change flag (clear_change_after_gen 1), and
@@ -105,22 +100,22 @@ class ReadoutTests(unittest.TestCase):
     def test_readout_mutations_are_detected(self):
         """INDEPENDENT: mutation self-check of the event name, the copies and the gate."""
         mutants = {
-            'arc_yz named arc': ("        sDbg1 = 'arc_yz'\n", "        sDbg1 = 'arc'\n"),
+            'arc named arc_yz': ("        sDbg1 = 'arc'\n", "        sDbg1 = 'arc_yz'\n"),
             'gate at trace_level 0': ('    if trace_level >= 5\n        sDbg1 = next_command\n',
                                       '    if trace_level >= 0\n        sDbg1 = next_command\n'),
             'printed without a copy': ("' apos:',nDbg3:nCamDbg_f", "' apos:',apos:nCamDbg_f"),
         }
-        checks = {'arc_yz named arc': self.check_readouts, 'gate at trace_level 0': self.check_trace_level_0,
+        checks = {'arc named arc_yz': self.check_readouts, 'gate at trace_level 0': self.check_trace_level_0,
                   'printed without a copy': self.check_flags}
         for label, (old, new) in mutants.items():
             with self.subTest(mutant=label):
                 assert_detected(self, checks[label], mutate(old, new), label)
 
     def check_readouts(self, source):
-        self.assertEqual(program_readouts(source)[7][0], '; CAMDBG arc_yz xstart:0 ystart:10 zstart:50')
+        self.assertEqual(program_readouts(source)[6][0], '; CAMDBG arc xstart:10.123456789 ystart:0 zstart:50')
 
     def check_trace_level_0(self, source):
-        self.assertEqual(program_readouts(source, trace_level=0), [[]] * 8)
+        self.assertEqual(program_readouts(source, trace_level=0), [[]] * 7)
 
     def check_flags(self, source):
         p = Program(source=source, options={'trace_level': 5})
@@ -137,7 +132,7 @@ class SessionReadoutTests(unittest.TestCase):
         counts = Counter(line.split()[2] for line in traced if line.startswith('; CAMDBG'))
         expected = Counter({'start_of_file': events['start_of_file'], 'def_tool': events['def_tool'],
                             'start_of_job': 3 * events['start_of_job'], 'move_4x': events['move_4x'],
-                            'move_5x': events['move_5x'], 'arc': 2 * events['arc'], 'arc_yz': 2 * events['arc_yz']})
+                            'move_5x': events['move_5x'], 'arc': 2 * events['arc']})
         self.assertEqual(counts, +expected, name)
 
     def check_sessions(self, source=None):

@@ -169,7 +169,7 @@ fixtures under `session,<policy>=<value>`.
 | event_input_flags | trace T/F, else differs from the value SolidCAM last supplied | same | `usr_ct_after` writes `xpos = nTcXnext`; comparing with state hid the first drill XY | medium |
 | event_flag_reset | none | none | globals_after_event loses G41 on the move after `@compensation` | low |
 | skipline (NC stream only) | join_next_nb (one-shot per assignment) | same | `'N'iTcnumber` + `'G17 G64 G90'`, `G43 H` + Z; `ignore`: suite OK, every session changes (52 to 2,066 differing NC lines by difflib count) | medium-high (join), medium (one-shot) |
-| empty_lines, block_numbers (stream only) | drop, blknum_exist | same | block numbers only in options_session (107 lines) | low-medium |
+| empty_lines, block_numbers (stream only) | drop, blknum_exist | same | block numbers only in options_session (106 lines) | low-medium |
 | trailing_zeros | trim | trim | real trace excerpts `X132`, `Z15.8333`; keep: suite 31 failures | high for non-integral values |
 | flag_p, flag_n, plus_zero | trim, trim, no sign | same | unobserved; keep_point changes 1 to 9 session lines | low |
 | rounding | python (binary, ties to even) | same | half_away changes nothing observed | low |

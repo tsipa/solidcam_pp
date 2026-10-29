@@ -120,7 +120,7 @@ test_program_start_forces_dc`.
 | `test_indexing_link.py`, `test_work_offsets_fixtures.py`, `test_motion.py`, `test_arc_link_boundary.py` | indexing, the CAM-link state machine, work offsets; recorded shit2 link |
 | `test_unsupported_features.py` | the POST ERROR stops for template features of other controls: multiple fixtures, the trig-macro index mode, unknown index clearance modes, subprograms, loops, reference point changes |
 | `test_motion_rapids.py`, `test_post_homing_reposition.py`, `test_job_start_climb.py`, `test_inverse_time_feed.py` | rapids and approach order, return after post-inserted homing, the first-rapid climb, feed emulation, Z precision, G93 inverse-time feed |
-| `test_arc_compensation_plane.py`, `test_cutter_compensation.py`, `test_job_plane_restore.py`, `test_zx_arc_guard.py`, `test_arcs.py` | arcs, the ZX-arc stop, cutter compensation, machining plane |
+| `test_arc_compensation_plane.py`, `test_cutter_compensation.py`, `test_job_plane_restore.py`, `test_side_plane_guard.py`, `test_arcs.py` | XY arcs, the YZ/ZX arc and machining-plane stops, cutter compensation, machining plane |
 | `test_cycles_spindle.py`, `test_tapping_direction.py`, `test_history_regressions.py` | CYCLE81-86, MCALL cancel, tapping, spindle start and dwell; historical fixture cases |
 | `test_engine_harness.py`, `test_gpp_static.py`, `test_contracts.py`, `test_machine_definition.py`, `test_mach3_feed_force.py` | engine gaps and the compatibility engine, static GPP checks, trace/fixture contracts, VMID/Vericut contracts, Mach3 |
 | `test_known_defect_registry.py` | meta-tests for the registry, the markers and `PP_FINDINGS.md` |
@@ -128,8 +128,8 @@ test_program_start_forces_dc`.
 The files `test_cutter_compensation.py`, `test_inverse_time_feed.py`,
 `test_job_plane_restore.py`, `test_job_start_climb.py`, `test_move_4x_axial_x.py`,
 `test_post_homing_reposition.py`, `test_rotary_modulo_range.py`,
-`test_tapping_direction.py` and `test_zx_arc_guard.py` came with the owner's fixes;
-they build whole programs with `tests/program_session.py`.
+`test_tapping_direction.py` and `test_side_plane_guard.py` (formerly `test_zx_arc_guard.py`)
+came with the owner's fixes; they build whole programs with `tests/program_session.py`.
 
 `tests/support/` is a shared package with no tests in it:
 
@@ -210,8 +210,8 @@ work offset, spindle start) and M00/M01 paths; coolant channels per tool; the A
 axis (DC/ACP/ACN selection, modulo range, index direction, initial DC, tool-change
 rapids, G93 inverse time); indexing and the CAM-link homing bypass state machine;
 work offsets; the stops on unsupported template features; rapids, the return after post-inserted homing,
-the first-rapid climb, feed emulation and Z precision; arcs in XY/YZ (DIN sweep
-oracle, off-axis centres, CAD mismatch abort) and the ZX stop; cutter compensation
+the first-rapid climb, feed emulation and Z precision; XY arcs (DIN sweep oracle,
+off-axis centres, CAD mismatch abort) and the YZ/ZX arc and machining-plane stops; cutter compensation
 and plane codes; CYCLE81/82/83/84/86 parameters and MCALL cancel; spindle speed
 order and ramp dwell; static GPP structure, user options, dead options and
 Fanuc-only code; VMID/Vericut contracts; engine gaps and the compatibility engine.
@@ -347,11 +347,12 @@ from JSON event streams; file operations, formatting modifiers and built-ins are
 covered as DESIGN.md lists. `tests/support/engines.py` adapts either engine for the
 post tests without changing `pp_tests/gppl` (see Engines).
 
-Fixture files: `ambiguous_arcs.json` supplies hand-authored XY/YZ arcs for the
+Fixture files: `ambiguous_arcs.json` supplies hand-authored XY arcs for the
 end point and AR= output (minor/major arcs sharing endpoints, both semicircle
 directions, 179.999/180/180.001 degrees, halves above 180 degrees, nonzero centres,
-CAD endpoint roundoff, mismatch, short-chord and opening-angle errors); ZX arcs stop
-the post (PP-003, fixed in 5408e5c). The other arc modes (`iArcmode` 1/3/4, PP-022)
+CAD endpoint roundoff, mismatch, short-chord and opening-angle errors); YZ and ZX arcs
+stop the post (ZX since 5408e5c, PP-003; every YZ/ZX arc and machining plane since the
+machine run of 2026-10-28, SD42940 = 0). The other arc modes (`iArcmode` 1/3/4, PP-022)
 were removed in the refactor. `motion_sequences.json` exercises the
 rapid/line procedures, the homing-string parser and indexing with exact word
 tokens. `history_regressions.json` holds the historical bug-fix cases

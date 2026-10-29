@@ -1,8 +1,8 @@
 """Arc endpoint tracking versus CAM-link authorization (f1803b4, tests/ARC_LINK_FINDING.md).
 
 Area C, legacy file on the mid-job harness (motion_engine). XY-specific
-complement of test_indexing_link.py::test_arc_in_any_plane_revokes_and_tracks_endpoint
-(ZX/YZ arcs on realistic sessions).
+complement of test_indexing_link.py::test_arc_revokes_and_tracks_endpoint
+(an XY helix on a realistic session; YZ/ZX arcs stop the post).
 
 Fixture tests/fixtures/arc_link_boundary.json: an XY helix raises the actual Z
 from 10 to 30, then a straight feed_link descends to Z20, then a rotary rapid

@@ -982,13 +982,13 @@ now a regression guard marked `@covers`.
 | [PP-002 [rounding]](#pp-002) | 6228b3d | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-002 [whole-turn]](#pp-002) | 6228b3d | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-002 [negative-mode]](#pp-002) | 71bac54 | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
-| [PP-003](#pp-003) | 5408e5c | `test_zx_arc_stops_the_post` | `tests/test_zx_arc_guard.py` |
+| [PP-003](#pp-003) | 5408e5c | `test_zx_arc_stops_the_post`, `test_arc_zx_event_stops_the_post` | `tests/test_side_plane_guard.py` |
 | [PP-007](#pp-007) | ca63502 | `test_move_4x_preserves_axial_x` | `tests/test_move_4x_axial_x.py` |
 | [PP-012](#pp-012) | d9b120b | `test_hsm_job_parameters_select_cycle832_or_stop` | `tests/test_toolchange_session.py`, `tests/test_cycle832.py` |
 | [PP-013](#pp-013) | 49f8b80 | `test_same_tool_job_climbs_before_xy_traverse` | `tests/test_job_start_climb.py` |
 | [PP-019](#pp-019) | b999f65 | `test_compensation_off_before_retract_reaches_controller_before_next_tool_cuts`, `test_compensation_off_emitted_on_following_rapid`, `test_compensation_on_emitted_on_following_rapid` | `tests/test_cutter_compensation.py` |
 | [PP-020](#pp-020) | b999f65 | `test_compensation_not_activated_in_circular_block`, `test_compensation_not_deactivated_in_circular_block` | `tests/test_cutter_compensation.py` |
-| [PP-021](#pp-021) | 88695c9 | `test_drill_cycle_after_yz_arc_runs_in_g17`, `test_xy_compensation_after_yz_arc_runs_in_g17` | `tests/test_job_plane_restore.py` |
+| [PP-021](#pp-021) | 88695c9 | `test_error_text_is_the_last_nc_line_and_no_arc_block_is_written` | `tests/test_job_plane_restore.py` |
 | [PP-022](#pp-022) | 6ea969d | `test_leftover_arc_mode_setting_posts_the_sinumerik_centre` | `tests/test_arc_compensation_plane.py` |
 | [PP-024 [ramp-dwell]](#pp-024) | fb66cad | `test_spindle_waits`, `test_m00_same_tool_restart_waits_for_the_spindle` |  |
 | [PP-026](#pp-026) | fb66cad | `test_spindle_waits` | `tests/test_cycles_spindle.py` |
@@ -1048,11 +1048,12 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: One real @arc trace in the ZX plane (start, center_rel, arc_size, arc_direction, CAD end point) plus the meaning of the VMID ArcDirectionBy setting, or a Vericut run of a posted ZX arc.
 - Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
 - Source findings: pp3-zx-orientation, history-misc-04, pp-weird-hunter-02, pp3-test-arcs-pins-wrong-conventions
-- Status: fixed: 5408e5c Stop the post on ZX (G18) arcs. Owner decision: every ZX arc stops the post with a POST ERROR until the arc_direction convention is verified (text simplified in a71e102, written on its own NC line in 0ed0b78).
-- Tests of the fix: tests/test_zx_arc_guard.py
+- Status: fixed: 5408e5c Stop the post on ZX (G18) arcs. Owner decision: every ZX arc stops the post with a POST ERROR until the arc_direction convention is verified (text simplified in a71e102, written on its own NC line in 0ed0b78). Since the machine run of 2026-10-28 one stop in @usr_arc_math covers every YZ and ZX arc instead (G18/G19 move the tool length compensation off Z, SD42940 = 0); its text no longer names the ZX direction.
+- Tests of the fix: tests/test_side_plane_guard.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_arc_compensation_plane.py::ArcSweepConventionTests::test_zx_arc_stops_the_post`
+  - `tests/test_side_plane_guard.py::SidePlaneArcStopTests::test_arc_zx_event_stops_the_post`
 
 ### PP-007
 
@@ -1153,12 +1154,11 @@ now a regression guard marked `@covers`.
 - Evidence that would settle it: Trace of a ZX/YZ arc job followed by a same-tool XY profile or drill job.
 - Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
 - Source findings: pp3-plane-persistence
-- Status: fixed: 88695c9 Restore the machining plane at the start of each job (follow-ups 7aeae99: G17 fallback, TRC selected in the job plane; 6f6f6ce: the plane is re-selected when TRC is selected from G40).
+- Status: fixed: 88695c9 Restore the machining plane at the start of each job (follow-ups 7aeae99: G17 fallback, TRC selected in the job plane; 6f6f6ce: the plane is re-selected when TRC is selected from G40). Since the machine run of 2026-10-28 YZ/ZX arcs and machining planes stop the post, so no arc leaves G18/G19 modal and the restore after one is not reached.
 - Tests of the fix: tests/test_job_plane_restore.py
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
-  - `tests/test_arc_compensation_plane.py::PlaneModalityTests::test_drill_cycle_after_yz_arc_runs_in_g17`
-  - `tests/test_arc_compensation_plane.py::PlaneModalityTests::test_xy_compensation_after_yz_arc_runs_in_g17`
+  - `tests/test_side_plane_guard.py::SidePlaneArcStopTests::test_error_text_is_the_last_nc_line_and_no_arc_block_is_written`
 
 ### PP-022
 

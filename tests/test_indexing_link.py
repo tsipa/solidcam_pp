@@ -686,37 +686,33 @@ class CamLinkTransitionTests(LinkOracle, unittest.TestCase):
         """
         self._check_untracked_motion_event()
 
-    ARCS = {
-        # Start X10 Y20 Z20 after the retract; centre offset -10 on the plane's
-        # first axis, CCW 90; the end point is the DIN G19 rotation (Y->Z). ZX is
-        # not used: since 5408e5c every ZX arc stops the post (PP-003,
-        # tests/test_zx_arc_guard.py), so there is no link state after it.
-        'arc_yz': dict(arc_plane='yz', xcenter_rel=0, ycenter_rel=-10, zcenter_rel=0,
-                       xcenter=10, ycenter=10, zcenter=20, xpos=10, ypos=10, zpos=30),
-    }
+    # Start X10 Y20 Z20 after the retract; centre offset -10 on X, CCW 90 (end
+    # X0 Y30), a helix that rises to Z30. YZ and ZX arcs stop the post
+    # (usr_arc_math: G18/G19 move the tool length compensation off Z on this
+    # machine), so there is no link state after them.
+    HELIX = dict(arc_plane='xy', xcenter_rel=-10, ycenter_rel=0, zcenter_rel=0,
+                 xcenter=0, ycenter=20, zcenter=20, xpos=0, ypos=30, zpos=30)
 
-    def _check_arc_in_any_plane(self, source=None):
-        for call, values in self.ARCS.items():
-            with self.subTest(call=call):
-                session = rotated_job(source)
-                link_retract(session, z=20)
-                self.assertTrue(session.state['bcamlinkretract'], 'precondition: confirmed retract')
-                session.ev(call, ['xpos', 'ypos', 'zpos'], arc_direction='ccw', arc_size=90,
-                           xstart=10, ystart=20, zstart=20, radius=10, **values)
-                self.assertFalse(session.state['bcamlinkretract'], f'{call} keeps the link authorization')
-                self.assertEqual(session.state['nlastpathz'], 30, f'{call} endpoint Z not tracked')
-                link_retract(session, z=25)            # descends from the arc endpoint Z30
-                self.assert_rotation_after_homing(rotate(session), call)
+    def _check_arc(self, source=None):
+        session = rotated_job(source)
+        link_retract(session, z=20)
+        self.assertTrue(session.state['bcamlinkretract'], 'precondition: confirmed retract')
+        session.ev('arc', ['xpos', 'ypos', 'zpos'], arc_direction='ccw', arc_size=90,
+                   xstart=10, ystart=20, zstart=20, radius=10, **self.HELIX)
+        self.assertFalse(session.state['bcamlinkretract'], 'arc keeps the link authorization')
+        self.assertEqual(session.state['nlastpathz'], 30, 'arc endpoint Z not tracked')
+        link_retract(session, z=25)            # descends from the arc endpoint Z30
+        self.assert_rotation_after_homing(rotate(session), 'arc')
 
-    def test_arc_in_any_plane_revokes_and_tracks_endpoint(self):
-        """INDEPENDENT: f1803b4 (tests/ARC_LINK_FINDING.md) generalised to YZ:
-        a completed arc revokes the link and records its endpoint Z, so a later
-        feed_link that descends from the arc endpoint does not authorize the
-        rotation. The XY helix case is test_arc_link_boundary.py; ZX arcs stop
-        the post since 5408e5c. The event mixture (a YZ arc inside a 5x job) is
-        synthetic; its reachability in a SolidCAM job is not established
-        (ARC_LINK_FINDING.md)."""
-        self._check_arc_in_any_plane()
+    def test_arc_revokes_and_tracks_endpoint(self):
+        """INDEPENDENT: f1803b4 (tests/ARC_LINK_FINDING.md) on a rotated 5x
+        job: a completed arc revokes the link and records its endpoint Z, so a
+        later feed_link that descends from the arc endpoint does not authorize
+        the rotation. The fixture-driven helix case is test_arc_link_boundary.py;
+        YZ and ZX arcs stop the post (usr_arc_math). The event mixture (a helix
+        inside a 5x job) is synthetic; its reachability in a SolidCAM job is not
+        established (ARC_LINK_FINDING.md)."""
+        self._check_arc()
 
     def _check_straight_4x_link(self, source=None):
         session = rotated_4x_job(source)
@@ -878,7 +874,7 @@ class DesignPinTests(LinkOracle, unittest.TestCase):
 _INDEX_BLOCK = ('    if bTmatrixIndexPending\n        change(cWo) = true\n        change(iWorkoffset) = true\n'
                 '        call @usr_4x_index\n        bTmatrixIndexPending = false\n    endif\n')
 # 88695c9 put the job-plane restore between @home_number and the deferred index.
-_JOB_PLANE = ("    ; Arcs in YZ/ZX leave iMplane at 19/18; restore the job's machining plane for its first motion block.\n"
+_JOB_PLANE = ("    ; The job's machining plane for its first motion block (G17; YZ/ZX stop the post, usr_xy_plane_check).\n"
               '    call @usr_job_plane\n')
 
 # (label, [(old, new), ...], holder class, check method)
@@ -1002,12 +998,12 @@ REVERSIONS = [
      [('    bCamLinkRetract = false\n    nLastPathZ = zpos\n    nLastPathWorkoffset = iWorkoffset\n'
        '    bClimbZValid = true\n    if bFeedoutput',
        '    nLastPathZ = zpos\n    nLastPathWorkoffset = iWorkoffset\n    bClimbZValid = true\n    if bFeedoutput')],
-     CamLinkTransitionTests, '_check_arc_in_any_plane'),
+     CamLinkTransitionTests, '_check_arc'),
     ('arc does not track its endpoint Z',
      [('    bCamLinkRetract = false\n    nLastPathZ = zpos\n    nLastPathWorkoffset = iWorkoffset\n'
        '    bClimbZValid = true\n    if bFeedoutput',
        '    bCamLinkRetract = false\n    nLastPathWorkoffset = iWorkoffset\n    bClimbZValid = true\n    if bFeedoutput')],
-     CamLinkTransitionTests, '_check_arc_in_any_plane'),
+     CamLinkTransitionTests, '_check_arc'),
     ('4x events not whitelisted',
      [("prev_command eq '@line_5x' or prev_command eq '@line_4x' or "
        "prev_command eq '@move_5x' or prev_command eq '@move_4x'",

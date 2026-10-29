@@ -2,8 +2,9 @@
 vectors of fixtures/ambiguous_arcs.json (legacy bare-engine harness).
 
 Scope after the area-D port:
-* XY (G17) and YZ (G19) only. Every ZX arc stops the post since 5408e5c (PP-003,
-  fixed): tests/test_zx_arc_guard.py and
+* XY (G17) only. Every YZ and ZX arc stops the post: ZX since 5408e5c (PP-003,
+  fixed), both since the machine test of 2026-10-28 (SD42940 = 0, so G18/G19
+  move the tool length compensation off Z): tests/test_side_plane_guard.py and
   tests/test_arc_compensation_plane.py::test_zx_arc_stops_the_post.
 * End point and opening angle AR= (PGsl 03/2013 9.6.4): no centre word. The
   control derives the centre, so support.nc.arc_path_error compares the arc it
@@ -39,9 +40,10 @@ from pp_tests.engine import UnsupportedGPPL
 from support import FIXTURES, arc_path_error, covers, fresh_engine, parse_blocks
 
 FIXTURE = json.loads((FIXTURES / 'ambiguous_arcs.json').read_text())
-# plane: (axes in the PP's (u, v, w) order, G code, SolidCAM event). For G17 and G19
-# the PP order equals the DIN abscissa/ordinate order used by arc_path_error.
-PLANES = [('xy', ('x', 'y', 'z'), 17, 'arc'), ('yz', ('y', 'z', 'x'), 19, 'arc_yz')]
+# plane: (axes in the PP's (u, v, w) order, G code, SolidCAM event). For G17 the PP
+# order equals the DIN abscissa/ordinate order used by arc_path_error. XY only: YZ and
+# ZX arcs stop the post.
+PLANES = [('xy', ('x', 'y', 'z'), 17, 'arc')]
 # Coordinates use the @init_post format '8.5': rounding error at most 5e-6 mm.
 COORDINATE_TOLERANCE = 0.51e-5
 # The arc the control runs through rounded end points: both ends move by up to 0.71e-5 mm.
@@ -49,8 +51,8 @@ PATH_TOLERANCE = 1.5e-5
 
 
 def case_planes(case):
-    """PLANES entries of a fixture case ('planes' limits it, e.g. a YZ-only chord case)."""
-    return [entry for entry in PLANES if entry[0] in case.get('planes', ('xy', 'yz'))]
+    """PLANES entries of a fixture case ('planes' limits it; default xy)."""
+    return [entry for entry in PLANES if entry[0] in case.get('planes', ('xy',))]
 
 
 def arc_engine(case, plane, axes):
@@ -86,19 +88,18 @@ def call_valid_arc(testcase, engine, procedure, arguments=()):
 
 
 class ArcTests(unittest.TestCase):
-    def test_ambiguous_arcs_all_planes_and_modes(self):
-        """INDEPENDENT: XY (G17) and YZ (G19). End points come from the fixture geometry
-        (rotation of start-center by +-arc_size); the arc the control runs for the written
-        blocks (PGsl 03/2013 9.6.4: end point and opening angle AR=, centre derived; G17
-        viewed from +Z, G19 from +X, checked with support.nc.arc_path_error) must follow
-        the fixture arc; an arc above 180 deg is two blocks of AR=size/2 through the point
-        halfway; no centre or radius word is written; the helical orthogonal end point is
-        the CAD value; with compensation unchanged no G40/G41/G42 appears. Scope (module
-        docstring): no ZX (PP-003). STRUCTURAL parts (module docstring): the exact modal G
-        list comes from the forced change flags, and change(nRapidfeed) is the @usr_arc
-        contract that re-arms 'F nRapidfeed' for the next feed-emulated rapid
-        (bSyncdrapid=false; usr_ip_useroptions documents nRapidfeed as the G1 rapid
-        feed)."""
+    def test_ambiguous_xy_arcs_all_modes(self):
+        """INDEPENDENT: XY (G17). End points come from the fixture geometry (rotation of
+        start-center by +-arc_size); the arc the control runs for the written blocks (PGsl
+        03/2013 9.6.4: end point and opening angle AR=, centre derived; G17 viewed from +Z,
+        checked with support.nc.arc_path_error) must follow the fixture arc; an arc above
+        180 deg is two blocks of AR=size/2 through the point halfway; no centre or radius
+        word is written; the helical orthogonal end point is the CAD value; with
+        compensation unchanged no G40/G41/G42 appears. Scope (module docstring): no YZ or
+        ZX arcs. STRUCTURAL parts (module docstring): the exact modal G list comes from the
+        forced change flags, and change(nRapidfeed) is the @usr_arc contract that re-arms
+        'F nRapidfeed' for the next feed-emulated rapid (bSyncdrapid=false;
+        usr_ip_useroptions documents nRapidfeed as the G1 rapid feed)."""
         for case in FIXTURE['cases']:
             if 'error' in case:
                 continue

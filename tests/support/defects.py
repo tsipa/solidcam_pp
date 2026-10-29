@@ -165,7 +165,9 @@ RESOLUTIONS = {
                                     'ebf9c57 stops the post on a cutting block that turns A by 360 degrees or more).'),
     'PP-003': ('fixed', '5408e5c Stop the post on ZX (G18) arcs. Owner decision: every ZX arc stops the post with a '
                         'POST ERROR until the arc_direction convention is verified (text simplified in a71e102, '
-                        'written on its own NC line in 0ed0b78).'),
+                        'written on its own NC line in 0ed0b78). Since the machine run of 2026-10-28 one stop in '
+                        '@usr_arc_math covers every YZ and ZX arc instead (G18/G19 move the tool length '
+                        'compensation off Z, SD42940 = 0); its text no longer names the ZX direction.'),
     'PP-007': ('fixed', 'ca63502 Post the CAM X in @move_4x.'),
     'PP-008': ('accepted', 'Owner decision: the machine has no through-spindle coolant and M7 stays the code for '
                            '30 bar; the test is a CHARACTERIZATION pin, not a defect.'),
@@ -181,7 +183,8 @@ RESOLUTIONS = {
                         'line.'),
     'PP-021': ('fixed', '88695c9 Restore the machining plane at the start of each job (follow-ups 7aeae99: G17 '
                         'fallback, TRC selected in the job plane; 6f6f6ce: the plane is re-selected when TRC is '
-                        'selected from G40).'),
+                        'selected from G40). Since the machine run of 2026-10-28 YZ/ZX arcs and machining planes '
+                        'stop the post, so no arc leaves G18/G19 modal and the restore after one is not reached.'),
     'PP-028': ('fixed', 'a38f158 Post left-hand tapping with a negative CYCLE84 pitch (follow-up a71e102).'),
     'PP-049': ('fixed', '9f48a3a Post rotating G1 blocks in G93 inverse time (follow-ups 1bdfecc: F reprogrammed '
                         'after G93, control A travel; ebf9c57: indexes and M00 invalidate the G93 start).'),
@@ -236,7 +239,7 @@ RESOLUTIONS = {
 FIX_TESTS = {
     'PP-001': ('tests/test_post_homing_reposition.py',),
     'PP-002': ('tests/test_rotary_modulo_range.py',),
-    'PP-003': ('tests/test_zx_arc_guard.py',),
+    'PP-003': ('tests/test_side_plane_guard.py',),
     'PP-007': ('tests/test_move_4x_axial_x.py',),
     'PP-013': ('tests/test_job_start_climb.py',),
     'PP-019': ('tests/test_cutter_compensation.py',),

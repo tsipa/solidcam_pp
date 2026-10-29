@@ -54,7 +54,7 @@ SELF = Path(__file__).name
 LEGACY_FILES = frozenset()
 # Review-fix test files (git log f1803b4..): one module-level oracle for the file.
 MODULE_ORACLE_FILES = frozenset({
-    'test_post_homing_reposition.py', 'test_job_start_climb.py', 'test_zx_arc_guard.py',
+    'test_post_homing_reposition.py', 'test_job_start_climb.py', 'test_side_plane_guard.py',
     'test_cutter_compensation.py', 'test_job_plane_restore.py', 'test_tapping_direction.py',
     'test_rotary_modulo_range.py', 'test_move_4x_axial_x.py', 'test_inverse_time_feed.py',
     'test_unsupported_features.py'})

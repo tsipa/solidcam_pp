@@ -743,7 +743,9 @@ endp
 ;-------------------
 
 @machine_plane
-    ; SolidCAM event: the job's machining plane (iMplane); the motion blocks print it.
+    ; SolidCAM event: the job's machining plane (iMplane); the motion blocks print it. YZ and ZX stop
+    ; the post (usr_xy_plane_check); their branches below are not reached while that stop is in place.
+    call @usr_xy_plane_check
     if machine_plane eq XY
         iMplane = 17
     endif
@@ -757,8 +759,10 @@ endp
 
 @usr_job_plane
     ; Select the job's machining plane (G17 when SolidCAM leaves machine_plane empty or unknown).
-    ; Assign only on a change: an equal-value assignment could clear a pending change flag.
+    ; Assign only on a change: an equal-value assignment could clear a pending change flag. YZ and ZX
+    ; stop the post (usr_xy_plane_check); their branches below are not reached while it is in place.
     local integer iJobPlane
+    call @usr_xy_plane_check
     iJobPlane = 17
     if machine_plane eq ZX
         iJobPlane = 18
@@ -768,6 +772,18 @@ endp
     endif
     if iMplane ne iJobPlane
         iMplane = iJobPlane
+    endif
+endp
+
+@usr_xy_plane_check
+    ; Stop on a YZ or ZX machining plane. On this machine G18/G19 move the length compensation of a
+    ; milling tool from Z to Y/X (SD42940 $SC_TOOL_LENGTH_CONST = 0 in backups/NOLOG.ard; PGsl 03/2013
+    ; 8.2: the plane sets the infeed axis of the tool length). Machine 2026-10-28: 'G19 G3 Y-10 Z55
+    ; AR=90' of ARTEST.MPF drove Z down by about the tool length.
+    if machine_plane eq YZ or machine_plane eq ZX
+        print 'POST ERROR: YZ/ZX machining plane: G18/G19 would move the tool length compensation off Z (SD42940 = 0 on this machine). Only the XY plane is supported.'
+        {nb,"POST ERROR: YZ/ZX machining plane: G18/G19 would move the tool length compensation off Z (SD42940 = 0 on this machine). Only the XY plane is supported."}
+        abort
     endif
 endp
 
@@ -1379,7 +1395,7 @@ endp
     call @usr_camdbg_start_of_job
     call @usr_link_boundary
     call @home_number
-    ; Arcs in YZ/ZX leave iMplane at 19/18; restore the job's machining plane for its first motion block.
+    ; The job's machining plane for its first motion block (G17; YZ/ZX stop the post, usr_xy_plane_check).
     call @usr_job_plane
     if bTmatrixIndexPending
         change(cWo) = true
@@ -2025,8 +2041,8 @@ endp
     ; End point of an arc block: both axes of the arc plane in every block, whatever their change
     ; flags (an AR= block without them ends on its start and leaves the centre undefined), and the
     ; axis normal to the plane when it is flagged or leaves its start (helix): usr_arc_math commits
-    ; the end with an assignment that may clear the flag of an equal value. ZX arcs stop the post
-    ; before (usr_arc_math).
+    ; the end with an assignment that may clear the flag of an equal value. YZ and ZX arcs stop the
+    ; post before (usr_arc_math); the YZ branch is not reached while that stop is in place.
     if arc_plane eq XY then
         if zpos ne zstart then
             change(zpos) = true
@@ -2076,13 +2092,15 @@ endp
         iMplane = 19
     endif
 
-    ; --- ZX plane: direction convention not verified ---
-    ; Sinumerik G18 G3 turns Z->X (viewed from +Y), while the end-point math below turns X->Z for CCW.
-    ; Depending on SolidCAM's arc_direction convention for ZX this either aborts on the end-point check
-    ; or posts the complementary arc. Stop until the convention is verified (e.g. one ZX arc in Vericut).
-    if iMplane eq 18 then
-        print 'POST ERROR: ZX arc direction is unverified in this post. Check usr_arc_math.'
-        {nb,"POST ERROR: ZX arc direction is unverified in this post. Check usr_arc_math."}
+    ; --- YZ and ZX planes: stop ---
+    ; On this machine G18/G19 move the length compensation of a milling tool from Z to Y/X
+    ; (usr_xy_plane_check; machine 2026-10-28: 'G19 G3 Y-10 Z55 AR=90' drove Z down by about the tool
+    ; length). The YZ and ZX branches below are not reached while this stop is in place. ZX had a stop
+    ; of its own before: Sinumerik G18 G3 turns Z->X (viewed from +Y), while the end-point math below
+    ; turns X->Z for CCW, and SolidCAM's arc_direction convention for ZX is unverified.
+    if arc_plane ne XY then
+        print 'POST ERROR: YZ/ZX arc: G18/G19 would move the tool length compensation off Z (SD42940 = 0 on this machine). Only XY arcs are supported.'
+        {nb,"POST ERROR: YZ/ZX arc: G18/G19 would move the tool length compensation off Z (SD42940 = 0 on this machine). Only XY arcs are supported."}
         abort
     endif
 
@@ -2125,7 +2143,7 @@ endp
         calculated_zpos = cz + rz
     endif
 
-    ; --- YZ plane: keep X from CAD end ---
+    ; --- YZ plane: keep X from CAD end (not reached while the stop above is in place) ---
     if iMplane eq 19 then
         ry = vy * c - vz * s
         rz = vy * s + vz * c

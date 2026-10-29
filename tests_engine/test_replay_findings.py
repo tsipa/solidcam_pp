@@ -15,8 +15,10 @@ from pp_tests.gppl.session import Session, replay_file
 from support import FIXTURES, PP, VMID, require_vmid, source
 
 
-# options_session had this ZX arc as event 8; since 5408e5c a ZX arc stops the post, so the fixture
-# reaches the same point with a line and test_zx_arc_stops_the_session puts the arc back.
+# options_session had this ZX arc as event 8. A ZX arc stops the post since 5408e5c, every YZ or ZX arc
+# and machining plane since 2026-10-28 (G18/G19 move the tool length compensation off Z, SD42940 = 0), so
+# the fixture stays in the XY plane, reaches the same point with a line, and test_zx_arc_stops_the_session
+# puts the arc back.
 ZX_ARC_EVENT = {'name': 'arc_zx', 'parameters': {
     'xpos': -40, 'ypos': 0, 'zpos': -5, 'xstart': -50, 'ystart': 0, 'zstart': 5, 'xcenter': -50, 'ycenter': 0,
     'zcenter': -5, 'xcenter_rel': 0, 'ycenter_rel': 0, 'zcenter_rel': -10, 'arc_size': 90, 'arc_direction': 'cw',
@@ -96,7 +98,8 @@ class ReplayFindings(unittest.TestCase):
             events[index] = ZX_ARC_EVENT
         report = self.replay_edited(zx_arc)
         self.assertFalse(report.ok)
-        self.assertIn('ZX arc direction is unverified', str(report.errors))
+        self.assertIn('POST ERROR: YZ/ZX arc: G18/G19 would move the tool length compensation off Z '
+                      '(SD42940 = 0 on this machine). Only XY arcs are supported.', str(report.errors))
 
     def test_reference_point_change_stops_the_session(self):
         # options_session had this event before the template's G10 output was removed.
