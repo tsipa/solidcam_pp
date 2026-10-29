@@ -234,6 +234,12 @@ RESOLUTIONS = {
     'ENGINE-004': ('fixed', "6d4ea82 The CYCLE84 line writes ',0,' instead of the doubled-quote literal, so every "
                             'reading of GPPL quoting gives the same quote-free argument list.'),
     'ENGINE-021': ('fixed', '709e40f Clamp right() to the whole string when the count exceeds its length.'),
+    'DESIGN-003': ('fixed', '996a97f Index at a tool change: the tool-change block turns A, no separate M1 and homing '
+                            '(owner decision 2026-10-28; the index M1 only without bOptstptc, none before the first '
+                            'tool).'),
+    'PP-015[first-tool-index]': ('fixed', "996a97f Index at a tool change: the tool-change block turns A, no separate "
+                                          "M1 and homing (the first job's tmatrix index moves no Z; the first-job "
+                                          '@fourth_axis facet stays open).'),
 }
 
 # Test files that came with the fixing commits (git show <commit> --stat).
@@ -270,6 +276,7 @@ FIX_TESTS = {
     'PP-045': ('tests/test_unsupported_features.py',),
     'PP-047': ('tests/test_contracts.py',),
     'DESIGN-002': ('tests/test_post_homing_reposition.py',),
+    'DESIGN-003': ('tests/test_indexing_link.py', 'tests/test_safety_options.py'),
 }
 
 # Engine scope and GPPL engine handling of the ENGINE entries.

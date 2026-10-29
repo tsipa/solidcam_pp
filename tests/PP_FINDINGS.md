@@ -40,9 +40,9 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 30 | 31 | 1 | 3 |
+| pp | 30 | 31 | 1 | 4 |
 | engine | 19 | 2 | 0 | 0 |
-| design | 6 | 1 | 0 | 0 |
+| design | 5 | 2 | 0 | 0 |
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
@@ -102,7 +102,6 @@ Canonical `@known_defect` tests: 49. `@covers` references: 102.
 | [ENGINE-019](#engine-019) | low | confirmed | F | Text outside procedures is silently ignored by the parser | `test_code_outside_procedures_is_reported` |
 | [ENGINE-020](#engine-020) | low | uncertain | F | Identifiers inside '(expr)' output tokens get their change flags cleared | `test_expression_output_token_keeps_operand_change_flags` |
 | [DESIGN-001](#design-001) | low | uncertain | C | CAM-link trust: a rapid that descends inside a confirmed link keeps the authorization, and any positive Z step (0.001 mm) authorizes an unhomed rotation | pinned only (@covers) |
-| [DESIGN-003](#design-003) | low | confirmed | C | A deferred tmatrix index runs before the tool change (old tool, spindle and coolant on, double M1) | pinned only (@covers) |
 | [DESIGN-004](#design-004) | low | confirmed | C | In confirmed CAM links the rotary block always precedes the XYZ block, even when Z rises in the same event | pinned only (@covers) |
 | [DESIGN-005](#design-005) | low | uncertain | B | A tool change zeroes CAM apos/bpos/cpos, so A unwinds/rewinds between 5x jobs and the direction comes from angle_4x_around_x_dir (abort if not cw/ccw) | pinned only (@covers) |
 | [DESIGN-006](#design-006) | low | confirmed | C | Single origin: the shipped home_number maps every CoordSys to G54 and newshift/ORGXYZ are computed but unused | pinned only (@covers) |
@@ -241,6 +240,7 @@ Canonical `@known_defect` tests: 49. `@covers` references: 102.
 - Evidence that would settle it: SolidCAM trace of the first job in mode 1 (trace '@usr_4x_index':5).
 - Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
 - Source findings: history-indexing-link-06, tc-02
+- Facet `first-tool-index`: fixed: 996a97f Index at a tool change: the tool-change block turns A, no separate M1 and homing (the first job's tmatrix index moves no Z; the first-job @fourth_axis facet stays open).
 - Reproduced by:
   - `tests/test_indexing_link.py::FirstIndexClearanceTests::test_first_job_fourth_axis_tool_level_clearance_never_plunges_to_z0` (facet `fourth-axis`, confidence confirmed)
 - Pinned or exercised by (`@covers`):
@@ -898,22 +898,6 @@ Canonical `@known_defect` tests: 49. `@covers` references: 102.
 - Pinned or exercised by (`@covers`):
   - `tests/test_indexing_link.py::DesignPinTests::test_cam_link_trusts_any_positive_z_step_and_descending_rapids`
 
-### DESIGN-003
-
-**A deferred tmatrix index runs before the tool change (old tool, spindle and coolant on, double M1)**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Default config, index between different-tool jobs.
-- Location: GPP @start_of_job L1110-1115 (deferred index) before L1145-1148 (@usr_ct)
-- Evidence that would settle it: Owner policy: index before or after the tool change.
-- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
-- Source findings: efc-13, tc-12, pp-weird-hunter-15
-- Reproduced by: none (owner decision; pinned by the CHARACTERIZATION test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_indexing_link.py::DesignPinTests::test_index_at_a_tool_change_turns_in_the_tool_change_block`
-  - `tests/test_indexing_link.py::DesignPinTests::test_program_start_index_adds_only_the_a_word`
-
 ### DESIGN-004
 
 **In confirmed CAM links the rotary block always precedes the XYZ block, even when Z rises in the same event**
@@ -989,6 +973,7 @@ now a regression guard marked `@covers`.
 | [PP-007](#pp-007) | ca63502 | `test_move_4x_preserves_axial_x` | `tests/test_move_4x_axial_x.py` |
 | [PP-012](#pp-012) | d9b120b | `test_hsm_job_parameters_select_cycle832_or_stop` | `tests/test_toolchange_session.py`, `tests/test_cycle832.py` |
 | [PP-013](#pp-013) | 49f8b80 | `test_same_tool_job_climbs_before_xy_traverse` | `tests/test_job_start_climb.py` |
+| [PP-015 [first-tool-index]](#pp-015) | 996a97f | `test_first_tool_index_tool_level_clearance_never_plunges_to_z0` |  |
 | [PP-019](#pp-019) | b999f65 | `test_compensation_off_before_retract_reaches_controller_before_next_tool_cuts`, `test_compensation_off_emitted_on_following_rapid`, `test_compensation_on_emitted_on_following_rapid` | `tests/test_cutter_compensation.py` |
 | [PP-020](#pp-020) | b999f65 | `test_compensation_not_activated_in_circular_block`, `test_compensation_not_deactivated_in_circular_block` | `tests/test_cutter_compensation.py` |
 | [PP-021](#pp-021) | 88695c9 | `test_error_text_is_the_last_nc_line_and_no_arc_block_is_written` | `tests/test_job_plane_restore.py` |
@@ -1021,6 +1006,7 @@ now a regression guard marked `@covers`.
 | [ENGINE-004](#engine-004) | 6d4ea82 | `test_cycle84_arguments_are_numeric_and_ordered`, `test_cycle84_rigid_tapping_fields`, `test_string_case_and_escaped_quotes` |  |
 | [ENGINE-021](#engine-021) | 709e40f | `test_right_count_beyond_the_string_returns_the_whole_string` |  |
 | [DESIGN-002](#design-002) | 3e0c345 | `test_homed_rotary_rapid_returns_xy_then_z` | `tests/test_post_homing_reposition.py` |
+| [DESIGN-003](#design-003) | 996a97f | `test_index_at_a_tool_change_turns_in_the_tool_change_block`, `test_program_start_index_adds_only_the_a_word` | `tests/test_indexing_link.py`, `tests/test_safety_options.py` |
 
 ### PP-001
 
@@ -1625,6 +1611,24 @@ now a regression guard marked `@covers`.
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_motion_rapids.py::ApproachAfterHomingTests::test_homed_rotary_rapid_returns_xy_then_z`
+
+### DESIGN-003
+
+**A deferred tmatrix index runs before the tool change (old tool, spindle and coolant on, double M1)**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Default config, index between different-tool jobs.
+- Location: GPP @start_of_job L1110-1115 (deferred index) before L1145-1148 (@usr_ct)
+- Evidence that would settle it: Owner policy: index before or after the tool change.
+- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
+- Source findings: efc-13, tc-12, pp-weird-hunter-15
+- Status: fixed: 996a97f Index at a tool change: the tool-change block turns A, no separate M1 and homing (owner decision 2026-10-28; the index M1 only without bOptstptc, none before the first tool).
+- Tests of the fix: tests/test_indexing_link.py, tests/test_safety_options.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_indexing_link.py::DesignPinTests::test_index_at_a_tool_change_turns_in_the_tool_change_block`
+  - `tests/test_indexing_link.py::DesignPinTests::test_program_start_index_adds_only_the_a_word`
 
 ## Accepted by the owner
 
