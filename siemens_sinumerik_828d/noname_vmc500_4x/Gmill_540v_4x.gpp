@@ -1349,7 +1349,8 @@ endp
     ; tolerance in degrees (ATOL of a rotary axis; Job Planning 08/2018 12.11) at the stock's largest
     ; radius about A, the corner of its Y/Z extent as WORKPIECE gives it (the A axis is at Y0 Z0;
     ; recorded 4x part: Y and Z -19.5 to 19.5, R 27.58). The cycle may set the rotary axes itself
-    ; (unverified), so it is written again after every call. None with a stock of no Y/Z extent.
+    ; (unverified), so it is written again after every call. A stock of no Y/Z extent takes 30 mm
+    ; (owner 2026-10-29).
     local numeric nY nZ nR
     if iCycle832Want ne iCycle832Mode or nCycle832WantTol ne nCycle832Tol
         if iCompActive ne 41 and iCompActive ne 42
@@ -1379,11 +1380,12 @@ endp
             nR = nY * nY + nZ * nZ
             call @usr_sqrt(nR)
             nR = nSqrt
-            if nR > 0
-                skipline = true
-                {nb,'ATOL[A]=',(nCycle832Tol * 57.2957795 / nR):nCycle832TolA_f}
-                iMotionmode = 9999
+            if nR <= 0
+                nR = 30
             endif
+            skipline = true
+            {nb,'ATOL[A]=',(nCycle832Tol * 57.2957795 / nR):nCycle832TolA_f}
+            iMotionmode = 9999
             nCycle832TolA = nCycle832Tol
         endif
     endif

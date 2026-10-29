@@ -306,15 +306,16 @@ class SimultaneousJobTests(unittest.TestCase):
     def test_atol_follows_the_call_on_simultaneous_jobs(self):
         """INDEPENDENT: ATOL[A] in degrees = the contour tolerance at the stock's largest radius
         about A (Y0 Z0): the corner of the stock's Y/Z extent. It follows the CYCLE832 call of a
-        4x/5x job, also one selected by iG187_P; none with bCycle832AtolA false, with a stock of no
-        Y/Z extent, or on a job without simultaneous moves."""
+        4x/5x job, also one selected by iG187_P; a stock of no Y/Z extent takes 30 mm (owner
+        2026-10-29: 0.01 mm -> 0.0191 deg); none with bCycle832AtolA false or on a job without
+        simultaneous moves."""
         for options, cam, expected in ((None, stock(0, 0), [FINISH, ATOL_FINISH]),
                                        (None, stock(0.06), [SEMI, ATOL_SEMI]),
                                        (None, stock(0.3), [ROUGH, ATOL_ROUGH]),
                                        (None, dict(iG187_P=1), [ROUGH, ATOL_ROUGH]),
                                        (dict(bCycle832AtolA=False), stock(0), [FINISH]),
                                        (None, dict(stock_y_minus=0, stock_y=0, stock_z_minus=0, stock_z_plus=0,
-                                                   **stock(0)), [FINISH]),
+                                                   **stock(0)), [FINISH, 'ATOL[A]=0.0191']),
                                        (None, dict(x5_job=False, job_type='profile', wall_offset=0), [FINISH])):
             with self.subTest(options=options, **cam):
                 self.assertEqual(smoothing(first_job(options=options, **{**SIMULTANEOUS, **cam})[1]), expected)
