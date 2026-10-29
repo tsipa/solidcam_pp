@@ -8,7 +8,7 @@
     <InfoLibraryDate>06/23/25</InfoLibraryDate>
   </Information>
   <COMMENT>Library File: sin840d.ctl, Revision 9.6.14, Issued: Wed Aug 06 15:30:31 2025</COMMENT>
-  <ControlInitFile File="${CGTECH_INSTALL}\library\sin840d.def" />
+  <ControlInitFile File="sin840d_special.def" />
   <ConstSurfSpeed Rapid="off" MaxRPM="1000" />
   <Sync Method="none">
   </Sync>
