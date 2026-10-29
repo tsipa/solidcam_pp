@@ -16,9 +16,9 @@
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
     global numeric nRapidfeed nMaxInverseFeed iR1dir iR2dir
     global string nR1pos_f nInvFeed_f
-    global logical bCycle832 bSpinWait
-    global numeric nCycle832RoughAllow nCycle832TolRough nCycle832TolSemi nCycle832TolFinish
-    global string nCycle832Tol_f nCamDbg_f nArcAR_f
+    global logical bCycle832 bCycle832X5 bSpinWait
+    global numeric nCycle832RoughAllow nCycle832TolRough nCycle832TolSemi nCycle832TolFinish nCycle832RadiusA
+    global string nCycle832Tol_f nCycle832TolA_f nCamDbg_f nArcAR_f
     ; Modal state of the NC program (what the control has active). iDiametercomp is the G40/G41/G42
     ; CAM asks for, printed on the next G0/G1 block; iCompActive is what the control has active.
     global integer iMotionmode iMplane iAbsincmode iWorkoffset iPworkoffset iDiametercomp iCompActive
@@ -31,10 +31,12 @@
     global numeric nCycle832Tol
     ; CYCLE832 the cut asks for (usr_smoothing_set), selected when cutter compensation is off
     ; (usr_smoothing_apply); the type the post chose for the job, and bCycle832Auto when the
-    ; finishing passes of the job switch the type (usr_smoothing_feed). wall_offset and floor_offset
-    ; hold nNoAllowance until an operation sends its own (usr_allowance_reset).
+    ; finishing passes of the job switch the type (usr_smoothing_feed). wall_offset, floor_offset,
+    ; Stock_to_leave and Drive_surface_Offset hold nNoAllowance until an operation sends its own
+    ; (usr_allowance_reset). nCycle832TolA is the ATOL[A] programmed since the last CYCLE832 call
+    ; (-1 = none).
     global integer iCycle832Want iCycle832Job
-    global numeric nCycle832WantTol nNoAllowance
+    global numeric nCycle832WantTol nNoAllowance nCycle832TolA
     global logical bCycle832Auto
     ; Tool change and job start
     global logical bTlchg bSafetyprep bStopM00difftool bskipline bFirstMove bFirstRapid
@@ -103,6 +105,7 @@
     feed_f          = '4.4(P)'
     nInvFeed_f      = '5.3'
     nCycle832Tol_f  = '5.4'
+    nCycle832TolA_f = '3.5'
     ; AR= of the arcs (usr_arc): degrees with the control's angle resolution (INT_INCR_PER_DEG 100000
     ; in backups/NOLOG.ard). With the end point written the angle sets only the bulge: 0.000005 deg
     ; moves the middle of an arc of up to 180 deg by at most chord * 0.000000022, 0.0000007 mm on the
@@ -181,8 +184,11 @@ endp
     ;High Speed Settings: CYCLE832 per operation (usr_smoothing; 828D option Top Surface). The job
     ;parameter iG187_P chooses the machining type: 0 = by the operation (wall allowance or feed
     ;type), 1 = roughing, 2 = semi-finishing, 3 = finishing, -1 = no CYCLE832; nG187_E > 0 replaces
-    ;the tolerance (mm).
+    ;the tolerance (mm). On a simultaneous 4x/5x job ATOL[A] follows each CYCLE832: without TRAORI
+    ;the control holds A to MD33100 (0.1 deg here, 0.087 mm at R50), not to the contour tolerance.
     bCycle832             = TRUE               ; True = CYCLE832 per operation; False = none (iG187_P and nG187_E must be 0)
+    bCycle832X5           = TRUE               ; True = iG187_P 0 on a simultaneous 4x/5x job goes by its allowance (Stock_to_leave, Drive_surface_Offset); False = no CYCLE832 there
+    nCycle832RadiusA      = 50                 ; Largest radius (mm) about A of 4x/5x cuts: ATOL[A] = the contour tolerance at this radius (0 = no ATOL[A]); the A share adds to X/Y/Z (2x the radius halves it)
     nCycle832RoughAllow   = 0.1                ; Wall allowance (mm) from which iG187_P 0 is roughing (0 = finishing, between = semi)
     nCycle832TolRough     = 0.1                ; Contour tolerance (mm) of roughing
     nCycle832TolSemi      = 0.05               ; Contour tolerance (mm) of semi-finishing
@@ -544,6 +550,7 @@ endp
     nCycle832WantTol = 0
     iCycle832Job    = 0
     bCycle832Auto   = false
+    nCycle832TolA   = -1
 endp
 
 ;-------------------
@@ -1235,8 +1242,12 @@ endp
     ;   iG187_P (recorded traces: every other milling type sends one, 100 of 100 operations).
     ; SolidCAM sends wall_offset and floor_offset with start_of_job only for the types that have
     ; them; the others keep nNoAllowance (usr_allowance_reset), not the last job's values.
+    ; - A simultaneous 4x/5x job (X5_job, option bCycle832X5): its allowance, the smaller of
+    ;   Stock_to_leave and Drive_surface_Offset, by the same rule. SolidCAM sends them, not
+    ;   wall_offset, with these jobs (recorded traces: 4x morphing, 0 and 0, Cut_tolerance 0.01).
+    ;   A 4x/5x job without them keeps the reset settings, as with bCycle832X5 false.
     ; nG187_E > 0 replaces the tolerance. No CYCLE832 (deselected when active) with iG187_P -1, with
-    ; iG187_P 0 on a simultaneous 4x/5x job (X5_job) or a drilling job, and with bCycle832 false.
+    ; iG187_P 0 on a drilling job, and with bCycle832 false.
     ; Printed when the type or the tolerance changes, not with cutter compensation on
     ; (usr_smoothing_apply); a tool change, a drilling cycle and the program end deselect it.
     ; Machine 2026-10-27: CYCLE832 selects G645, SOFT, COMPSURF and DYNROUGH / DYNSEMIFIN /
@@ -1246,19 +1257,28 @@ endp
     call @usr_check_smoothing
     iMode = 0
     bCycle832Auto = false
-    if bCycle832 and iG187_P eq 0 and !X5_job and instr(job_type,'drill') eq 0
+    nAllow = nNoAllowance
+    if X5_job and bCycle832X5
+        nAllow = Stock_to_leave
+        if Drive_surface_Offset ne nNoAllowance and (nAllow eq nNoAllowance or Drive_surface_Offset < nAllow)
+            nAllow = Drive_surface_Offset
+        endif
+    endif
+    if bCycle832 and iG187_P eq 0 and (!X5_job or nAllow ne nNoAllowance) and instr(job_type,'drill') eq 0
         bCycle832Auto = true
         if job_type eq 'face_milling' or job_type eq 'thread'
             iMode = 3
         else
-            if wall_offset eq nNoAllowance
+            if !X5_job and wall_offset eq nNoAllowance
                 print 'POST ERROR: CYCLE832: the operation has no wall allowance (wall_offset): set the job parameter iG187_P (1 rough, 2 semi, 3 finish, -1 none).'
                 {nb,"POST ERROR: CYCLE832: the operation has no wall allowance (wall_offset): set the job parameter iG187_P (1 rough, 2 semi, 3 finish, -1 none)."}
                 abort
             endif
-            nAllow = wall_offset
-            if job_type eq 'profile_3D' and floor_offset < nAllow
-                nAllow = floor_offset
+            if !X5_job
+                nAllow = wall_offset
+                if job_type eq 'profile_3D' and floor_offset < nAllow
+                    nAllow = floor_offset
+                endif
             endif
             iMode = 1
             if nAllow >= nCycle832TolSemi
@@ -1323,6 +1343,10 @@ endp
     ; before the move. Not while cutter compensation is on at the control: the cycle's blocks without
     ; motion count as empty blocks of TRC (MD20250 CUTCOM_MAXNUM_DUMMY_BLOCKS 5 here, alarm 10762
     ; above), so it waits for the move after G40. A G41/G42 still to come is selected after it.
+    ; On a simultaneous 4x/5x job ATOL[A] follows on its own line: the contour tolerance at
+    ; nCycle832RadiusA in degrees (ATOL of a rotary axis; Job Planning 08/2018 12.11). The cycle
+    ; may set the rotary axes itself (unverified), so it is written again after every call.
+    local numeric nTolA
     if iCycle832Want ne iCycle832Mode or nCycle832WantTol ne nCycle832Tol
         if iCompActive ne 41 and iCompActive ne 42
             skipline = true
@@ -1333,8 +1357,20 @@ endp
             endif
             iCycle832Mode = iCycle832Want
             nCycle832Tol = nCycle832WantTol
+            nCycle832TolA = -1
             ; The next move programs G0/G1 again after the cycle call.
             iMotionmode = 9999
+        endif
+    endif
+    if iCycle832Mode ne 0 and nCycle832RadiusA > 0 and iCompActive ne 41 and iCompActive ne 42
+        if X5_job
+            nTolA = nCycle832Tol * 57.2957795 / nCycle832RadiusA
+            if nTolA ne nCycle832TolA
+                skipline = true
+                {nb,'ATOL[A]=',nTolA:nCycle832TolA_f}
+                nCycle832TolA = nTolA
+                iMotionmode = 9999
+            endif
         endif
     endif
 endp
@@ -1354,10 +1390,13 @@ endp
 @usr_allowance_reset
     ; No allowance until an operation sends its own: SolidCAM sends wall_offset and floor_offset
     ; with start_of_job only for the operation types that have them (recorded traces 2026-10-28:
-    ; none with face milling, thread milling, drilling or 4x morphing), and the variables keep the
-    ; last job's values otherwise. usr_smoothing reads nNoAllowance as none.
+    ; none with face milling, thread milling, drilling or 4x morphing), Stock_to_leave and
+    ; Drive_surface_Offset only with 4x morphing there, and the variables keep the last job's
+    ; values otherwise. usr_smoothing reads nNoAllowance as none.
     wall_offset = nNoAllowance
     floor_offset = nNoAllowance
+    Stock_to_leave = nNoAllowance
+    Drive_surface_Offset = nNoAllowance
 endp
 
 ;--------------------

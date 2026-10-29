@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "description": "CYCLE832 per operation (usr_smoothing): a pocket with the roughing allowance whose finishing passes (finish_feed, finish_feed_floor) switch to finishing and back, a 3D profile judged by its smaller floor allowance, the job parameters iG187_P 1/2/3 and nG187_E, and iG187_P -1 deselecting it; a same-tool job over the last X/Y starts with one G0 Z block. Expectations characterise the current GPP under the session policy; they are not a SolidCAM oracle.",
+ "description": "CYCLE832 per operation (usr_smoothing): a pocket with the roughing allowance whose finishing passes (finish_feed, finish_feed_floor) switch to finishing and back, a 3D profile judged by its smaller floor allowance, a 4x morphing job judged by the smaller of Stock_to_leave and Drive_surface_Offset (semi-finishing like the job before: ATOL[A] alone), the job parameters iG187_P 1/2/3 and nG187_E, and iG187_P -1 deselecting it; a same-tool job over the last X/Y starts with one G0 Z block. Expectations characterise the current GPP under the session policy; they are not a SolidCAM oracle.",
  "session": {
   "overrides": {},
   "user_params": {},
@@ -310,6 +310,110 @@
     "blocks": [
      "G0 Y20",
      "Z5"
+    ]
+   }
+  },
+  {
+   "name": "line",
+   "parameters": {
+    "xpos": 10,
+    "ypos": 20,
+    "zpos": -2,
+    "feed": 600,
+    "feed_type": "feed_rate"
+   }
+  },
+  {
+   "name": "rapid_move",
+   "parameters": {
+    "xpos": 10,
+    "ypos": 20,
+    "zpos": 50
+   }
+  },
+  {
+   "name": "end_of_job",
+   "parameters": {
+    "next_job_tool_number": 1,
+    "tool_z_level": 50,
+    "tool_start_plane": 50
+   }
+  },
+  {
+   "name": "start_of_job",
+   "parameters": {
+    "job_name": "X4_SEMI",
+    "job_type": "4x_morph_between_curves",
+    "msg": "",
+    "home_number": 1,
+    "home_user_name": "G54",
+    "position": 1,
+    "rot_axis_coord": 0,
+    "x5_job": true,
+    "transform_type": 0,
+    "tool_z_level": 50,
+    "tool_start_plane": 50,
+    "xnext": 10,
+    "ynext": 20,
+    "spin_rate": 8000,
+    "spin": 8000,
+    "tool_direction": "cw",
+    "d_drill_type": -1,
+    "loop_level": 0,
+    "loop_count": 0,
+    "next_job_tool_number": 1,
+    "apos": 0,
+    "bpos": 0,
+    "cpos": 0,
+    "angle": 0,
+    "shift_x": 0,
+    "shift_y": 0,
+    "shift_z": 0,
+    "rotate_angle_x": 0,
+    "rotate_angle_y": 0,
+    "rotate_angle_z": 0,
+    "flood_coolant": 0,
+    "mist_coolant": 0,
+    "hp_flood_coolant": 0,
+    "lp_flood_coolant": 0,
+    "through_ival_coolant": 0,
+    "through_coolant_val": 0,
+    "lp_through_coolant": 0,
+    "air_blast_coolant": 0,
+    "air_through_coolant": 0,
+    "angle_4x_around_x": 0,
+    "angle_4x_around_x_dir": "cw",
+    "x_angle_const_z": 0,
+    "y_angle_const_z": 0,
+    "machine_plane": "xy",
+    "dir5a": "cw",
+    "ig187_p": 0,
+    "ng187_e": 0,
+    "Stock_to_leave": 0.06,
+    "Drive_surface_Offset": 0.3
+   },
+   "expect": {
+    "order": [
+     "MSG(\"X4_SEMI\")",
+     "M1",
+     "ATOL[A]=0.0573"
+    ],
+    "count": {
+     "CYCLE832": 0,
+     "ATOL": 1
+    }
+   }
+  },
+  {
+   "name": "rapid_move",
+   "parameters": {
+    "xpos": 10,
+    "ypos": 20,
+    "zpos": 5
+   },
+   "expect": {
+    "blocks": [
+     "G0 Z5"
     ]
    }
   },

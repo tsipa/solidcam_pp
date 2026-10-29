@@ -13,7 +13,7 @@ import unittest
 
 from pp_tests.engine import Engine, UnsupportedGPPL
 from support.legacy_compat import with_stop_context
-from support.session import ALLOWANCE_KEYS, D_TAPPING, DRILL_TYPE, with_allowance
+from support.session import ALLOWANCE_KEYS, D_TAPPING, DRILL_TYPE, NOT_SENT, with_allowance
 from test_offline import PP
 
 # The default engine (pp_tests.gppl) joins NC lines on a one-shot skipline and runs `input` and
@@ -116,9 +116,11 @@ class Program:
         engine.state.update(CONSTANTS)
         engine.call('init_post')
         engine.state.update({k.lower(): v for k, v in (options or {}).items()})
+        # @start_of_file resets the allowances; CAM_JOB_DEFAULTS then sends wall_offset and floor_offset.
+        engine.call('usr_allowance_reset')
         engine.state.update(VMID)
         engine.state.update(CAM)
-        engine.state.update({k.lower(): v for k, v in (cam or {}).items()})
+        engine.state.update({k.lower(): v for k, v in (cam or {}).items() if v is not NOT_SENT})
         for name in list(engine.state):
             engine.changed.setdefault(name, False)
         engine.call('usr_init_gmstates')

@@ -125,7 +125,8 @@ def with_allowance(event_name, values, job_type, sent):
             sent[key] = values[key]
         elif event_name == 'start_of_job' and sends_allowance(job_type):
             values[key] = sent[key]
-    return values
+    # Any other input given as NOT_SENT (e.g. Stock_to_leave of a 4x job) is not sent either.
+    return {key: value for key, value in values.items() if value is not NOT_SENT}
 
 
 class _Auto:
@@ -187,12 +188,15 @@ class Session:
         parameters = vmid_user_parameters()
         parameters.update(vmid or {})
         engine.set(**parameters)
+        if not header:
+            # @start_of_file resets the allowances; the job values below send wall_offset and floor_offset.
+            engine.call('usr_allowance_reset')
         job = dict(CAM_JOB_DEFAULTS)
         if header:
             job.update(HEADER_DEFAULTS)
         job.update(cam)
         self.allowance = {key: job[key] for key in ALLOWANCE_KEYS}
-        engine.set(**job)
+        engine.set(**{key: value for key, value in job.items() if value is not NOT_SENT})
         _fill_flags(engine)
         for key in MOTION_FLAGS:
             engine.changed[key] = False

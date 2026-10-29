@@ -17,6 +17,14 @@ are one program): SolidCAM sends wall_offset and floor_offset with start_of_job 
 operations of the other types and with no face milling, thread milling, drilling or 4x morphing
 operation; the variables keep the last job's values there.
 
+Owner decision 2026-10-28 (option bCycle832X5, default on): a simultaneous 4x/5x job goes by its
+allowance too. SolidCAM sends Stock_to_leave and Drive_surface_Offset with it, not wall_offset
+(recorded traces 001/002 and the reference trace: the two 4x morphing operations, 0 and 0, with
+Cut_tolerance 0.01); the smaller decides. Without TRAORI (none on this machine) the control holds A
+to ATOL[A] or else MD33100 COMPRESS_POS_TOL (0.1 deg here, 0.087 mm at R50), not to the contour
+tolerance (Job Planning 08/2018 12.11), so ATOL[A] follows each CYCLE832 of a 4x/5x job: the
+contour tolerance at nCycle832RadiusA (50 mm) in degrees.
+
 The tests read the blocks each event returns (no skipline joining) unless they need the NC lines.
 """
 import unittest
@@ -88,8 +96,9 @@ class AutoModeTests(unittest.TestCase):
                 self.assertEqual(calls(blocks), [expected])
 
     def test_simultaneous_and_drilling_jobs_keep_the_reset_settings(self):
-        """INDEPENDENT: owner rule 2026-10-27, 4x simultaneous jobs without CYCLE832 (X5_job); a
-        drilling job has no wall allowance to judge. iG187_P still selects CYCLE832 there."""
+        """INDEPENDENT: a simultaneous 4x/5x job (X5_job) without Stock_to_leave/Drive_surface_Offset
+        keeps the reset settings (its wall_offset does not count); a drilling job has no wall
+        allowance to judge. iG187_P still selects CYCLE832 there."""
         for cam in (dict(x5_job=True), dict(job_type='drilling')):
             with self.subTest(**cam):
                 self.assertEqual(calls(first_job(wall_offset=0.3, **cam)[1]), [])
@@ -236,7 +245,7 @@ class AutoModeMutationTests(unittest.TestCase):
     def test_rule_mutations_are_detected(self):
         """INDEPENDENT: mutation self-check of the allowance rules."""
         mutants = {
-            'X5_job ignored': ("iG187_P eq 0 and !X5_job and", "iG187_P eq 0 and"),
+            'X5_job ignored': ("iG187_P eq 0 and (!X5_job or nAllow ne nNoAllowance) and", "iG187_P eq 0 and"),
             '3D profile floor ignored': ("            if job_type eq 'profile_3D' and floor_offset < nAllow\n",
                                          "            if false\n"),
             'roughing threshold exclusive': (' if nAllow >= nCycle832RoughAllow and', ' if nAllow > 0.3 and'),
@@ -250,6 +259,204 @@ class AutoModeMutationTests(unittest.TestCase):
             with self.subTest(mutant=label):
                 options = dict(nCycle832TolRough=0.2) if label == 'roughing tolerance ignored' else None
                 assert_detected(self, lambda source: self.check_rules(source, options), mutate(old, new), label)
+
+
+# A simultaneous 4x job as SolidCAM sends it (recorded traces: 4x morphing, X5_job 1).
+SIMULTANEOUS = dict(x5_job=True, job_type='4x_morph_between_curves')
+ATOL_FINISH, ATOL_SEMI, ATOL_ROUGH = 'ATOL[A]=0.01146', 'ATOL[A]=0.0573', 'ATOL[A]=0.11459'
+
+
+def stock(stock_to_leave, drive_surface_offset=NOT_SENT):
+    return dict(stock_to_leave=stock_to_leave, drive_surface_offset=drive_surface_offset)
+
+
+def smoothing(blocks):
+    return [block for block in blocks if block.startswith(('CYCLE832', 'ATOL'))]
+
+
+class SimultaneousJobTests(unittest.TestCase):
+    def test_machining_type_follows_the_stock_allowance(self):
+        """INDEPENDENT: owner decision 2026-10-28. A simultaneous 4x/5x job takes the type of the
+        smaller of Stock_to_leave and Drive_surface_Offset by the wall allowance rule; wall_offset
+        does not count there. Recorded traces: 4x morphing sends 0 and 0 (finishing)."""
+        for cam, expected in ((stock(0, 0), FINISH), (stock(0.3, 0.3), ROUGH), (stock(0.06), SEMI),
+                              (stock(NOT_SENT, 0.02), FINISH), (stock(0.3, 0), FINISH), (stock(0, 0.3), FINISH),
+                              (stock(0.3, 0.06), SEMI)):
+            with self.subTest(**cam):
+                self.assertEqual(calls(first_job(wall_offset=0.3, **SIMULTANEOUS, **cam)[1]), [expected])
+
+    def check_option_off(self, source=None):
+        for options, cam, expected in ((dict(bCycle832X5=False), stock(0, 0), []), (None, stock(NOT_SENT), []),
+                                       (dict(bCycle832X5=False), dict(iG187_P=2, **stock(0, 0)), [SEMI, ATOL_SEMI])):
+            with self.subTest(options=options, **cam):
+                self.assertEqual(smoothing(first_job(source, options, **SIMULTANEOUS, **cam)[1]), expected)
+
+    def test_option_off_and_missing_allowance_keep_the_reset_settings(self):
+        """INDEPENDENT: bCycle832X5 false, or a 4x/5x job that sends neither variable, keeps the
+        reset settings without stopping the post; iG187_P still selects CYCLE832 there, and ATOL[A]
+        follows it (bCycle832X5 covers only the type by allowance)."""
+        self.check_option_off()
+
+    def test_atol_follows_the_call_on_simultaneous_jobs(self):
+        """INDEPENDENT: ATOL[A] in degrees = the contour tolerance at nCycle832RadiusA (50 mm):
+        0.01 mm -> 0.01146 deg, 0.05 -> 0.0573, 0.1 -> 0.11459. It follows the CYCLE832 call of a
+        4x/5x job, also one selected by iG187_P; none with nCycle832RadiusA 0 or on a job without
+        simultaneous moves."""
+        for options, cam, expected in ((None, stock(0, 0), [FINISH, ATOL_FINISH]),
+                                       (None, stock(0.06), [SEMI, ATOL_SEMI]),
+                                       (None, stock(0.3), [ROUGH, ATOL_ROUGH]),
+                                       (None, dict(iG187_P=1), [ROUGH, ATOL_ROUGH]),
+                                       (dict(nCycle832RadiusA=25), stock(0), [FINISH, 'ATOL[A]=0.02292']),
+                                       (dict(nCycle832RadiusA=0), stock(0), [FINISH]),
+                                       (None, dict(x5_job=False, job_type='profile', wall_offset=0), [FINISH])):
+            with self.subTest(options=options, **cam):
+                self.assertEqual(smoothing(first_job(options=options, **{**SIMULTANEOUS, **cam})[1]), expected)
+
+    def check_atol_state(self, source=None):
+        # Same tool: a finishing profile, then a 4x job with the same call: ATOL[A] alone.
+        p, start = first_job(source, job_type='profile', wall_offset=0)
+        self.assertEqual(smoothing(start), [FINISH])
+        cut(p)
+        self.assertEqual(smoothing(same_tool_job(p, 'op2', **SIMULTANEOUS, **stock(0, 0))), [ATOL_FINISH])
+        cut(p)
+        self.assertEqual(smoothing(same_tool_job(p, 'op3', **SIMULTANEOUS, **stock(0, 0))), [])
+        # A call in between (roughing profile): the next finishing 4x job writes ATOL[A] again.
+        cut(p)
+        self.assertEqual(smoothing(same_tool_job(p, 'op3b', job_type='profile', x5_job=False, wall_offset=0.3)),
+                         [ROUGH])
+        cut(p)
+        self.assertEqual(smoothing(same_tool_job(p, 'op3c', **SIMULTANEOUS, **stock(0, 0))), [FINISH, ATOL_FINISH])
+        # A roughing 4x job: its finishing passes and the cut after them write ATOL[A] again.
+        cut(p)
+        self.assertEqual(smoothing(same_tool_job(p, 'op4', **SIMULTANEOUS, **stock(0.3))), [ROUGH, ATOL_ROUGH])
+        self.assertEqual(smoothing(finish_pass(p)), [FINISH, ATOL_FINISH])
+        self.assertEqual(smoothing(rough_move(p)), [ROUGH, ATOL_ROUGH])
+        # The tool change (made at the next start_of_job) deselects; the 4x job selects both again.
+        _, blocks = second_tool(p, **SIMULTANEOUS, **stock(0.3))
+        self.assertEqual(smoothing(blocks), [DESELECT, ROUGH, ATOL_ROUGH])
+
+    def test_atol_is_written_when_the_control_lacks_it(self):
+        """INDEPENDENT: ATOL[A] is written after every CYCLE832 call of a 4x/5x job (the cycle may
+        set the rotary axes itself; unverified on this control) and when a 4x/5x job keeps the call
+        of a job without simultaneous moves, not again while it holds."""
+        self.check_atol_state()
+
+    def test_atol_is_its_own_nc_line_before_the_first_move(self):
+        """INDEPENDENT: with the skipline joining of the NC stream ATOL[A] stays on its own line
+        after the call, before the first move, which writes G0 again."""
+        require_nc_stream()
+        p, _ = first_job(**SIMULTANEOUS, **stock(0, 0))
+        cut(p)
+        nc = p.nc()
+        call = nc.index(FINISH)
+        self.assertEqual(nc[call + 1], ATOL_FINISH, nc)
+        self.assertTrue(nc[call + 2].startswith('G0'), nc)
+
+    def check_simultaneous_moves(self, source=None):
+        p, start = first_job(source, **SIMULTANEOUS, **stock(0.3))
+        self.assertEqual(smoothing(start), [ROUGH, ATOL_ROUGH])
+        p.ev('move_5x', xpos=10, ypos=10, zpos=50)
+        moves = p.ev('line_5x', zpos=-2, feed=4000, feed_type='z_feed')
+        moves += p.ev('line_5x', xpos=12, feed=300, feed_type='feed_lead_in')
+        moves += p.ev('line_5x', xpos=30, feed=600, feed_type='feed_rate')
+        moves += p.ev('line_5x', xpos=32, feed=300, feed_type='feed_lead_out')
+        self.assertEqual(smoothing(moves), [])
+        self.assertEqual(smoothing(p.ev('line_5x', xpos=40, feed_type='finish_feed')), [FINISH, ATOL_FINISH])
+        self.assertEqual(smoothing(p.ev('line_5x', xpos=42, feed_type='feed_lead_out')), [])
+        self.assertEqual(smoothing(p.ev('line_5x', xpos=50, feed_type='feed_rate')), [ROUGH, ATOL_ROUGH])
+
+    def test_moves_of_a_simultaneous_job_switch_only_on_finishing_passes(self):
+        """INDEPENDENT: SolidCAM sends the moves of a 4x job as move_5x/line_5x (recorded 4x
+        morphing: 502 move_5x, 5304 line_5x). Owner decision 2026-10-28: lead-ins, lead-outs and
+        plunges keep the job's type; a finishing pass switches to finishing and the next cut at
+        feed_rate back, each call with its ATOL[A]."""
+        self.check_simultaneous_moves()
+
+    def check_atol_waits_for_g40(self, source=None):
+        p, _ = first_job(source, job_type='profile', wall_offset=0)
+        p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
+        p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
+        p.ev('compensation', side='comp_left')
+        p.ev('line', xpos=40, feed=300, feed_type='finish_feed')
+        self.assertEqual(smoothing(same_tool_job(p, 'op2', **SIMULTANEOUS, **stock(0, 0))), [])
+        off = p.ev('compensation', side='comp_off') + p.ev('line_5x', xpos=50, feed_type='finish_feed')
+        self.assertEqual(smoothing(off), [], off)
+        self.assertIn('G40', off[-1])
+        self.assertEqual(smoothing(p.ev('line_5x', xpos=60, feed_type='finish_feed')), [ATOL_FINISH])
+
+    def test_atol_waits_for_the_move_after_g40(self):
+        """INDEPENDENT: like CYCLE832, ATOL[A] is a block without motion, so it is not written while
+        compensation is on at the control (MD20250 = 5 empty blocks, alarm 10762): compensation the
+        last job left on holds a 4x job's ATOL[A] until the move after G40."""
+        self.check_atol_waits_for_g40()
+
+    def check_first_job_stock(self, source=None):
+        p = stop_program(source, **SIMULTANEOUS, **stock(0, 0))
+        p.ev('start_of_file', **HEADER_DEFAULTS)
+        p.ev('start_program')
+        p.ev('change_tool', tool_number=1, next_tool_number=2, next_job_tool_number=1)
+        self.assertEqual(smoothing(p.ev('start_of_job', job_name='op1')), [])
+
+    def test_first_job_has_no_stock_allowance_until_it_sends_one(self):
+        """INDEPENDENT: start_of_file resets Stock_to_leave and Drive_surface_Offset: a first 4x job
+        that sends neither keeps the reset settings, whatever the variables held before."""
+        self.check_first_job_stock()
+
+    def check_reset(self, source=None):
+        p, start = first_job(source, **SIMULTANEOUS, **stock(0.3, 0.3))
+        self.assertEqual(calls(start), [ROUGH])
+        cut(p)
+        self.assertEqual(calls(same_tool_job(p, 'op2', **SIMULTANEOUS)), [DESELECT])
+
+    def test_next_job_does_not_take_the_last_stock_allowance(self):
+        """INDEPENDENT: the post resets Stock_to_leave and Drive_surface_Offset between jobs like the
+        wall allowance: a 4x job that sends neither keeps the reset settings."""
+        self.check_reset()
+
+
+class SimultaneousJobMutationTests(unittest.TestCase):
+    def check_rules(self, source):
+        for cam, expected in ((stock(0.3, 0.06), [SEMI]), (stock(NOT_SENT, 0.02), [FINISH]), (stock(0.3), [ROUGH])):
+            self.assertEqual(calls(first_job(source, wall_offset=0.3, **SIMULTANEOUS, **cam)[1]), expected, cam)
+        self.assertEqual(calls(first_job(source, dict(bCycle832X5=False), **SIMULTANEOUS, **stock(0))[1]), [])
+        self.assertEqual(smoothing(first_job(source, **SIMULTANEOUS, **stock(0.06))[1]), [SEMI, ATOL_SEMI])
+        self.assertEqual(smoothing(first_job(source, job_type='profile', wall_offset=0)[1]), [FINISH])
+
+    def test_mutations_are_detected(self):
+        """INDEPENDENT: mutation self-check of the 4x/5x allowance and ATOL[A]."""
+        tests = SimultaneousJobTests()
+        line_5x = ('@line_5x\n    ; SolidCAM event: 5x feed move (usr_smoothing_feed, usr_line; the A direction comes from dir5a,\n'
+                   '    ; bR1useDir5a).\n    call @usr_smoothing_feed\n')
+        mutants = {
+            'line_5x without the smoothing call': ((line_5x, line_5x.replace('    call @usr_smoothing_feed\n', '')),
+                                                   tests.check_simultaneous_moves),
+            'leads take finishing': (("        if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor'\n",
+                                      "        if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor' or feed_type eq 'feed_lead_in' or feed_type eq 'feed_lead_out'\n"),
+                                     tests.check_simultaneous_moves),
+            'ATOL under compensation': (('    if iCycle832Mode ne 0 and nCycle832RadiusA > 0 and iCompActive ne 41 and iCompActive ne 42\n',
+                                         '    if iCycle832Mode ne 0 and nCycle832RadiusA > 0\n'), tests.check_atol_waits_for_g40),
+            'ATOL only by allowance': (('            if nTolA ne nCycle832TolA\n', '            if nTolA ne nCycle832TolA and bCycle832X5\n'),
+                                       tests.check_option_off),
+            'start_of_file resets only the wall allowance': (('    bWorkpieceUsesA = false\n    call @usr_allowance_reset\n',
+                                                              '    bWorkpieceUsesA = false\n    wall_offset = nNoAllowance\n'
+                                                              '    floor_offset = nNoAllowance\n'), tests.check_first_job_stock),
+            'Drive_surface_Offset ignored': (('        if Drive_surface_Offset ne nNoAllowance and (',
+                                              '        if false and ('), self.check_rules),
+            'larger allowance decides': ((' or Drive_surface_Offset < nAllow)', ' or Drive_surface_Offset > nAllow)'),
+                                         self.check_rules),
+            'option ignored': (('    if X5_job and bCycle832X5\n', '    if X5_job\n'), self.check_rules),
+            'ATOL in mm': (('nCycle832Tol * 57.2957795 / nCycle832RadiusA', 'nCycle832Tol / nCycle832RadiusA'),
+                           self.check_rules),
+            'ATOL on every job': (('        if X5_job\n            nTolA', '        if true\n            nTolA'),
+                                  self.check_rules),
+            'ATOL kept over a call': (('            nCycle832TolA = -1\n            ; The next move',
+                                       '            ; The next move'), tests.check_atol_state),
+            'reset keeps the stock allowance': (('    Stock_to_leave = nNoAllowance\n    Drive_surface_Offset = nNoAllowance\n',
+                                                 ''), tests.check_reset),
+        }
+        for label, ((old, new), check) in mutants.items():
+            with self.subTest(mutant=label):
+                assert_detected(self, check, mutate(old, new), label)
 
 
 def stop_program(source=None, **cam):
@@ -358,7 +565,7 @@ class NoAllowanceMutationTests(unittest.TestCase):
                                                tests.check_missing_allowance),
             'start_of_file keeps the allowance': (('    bWorkpieceUsesA = false\n    call @usr_allowance_reset\n',
                                                    '    bWorkpieceUsesA = false\n'), tests.check_first_job),
-            'stop removed': (('            if wall_offset eq nNoAllowance\n', '            if false\n'),
+            'stop removed': (('            if !X5_job and wall_offset eq nNoAllowance\n', '            if false\n'),
                              tests.check_missing_allowance),
             'marker is a real allowance': (('    nNoAllowance = -9999\n', '    nNoAllowance = 0\n'),
                                            tests.check_missing_allowance),
@@ -419,8 +626,8 @@ class FinishPassTests(unittest.TestCase):
         self.assertEqual(calls(finish_pass(p)), ['CYCLE832(0.02,1,1)'])
 
     def test_explicit_type_and_simultaneous_jobs_do_not_switch(self):
-        """INDEPENDENT: iG187_P 1-3 is the type of the whole job, -1 none; X5_job keeps the reset
-        settings."""
+        """INDEPENDENT: iG187_P 1-3 is the type of the whole job, -1 none; an X5_job without its
+        allowance keeps the reset settings."""
         for cam in (dict(iG187_P=1), dict(iG187_P=2), dict(iG187_P=-1), dict(x5_job=True)):
             with self.subTest(**cam):
                 p, _ = first_job(wall_offset=0.3, **cam)
