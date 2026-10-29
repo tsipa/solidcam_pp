@@ -1,6 +1,7 @@
 """Optional maintenance tools for the offline test suite (stdlib only).
 
     python -m pp_tests.tools.findings --write   regenerate tests/PP_FINDINGS.md
+    python -m pp_tests.tools.recorded_pins --write   regenerate the recorded-replay NC pins
     python -m pp_tests.tools.mutation            GPP mutation run (kill rate)
     python -m pp_tests.tools.revert_matrix       historical revert matrix
 

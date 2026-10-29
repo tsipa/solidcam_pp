@@ -745,6 +745,18 @@ _ENTRIES = [
        'confirmed',
        'A SolidCAM trace of a compensated profile whose compensation off follows the retract.',
        ['owner-review-2026-10-27-3'], 'D'),
+    _d('PP-063', 'face_milling and thread jobs: @usr_smoothing takes the CYCLE832 type from wall_offset/floor_offset, '
+       'which SolidCAM does not send for them', 'medium',
+       'Default config (bCycle832, job parameter iG187_P 0): every face_milling and thread job. Their @start_of_job '
+       'has neither wall_offset nor floor_offset (recorded_cam_004 operation_001/002/009/011 face_milling, '
+       'recorded_cam_005 operation_025 thread), so a job after one that sent them takes that allowance silently. '
+       'One before any job that sent them reads a variable SolidCAM never set: recorded_cam_004 starts with face '
+       'milling and its replay stops at event 25; which value SolidCAM gives an unset variable is UNVERIFIED '
+       '(presumably 0, finishing).',
+       'confirmed',
+       'None needed for the inputs (the recordings show which jobs send no allowance); the owner decides the '
+       'CYCLE832 type of face and thread milling (a fix is in progress on the refactoring branch).',
+       ['recorded-cam-replay-2026-10-28'], 'A'),
     # -------------------------------------------------------------- ENGINE
     _d('ENGINE-001', 'Change-flag rule for equal-value assignment is unverified (engine: only a value change '
        'raises a flag, nothing clears it)', 'medium',
@@ -1027,6 +1039,8 @@ LOCATIONS = {
               'taken after the post zeroed apos',
     'PP-062': 'GPP @end_of_job and @usr_prep_home_axis (refactoring branch before 01dd68f): no G40 unless a G0/G1 '
               'block carried the CAM compensation change',
+    'PP-063': 'GPP @usr_smoothing L1251-1256 (nAllow = wall_offset, or floor_offset on profile_3D, when bCycle832, '
+              'iG187_P 0, not X5_job and not a drill job), called by @start_of_job L1412',
     'ENGINE-001': 'pp_tests/gppl/legacy.py Engine.call assignment branch (a flag is raised only when the value changes '
                   'and never cleared)',
     'ENGINE-002': "pp_tests/gppl/legacy.py Engine._render (nb/nl always start a new block; 'skipline' is a plain variable)",

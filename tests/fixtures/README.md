@@ -137,6 +137,12 @@ part, operation, geometry, setup, message and user account identities are
 neutralized; tool names and data are preserved. The additional stock/target
 labels and machine configuration fields were reviewed for part/operation
 identities. These files are input examples rather than expected NC output.
+`tests/test_recorded_replays.py` replays them through the post: each must reach
+`@end_of_file` without a POST ERROR (or stop exactly at an open registered defect:
+`recorded_cam_004` at PP-063), and the sha256 of its NC must equal the pin in
+`recorded_cam_nc_pins.json`. The pins record the current post's output, not an
+oracle; `python -m pp_tests.tools.recorded_pins --write` regenerates them.
+`recorded_cam_001` (about 60 s and 2 GB) is replayed only with `PP_RECORDED_ALL=1`.
 
 The exports use lossless XZ with preset `9 | lzma.PRESET_EXTREME` (retaining the
 smaller preset-6 stream if necessary). Decompressed bytes are verified after

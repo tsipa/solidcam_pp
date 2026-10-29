@@ -87,6 +87,11 @@ have two causes:
   initialised. Set `MACH3_PP_SOURCE` to the 6efcad8 Mach3 post (`git show
   6efcad8:mach3/4x/Mach3_4X_Y.gpp > mach3.gpp`) to run them.
 
+`test_recorded_replays.py` replays four recorded SolidCAM programs by default (about 20 s);
+its two tests of `recorded_cam_001` (155k events, about 60 s and 2 GB) skip unless
+`PP_RECORDED_ALL=1`. The replays run on the GPPL engine whatever `GPPL_ENGINE` says, so the
+legacy run skips them.
+
 With `GPPL_ENGINE=legacy` the run takes about 1.5 minutes and has 103 skips: 52 known
 defects (seven ENGINE facets reproduce only on the legacy engine, ENGINE-021 only on
 the default engine), 46 tests that need the default engine, 3 that need `tostr` with a
@@ -123,6 +128,7 @@ test_program_start_forces_dc`.
 | `test_arc_compensation_plane.py`, `test_cutter_compensation.py`, `test_job_plane_restore.py`, `test_side_plane_guard.py`, `test_arcs.py` | XY arcs, the YZ/ZX arc and machining-plane stops, cutter compensation, machining plane |
 | `test_cycles_spindle.py`, `test_tapping_direction.py`, `test_history_regressions.py` | CYCLE81-86, MCALL cancel, tapping, spindle start and dwell; historical fixture cases |
 | `test_engine_harness.py`, `test_gpp_static.py`, `test_contracts.py`, `test_machine_definition.py`, `test_mach3_feed_force.py` | engine gaps and the compatibility engine, static GPP checks, trace/fixture contracts, VMID/Vericut contracts, Mach3 |
+| `test_recorded_replays.py` | whole recorded SolidCAM programs (`tests/fixtures/recorded_cam_00N`): end of file without an error or POST ERROR, NC pinned by sha256 in `tests/fixtures/recorded_cam_nc_pins.json` (`python -m pp_tests.tools.recorded_pins --write [NAME]` regenerates the pins) |
 | `test_known_defect_registry.py` | meta-tests for the registry, the markers and `PP_FINDINGS.md` |
 
 The files `test_cutter_compensation.py`, `test_inverse_time_feed.py`,
@@ -149,6 +155,8 @@ came with the owner's fixes; they build whole programs with `tests/program_sessi
   `ENGINE_NAME` is `gppl` or `legacy`.
 - `mutation.mutate()` / `assert_detected(match=)` prove that a guard fails with an
   AssertionError when the GPP behaviour it protects is changed in memory.
+- `recorded.replay()` replays a recorded program (`tests/fixtures/recorded_cam_00N`) through
+  the tested GPP; `make_pin()` and `mismatch_message()` (first differing lines) serve the NC pins.
 - `defects.REGISTRY` is the registry; `markers.known_defect` / `covers` reference it.
 
 ### Known defects and the registry
@@ -275,8 +283,9 @@ it shows the open defects as red tests.
   `skipline` joining. Only `nc_lines()` / `nc_text()` on the default engine join
   blocks (the legacy engine never does, ENGINE-002), so block boundaries after
   `skipline = false` are certified only by the tests that read the NC stream.
-- Event sequences are synthetic. Only the Slide rotary angles and the shit2 CAM link
-  come from real SolidCAM traces; event order around compensation, `@move_4x`,
+- Event sequences are synthetic. Only the Slide rotary angles, the shit2 CAM link and
+  the recorded replays (whose NC is pinned as CHARACTERIZATION, not checked against an
+  oracle) come from real SolidCAM traces; event order around compensation, `@move_4x`,
   `@machine_plane`, coolant and apos carry-over between jobs is assumed, and the
   tests that depend on such an assumption say UNVERIFIED (registry confidence
   `uncertain`).

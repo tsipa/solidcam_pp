@@ -24,6 +24,8 @@ Modules
   vericut       vmid_user_parameters(), g_function_whitelist(), ctl_text(), mch_text(),
                 gcodesim_ini_text(), vmid_text(), VMID_FALLBACK
   mutation      mutate(), assert_detected(match=), StaleAnchor, UnrelatedKill
+  recorded      replay() of the recorded SolidCAM programs, their NC pins (make_pin(),
+                mismatch_message()); imported as support.recorded
 """
 from .paths import (CTL, FIXTURES, GCODESIM_INI, MACH3_PP, MCH, PP, ROOT, VERICUT, VMID,
                     pp_source, require_file)
