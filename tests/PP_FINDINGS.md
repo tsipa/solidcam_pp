@@ -40,13 +40,13 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 30 | 31 | 1 | 4 |
+| pp | 29 | 32 | 1 | 4 |
 | engine | 19 | 2 | 0 | 0 |
 | design | 5 | 2 | 0 | 0 |
 
 Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
 
-Canonical `@known_defect` tests: 49. `@covers` references: 103.
+Canonical `@known_defect` tests: 48. `@covers` references: 104.
 
 ## Index of open entries
 
@@ -54,7 +54,6 @@ Canonical `@known_defect` tests: 49. `@covers` references: 103.
 |---|---|---|---|---|---|
 | [PP-002](#pp-002) | low-medium | confirmed | B | Directed A positions outside the modulo range 0 <= A < 360 (A=ACP(360), ACN(-360), ACP(400)) | pinned only (@covers) |
 | [PP-004](#pp-004) | low | confirmed | B | ACP/ACN direction selection ignores iR1dir; with iR1dir=+1 short moves become near full turns | `test_direction_matches_machine_motion_reversed_sign` |
-| [PP-005](#pp-005) | medium | uncertain | C | A tmatrix index adds the previous simultaneous job's apos (stale apos carry-over) | `test_tmatrix_index_ignores_previous_job_apos` |
 | [PP-006](#pp-006) | low | confirmed | D | zpos_f becomes '5.4' after the first rapid / tool-change rapid: Z has 4 decimals, X/Y 5 | `test_z_keeps_coordinate_precision_after_first_rapid` [first-rapid], `test_z_keeps_coordinate_precision_after_tool_change` [tool-change] |
 | [PP-009](#pp-009) | low-medium | confirmed | A | @usr_coolant overwrites the option iCoolantM5ON, so an unlisted pressure inherits the previous job's code instead of the default 77 | `test_through_coolant_code_does_not_leak_between_jobs` |
 | [PP-010](#pp-010) | low | confirmed | A | bCoolofftc/bSpinofftc ('between tool changes') are dead; tool-change M9/M5 follow the end-of-program flags bCooloffend/bSpinoffend | `test_tool_change_options_control_spindle_and_coolant_off` |
@@ -143,22 +142,6 @@ Canonical `@known_defect` tests: 49. `@covers` references: 103.
 - Source findings: history-rotary-10, pp-region-4-cycles-rotary-04
 - Reproduced by:
   - `tests/test_rotary.py::RotaryDirectionTests::test_direction_matches_machine_motion_reversed_sign`
-
-### PP-005
-
-**A tmatrix index adds the previous simultaneous job's apos (stale apos carry-over)**
-
-- Severity: medium
-- Confidence: uncertain
-- Reachability: Default config, indexed job after a 4x/5x simultaneous job that ended with apos != 0, only if SolidCAM carries apos over between jobs (UNVERIFIED); a later tool change does not repair it.
-- Location: GPP @start_of_job L1110-1115 -> @usr_4x_index L2411 -> @usr_r1pos_calc L2277 (nR1pos5x = (-apos)*iR1dir); compare @fourth_axis L1797 (apos = 0)
-- Evidence that would settle it: SolidCAM trace of a 4x simultaneous job followed by an indexed job: apos in the second job's @tmatrix and @start_of_job parameter dump.
-- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
-- Source findings: TSR-14, history-rotary-08, pp-region-4-cycles-rotary(missed-3)
-- Reproduced by:
-  - `tests/test_indexing_link.py::FourthAxisIndexTests::test_tmatrix_index_ignores_previous_job_apos`
-- Pinned or exercised by (`@covers`):
-  - `tests/test_indexing_link.py::SimultaneousJobCarryOverTests::test_same_tool_index_after_a_simultaneous_job_goes_straight_to_the_index_angle`
 
 ### PP-006
 
@@ -972,6 +955,7 @@ now a regression guard marked `@covers`.
 | [PP-002 [whole-turn]](#pp-002) | 6228b3d | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-002 [negative-mode]](#pp-002) | 71bac54 | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-003](#pp-003) | 5408e5c | `test_zx_arc_stops_the_post`, `test_arc_zx_event_stops_the_post` | `tests/test_side_plane_guard.py` |
+| [PP-005](#pp-005) | 16e19f6 | `test_tmatrix_index_ignores_previous_job_apos`, `test_same_tool_index_after_a_simultaneous_job_goes_straight_to_the_index_angle` | `tests/test_indexing_link.py` |
 | [PP-007](#pp-007) | ca63502 | `test_move_4x_preserves_axial_x` | `tests/test_move_4x_axial_x.py` |
 | [PP-012](#pp-012) | d9b120b | `test_hsm_job_parameters_select_cycle832_or_stop` | `tests/test_toolchange_session.py`, `tests/test_cycle832.py` |
 | [PP-013](#pp-013) | 49f8b80 | `test_same_tool_job_climbs_before_xy_traverse` | `tests/test_job_start_climb.py` |
@@ -1045,6 +1029,24 @@ now a regression guard marked `@covers`.
 - Guarded by (`@covers`):
   - `tests/test_arc_compensation_plane.py::ArcSweepConventionTests::test_zx_arc_stops_the_post`
   - `tests/test_side_plane_guard.py::SidePlaneArcStopTests::test_arc_zx_event_stops_the_post`
+
+### PP-005
+
+**A tmatrix index adds the previous simultaneous job's apos (stale apos carry-over)**
+
+- Severity: medium
+- Confidence: uncertain
+- Reachability: Default config, indexed job after a 4x/5x simultaneous job that ended with apos != 0, only if SolidCAM carries apos over between jobs (UNVERIFIED); a later tool change does not repair it.
+- Location: GPP @start_of_job L1110-1115 -> @usr_4x_index L2411 -> @usr_r1pos_calc L2277 (nR1pos5x = (-apos)*iR1dir); compare @fourth_axis L1797 (apos = 0)
+- Evidence that would settle it: SolidCAM trace of a 4x simultaneous job followed by an indexed job: apos in the second job's @tmatrix and @start_of_job parameter dump.
+- Owner area: C (indexing, CAM-link state machine, work offsets and multiple fixtures)
+- Source findings: TSR-14, history-rotary-08, pp-region-4-cycles-rotary(missed-3)
+- Status: fixed: 16e19f6 Start of a job that is not simultaneous: drop the apos/cpos the last 4x/5x job left (SolidCAM keeps them: recorded_cam_001 operation_023, X5_job 0, starts with apos -88.693; a job with X5_job true keeps them, its first 4x/5x move sets A).
+- Tests of the fix: tests/test_indexing_link.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_indexing_link.py::FourthAxisIndexTests::test_tmatrix_index_ignores_previous_job_apos`
+  - `tests/test_indexing_link.py::SimultaneousJobCarryOverTests::test_same_tool_index_after_a_simultaneous_job_goes_straight_to_the_index_angle`
 
 ### PP-007
 

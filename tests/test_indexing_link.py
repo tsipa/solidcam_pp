@@ -544,20 +544,21 @@ class FourthAxisIndexTests(LinkOracle, unittest.TestCase):
                 and not block.code.startswith('MSG(')]
         self.assertEqual(bare, [], session.text(mark))
 
-    @known_defect('PP-005')
+    @covers('PP-005')
     def test_tmatrix_index_ignores_previous_job_apos(self):
         """INDEPENDENT: geometry: the A position of a tmatrix-indexed job is the
         CoordSys rotation alone (angle_4x_around_x = 90 -> A90).
 
-        UNVERIFIED: depends on SolidCAM keeping the last apos of a simultaneous
-        job (here apos=10) into the next job's @tmatrix/@start_of_job; the PP
-        itself zeroes apos at tool changes, which suggests it does. The index
-        currently sums the stale apos: A=ACN(100).
+        Regression guard of PP-005 (16e19f6): SolidCAM keeps the last apos of a
+        simultaneous job (here apos=10) into the next job (recorded_cam_001
+        operation_023, X5_job 0, starts with apos -88.693). The indexed job is
+        not simultaneous (X5_job false), so @start_of_job drops it; the index
+        summed it before: A=ACN(100).
         """
         session = job_session()
         session.ev('line_5x', ['apos'], apos=10, dir5a='ccw', feed_type='feed_rate')
         mark = session.mark()
-        session.same_tool_job(tmatrix=90)
+        session.same_tool_job(tmatrix=90, X5_job=False)
         found = [value for _, value in rotations(session.blocks(mark))]
         if len(found) != 1:
             raise RuntimeError(f'scenario precondition failed (exactly one index expected): {session.text(mark)!r}')

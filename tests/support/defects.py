@@ -240,6 +240,9 @@ RESOLUTIONS = {
     'PP-015[first-tool-index]': ('fixed', "996a97f Index at a tool change: the tool-change block turns A, no separate "
                                           "M1 and homing (the first job's tmatrix index moves no Z; the first-job "
                                           '@fourth_axis facet stays open).'),
+    'PP-005': ('fixed', '16e19f6 Start of a job that is not simultaneous: drop the apos/cpos the last 4x/5x job left '
+                        '(SolidCAM keeps them: recorded_cam_001 operation_023, X5_job 0, starts with apos -88.693; a '
+                        'job with X5_job true keeps them, its first 4x/5x move sets A).'),
 }
 
 # Test files that came with the fixing commits (git show <commit> --stat).
@@ -277,6 +280,7 @@ FIX_TESTS = {
     'PP-047': ('tests/test_contracts.py',),
     'DESIGN-002': ('tests/test_post_homing_reposition.py',),
     'DESIGN-003': ('tests/test_indexing_link.py', 'tests/test_safety_options.py'),
+    'PP-005': ('tests/test_indexing_link.py',),
 }
 
 # Engine scope and GPPL engine handling of the ENGINE entries.
