@@ -243,6 +243,9 @@ RESOLUTIONS = {
     'PP-005': ('fixed', '16e19f6 Start of a job that is not simultaneous: drop the apos/cpos the last 4x/5x job left '
                         '(SolidCAM keeps them: recorded_cam_001 operation_023, X5_job 0, starts with apos -88.693; a '
                         'job with X5_job true keeps them, its first 4x/5x move sets A).'),
+    'PP-055': ('fixed', '6e5bb01 Drill cycles: RFP is the hole top below Z0 too (no DPR 0 branch): every hole gets '
+                        'RFP = drill_upper_z - safety and SDIS = safety (SolidCAM sends drill_upper_z = hole top + '
+                        'safety), so FDPR counts from the hole top on both sides of Z0.'),
 }
 
 # Test files that came with the fixing commits (git show <commit> --stat).
@@ -281,6 +284,7 @@ FIX_TESTS = {
     'DESIGN-002': ('tests/test_post_homing_reposition.py',),
     'DESIGN-003': ('tests/test_indexing_link.py', 'tests/test_safety_options.py'),
     'PP-005': ('tests/test_indexing_link.py',),
+    'PP-055': ('tests/test_cycles_spindle.py',),
 }
 
 # Engine scope and GPPL engine handling of the ENGINE entries.

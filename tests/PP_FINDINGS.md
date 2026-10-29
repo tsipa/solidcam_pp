@@ -40,7 +40,7 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 29 | 32 | 1 | 4 |
+| pp | 28 | 33 | 1 | 4 |
 | engine | 19 | 2 | 0 | 0 |
 | design | 5 | 2 | 0 | 0 |
 
@@ -78,7 +78,6 @@ Canonical `@known_defect` tests: 47. `@covers` references: 105.
 | [PP-051](#pp-051) | low | uncertain | F | Vericut K word format left at 5.3 while I/J were widened to 8.5 (f88de47) | `test_vericut_arc_center_words_keep_post_precision` |
 | [PP-052](#pp-052) | low | confirmed | F | VMID job parameters M50/M51 appear in every job dialog but the GPP never reads them | `test_every_vmid_user_parameter_is_read_by_the_post` |
 | [PP-054](#pp-054) | low | likely-engine-artifact | A | First job under persisting init flags: 'G187 P2' and flood M8 cancelled by seven M9 | pinned only (@covers) |
-| [PP-055](#pp-055) | low | confirmed | E | CYCLE83 first peck depth jumps by SDIS when drill_upper_z crosses 0 (FDPR relative to RFP) | pinned only (@covers) |
 | [PP-056](#pp-056) | low | confirmed | A | bStopM00difftool is set and cleared in the same @end_of_job: the skip path is dead and is what keeps the G75 retract before M06 | pinned only (@covers) |
 | [PP-058](#pp-058) | low | uncertain | F | Mach3 4x post (6efcad8): the feed re-statement remedy is missing on @line_5x and @arc | `test_line_5x_and_arc_feed_changes_are_restated_too` |
 | [ENGINE-001](#engine-001) | medium | uncertain | F | Change-flag rule for equal-value assignment is unverified (engine: only a value change raises a flag, nothing clears it) | pinned only (@covers) |
@@ -494,21 +493,6 @@ Canonical `@known_defect` tests: 47. `@covers` references: 105.
 - Pinned or exercised by (`@covers`):
   - `tests/test_session_program.py::FirstJobPersistingFlagTests::test_flood_coolant_is_not_cancelled_before_the_first_cut`
   - `tests/test_session_program.py::FirstJobPersistingFlagTests::test_no_fanuc_g187_in_a_default_program`
-
-### PP-055
-
-**CYCLE83 first peck depth jumps by SDIS when drill_upper_z crosses 0 (FDPR relative to RFP)**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Default config, G83 holes whose top is near Z0; harmless (shallower first peck below Z0).
-- Location: GPP @drill G83 branch L1846-1907 (FDPR relative to RFP, RFP shifted by SDIS when drill_upper_z <= 0)
-- Evidence that would settle it: Siemens CYCLE83 FDPR definition; owner decides fix vs documentation.
-- Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
-- Source findings: pp-weird-hunter-21(missed)
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_cycles_spindle.py::DrillCycleGeometryTests::test_cycle83_first_peck_is_continuous_across_z0`
 
 ### PP-056
 
@@ -985,6 +969,7 @@ now a regression guard marked `@covers`.
 | [PP-053](#pp-053) | 467979d | `test_first_index_in_z_homing_mode_homes_z` |  |
 | [PP-054 [g187-default]](#pp-054) | d9b120b | `test_flood_coolant_is_not_cancelled_before_the_first_cut`, `test_no_fanuc_g187_in_a_default_program` | `tests/test_session_program.py`, `tests/test_coolant_codes.py` |
 | [PP-054 [coolant-burst]](#pp-054) | 3fde1a5 | `test_flood_coolant_is_not_cancelled_before_the_first_cut`, `test_no_fanuc_g187_in_a_default_program` | `tests/test_session_program.py`, `tests/test_coolant_codes.py` |
+| [PP-055](#pp-055) | 6e5bb01 | `test_cycle83_first_peck_is_continuous_across_z0` | `tests/test_cycles_spindle.py` |
 | [PP-057](#pp-057) | dde4db6 | `test_fanuc_only_output_is_pinned_to_legacy_procedures`, `test_vmid_keeps_subroutines_and_loops_disabled`, `test_subprogram_loop_and_reference_point_events_stop_the_post` |  |
 | [PP-059](#pp-059) | fb78a2b | `test_emulated_rapid_without_motion_leaves_the_cut_feed_alone`, `test_rapid_without_motion_leaves_the_cut_alone`, `test_rapid_without_motion_leaves_the_job_comment_alone` | `tests/test_motion_rapids.py` |
 | [PP-060](#pp-060) | 1add48e | `test_angles_that_jump_by_a_turn_stop_in_a_cut`, `test_extra_turn_after_the_post_unwind_stops`, `test_first_feed_move_after_toolchange_unwind_stops`, `test_rounding_straddle_against_the_word_stops`, `test_wrong_way_feed_moves_stop_the_post`, `test_wrong_way_rapid_with_a_rotation_homing_without_z_stops_the_post`, `test_wrong_way_rapid_without_rotation_homing_stops_the_post`, `test_wrong_way_rotary_link_rapid_stops_the_post`, `test_wrong_way_three_axis_rapid_without_rotation_homing_stops_the_post` | `tests/test_rotary_direction_guard.py` |
@@ -1461,6 +1446,23 @@ now a regression guard marked `@covers`.
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_indexing_link.py::FirstIndexClearanceTests::test_first_index_in_z_homing_mode_homes_z`
+
+### PP-055
+
+**CYCLE83 first peck depth jumps by SDIS when drill_upper_z crosses 0 (FDPR relative to RFP)**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Default config, G83 holes whose top is near Z0; harmless (shallower first peck below Z0).
+- Location: GPP @drill G83 branch L1846-1907 (FDPR relative to RFP, RFP shifted by SDIS when drill_upper_z <= 0)
+- Evidence that would settle it: Siemens CYCLE83 FDPR definition; owner decides fix vs documentation.
+- Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
+- Source findings: pp-weird-hunter-21(missed)
+- Status: fixed: 6e5bb01 Drill cycles: RFP is the hole top below Z0 too (no DPR 0 branch): every hole gets RFP = drill_upper_z - safety and SDIS = safety (SolidCAM sends drill_upper_z = hole top + safety), so FDPR counts from the hole top on both sides of Z0.
+- Tests of the fix: tests/test_cycles_spindle.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_cycles_spindle.py::DrillCycleGeometryTests::test_cycle83_first_peck_is_continuous_across_z0`
 
 ### PP-057
 
