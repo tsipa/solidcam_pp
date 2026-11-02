@@ -13,6 +13,9 @@ the session API, stopping at the first error. Per recording:
   shows the first differing lines; regenerate the pins with
   python -m pp_tests.tools.recorded_pins --write [NAME ...] when the change is intended.
 
+Across the recordings, compensation_at_the_control_runs_without_the_compressor (INDEPENDENT)
+checks every G41/G42 of their NC against the compressor rule of tests/test_cycle832.py.
+
 recorded_cam_001 (155k events: about 60 s and 2 GB) runs only with PP_RECORDED_ALL=1; the other
 four take about 20 s. The replays run on the GPPL engine (pp_tests/gppl/session.py), so
 GPPL_ENGINE=legacy skips them. reference_multijob is not replayed: recorded_cam_001 is the same
@@ -43,21 +46,29 @@ def describe(errors):
                      for index, event, job, job_type, message in errors)
 
 
-def compensation_with_cycle832(nc):
-    """(G41/G42 selections, problems) of an NC program: a CYCLE832 call while G41/G42 is on, or a
-    G41/G42 selected while a CYCLE832 other than CYCLE832(0,0,1) is active."""
-    on, active, selections, problems = False, None, 0, []
+def compensation_with_compressor(nc):
+    """(G41/G42 selections, problems) of an NC program: a G41/G42 selected while the compressor is on
+    (a CYCLE832 other than CYCLE832(0,0,1), or COMPSURF, since the last COMPOF), a CYCLE832, COMPOF
+    or COMPSURF while G41/G42 is on, or COMPSURF without an active CYCLE832."""
+    on, cycle, compressor, selections, problems = False, False, False, 0, []
     for number, line in enumerate(nc.splitlines(), 1):
-        if line.startswith('CYCLE832('):
+        if line.startswith(('CYCLE832(', 'COMPOF', 'COMPSURF')):
             if on:
                 problems.append(f'line {number}: {line} with compensation on')
-            active = None if line.startswith('CYCLE832(0,0,1)') else line
+            if line.startswith('CYCLE832('):
+                cycle = compressor = not line.startswith('CYCLE832(0,0,1)')
+            elif line.startswith('COMPSURF'):
+                if not cycle:
+                    problems.append(f'line {number}: COMPSURF without CYCLE832')
+                compressor = True
+            else:
+                compressor = False
         words = re.findall(r'\bG4([012])\b', line)
         if words:
             if words[-1] != '0' and not on:
                 selections += 1
-                if active:
-                    problems.append(f'line {number}: {line} selected in {active}')
+                if compressor:
+                    problems.append(f'line {number}: {line} selected with the compressor on')
             on = words[-1] != '0'
     return selections, problems
 
@@ -139,18 +150,18 @@ class RecordedReplayTests(unittest.TestCase):
         """CHARACTERIZATION: the NC of recorded_cam_005 is the pinned one."""
         self.assert_nc_matches_pin('recorded_cam_005')
 
-    def test_compensation_at_the_control_runs_without_cycle832(self):
-        """INDEPENDENT: machine 2026-11-01 (tests/test_cycle832.py): a pass with G41 selected in
-        CYCLE832(0.01,1,1) stopped with alarm 10751, the same pass after CYCLE832(0,0,1) ran. Every
-        G41/G42 of the recorded programs is selected with CYCLE832 deselected and no CYCLE832 is
-        called before its G40. recorded_cam_002..005 select compensation 3, 10, 2 and 16 times."""
+    def test_compensation_at_the_control_runs_without_the_compressor(self):
+        """INDEPENDENT: machine 2026-11-01 (tests/test_cycle832.py): a pass with G41 selected while
+        CYCLE832(0.01,1,1) had COMPSURF on stopped with alarm 10751, the same pass with COMPOF before
+        its G41 block ran. Every G41/G42 of the recorded programs is selected with the compressor
+        off, nothing switches it inside the window, and COMPSURF comes only under a CYCLE832.
+        recorded_cam_001..005 select compensation 20, 3, 10, 2 and 16 times."""
         for name in ('recorded_cam_001', 'recorded_cam_002', 'recorded_cam_003', 'recorded_cam_004',
                      'recorded_cam_005'):
             with self.subTest(name):
-                selections, problems = compensation_with_cycle832(replay_of(name).nc)
+                selections, problems = compensation_with_compressor(replay_of(name).nc)
                 self.assertEqual(problems, [], name)
-                if name != 'recorded_cam_001':
-                    self.assertGreater(selections, 0, name)
+                self.assertGreater(selections, 0, name)
 
 
 if __name__ == '__main__':

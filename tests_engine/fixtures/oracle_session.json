@@ -200,7 +200,7 @@
    },
    "expect": {
     "blocks": [
-     "CYCLE832(0,0,1)",
+     "COMPOF",
      "G1 G41 Y30 Z-5 F600"
     ]
    }

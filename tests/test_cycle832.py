@@ -28,9 +28,11 @@ contour tolerance in degrees at the stock's largest radius about A, which is at 
 Machine 2026-11-01: a finishing wall pass with cutter compensation at the control in
 CYCLE832(0.01,1,1) (G41 line, 45 deg lead-in arc, contour, lead-out arc, G40 line along its normal;
 tool radius 2.991) stopped with alarm 10751 "danger of collision" at the lead-out arc. The same
-program with CYCLE832(0,0,1) before the pass ran, as did the old post's output without CYCLE832;
-the arcs with I/J instead of AR= still stopped. A cut with G41/G42 selected therefore runs without
-CYCLE832: the deselection precedes the block that selects compensation, the cut's type follows G40.
+program ran with COMPOF before the G41 block, and with CYCLE832(0,0,1) before the pass; it stopped
+with G64 before the G41 block (G645 off, COMPSURF kept) and with the arcs as I/J instead of AR=.
+So the compressor is off while
+G41/G42 is selected: COMPOF before the block that selects compensation, COMPSURF after G40 (unless
+a call selects it); G645, the tolerance and the dynamics of the call stay.
 
 The tests read the blocks each event returns (no skipline joining) unless they need the NC lines.
 """
@@ -41,6 +43,7 @@ from support import assert_detected, mutate
 from support.session import HEADER_DEFAULTS, NOT_SENT
 
 DESELECT = 'CYCLE832(0,0,1)'
+COMPOF, COMPSURF = 'COMPOF', 'COMPSURF'
 ROUGH, SEMI, FINISH = 'CYCLE832(0.1,3,1)', 'CYCLE832(0.05,2,1)', 'CYCLE832(0.01,1,1)'
 MILLING = dict(x5_job=False, job_type='spiral_pocket')
 # start_of_job of an operation without an allowance: SolidCAM sends neither variable.
@@ -409,13 +412,12 @@ class SimultaneousJobTests(unittest.TestCase):
         off = p.ev('compensation', side='comp_off') + p.ev('line_5x', xpos=50, feed_type='finish_feed')
         self.assertEqual(smoothing(off), [], off)
         self.assertIn('G40', off[-1])
-        self.assertEqual(smoothing(p.ev('line_5x', xpos=60, feed_type='finish_feed')), [FINISH, ATOL_FINISH])
+        self.assertEqual(smoothing(p.ev('line_5x', xpos=60, feed_type='finish_feed')), [ATOL_FINISH])
 
     def test_atol_waits_for_the_move_after_g40(self):
         """INDEPENDENT: like CYCLE832, ATOL[A] is a block without motion, so it is not written while
         compensation is on at the control (MD20250 = 5 empty blocks, alarm 10762): compensation the
-        last job left on holds a 4x job's CYCLE832 and ATOL[A] until the move after G40 (the
-        compensated cut ran without CYCLE832, machine 2026-11-01)."""
+        last job left on holds a 4x job's ATOL[A] until the move after G40."""
         self.check_atol_waits_for_g40()
 
     def check_first_job_stock(self, source=None):
@@ -461,12 +463,14 @@ class SimultaneousJobMutationTests(unittest.TestCase):
             'leads take finishing': (("        if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor'\n",
                                       "        if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor' or feed_type eq 'feed_lead_in' or feed_type eq 'feed_lead_out'\n"),
                                      tests.check_simultaneous_moves),
+            'ATOL under compensation': (('    if iCycle832Mode ne 0 and bCycle832AtolA and iCompActive ne 41 and iCompActive ne 42\n',
+                                         '    if iCycle832Mode ne 0 and bCycle832AtolA\n'), tests.check_atol_waits_for_g40),
             'radius from Y alone': (('            nR = nY * nY + nZ * nZ\n', '            nR = nY * nY\n'), tests.check_stock_radius),
             'far Y side ignored': (('            if abs(stock_y_minus + stock_y) > nY\n', '            if false\n'),
                                    tests.check_stock_radius),
             'near Y side ignored': (('            nY = abs(stock_y_minus)\n', '            nY = 0\n'), tests.check_stock_radius),
             'upper Z ignored': (('            if abs(stock_z_plus) > nZ\n', '            if false\n'), tests.check_stock_radius),
-            'ATOL only by allowance': (('    if iCycle832Mode ne 0 and bCycle832AtolA\n', '    if iCycle832Mode ne 0 and bCycle832AtolA and bCycle832X5\n'),
+            'ATOL only by allowance': (('    if iCycle832Mode ne 0 and bCycle832AtolA and', '    if iCycle832Mode ne 0 and bCycle832AtolA and bCycle832X5 and'),
                                        tests.check_option_off),
             'start_of_file resets only the wall allowance': (('    bWorkpieceUsesA = false\n    call @usr_allowance_reset\n',
                                                               '    bWorkpieceUsesA = false\n    wall_offset = nNoAllowance\n'
@@ -700,7 +704,7 @@ class FinishPassTests(unittest.TestCase):
         """INDEPENDENT: a job finished by allowance (wall_offset 0) is already finishing."""
         p, start = first_job(job_type='profile', wall_offset=0)
         self.assertEqual(calls(start), [FINISH])
-        self.assertEqual(calls(finish_pass(p)), [])
+        self.assertEqual(calls(finish_pass(p, side='comp_left')), [])
 
     def test_finishing_move_is_its_own_nc_line(self):
         """INDEPENDENT: with the skipline joining of the NC stream the call stays on its own line."""
@@ -712,36 +716,35 @@ class FinishPassTests(unittest.TestCase):
         self.assertEqual(nc[call - 1:call + 2], ['G1 Z-2 F4000', FINISH, 'G1 X20 F300'], nc)
 
 
+def compressor(blocks):
+    return [block for block in blocks if block.startswith(('CYCLE832', 'COMPOF', 'COMPSURF'))]
+
+
 class CompensationTests(unittest.TestCase):
-    def check_before_selection(self, source=None):
+    def check_before_selection(self, source=None, side='comp_left', word='G41'):
         p, _ = first_job(source, wall_offset=0.3)
-        blocks = finish_pass(p, side='comp_left')
-        self.assertEqual(calls(blocks), [DESELECT])
-        selection = next(index for index, block in enumerate(blocks) if 'G41' in block)
-        self.assertEqual(blocks.index(DESELECT), selection - 1, blocks)
+        blocks = finish_pass(p, side=side)
+        selection = next(index for index, block in enumerate(blocks) if word in block)
+        self.assertEqual(compressor(blocks), [FINISH, COMPOF], blocks)
+        self.assertEqual(blocks[selection - 2:selection], [FINISH, COMPOF], blocks)
         on = p.ev('line', xpos=30, feed_type='finish_feed')
         on += p.ev('compensation', side='comp_off')
         on += p.ev('line', xpos=40, feed_type='finish_feed')
-        self.assertEqual(calls(on), [], on)
+        self.assertEqual(compressor(on), [], on)
         self.assertIn('G40', on[-1])
-        self.assertEqual(calls(p.ev('rapid_move', zpos=50)), [FINISH])
+        self.assertEqual(compressor(p.ev('rapid_move', zpos=50)), [COMPSURF])
 
-    def test_deselection_precedes_the_compensation_selection(self):
-        """INDEPENDENT: machine 2026-11-01 (module docstring): alarm 10751 at the lead-out arc of a
-        compensated finishing pass in CYCLE832(0.01,1,1), none after CYCLE832(0,0,1). Reference
-        trace 2026-10-27, operations 8 and 11: the compensation event comes before the first
-        finishing move, which selects G41; the deselection goes before that block, while the
-        control has no compensation on, and the pass's finishing type follows G40."""
+    def test_compressor_is_off_from_the_compensation_selection_to_g40(self):
+        """INDEPENDENT: machine 2026-11-01 (module docstring). Reference trace 2026-10-27, operations
+        8 and 11: the compensation event comes before the first finishing move, which selects G41;
+        the finishing call and COMPOF go before that block, while the control has no compensation
+        on, and COMPSURF follows the block that writes G40."""
         self.check_before_selection()
 
     def check_right_side(self, source=None):
-        p, _ = first_job(source, wall_offset=0.3)
-        blocks = finish_pass(p, side='comp_right')
-        self.assertEqual(calls(blocks), [DESELECT])
-        selection = next(index for index, block in enumerate(blocks) if 'G42' in block)
-        self.assertEqual(blocks.index(DESELECT), selection - 1, blocks)
+        self.check_before_selection(source, side='comp_right', word='G42')
 
-    def test_right_side_compensation_deselects_too(self):
+    def test_right_side_compensation_too(self):
         """INDEPENDENT: G42 is the same 2D tool radius compensation on the other side of the contour."""
         self.check_right_side()
 
@@ -753,41 +756,88 @@ class CompensationTests(unittest.TestCase):
         nc = p.nc()
         g41 = next(index for index, line in enumerate(nc) if 'G41' in line)
         g40 = next(index for index, line in enumerate(nc) if 'G40' in line and index > g41)
-        self.assertEqual(nc[g41 - 1], DESELECT, nc)
-        self.assertTrue(nc[g41].startswith('G1 G41 X212.65003 Y-19.75902'), nc[g41])
+        self.assertEqual(nc[g41 - 1], COMPOF, nc)
+        self.assertTrue(nc[g41].startswith('G41 X212.65003 Y-19.75902'), nc[g41])
         window = nc[g41:g40 + 1]
-        self.assertEqual(calls(window), [], window)
+        self.assertEqual(compressor(window), [], window)
         self.assertEqual(sum(' AR=' in line for line in window), 5, window)
-        self.assertEqual(nc[g40 + 1:g40 + 3], [FINISH, 'G0 Z25'], nc)
+        self.assertEqual(nc[g40 + 1:g40 + 3], [COMPSURF, 'G0 Z25'], nc)
+        self.assertEqual(calls(nc[nc.index(FINISH) + 1:]), [], nc)
 
-    def test_machine_pass_runs_without_cycle832(self):
+    def test_machine_pass_runs_without_the_compressor(self):
         """INDEPENDENT: machine 2026-11-01 (module docstring): this pass stopped with alarm 10751 at
-        its lead-out arc in CYCLE832(0.01,1,1) and ran after CYCLE832(0,0,1). The deselection is the
-        NC line before the G41 block, no CYCLE832 comes before the G40 block, and the job's
-        finishing type is selected again before the retract."""
+        its lead-out arc with COMPSURF on and ran with COMPOF before its G41 block. COMPOF is the NC
+        line before the G41 block, nothing comes between it and the G40 block, COMPSURF follows,
+        and the finishing call of the job stays (G645, tolerance, dynamics)."""
         self.check_machine_pass()
+
+    def check_two_passes(self, source=None):
+        p, _ = first_job(source, wall_offset=0.3)
+        blocks = finish_pass(p, side='comp_left')
+        blocks += p.ev('compensation', side='comp_off')
+        blocks += p.ev('line', xpos=45, feed_type='finish_feed')
+        blocks += p.ev('line', zpos=-4, feed=4000, feed_type='z_feed')
+        blocks += p.ev('compensation', side='comp_left')
+        blocks += p.ev('line', xpos=40, feed=300, feed_type='finish_feed')
+        blocks += p.ev('compensation', side='comp_off')
+        blocks += p.ev('line', xpos=10, feed_type='finish_feed')
+        blocks += p.ev('rapid_move', zpos=50)
+        blocks += p.ev('rapid_move', xpos=0)
+        self.assertEqual(compressor(blocks), [FINISH, COMPOF, COMPSURF, COMPOF, COMPSURF], blocks)
+        selections = [index for index, block in enumerate(blocks) if 'G41' in block]
+        self.assertEqual([blocks[index - 1] for index in selections], [COMPOF, COMPOF], blocks)
+        plunge = blocks.index('Z-4 F4000')
+        self.assertEqual(blocks[plunge - 1], COMPSURF, blocks)
+
+    def test_second_pass_of_the_same_call_switches_again(self):
+        """INDEPENDENT: two compensated finishing passes of one CYCLE832, with a plunge between them:
+        COMPSURF before the plunge, COMPOF again before the second G41 block, COMPSURF once after its
+        G40 and no repeat on the moves that follow."""
+        self.check_two_passes()
+
+    def check_4x_rapid_selection(self, source=None):
+        for event in ('move_4x', 'move_5x'):
+            with self.subTest(event=event):
+                p, _ = first_job(source, wall_offset=0.3)
+                p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
+                p.ev('line', zpos=20, feed=4000, feed_type='z_feed')
+                p.ev('compensation', side='comp_left')
+                blocks = p.ev(event, xpos=20, ypos=12, zpos=20, apos=5, dir5a='ccw')
+                selection = next(index for index, block in enumerate(blocks) if 'G41' in block)
+                self.assertEqual(compressor(blocks), [COMPOF], blocks)
+                self.assertLess(blocks.index(COMPOF), selection, blocks)
+
+    def test_4x_rapid_that_selects_compensation(self):
+        """INDEPENDENT: a 4x/5x rapid can carry the G41/G42 selection like a G0 (usr_rapid writes it);
+        its COMPOF comes before that block as with rapid_move and the feed moves."""
+        self.check_4x_rapid_selection()
 
     def check_waits_for_g40(self, source=None):
         p, _ = first_job(source, wall_offset=0.3)
         p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
         p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
         p.ev('compensation', side='comp_left')
-        self.assertEqual(calls(rough_move(p)), [DESELECT])
+        self.assertEqual(compressor(rough_move(p)), [COMPOF])
         on = p.ev('line', xpos=60, feed=300, feed_type='finish_feed')
         on += p.ev('compensation', side='comp_off')
         on += p.ev('line', xpos=70, feed_type='finish_feed')
-        self.assertEqual(calls(on), [], on)
+        self.assertEqual(compressor(on), [], on)
         self.assertIn('G40', on[-1])
         after = p.ev('rapid_move', zpos=50)
         self.assertEqual(after[0], FINISH, after)
+        # The call selects the compressor of its type again.
+        self.assertEqual(compressor(after), [FINISH], after)
 
     def test_call_waits_for_the_move_after_g40(self):
         """INDEPENDENT: no CYCLE832 while compensation is on at the control: its blocks without
         motion count as empty blocks of TRC (MD20250 CUTCOM_MAXNUM_DUMMY_BLOCKS = 5 on this machine,
-        backups/NOLOG.ard; alarm 10762 above). The call follows the block that writes G40.
-        A cut that selects G41 runs without CYCLE832 (test_deselection_precedes_the_compensation_selection),
-        also at feed_rate; a finishing pass while compensation is on changes nothing until G40, after
-        which the type the last move asked for (finishing) is selected."""
+        backups/NOLOG.ard; alarm 10762 above). The call follows the block that writes G40 and
+        selects the compressor again by itself.
+        CHARACTERIZATION of the late call: a finishing pass that starts while compensation is
+        already on keeps the job's type (here roughing, without its compressor) until G40. With
+        the VMID's CompensationRoughPasses="0" SolidCAM compensates only finishing passes, which
+        select G41 on their first move and get the call before it
+        (test_compressor_is_off_from_the_compensation_selection_to_g40)."""
         self.check_waits_for_g40()
 
     def test_same_tool_job_with_compensation_on_waits(self):
@@ -798,37 +848,74 @@ class CompensationTests(unittest.TestCase):
         p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
         p.ev('compensation', side='comp_left')
         rough_move(p)
-        self.assertEqual(calls(same_tool_job(p, 'op2', wall_offset=0)), [])
+        self.assertEqual(compressor(same_tool_job(p, 'op2', wall_offset=0)), [])
         off = p.ev('compensation', side='comp_off') + p.ev('line', xpos=50, feed_type='finish_feed')
-        self.assertEqual(calls(off), [], off)
+        self.assertEqual(compressor(off), [], off)
         self.assertEqual(p.ev('rapid_move', zpos=50)[0], FINISH)
+
+    def check_deselection_clears(self, source=None):
+        p, _ = first_job(source, wall_offset=0.3)
+        p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
+        p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
+        p.ev('compensation', side='comp_left')
+        self.assertEqual(compressor(rough_move(p)), [COMPOF])
+        p.ev('compensation', side='comp_off')
+        p.ev('rapid_move', xpos=50, ypos=10, zpos=50)
+        boundary, job = second_tool(p, iG187_P=-1)
+        self.assertEqual(compressor(boundary + job), [DESELECT])
+        self.assertEqual(compressor(cut(p) + finish_pass(p, side='comp_left')), [])
+
+    def test_deselection_ends_the_compressor_switch(self):
+        """INDEPENDENT: CYCLE832(0,0,1) returns the control to COMPOF, so no COMPSURF may follow
+        it, and without a CYCLE832 the compressor is off already: after a pass that ended with G40
+        on its last move, the tool change deselects and a job without CYCLE832 gets neither COMPSURF
+        nor COMPOF, also when it compensates."""
+        self.check_deselection_clears()
 
 
 class FinishPassMutationTests(unittest.TestCase):
     def test_mutations_are_detected(self):
-        """INDEPENDENT: mutation self-check of the finishing switch and the compensation hold."""
+        """INDEPENDENT: mutation self-check of the finishing switch, the compensation hold and the
+        compressor switch."""
         finish = "        if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor'\n"
+        compof = '            if iCycle832Mode ne 0 and !bCycle832CompOff\n'
+        compsurf = '            if bCycle832CompOff\n                skipline = true\n'
         mutants = {
             'finishing switch removed': ((finish, '        if false\n'), FinishPassTests.check_switch),
             'floor finishing ignored': ((finish, "        if feed_type eq 'finish_feed'\n"),
                                         FinishPassTests.check_switch),
             'cutting feed keeps finishing': (("        if feed_type eq 'feed_rate'\n", '        if false\n'),
                                              FinishPassTests.check_switch),
-            'compensation hold removed': (('        if iCompActive ne 41 and iCompActive ne 42\n',
-                                           '        if true\n'), CompensationTests.check_waits_for_g40),
+            'compensation hold removed': (('        if iCompActive ne 41 and iCompActive ne 42\n            skipline',
+                                           '        if true\n            skipline'), CompensationTests.check_waits_for_g40),
             'rapid does not apply': (('    call @usr_smoothing_apply\n    call @usr_rapid\n',
                                       '    call @usr_rapid\n'), CompensationTests.check_waits_for_g40),
-            'compensation keeps CYCLE832': (('    if iDiametercomp eq 41 or iDiametercomp eq 42\n        iWant = 0\n',
-                                             '    if false\n        iWant = 0\n'),
-                                            CompensationTests.check_before_selection),
-            'machine pass keeps CYCLE832': (('    if iDiametercomp eq 41 or iDiametercomp eq 42\n        iWant = 0\n',
-                                             '    if false\n        iWant = 0\n'),
-                                            CompensationTests.check_machine_pass),
-            'right side keeps CYCLE832': (('    if iDiametercomp eq 41 or iDiametercomp eq 42\n',
-                                           '    if iDiametercomp eq 41\n'), CompensationTests.check_right_side),
             'apply after the line': (('    call @usr_smoothing_feed\n    call @usr_line\nendp',
                                       '    call @usr_line\n    call @usr_smoothing_feed\nendp'),
                                      CompensationTests.check_before_selection),
+            'compressor kept under compensation': ((compof, '            if false\n'),
+                                                   CompensationTests.check_machine_pass),
+            'COMPOF without CYCLE832': ((compof, '            if !bCycle832CompOff\n'),
+                                        CompensationTests.check_deselection_clears),
+            'right side keeps the compressor': (('        if iDiametercomp eq 41 or iDiametercomp eq 42\n',
+                                                 '        if iDiametercomp eq 41\n'), CompensationTests.check_right_side),
+            'compressor not restored': ((compsurf, '            if false\n                skipline = true\n'),
+                                        CompensationTests.check_machine_pass),
+            'compressor switched inside the window': (('    if iCompActive ne 41 and iCompActive ne 42\n        if iDiametercomp',
+                                                       '    if true\n        if iDiametercomp'),
+                                                      CompensationTests.check_machine_pass),
+            'call keeps the switch': (('            bCycle832CompOff = false\n            nCycle832TolA = -1\n',
+                                       '            nCycle832TolA = -1\n'), CompensationTests.check_waits_for_g40),
+            'COMPSURF keeps the switch': (("                {nb,'COMPSURF'}\n                bCycle832CompOff = false\n",
+                                           "                {nb,'COMPSURF'}\n"), CompensationTests.check_two_passes),
+            'COMPOF does not set the switch': (("                {nb,'COMPOF'}\n                bCycle832CompOff = true\n",
+                                                "                {nb,'COMPOF'}\n"), CompensationTests.check_two_passes),
+            'move_4x without the apply': (('    call @usr_camdbg_move((4))\n    call @usr_smoothing_apply\n',
+                                           '    call @usr_camdbg_move((4))\n'), CompensationTests.check_4x_rapid_selection),
+            'move_5x without the apply': (('    call @usr_camdbg_move((5))\n    call @usr_smoothing_apply\n',
+                                           '    call @usr_camdbg_move((5))\n'), CompensationTests.check_4x_rapid_selection),
+            'deselection keeps the switch': (('    nCycle832Tol = 0\n    bCycle832CompOff = false\n',
+                                              '    nCycle832Tol = 0\n'), CompensationTests.check_deselection_clears),
         }
         for label, ((old, new), check) in mutants.items():
             with self.subTest(mutant=label):
