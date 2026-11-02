@@ -43,6 +43,25 @@ def describe(errors):
                      for index, event, job, job_type, message in errors)
 
 
+def compensation_with_cycle832(nc):
+    """(G41/G42 selections, problems) of an NC program: a CYCLE832 call while G41/G42 is on, or a
+    G41/G42 selected while a CYCLE832 other than CYCLE832(0,0,1) is active."""
+    on, active, selections, problems = False, None, 0, []
+    for number, line in enumerate(nc.splitlines(), 1):
+        if line.startswith('CYCLE832('):
+            if on:
+                problems.append(f'line {number}: {line} with compensation on')
+            active = None if line.startswith('CYCLE832(0,0,1)') else line
+        words = re.findall(r'\bG4([012])\b', line)
+        if words:
+            if words[-1] != '0' and not on:
+                selections += 1
+                if active:
+                    problems.append(f'line {number}: {line} selected in {active}')
+            on = words[-1] != '0'
+    return selections, problems
+
+
 class RecordedReplayTests(unittest.TestCase):
     def assert_posts_to_end_of_file(self, name):
         result = replay_of(name)
@@ -119,6 +138,19 @@ class RecordedReplayTests(unittest.TestCase):
     def test_recorded_cam_005_nc_matches_pin(self):
         """CHARACTERIZATION: the NC of recorded_cam_005 is the pinned one."""
         self.assert_nc_matches_pin('recorded_cam_005')
+
+    def test_compensation_at_the_control_runs_without_cycle832(self):
+        """INDEPENDENT: machine 2026-11-01 (tests/test_cycle832.py): a pass with G41 selected in
+        CYCLE832(0.01,1,1) stopped with alarm 10751, the same pass after CYCLE832(0,0,1) ran. Every
+        G41/G42 of the recorded programs is selected with CYCLE832 deselected and no CYCLE832 is
+        called before its G40. recorded_cam_002..005 select compensation 3, 10, 2 and 16 times."""
+        for name in ('recorded_cam_001', 'recorded_cam_002', 'recorded_cam_003', 'recorded_cam_004',
+                     'recorded_cam_005'):
+            with self.subTest(name):
+                selections, problems = compensation_with_cycle832(replay_of(name).nc)
+                self.assertEqual(problems, [], name)
+                if name != 'recorded_cam_001':
+                    self.assertGreater(selections, 0, name)
 
 
 if __name__ == '__main__':

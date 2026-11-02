@@ -50,7 +50,7 @@ class SessionReplayTests(unittest.TestCase):
             ';T2-DRILL 6 | HOLDER: BT40-ER25 | STICKOUT: 60.5 mm', ';---HSS', 'MSG(" Loading Zeropoints ")',
             'WORKPIECE(,"A",,"BOX",0,0,-30,-25,0,0,100,60)'])
         expected_in_order = ['G75 Z1=0.', 'T1', 'M06', 'D1', 'T2', 'MSG("F_CONTOUR")', 'CYCLE832(0.01,1,1)',
-                             'G0 X10 Y20', 'Z5',
+                             'G0 X10 Y20', 'Z5', 'CYCLE832(0,0,1)',
                              'G1 G41 Y30 Z-5 F600', 'X40', 'G2 X50 Y20 AR=90', 'G1 Y0', 'G0 Z50', 'G40 X50 Y0',
                              'M9', 'M5', 'M1', 'T2', 'MSG("D_PECK")', 'X25 Y15', 'MCALL CYCLE83 (30,0,2,-20,,,4,4,,0.5,1,1)',
                              'X45', 'MCALL', 'G54 A=ACN(90)', 'MSG("F_SIDE_A90")', 'CYCLE832(0.1,3,1)', 'M0',
@@ -75,7 +75,8 @@ class SessionReplayTests(unittest.TestCase):
         _, flipped = replay_file(PP, ORACLE, vmid=VMID, change_on_equal_assign='clear')
         self.assertEqual(flipped.failures, [])
         _, flipped = replay_file(PP, ORACLE, vmid=VMID, event_flag_reset='globals_after_event')
-        self.assertIn("event #9 @line: blocks ['G1 Y30 Z-5 F600'] != ['G1 G41 Y30 Z-5 F600']", flipped.failures)
+        self.assertIn("event #9 @line: blocks ['CYCLE832(0,0,1)', 'G1 Y30 Z-5 F600'] != "
+                      "['CYCLE832(0,0,1)', 'G1 G41 Y30 Z-5 F600']", flipped.failures)
 
     def test_gppl_policy_reaches_fixture_replays(self):
         code = ('import sys; from pp_tests.gppl.session import replay_file; '
@@ -124,7 +125,7 @@ class SessionReplayTests(unittest.TestCase):
         mutant = source().replace("{nb, 'D1 '}", "{nb, 'D2 '}", 1)
         replay = Session(mutant, vmid=VMID).replay(trace, user_params=load_events(MAIN)[1]['user_params'])
         self.assertEqual(compare_with_trace(trace, replay), ['event 5 @start_of_job: line 5: D1 vs D2',
-                                                             'event 16 @start_of_job: line 11: D1 vs D2'])
+                                                             'event 16 @start_of_job: line 10: D1 vs D2'])
 
     def test_cli_replays_a_raw_trace_with_tolerance(self):
         _, original = main_replay()

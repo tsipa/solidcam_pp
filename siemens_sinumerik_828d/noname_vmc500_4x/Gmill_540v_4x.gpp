@@ -1250,7 +1250,7 @@ endp
     ;   A 4x/5x job without them keeps the reset settings, as with bCycle832X5 false.
     ; nG187_E > 0 replaces the tolerance. No CYCLE832 (deselected when active) with iG187_P -1, with
     ; iG187_P 0 on a drilling job, and with bCycle832 false.
-    ; Printed when the type or the tolerance changes, not with cutter compensation on
+    ; Printed when the type or the tolerance changes, none with cutter compensation selected
     ; (usr_smoothing_apply); a tool change, a drilling cycle and the program end deselect it.
     ; Machine 2026-10-27: CYCLE832 selects G645, SOFT, COMPSURF and DYNROUGH / DYNSEMIFIN /
     ; DYNFINISH; CYCLE832(0,0,1) returns to G64, SOFT, COMPOF, DYNNORM.
@@ -1344,30 +1344,44 @@ endp
     ; Select the CYCLE832 the cut asks for when it differs from the active one, on a line of its own
     ; before the move. Not while cutter compensation is on at the control: the cycle's blocks without
     ; motion count as empty blocks of TRC (MD20250 CUTCOM_MAXNUM_DUMMY_BLOCKS 5 here, alarm 10762
-    ; above), so it waits for the move after G40. A G41/G42 still to come is selected after it.
+    ; above), so it waits for the move after G40.
+    ; While CAM selects cutter compensation (iDiametercomp G41/G42) the cut runs without CYCLE832: the
+    ; deselection goes before the block that selects G41/G42, the cut's type comes back after G40.
+    ; Machine 2026-11-01: a finishing wall pass in CYCLE832(0.01,1,1) (G645, SOFT, COMPSURF,
+    ; DYNFINISH; G41 line, 45 deg lead-in arc, contour, lead-out arc, G40 line along its normal)
+    ; stopped with alarm 10751 at the lead-out arc; the same blocks after CYCLE832(0,0,1), and the
+    ; old post's output without CYCLE832, ran; arcs with I/J instead of AR= still stopped.
     ; On a simultaneous 4x/5x job ATOL[A] follows on its own line (bCycle832AtolA): the contour
     ; tolerance in degrees (ATOL of a rotary axis; Job Planning 08/2018 12.11) at the stock's largest
     ; radius about A, the corner of its Y/Z extent as WORKPIECE gives it (the A axis is at Y0 Z0;
     ; recorded 4x part: Y and Z -19.5 to 19.5, R 27.58). The cycle may set the rotary axes itself
     ; (unverified), so it is written again after every call. A stock of no Y/Z extent takes 30 mm
     ; (owner 2026-10-29).
-    local numeric nY nZ nR
-    if iCycle832Want ne iCycle832Mode or nCycle832WantTol ne nCycle832Tol
+    local numeric nY nZ nR nWantTol
+    local integer iWant
+    iWant = iCycle832Want
+    nWantTol = nCycle832WantTol
+    if iDiametercomp eq 41 or iDiametercomp eq 42
+        iWant = 0
+        nWantTol = 0
+    endif
+    if iWant ne iCycle832Mode or nWantTol ne nCycle832Tol
         if iCompActive ne 41 and iCompActive ne 42
             skipline = true
-            if iCycle832Want eq 0
+            if iWant eq 0
                 {nb,'CYCLE832(0,0,1)'}
             else
-                {nb,'CYCLE832(',nCycle832WantTol:nCycle832Tol_f,',',iCycle832Want,',1)'}
+                {nb,'CYCLE832(',nWantTol:nCycle832Tol_f,',',iWant,',1)'}
             endif
-            iCycle832Mode = iCycle832Want
-            nCycle832Tol = nCycle832WantTol
+            iCycle832Mode = iWant
+            nCycle832Tol = nWantTol
             nCycle832TolA = -1
             ; The next move programs G0/G1 again after the cycle call.
             iMotionmode = 9999
         endif
     endif
-    if iCycle832Mode ne 0 and bCycle832AtolA and iCompActive ne 41 and iCompActive ne 42
+    ; Under compensation no CYCLE832 is active (above), so no ATOL[A] either until the move after G40.
+    if iCycle832Mode ne 0 and bCycle832AtolA
         if X5_job and nCycle832Tol ne nCycle832TolA
             nY = abs(stock_y_minus)
             if abs(stock_y_minus + stock_y) > nY
