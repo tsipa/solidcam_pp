@@ -52,9 +52,10 @@ class SessionReplayTests(unittest.TestCase):
         expected_in_order = ['G75 Z1=0.', 'T1', 'M06', 'D1', 'T2', 'MSG("F_CONTOUR")', 'CYCLE832(0.01,1,1)',
                              'G0 X10 Y20', 'Z5', 'COMPOF',
                              'G1 G41 Y30 Z-5 F600', 'X40', 'G2 X50 Y20 AR=90', 'G1 Y0', 'G0 Z50', 'G40 X50 Y0',
-                             'M9', 'M5', 'M1', 'T2', 'MSG("D_PECK")', 'X25 Y15', 'MCALL CYCLE83 (30,0,2,-20,,,4,4,,0.5,1,1)',
-                             'X45', 'MCALL', 'G54 A=ACN(90)', 'MSG("F_SIDE_A90")', 'CYCLE832(0.1,3,1)', 'M0',
-                             ';CHECK PART', 'MSG("F_5X")', 'CYCLE832(0,0,1)', 'G0 A=ACP(100)', 'G1 G93 Z5 A=ACP(110) F19.769', 'G94 Z30 F300',
+                             'M9', 'M5', 'CYCLE832(0,0,1)', 'M1', 'T2', 'MSG("D_PECK")', 'X25 Y15',
+                             'MCALL CYCLE83 (30,0,2,-20,,,4,4,,0.5,1,1)',
+                             'X45', 'MCALL', 'G54 A=ACN(90)', 'MSG("F_SIDE_A90")', 'CYCLE832(0.1,3,1)',
+                             'CYCLE832(0,0,1)', 'M0', ';CHECK PART', 'MSG("F_5X")', 'G0 A=ACP(100)', 'G1 G93 Z5 A=ACP(110) F19.769', 'G94 Z30 F300',
                              'G0 A=ACP(120)',
                              'A=ACN(135)', 'M30']
         position = 0
@@ -257,9 +258,10 @@ class CoverageTests(unittest.TestCase):
         # recomputed arc end (since 2026-10-28 an arc keeps the CAM end within the input rounding, as
         # every session arc does; tests/test_arc_compensation_plane.py ArcEndPointTests). The YZ/ZX arc
         # math and plane branches behind the stops were deleted 2026-10-28 (85.9 from 84.3). The index at
-        # a tool change and the stale apos/cpos reset at a job start (claude-fixes) add branches the
-        # sessions do not reach (tests/test_indexing_link.py covers them).
-        self.assertGreaterEqual(summary['percent'], 85.4)
+        # a tool change and the stale apos/cpos reset at a job start (f6e4e4d, d3e51a6) add branches the
+        # sessions do not reach (tests/test_indexing_link.py covers them), as do the compensation stops
+        # at a drilling cycle and at a CYCLE832 deselection (2026-11-01; tests/test_cycle832.py).
+        self.assertGreaterEqual(summary['percent'], 85.3)
         never = {name for name, count, hit, _ in summary['rows'] if count and not hit}
         # arc_yz, arc_zx, usr_side_arc_stop: no session has a YZ or ZX arc since they stop the post (ZX
         # since 5408e5c, both since 2026-10-28: G18/G19 move the tool length compensation off Z);

@@ -31,8 +31,11 @@ tool radius 2.991) stopped with alarm 10751 "danger of collision" at the lead-ou
 program ran with COMPOF before the G41 block, and with CYCLE832(0,0,1) before the pass; it stopped
 with G64 before the G41 block (G645 off, COMPSURF kept) and with the arcs as I/J instead of AR=.
 So the compressor is off while
-G41/G42 is selected: COMPOF before the block that selects compensation, COMPSURF after G40 (unless
-a call selects it); G645, the tolerance and the dynamics of the call stay.
+G41/G42 is selected: COMPOF before the block that selects compensation; G645, the tolerance and the
+dynamics of the call stay. After G40 the call of the cut's type comes again and the cycle selects
+the compressor it selected before (COMPSURF on this machine). Owner 2026-11-01: a drilling cycle
+with compensation still on at the control or still asked for by CAM, and a deselection of CYCLE832
+with compensation on, stop the post; CYCLE832 goes off before every M0/M1 (StopTests).
 
 The tests read the blocks each event returns (no skipline joining) unless they need the NC lines.
 """
@@ -43,9 +46,16 @@ from support import assert_detected, mutate
 from support.session import HEADER_DEFAULTS, NOT_SENT
 
 DESELECT = 'CYCLE832(0,0,1)'
-COMPOF, COMPSURF = 'COMPOF', 'COMPSURF'
+COMPOF = 'COMPOF'
+COMP_STOP = ('POST ERROR: Cutter compensation is still on where CYCLE832 is deselected (program end or tool '
+             'change). Switch it off (G40) in CAM before.')
+DRILL_COMP_STOP = ('POST ERROR: Cutter compensation is still on at a drilling cycle. Switch it off (G40) in CAM '
+                   'before the drilling job.')
 ROUGH, SEMI, FINISH = 'CYCLE832(0.1,3,1)', 'CYCLE832(0.05,2,1)', 'CYCLE832(0.01,1,1)'
 MILLING = dict(x5_job=False, job_type='spiral_pocket')
+# Without the M1 between two jobs of the same tool (bOptstpjob), which deselects CYCLE832 before it
+# (StopTests): the other tests follow the type and tolerance across job boundaries.
+NO_JOB_STOP = {'bOptstpjob': False}
 # start_of_job of an operation without an allowance: SolidCAM sends neither variable.
 NO_ALLOWANCE = dict(wall_offset=NOT_SENT, floor_offset=NOT_SENT)
 NO_ALLOWANCE_STOP = ('POST ERROR: CYCLE832: the operation has no wall allowance (wall_offset): set the job '
@@ -58,7 +68,7 @@ def calls(blocks):
 
 def first_job(source=None, options=None, **cam):
     """Program start, tool 1, op1 with the given CAM job values; returns (program, start blocks)."""
-    p = Program(options=options, cam={**MILLING, **cam}, source=source)
+    p = Program(options={**NO_JOB_STOP, **(options or {})}, cam={**MILLING, **cam}, source=source)
     return p, p.start(tool=1, next_tool=2, next_job_tool_number=1)
 
 
@@ -191,12 +201,13 @@ class PlacementTests(unittest.TestCase):
         blocks = boundary + job
         self.assertIn(DESELECT, blocks)
         deselect = blocks.index(DESELECT)
-        self.assertEqual(blocks[deselect - 1:deselect + 3], ['M1', DESELECT, ';', 'G17 G40 G64 G90'], blocks)
+        self.assertEqual(blocks[deselect:deselect + 4], [DESELECT, 'M1', ';', 'G17 G40 G64 G90'], blocks)
         self.assertEqual(calls(blocks[blocks.index('M06'):]), [ROUGH], blocks)
 
     def test_tool_change_deselects_before_the_safety_block(self):
-        """INDEPENDENT: M06 and the safety block run in the reset settings of the control; the new
-        tool selects its own CYCLE832 after M06, also with the type the last tool had."""
+        """INDEPENDENT: M06 and the safety block run in the reset settings of the control, and the
+        M1 of the tool change (bOptstptc) comes after CYCLE832(0,0,1) (owner 2026-11-01, StopTests);
+        the new tool selects its own CYCLE832 after M06, also with the type the last tool had."""
         self.check_tool_change()
 
     def check_program_end(self, source=None):
@@ -232,9 +243,9 @@ class PlacementTests(unittest.TestCase):
 
     def test_removed_deselections_are_detected(self):
         """INDEPENDENT: mutation self-check of the tool-change and program-end deselections."""
-        tool_change = ('    if iCycle832Mode ne 0\n        ; M06 and the safety block run',
-                       '    if false\n        ; M06 and the safety block run')
-        program_end = ('    if iCycle832Mode ne 0\n        ; M30 resets', '    if false\n        ; M30 resets')
+        tool_change = ('    if iCycle832Mode ne 0\n        ; The optional stop, M06 and the safety block run',
+                       '    if false\n        ; The optional stop, M06 and the safety block run')
+        program_end = ('    if iCycle832Mode ne 0\n        ; Before the optional stop', '    if false\n        ; Before the optional stop')
         for label, (old, new), check in (('tool change', tool_change, self.check_tool_change),
                                          ('program end', program_end, self.check_program_end)):
             with self.subTest(mutant=label):
@@ -412,12 +423,13 @@ class SimultaneousJobTests(unittest.TestCase):
         off = p.ev('compensation', side='comp_off') + p.ev('line_5x', xpos=50, feed_type='finish_feed')
         self.assertEqual(smoothing(off), [], off)
         self.assertIn('G40', off[-1])
-        self.assertEqual(smoothing(p.ev('line_5x', xpos=60, feed_type='finish_feed')), [ATOL_FINISH])
+        self.assertEqual(smoothing(p.ev('line_5x', xpos=60, feed_type='finish_feed')), [FINISH, ATOL_FINISH])
 
     def test_atol_waits_for_the_move_after_g40(self):
         """INDEPENDENT: like CYCLE832, ATOL[A] is a block without motion, so it is not written while
         compensation is on at the control (MD20250 = 5 empty blocks, alarm 10762): compensation the
-        last job left on holds a 4x job's ATOL[A] until the move after G40."""
+        last job left on holds a 4x job's ATOL[A] until the move after G40, where it follows the
+        call that selects the compressor again."""
         self.check_atol_waits_for_g40()
 
     def check_first_job_stock(self, source=None):
@@ -496,7 +508,7 @@ class SimultaneousJobMutationTests(unittest.TestCase):
 def stop_program(source=None, **cam):
     """A program whose POST ERROR stops it (print, then abort)."""
     require_nc_stream()
-    return Program(cam={**MILLING, **cam}, source=source, policies=post_error_policies())
+    return Program(options=NO_JOB_STOP, cam={**MILLING, **cam}, source=source, policies=post_error_policies())
 
 
 def posted(run, *args, **values):
@@ -732,13 +744,15 @@ class CompensationTests(unittest.TestCase):
         on += p.ev('line', xpos=40, feed_type='finish_feed')
         self.assertEqual(compressor(on), [], on)
         self.assertIn('G40', on[-1])
-        self.assertEqual(compressor(p.ev('rapid_move', zpos=50)), [COMPSURF])
+        self.assertEqual(compressor(p.ev('rapid_move', zpos=50)), [])
+        self.assertEqual(compressor(p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')), [FINISH])
 
     def test_compressor_is_off_from_the_compensation_selection_to_g40(self):
         """INDEPENDENT: machine 2026-11-01 (module docstring). Reference trace 2026-10-27, operations
         8 and 11: the compensation event comes before the first finishing move, which selects G41;
         the finishing call and COMPOF go before that block, while the control has no compensation
-        on, and COMPSURF follows the block that writes G40."""
+        on, and the finishing call comes again before the first feed move after G40, not on the
+        rapid between."""
         self.check_before_selection()
 
     def check_right_side(self, source=None):
@@ -761,14 +775,15 @@ class CompensationTests(unittest.TestCase):
         window = nc[g41:g40 + 1]
         self.assertEqual(compressor(window), [], window)
         self.assertEqual(sum(' AR=' in line for line in window), 5, window)
-        self.assertEqual(nc[g40 + 1:g40 + 3], [COMPSURF, 'G0 Z25'], nc)
-        self.assertEqual(calls(nc[nc.index(FINISH) + 1:]), [], nc)
+        self.assertEqual(nc[g40 + 1], 'G0 Z25', nc)
+        self.assertEqual(calls(nc), [FINISH], nc)
 
     def test_machine_pass_runs_without_the_compressor(self):
         """INDEPENDENT: machine 2026-11-01 (module docstring): this pass stopped with alarm 10751 at
         its lead-out arc with COMPSURF on and ran with COMPOF before its G41 block. COMPOF is the NC
-        line before the G41 block, nothing comes between it and the G40 block, COMPSURF follows,
-        and the finishing call of the job stays (G645, tolerance, dynamics)."""
+        line before the G41 block, nothing comes between it and the G40 block, the finishing call
+        of the job stays over the pass (G645, tolerance, dynamics), and the retract after G40 gets no
+        call back (a rapid; the next feed move would)."""
         self.check_machine_pass()
 
     def check_two_passes(self, source=None):
@@ -783,17 +798,34 @@ class CompensationTests(unittest.TestCase):
         blocks += p.ev('line', xpos=10, feed_type='finish_feed')
         blocks += p.ev('rapid_move', zpos=50)
         blocks += p.ev('rapid_move', xpos=0)
-        self.assertEqual(compressor(blocks), [FINISH, COMPOF, COMPSURF, COMPOF, COMPSURF], blocks)
+        self.assertEqual(compressor(blocks), [FINISH, COMPOF, FINISH, COMPOF], blocks)
         selections = [index for index, block in enumerate(blocks) if 'G41' in block]
         self.assertEqual([blocks[index - 1] for index in selections], [COMPOF, COMPOF], blocks)
-        plunge = blocks.index('Z-4 F4000')
-        self.assertEqual(blocks[plunge - 1], COMPSURF, blocks)
+        plunge = blocks.index('G1 Z-4 F4000')
+        self.assertEqual(blocks[plunge - 1], FINISH, blocks)
 
     def test_second_pass_of_the_same_call_switches_again(self):
         """INDEPENDENT: two compensated finishing passes of one CYCLE832, with a plunge between them:
-        COMPSURF before the plunge, COMPOF again before the second G41 block, COMPSURF once after its
-        G40 and no repeat on the moves that follow."""
+        the call again before the plunge (a feed move), COMPOF again before the second G41 block,
+        and nothing on the rapids after its G40."""
         self.check_two_passes()
+
+    def check_thread_passes(self, source=None):
+        p, _ = first_job(source, wall_offset=0.3)
+        blocks = finish_pass(p, side='comp_left')
+        blocks += p.ev('compensation', side='comp_off')
+        blocks += p.ev('line', xpos=30, feed_type='finish_feed')
+        blocks += p.ev('rapid_move', xpos=10, ypos=10)
+        blocks += p.ev('compensation', side='comp_right')
+        blocks += p.ev('line', xpos=20, feed=300, feed_type='finish_feed')
+        self.assertEqual(compressor(blocks), [FINISH, COMPOF], blocks)
+        self.assertIn('G42', blocks[-1])
+
+    def test_next_compensated_pass_gets_no_call_back(self):
+        """INDEPENDENT: the call comes back for a feed move without compensation only. A feed move
+        that selects G41/G42 again after G40 (the next pass of a thread: G40, G0, G42) keeps the
+        compressor off: no call, which would select the compressor, and no second COMPOF."""
+        self.check_thread_passes()
 
     def check_4x_rapid_selection(self, source=None):
         for event in ('move_4x', 'move_5x'):
@@ -865,21 +897,310 @@ class CompensationTests(unittest.TestCase):
         self.assertEqual(compressor(boundary + job), [DESELECT])
         self.assertEqual(compressor(cut(p) + finish_pass(p, side='comp_left')), [])
 
+    def check_drilling_stops(self, source=None):
+        # The pass ends with compensation on below the clearance plane (end_of_job cancels it only
+        # above), the same with CAM's comp_off after the last move (no block wrote G40), or at the
+        # clearance plane without comp_off (end_of_job cancels it, CAM still asks for it).
+        for side in ('comp_left', 'comp_right'):
+            for cam in (dict(iG187_P=1), dict(iG187_P=-1)):
+                for ending in ('on', 'off', 'asked'):
+                    with self.subTest(side=side, ending=ending, **cam):
+                        p = stop_program(source, wall_offset=0.3)
+                        posted(start, p)
+                        p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
+                        p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
+                        p.ev('compensation', side=side)
+                        rough_move(p)
+                        if ending == 'off':
+                            p.ev('compensation', side='comp_off')
+                        if ending == 'asked':
+                            p.ev('rapid_move', zpos=50)
+                        posted(same_tool_job, p, 'op2', job_type='drilling', **cam)
+                        with self.assertRaises(post_abort_error()):
+                            p.ev('drill', xpos=10, ypos=10, zpos=10)
+                        self.assertEqual(p.nc()[-1], DRILL_COMP_STOP)
+                        self.assertNotIn('MCALL', ' '.join(p.nc()))
+
+    def test_drilling_cycle_with_compensation_on_stops(self):
+        """INDEPENDENT: owner 2026-11-01: compensation still on at a drilling cycle stops the post,
+        with or without a CYCLE832 to deselect: compensation the last job left on below the
+        clearance plane (end_of_job cancels it only above), also after a comp_off that no block
+        followed, and compensation CAM still asks for after end_of_job cancelled it at the
+        clearance plane (the drill job's rapid would select it again). No cycle is written."""
+        self.check_drilling_stops()
+
+    def check_program_end_stops(self, source=None):
+        require_nc_stream()
+        for side in ('comp_left', 'comp_right'):
+            with self.subTest(side=side):
+                p = Program(options={'bHomeend': False}, cam={**MILLING, 'wall_offset': 0.3}, source=source,
+                            policies=post_error_policies())
+                posted(start, p)
+                p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
+                p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
+                p.ev('compensation', side=side)
+                rough_move(p)
+                p.ev('end_of_job', next_job_tool_number=0)
+                with self.assertRaises(post_abort_error()):
+                    p.ev('end_program')
+                self.assertEqual(p.nc()[-1], COMP_STOP)
+
+    def test_program_end_with_compensation_on_stops(self):
+        """INDEPENDENT: owner 2026-11-01: without the end homing, whose Z homing would cancel it,
+        compensation still on at the program end meets the deselection of CYCLE832 (blocks without
+        motion under TRC, MD20250 / alarm 10762): the post stops."""
+        self.check_program_end_stops()
+
     def test_deselection_ends_the_compressor_switch(self):
-        """INDEPENDENT: CYCLE832(0,0,1) returns the control to COMPOF, so no COMPSURF may follow
-        it, and without a CYCLE832 the compressor is off already: after a pass that ended with G40
-        on its last move, the tool change deselects and a job without CYCLE832 gets neither COMPSURF
-        nor COMPOF, also when it compensates."""
+        """INDEPENDENT: CYCLE832(0,0,1) returns the control to COMPOF and ends the switch, and without
+        a CYCLE832 the compressor is off already: after a pass that ended with G40 on its last move,
+        the tool change deselects and a job without CYCLE832 gets no call and no COMPOF, also when
+        it compensates."""
         self.check_deselection_clears()
+
+
+class StopTests(unittest.TestCase):
+    """Owner 2026-11-01: CYCLE832 goes off before every M1/M0 of the post, so an operator who stops or
+    resets there is not left in G645, the compressor and DYN* (a reset may keep the G groups)."""
+
+    def check_job_stop(self, source=None):
+        p, _ = first_job(source, {'bOptstpjob': True}, wall_offset=0.3)
+        cut(p)
+        job = same_tool_job(p, 'op2', wall_offset=0.3)
+        self.assertEqual(calls(job), [DESELECT, ROUGH], job)
+        self.assertLess(job.index(DESELECT), job.index('M1'), job)
+        self.assertLess(job.index('M1'), job.index(ROUGH), job)
+
+    def test_job_m1_comes_after_the_deselection(self):
+        """INDEPENDENT: the M1 between two jobs of the same tool (bOptstpjob) comes after
+        CYCLE832(0,0,1); the next job selects its type after the stop, also the same one."""
+        self.check_job_stop()
+
+    def check_job_stop_under_compensation(self, source=None):
+        require_nc_stream()
+        p = Program(options={'bOptstpjob': True}, cam={**MILLING, 'wall_offset': 0.3}, source=source,
+                    policies=post_error_policies())
+        posted(start, p)
+        p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
+        p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
+        p.ev('compensation', side='comp_left')
+        rough_move(p)
+        job = p.ev('end_of_job', next_job_tool_number=1)
+        try:
+            job += p.ev('start_of_job', job_name='op2', next_job_tool_number=1, wall_offset=0.3)
+        except post_abort_error() as exc:
+            raise AssertionError(f'the post stopped: {exc}') from exc
+        self.assertIn('M1', job)
+        self.assertEqual(calls(job), [], job)
+
+    def test_job_m1_with_compensation_on_keeps_the_held_call(self):
+        """INDEPENDENT: compensation the last job left on below the clearance plane holds the call
+        (MD20250, alarm 10762), also its deselection before the job M1: the M1 comes, no call."""
+        self.check_job_stop_under_compensation()
+
+    def check_m0_stop(self, source=None):
+        p, _ = first_job(source, wall_offset=0.3)
+        cut(p)
+        end = p.ev('end_of_job', next_job_tool_number=1, bStopM00=True)
+        self.assertEqual(calls(end), [DESELECT], end)
+        self.assertLess(end.index(DESELECT), end.index('M0'), end)
+        job = p.ev('start_of_job', job_name='op2', next_job_tool_number=1, wall_offset=0.3)
+        self.assertEqual(calls(job), [ROUGH], job)
+
+    def test_m0_comes_after_the_deselection(self):
+        """INDEPENDENT: the M0 of a job boundary (bStopM00) comes after CYCLE832(0,0,1); the return
+        move after it selects nothing and the next job its own type."""
+        self.check_m0_stop()
+
+    def check_m0_homing_under_compensation(self, source=None):
+        require_nc_stream()
+        p = Program(options={**NO_JOB_STOP, 'sHomestrstpsame': '8::G75 Z1=0.'}, cam={**MILLING, 'wall_offset': 0.3},
+                    source=source, policies=post_error_policies())
+        posted(start, p)
+        p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
+        p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
+        p.ev('compensation', side='comp_left')
+        rough_move(p)
+        try:
+            end = p.ev('end_of_job', next_job_tool_number=1, bStopM00=True)
+        except post_abort_error() as exc:
+            raise AssertionError(f'the post stopped: {exc}') from exc
+        g40 = next(index for index, block in enumerate(end) if 'G40' in block)
+        self.assertEqual(end[g40 - 1:g40 + 3], ['G75 Z1=0.', end[g40], DESELECT, 'M0'], end)
+
+    def test_m0_homing_cancels_compensation_before_the_deselection(self):
+        """INDEPENDENT: the Z homing of the M0 (sHomestrstpsame) cancels compensation the job left
+        on below the clearance plane (G40 after the Z homing, PP-062), so CYCLE832(0,0,1) follows it
+        and comes before the M0, not held over the stop."""
+        self.check_m0_homing_under_compensation()
+
+    def check_program_end_stop(self, source=None):
+        p, _ = first_job(source, {'bOptstpend': True}, wall_offset=0.3)
+        cut(p)
+        p.ev('end_of_job', next_job_tool_number=0)
+        end = p.ev('end_program')
+        self.assertEqual(end[-3:], [DESELECT, 'M1', 'M30'], end)
+
+    def test_program_end_m1_comes_after_the_deselection(self):
+        """INDEPENDENT: the M1 before the program end (bOptstpend) comes after CYCLE832(0,0,1)."""
+        self.check_program_end_stop()
+
+    def check_index_stop(self, source=None):
+        p, _ = first_job(source, wall_offset=0.3)
+        cut(p)
+        blocks = p.ev('end_of_job', next_job_tool_number=1)
+        blocks += p.ev('tmatrix', angle_4x_around_x=90)
+        blocks += p.ev('start_of_job', job_name='op2', next_job_tool_number=1, wall_offset=0.05)
+        turn = next(index for index, block in enumerate(blocks) if 'A=' in block)
+        self.assertEqual(calls(blocks), [DESELECT, SEMI], blocks)
+        self.assertLess(blocks.index(DESELECT), blocks.index('M1'), blocks)
+        self.assertLess(blocks.index('M1'), turn, blocks)
+        self.assertLess(turn, blocks.index(SEMI), blocks)
+
+    def test_index_m1_comes_after_the_deselection(self):
+        """INDEPENDENT: the M1 before an A index between two jobs (tmatrix, bOptstpindex) comes after
+        CYCLE832(0,0,1); the job after the turn selects its type."""
+        self.check_index_stop()
+
+    def check_boundary_index(self, source=None):
+        p, _ = first_job(source, {'i4xIndexMode': 1}, wall_offset=0.3)
+        cut(p)
+        finish_pass(p)
+        blocks = p.ev('rapid_move', zpos=50)
+        blocks += p.ev('end_of_job', next_job_tool_number=1)
+        blocks += p.ev('tmatrix', angle_4x_around_x=90)
+        blocks += p.ev('start_of_job', job_name='op2', next_job_tool_number=1, position=2, wall_offset=0.05)
+        self.assertEqual(calls(blocks), [DESELECT, SEMI], blocks)
+        self.assertLess(blocks.index('G0 G17 G90 G55'), blocks.index(SEMI), blocks)
+
+    def test_index_with_a_work_offset_step_selects_only_the_next_job(self):
+        """INDEPENDENT: an index between two jobs of the same tool that also steps the work offset
+        (i4xIndexMode 1): after CYCLE832(0,0,1) and the M1 the work-offset block selects no type,
+        not the finishing one of the last job's last pass (review 2026-11-01); the next job selects
+        its own after it."""
+        self.check_boundary_index()
+
+    def check_index_before_the_boundary(self, source=None):
+        # No subTest: the mutation self-check runs this on its own test case.
+        for stop in ('job M1', 'M0'):
+            p, _ = first_job(source, {'bOptstpjob': stop == 'job M1'}, wall_offset=0.3, iWorkOffset_Method=1,
+                             home_user_name='54')
+            cut(p)
+            finish_pass(p)
+            p.ev('rapid_move', zpos=50)
+            blocks = p.ev('fourth_axis', angle=90)
+            blocks += p.ev('end_of_job', next_job_tool_number=1, bStopM00=stop == 'M0')
+            blocks += p.ev('start_of_job', job_name='op2', next_job_tool_number=1, home_user_name='55',
+                           wall_offset=0.05)
+            self.assertEqual(calls(blocks), [DESELECT, SEMI], (stop, blocks))
+            self.assertLess(blocks.index('G0 G17 G90 G55'), blocks.index(SEMI), (stop, blocks))
+
+    def test_type_kept_over_an_index_ends_with_the_job(self):
+        """INDEPENDENT: an index after the last move of a job keeps the job's type for its next move;
+        there is none. The return move after an M0 (bStopM00) and the work-offset block of the next
+        job select no type, not the finishing one of the last pass; the next job selects its own."""
+        self.check_index_before_the_boundary()
+
+    def check_index_inside_job(self, source=None, iG187_P=None):
+        cam = dict(wall_offset=0.3) if iG187_P is None else dict(wall_offset=0.3, iG187_P=iG187_P)
+        want = ROUGH if iG187_P is None else SEMI
+        p, _ = first_job(source, **cam)
+        cut(p)
+        blocks = p.ev('fourth_axis', angle=90)
+        blocks += p.ev('rapid_move', xpos=20, ypos=10, zpos=50)
+        blocks += p.ev('line', zpos=-2, feed=200, feed_type='z_feed')
+        self.assertEqual(calls(blocks), [DESELECT, want], blocks)
+        self.assertLess(blocks.index(DESELECT), blocks.index('M1'), blocks)
+        rapid = next(index for index, block in enumerate(blocks) if 'X20' in block)
+        self.assertLess(blocks.index(want), rapid, blocks)
+
+    def test_index_inside_a_job_selects_the_type_again(self):
+        """INDEPENDENT: the M1 of an A index inside a job (fourth_axis) comes after CYCLE832(0,0,1);
+        the job's next move selects its type again before it, by allowance or by iG187_P (a plunge
+        would not switch the type by itself)."""
+        self.check_index_inside_job()
+        self.check_index_inside_job(iG187_P=2)
+
+    def check_index_stop_under_compensation(self, source=None):
+        p = stop_program(source, wall_offset=0.3)
+        posted(start, p)
+        p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
+        p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
+        p.ev('compensation', side='comp_left')
+        rough_move(p)
+        try:
+            blocks = p.ev('fourth_axis', angle=90)
+        except post_abort_error() as exc:
+            raise AssertionError(f'the post stopped: {exc}') from exc
+        self.assertIn('M1', blocks)
+        self.assertEqual(calls(blocks), [], blocks)
+
+    def test_index_m1_with_compensation_on_keeps_the_held_call(self):
+        """INDEPENDENT: compensation still on at an A index inside a job holds the call (MD20250,
+        alarm 10762), also its deselection before the index M1; the index homing cancels G41 after
+        the stop (PP-062)."""
+        self.check_index_stop_under_compensation()
+
+    def test_mutations_are_detected(self):
+        """INDEPENDENT: mutation self-check of the deselections before the stops."""
+        tool_change = ('    if iCycle832Mode ne 0\n        ; The optional stop, M06 and the safety block run in the reset settings of the control; the\n'
+                       '        ; next operation selects its own after M06 (usr_smoothing).\n        call @usr_smoothing_off\n    endif\n'
+                       '    if !bStopM00difftool and bOptstptc\n        call @usr_optionalstop\n    endif\n')
+        program_end_off = ('    if iCycle832Mode ne 0\n        ; Before the optional stop, so the control is in its reset settings at a stop or reset\n'
+                           '        ; there; M30 resets the G groups too (machine data), M2 or a reset that keeps them would not.\n'
+                           '        call @usr_smoothing_off\n    endif\n')
+        program_end_stop = '    if bOptstpend\n        call @usr_optionalstop\n    endif\n'
+        mutants = {
+            'job M1 keeps CYCLE832': (('            call @usr_smoothing_job_stop\n            call @usr_optionalstop\n',
+                                       '            call @usr_optionalstop\n'), self.check_job_stop),
+            'job stop under compensation': (('    if iCycle832Mode ne 0 and iCompActive ne 41 and iCompActive ne 42\n        call @usr_smoothing_off\n',
+                                             '    if iCycle832Mode ne 0\n        call @usr_smoothing_off\n'),
+                                            self.check_job_stop_under_compensation),
+            'M0 keeps CYCLE832': (('    call @usr_smoothing_job_stop\n    call @usr_forcedstop\n', '    call @usr_forcedstop\n'),
+                                  self.check_m0_stop),
+            'index M1 keeps CYCLE832': (('            ; Not right after another stop with no motion since (the job M1 of a same-tool job).\n'
+                                         '            call @usr_smoothing_index_stop\n',
+                                         '            ; Not right after another stop with no motion since (the job M1 of a same-tool job).\n'),
+                                        self.check_index_stop),
+            'tool change M1 before the deselection': ((tool_change, tool_change.split('    if !bStopM00difftool')[0].replace(
+                '    if iCycle832Mode ne 0', '    if !bStopM00difftool and bOptstptc\n        call @usr_optionalstop\n    endif\n    if iCycle832Mode ne 0')),
+                PlacementTests().check_tool_change),
+            'program end M1 before the deselection': ((program_end_off + program_end_stop, program_end_stop + program_end_off),
+                                                      self.check_program_end_stop),
+            'M0 deselection before its homing': (('    call @usr_prep_home_axis\n    call @usr_smoothing_job_stop\n',
+                                                  '    call @usr_smoothing_job_stop\n    call @usr_prep_home_axis\n'),
+                                                 self.check_m0_homing_under_compensation),
+            'work-offset block selects a type': (('            bTlchg = true\n            call @usr_rapid\n',
+                                                  '            bTlchg = true\n            call @rapid_move\n'),
+                                                 self.check_boundary_index),
+            'M0 return selects a type': (('    ; A index (usr_smoothing_index_stop) is no longer asked for, and the next job selects its own.\n'
+                                          '    call @usr_rapid\n',
+                                          '    call @rapid_move\n'), self.check_index_before_the_boundary),
+            'index M1 inside a job drops the type': (('        call @usr_smoothing_off\n        iCycle832Want = iWant\n'
+                                                      '        nCycle832WantTol = nWantTol\n', '        call @usr_smoothing_off\n'),
+                                                     self.check_index_inside_job),
+            'index stop under compensation': (('    if iCycle832Mode ne 0 and iCompActive ne 41 and iCompActive ne 42\n'
+                                               '        iWant = iCycle832Want\n',
+                                               '    if iCycle832Mode ne 0\n        iWant = iCycle832Want\n'),
+                                              self.check_index_stop_under_compensation),
+        }
+        for label, ((old, new), check) in mutants.items():
+            with self.subTest(mutant=label):
+                assert_detected(self, check, mutate(old, new), label)
 
 
 class FinishPassMutationTests(unittest.TestCase):
     def test_mutations_are_detected(self):
-        """INDEPENDENT: mutation self-check of the finishing switch, the compensation hold and the
-        compressor switch."""
+        """INDEPENDENT: mutation self-check of the finishing switch, the compensation hold, the
+        compressor switch and the compensation stops."""
         finish = "        if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor'\n"
         compof = '            if iCycle832Mode ne 0 and !bCycle832CompOff\n'
-        compsurf = '            if bCycle832CompOff\n                skipline = true\n'
+        back = ('    if bCycle832CompOff and bCycle832FeedApply and iDiametercomp ne 41 and iDiametercomp ne 42\n'
+                '        bCompBack = true\n')
+        drill_stop = ("    if iCompActive eq 41 or iCompActive eq 42 or iDiametercomp eq 41 or iDiametercomp eq 42\n"
+                      "        print 'POST ERROR: Cutter compensation is still on at a drilling")
+        deselect_stop = ("    if iCompActive eq 41 or iCompActive eq 42\n"
+                         "        print 'POST ERROR: Cutter compensation is still on where")
         mutants = {
             'finishing switch removed': ((finish, '        if false\n'), FinishPassTests.check_switch),
             'floor finishing ignored': ((finish, "        if feed_type eq 'finish_feed'\n"),
@@ -899,15 +1220,26 @@ class FinishPassMutationTests(unittest.TestCase):
                                         CompensationTests.check_deselection_clears),
             'right side keeps the compressor': (('        if iDiametercomp eq 41 or iDiametercomp eq 42\n',
                                                  '        if iDiametercomp eq 41\n'), CompensationTests.check_right_side),
-            'compressor not restored': ((compsurf, '            if false\n                skipline = true\n'),
-                                        CompensationTests.check_machine_pass),
-            'compressor switched inside the window': (('    if iCompActive ne 41 and iCompActive ne 42\n        if iDiametercomp',
-                                                       '    if true\n        if iDiametercomp'),
-                                                      CompensationTests.check_machine_pass),
+            'compressor not restored': ((back, '    if false\n        bCompBack = true\n'),
+                                        CompensationTests.check_two_passes),
+            'restored on rapids': ((back, back.replace(' and bCycle832FeedApply', '')),
+                                   CompensationTests.check_machine_pass),
+            'feed moves not marked': (('    bCycle832FeedApply = true\n    call @usr_smoothing_apply\n',
+                                       '    call @usr_smoothing_apply\n'), CompensationTests.check_two_passes),
             'call keeps the switch': (('            bCycle832CompOff = false\n            nCycle832TolA = -1\n',
-                                       '            nCycle832TolA = -1\n'), CompensationTests.check_waits_for_g40),
-            'COMPSURF keeps the switch': (("                {nb,'COMPSURF'}\n                bCycle832CompOff = false\n",
-                                           "                {nb,'COMPSURF'}\n"), CompensationTests.check_two_passes),
+                                       '            nCycle832TolA = -1\n'), CompensationTests.check_two_passes),
+            'drilling under compensation': ((drill_stop, "    if false\n" + drill_stop.split('\n', 1)[1]),
+                                            CompensationTests.check_drilling_stops),
+            'drilling with compensation asked for': ((drill_stop, drill_stop.replace(
+                ' or iDiametercomp eq 41 or iDiametercomp eq 42', '')), CompensationTests.check_drilling_stops),
+            'drilling stop on the left side only': ((drill_stop, drill_stop.replace(
+                'iCompActive eq 41 or iCompActive eq 42', 'iCompActive eq 41')), CompensationTests.check_drilling_stops),
+            'deselection stop on the left side only': ((deselect_stop, deselect_stop.replace(
+                'iCompActive eq 41 or iCompActive eq 42', 'iCompActive eq 41')), CompensationTests.check_program_end_stops),
+            'restored on the next selection': ((back, back.replace(' and iDiametercomp ne 41 and iDiametercomp ne 42', '')),
+                                               CompensationTests.check_thread_passes),
+            'deselection under compensation': ((deselect_stop, "    if false\n" + deselect_stop.split('\n', 1)[1]),
+                                               CompensationTests.check_program_end_stops),
             'COMPOF does not set the switch': (("                {nb,'COMPOF'}\n                bCycle832CompOff = true\n",
                                                 "                {nb,'COMPOF'}\n"), CompensationTests.check_two_passes),
             'move_4x without the apply': (('    call @usr_camdbg_move((4))\n    call @usr_smoothing_apply\n',

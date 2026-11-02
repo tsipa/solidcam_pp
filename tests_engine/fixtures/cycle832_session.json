@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "description": "CYCLE832 per operation (usr_smoothing): a pocket with the roughing allowance whose finishing passes (finish_feed, finish_feed_floor) switch to finishing and back, a 3D profile judged by its smaller floor allowance, a 4x morphing job judged by the smaller of Stock_to_leave and Drive_surface_Offset (semi-finishing like the job before: ATOL[A] alone), the job parameters iG187_P 1/2/3 and nG187_E, and iG187_P -1 deselecting it; a same-tool job over the last X/Y starts with one G0 Z block. Expectations characterise the current GPP under the session policy; they are not a SolidCAM oracle.",
+ "description": "CYCLE832 per operation (usr_smoothing): a pocket with the roughing allowance whose finishing passes (finish_feed, finish_feed_floor) switch to finishing and back, a 3D profile judged by its smaller floor allowance, a 4x morphing job judged by the smaller of Stock_to_leave and Drive_surface_Offset (semi-finishing like the job before, with its ATOL[A]), the job parameters iG187_P 1/2/3 and nG187_E, and iG187_P -1 deselecting it; the M1 between two jobs of the same tool comes after CYCLE832(0,0,1) and the next job selects its type after it (owner 2026-11-01); a same-tool job over the last X/Y starts with one G0 Z block. Expectations characterise the current GPP under the session policy; they are not a SolidCAM oracle.",
  "session": {
   "overrides": {},
   "user_params": {},
@@ -291,11 +291,12 @@
    "expect": {
     "order": [
      "MSG(\"P3D_SEMI\")",
+     "CYCLE832(0,0,1)",
      "M1",
      "CYCLE832(0.05,2,1)"
     ],
     "count": {
-     "CYCLE832": 1
+     "CYCLE832": 2
     }
    }
   },
@@ -395,11 +396,13 @@
    "expect": {
     "order": [
      "MSG(\"X4_SEMI\")",
+     "CYCLE832(0,0,1)",
      "M1",
+     "CYCLE832(0.05,2,1)",
      "ATOL[A]=0.04271"
     ],
     "count": {
-     "CYCLE832": 0,
+     "CYCLE832": 2,
      "ATOL": 1
     }
    }
@@ -499,11 +502,12 @@
    "expect": {
     "order": [
      "MSG(\"P_FORCE_ROUGH\")",
+     "CYCLE832(0,0,1)",
      "M1",
      "CYCLE832(0.1,3,1)"
     ],
     "count": {
-     "CYCLE832": 1
+     "CYCLE832": 2
     }
    }
   },
@@ -602,11 +606,12 @@
    "expect": {
     "order": [
      "MSG(\"P_FORCE_SEMI_E\")",
+     "CYCLE832(0,0,1)",
      "M1",
      "CYCLE832(0.03,2,1)"
     ],
     "count": {
-     "CYCLE832": 1
+     "CYCLE832": 2
     }
    }
   },
@@ -705,11 +710,12 @@
    "expect": {
     "order": [
      "MSG(\"P_FORCE_FINISH\")",
+     "CYCLE832(0,0,1)",
      "M1",
      "CYCLE832(0.01,1,1)"
     ],
     "count": {
-     "CYCLE832": 1
+     "CYCLE832": 2
     }
    }
   },
@@ -808,8 +814,8 @@
    "expect": {
     "order": [
      "MSG(\"P_NO_CYCLE\")",
-     "M1",
-     "CYCLE832(0,0,1)"
+     "CYCLE832(0,0,1)",
+     "M1"
     ],
     "count": {
      "CYCLE832": 1

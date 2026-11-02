@@ -63,7 +63,7 @@ def arc_engine(case, plane, axes):
                iFeedMode=94, iDiametercomp=40, iCompActive=40, cWo='G', iWorkoffset=54, iAbsincmode=90, feed=100,
                mcode_f='2.0(p)', clear_change_after_gen=1, xpos_f='8.5', ypos_f='8.5', zpos_f='8.5', nArcAR_f='3.5',
                bCycle832Auto=False, iCycle832Want=0, nCycle832WantTol=0, iCycle832Mode=0, nCycle832Tol=0, trace_level=0,
-               bCycle832CompOff=False)
+               bCycle832CompOff=False, bCycle832FeedApply=False)
     u, v, w = axes
     delta = case.get('cad_delta', [0, 0])
     engine.set(**{u + 'start': case['start'][0], v + 'start': case['start'][1], w + 'start': 2,

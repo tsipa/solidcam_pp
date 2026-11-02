@@ -35,11 +35,11 @@
     ; Stock_to_leave and Drive_surface_Offset hold nNoAllowance until an operation sends its own
     ; (usr_allowance_reset). nCycle832TolA is the contour tolerance whose ATOL[A] is programmed
     ; since the last CYCLE832 call (-1 = none). bCycle832CompOff: COMPOF written for cutter
-    ; compensation while a CYCLE832 is active; COMPSURF (the compressor its calls select on this
-    ; machine) or the next call selects it again.
+    ; compensation while a CYCLE832 is active; the next call, after G40, selects the compressor again.
+    ; bCycle832FeedApply: usr_smoothing_apply runs for a feed move (usr_smoothing_feed).
     global integer iCycle832Want iCycle832Job
     global numeric nCycle832WantTol nNoAllowance nCycle832TolA
-    global logical bCycle832Auto bCycle832CompOff
+    global logical bCycle832Auto bCycle832CompOff bCycle832FeedApply
     ; Tool change and job start
     global logical bTlchg bSafetyprep bStopM00difftool bskipline bFirstMove bFirstRapid
     ; bBoundaryStop: an M0/M1 was printed since the last end_of_job (usr_optionalstop, usr_forcedstop);
@@ -556,6 +556,7 @@ endp
     bCycle832Auto   = false
     nCycle832TolA   = -1
     bCycle832CompOff = false
+    bCycle832FeedApply = false
 endp
 
 ;-------------------
@@ -695,7 +696,7 @@ endp
 ;-------------------
 
 @end_program
-    ; End of program: coolant and spindle off, homing (bHomeend), optional stop, CYCLE832 off, M30 (or M2).
+    ; End of program: coolant and spindle off, homing (bHomeend), CYCLE832 off, optional stop, M30 (or M2).
     if bCooloffend and bCoolExist
         call @usr_coolant_all_off
     endif
@@ -706,12 +707,13 @@ endp
         sHomestr = sHomestrend
         call @usr_prep_home_axis
     endif
+    if iCycle832Mode ne 0
+        ; Before the optional stop, so the control is in its reset settings at a stop or reset
+        ; there; M30 resets the G groups too (machine data), M2 or a reset that keeps them would not.
+        call @usr_smoothing_off
+    endif
     if bOptstpend
         call @usr_optionalstop
-    endif
-    if iCycle832Mode ne 0
-        ; M30 resets the G groups too (machine data); M2 or a reset that keeps them would not.
-        call @usr_smoothing_off
     endif
     if bToolChangeAtEnd
         {nb,cTCcodep'T'next_tool_number' 'cTCcodes}
@@ -823,8 +825,8 @@ endp
 endp
 
 @usr_ct_before_notfirsttool
-    ; Before a tool change after the first: coolant and spindle off, home (bHometc), optional stop,
-    ; CYCLE832 off, safety block.
+    ; Before a tool change after the first: coolant and spindle off, home (bHometc), CYCLE832 off,
+    ; optional stop, safety block.
     ; bStopM00difftool is always false here (PP-056: end_of_job clears it in the same event), so the
     ; G75 retract before M06 runs whenever bHometc is set.
     if !bStopM00difftool
@@ -852,17 +854,17 @@ endp
         if bHometc
             call @usr_prep_home_axis
         endif
-        if bOptstptc
-            call @usr_optionalstop
-        endif
+    endif
+    if iCycle832Mode ne 0
+        ; The optional stop, M06 and the safety block run in the reset settings of the control; the
+        ; next operation selects its own after M06 (usr_smoothing).
+        call @usr_smoothing_off
+    endif
+    if !bStopM00difftool and bOptstptc
+        call @usr_optionalstop
     endif
     if bTcseperation
         {nl}
-    endif
-    if iCycle832Mode ne 0
-        ; M06 and the safety block run in the reset settings of the control; the next operation
-        ; selects its own after M06 (usr_smoothing).
-        call @usr_smoothing_off
     endif
     call @usr_ct_safety_block
 endp
@@ -1323,7 +1325,9 @@ endp
             call @usr_smoothing_set(iCycle832Job)
         endif
     endif
+    bCycle832FeedApply = true
     call @usr_smoothing_apply
+    bCycle832FeedApply = false
 endp
 
 @usr_smoothing_set(integer iMode)
@@ -1350,14 +1354,18 @@ endp
     ; motion count as empty blocks of TRC (MD20250 CUTCOM_MAXNUM_DUMMY_BLOCKS 5 here, alarm 10762
     ; above), so it waits for the move after G40. A G41/G42 still to come is selected after it.
     ; While CAM selects cutter compensation (iDiametercomp G41/G42) the compressor of an active
-    ; CYCLE832 is off: COMPOF on a line of its own before the block that selects G41/G42, COMPSURF
-    ; again before the first move after G40 unless a call selects it; G645, the tolerance and the
-    ; dynamics of the call stay. Machine 2026-11-01: a finishing wall pass in CYCLE832(0.01,1,1)
-    ; (G41 line, 45 deg lead-in arc, contour, lead-out arc, G40 line along its normal) stopped
-    ; with alarm 10751 at the lead-out arc. It ran with COMPOF before the G41 block, and with
-    ; CYCLE832(0,0,1) before the pass; it stopped with G64 before the G41 block (COMPSURF kept)
-    ; and with the arcs as I/J instead of AR=. MD20482 COMPRESSOR_MODE 300 here also linearizes
-    ; and compresses G2/G3 blocks (FB3sl 03/2013 F2, written for COMPCAD).
+    ; CYCLE832 is off: COMPOF on a line of its own before the block that selects G41/G42; G645, the
+    ; tolerance and the dynamics of the call stay. Before the first feed move after G40 the call of
+    ; the cut's type comes again, so the cycle selects the compressor it selected before (COMPSURF
+    ; on this machine, COMPCAD without the Top Surface option; Job Planning 08/2018 CYCLE832). Rapids
+    ; do not need it: a retract, a stop or a tool change after the pass, or the next compensated pass
+    ; of a thread (G40, G0, G42), gets no call back.
+    ; Machine 2026-11-01: a finishing wall pass in CYCLE832(0.01,1,1) (G41 line, 45 deg lead-in arc,
+    ; contour, lead-out arc, G40 line along its normal) stopped with alarm 10751 at the lead-out arc.
+    ; It ran with COMPOF before the G41 block, and with CYCLE832(0,0,1) before the pass; it stopped
+    ; with G64 before the G41 block (COMPSURF kept) and with the arcs as I/J instead of AR=. MD20482
+    ; COMPRESSOR_MODE 300 here also linearizes and compresses G2/G3 blocks (FB3sl 03/2013 F2,
+    ; written for COMPCAD).
     ; On a simultaneous 4x/5x job ATOL[A] follows on its own line (bCycle832AtolA): the contour
     ; tolerance in degrees (ATOL of a rotary axis; Job Planning 08/2018 12.11) at the stock's largest
     ; radius about A, the corner of its Y/Z extent as WORKPIECE gives it (the A axis is at Y0 Z0;
@@ -1365,7 +1373,12 @@ endp
     ; (unverified), so it is written again after every call. A stock of no Y/Z extent takes 30 mm
     ; (owner 2026-10-29).
     local numeric nY nZ nR
-    if iCycle832Want ne iCycle832Mode or nCycle832WantTol ne nCycle832Tol
+    local logical bCompBack
+    bCompBack = false
+    if bCycle832CompOff and bCycle832FeedApply and iDiametercomp ne 41 and iDiametercomp ne 42
+        bCompBack = true
+    endif
+    if iCycle832Want ne iCycle832Mode or nCycle832WantTol ne nCycle832Tol or bCompBack
         if iCompActive ne 41 and iCompActive ne 42
             skipline = true
             if iCycle832Want eq 0
@@ -1411,12 +1424,6 @@ endp
                 {nb,'COMPOF'}
                 bCycle832CompOff = true
             endif
-        else
-            if bCycle832CompOff
-                skipline = true
-                {nb,'COMPSURF'}
-                bCycle832CompOff = false
-            endif
         endif
     endif
 endp
@@ -1424,6 +1431,15 @@ endp
 @usr_smoothing_off
     ; Deselect CYCLE832 now (machining type 0): the control returns to the G groups of its reset
     ; state. The cut asks for none until the next usr_smoothing_set.
+    ; Not with cutter compensation on at the control: the call has blocks without motion (MD20250,
+    ; alarm 10762) and the program end or tool change after it would run with G41/G42. CAM
+    ; switches compensation off before (end_of_job cancels it at the clearance plane, the tool
+    ; change after the Z homing; @drill stops before), so this should never be reached.
+    if iCompActive eq 41 or iCompActive eq 42
+        print 'POST ERROR: Cutter compensation is still on where CYCLE832 is deselected (program end or tool change). Switch it off (G40) in CAM before.'
+        {nb,"POST ERROR: Cutter compensation is still on where CYCLE832 is deselected (program end or tool change). Switch it off (G40) in CAM before."}
+        abort
+    endif
     iCycle832Want = 0
     nCycle832WantTol = 0
     skipline = true
@@ -1432,6 +1448,31 @@ endp
     nCycle832Tol = 0
     bCycle832CompOff = false
     iMotionmode = 9999
+endp
+
+@usr_smoothing_job_stop
+    ; CYCLE832 off before the M0/M1 of a job boundary (start_of_job of the same tool, the M0 of
+    ; bStopM00), so an operator who stops or resets there is not left in its G645, compressor and
+    ; DYN* settings (a reset may keep the G groups). Held while compensation is on at the control
+    ; (usr_smoothing_apply); the next job selects its own (usr_smoothing).
+    if iCycle832Mode ne 0 and iCompActive ne 41 and iCompActive ne 42
+        call @usr_smoothing_off
+    endif
+endp
+
+@usr_smoothing_index_stop
+    ; The same before the M1 of an A index (bOptstpindex; tmatrix at start_of_job, fourth_axis): the
+    ; type the cut asks for stays, so the next job (usr_smoothing) or, inside a job, its next move
+    ; (usr_smoothing_apply) selects it again.
+    local integer iWant
+    local numeric nWantTol
+    if iCycle832Mode ne 0 and iCompActive ne 41 and iCompActive ne 42
+        iWant = iCycle832Want
+        nWantTol = nCycle832WantTol
+        call @usr_smoothing_off
+        iCycle832Want = iWant
+        nCycle832WantTol = nWantTol
+    endif
 endp
 
 @usr_allowance_reset
@@ -1494,6 +1535,7 @@ endp
         if bOptstpjob and !bBoundaryStop
             ; M1 between the two operations, after the message of the next one (shown during the
             ; stop), unless this boundary stopped already (M0 of bStopM00, M1 of an A index).
+            call @usr_smoothing_job_stop
             call @usr_optionalstop
         endif
         if iPworkoffset ne iWorkoffset and !bLimit_3axis
@@ -1502,9 +1544,12 @@ endp
                 ; Compensation left on by the last job is still active on the control: cancel it.
                 change(iDiametercomp) = true
             endif
-            ; bTlchg makes this rapid the positioning block (usr_rapid_tc_block, which clears it).
+            ; bTlchg makes this rapid the positioning block (usr_rapid_tc_block, which clears it). Like
+            ; the one of a tool change it selects no CYCLE832 (usr_rapid, not rapid_move): a type the
+            ; last job kept over an A index (usr_smoothing_index_stop) is not this job's, and this job
+            ; selects its own after it (usr_smoothing).
             bTlchg = true
-            call @rapid_move
+            call @usr_rapid
             ; X, Y and Z now count in the new offset: the next move programs them also when CAM's
             ; values equal the last job's (two fixtures, one program), else the tool would go down at
             ; the old fixture's X/Y.
@@ -1571,7 +1616,8 @@ endp
     call @usr_r1pos_calc
     ; A turn in the positioning block of a tool change with the index start_of_job left pending
     ; (bTmatrixIndexPending) is that index. Its M1 (bOptstpindex) comes first, unless the tool change
-    ; stopped already (bOptstptc); none before the first tool.
+    ; stopped already (bOptstptc); none before the first tool. CYCLE832 is off there: the tool change
+    ; deselected it before M06 (usr_ct_before_notfirsttool), the job selects its own after usr_ct.
     bIndexTurn = false
     if bTlchg and bTmatrixIndexPending and change(nR1pos)
         bIndexTurn = true
@@ -2340,12 +2386,13 @@ endp
 
 @usr_stop_m00
     ; The M0 stop of a job boundary (VMID bStopM00): coolant and spindle off, the homing the caller
-    ; put in sHomestr, M0, then the stop message.
+    ; put in sHomestr, CYCLE832 off, M0, then the stop message.
     if bCoolExist
         call @usr_coolant_all_off
     endif
     call @usr_spindle_stop
     call @usr_prep_home_axis
+    call @usr_smoothing_job_stop
     call @usr_forcedstop
     call @usr_message
 endp
@@ -2373,7 +2420,9 @@ endp
     bHomedBeforeReturn = bPostHomed
     nZBeforeReturn = nLastPathZ
     bPostHomed = false
-    call @rapid_move
+    ; No CYCLE832 on the return (usr_rapid, not rapid_move): the job is over, a type it kept over an
+    ; A index (usr_smoothing_index_stop) is no longer asked for, and the next job selects its own.
+    call @usr_rapid
     bPostHomed = bHomedBeforeReturn
     ; The return programs no Z: the tool stays at its Z (RTP after a drill cycle, or the homed top).
     nLastPathZ = nZBeforeReturn
@@ -2456,6 +2505,14 @@ endp
     sdis = safety
     dp = drill_lower_z
 
+    ; A drilling cycle with cutter compensation on at the control would drill its holes offset by
+    ; the tool radius; CAM switches compensation off before a drilling job. Also when only CAM still
+    ; asks for it (end_of_job cancelled it at the clearance plane): the rapid below would select it.
+    if iCompActive eq 41 or iCompActive eq 42 or iDiametercomp eq 41 or iDiametercomp eq 42
+        print 'POST ERROR: Cutter compensation is still on at a drilling cycle. Switch it off (G40) in CAM before the drilling job.'
+        {nb,"POST ERROR: Cutter compensation is still on at a drilling cycle. Switch it off (G40) in CAM before the drilling job."}
+        abort
+    endif
     ; Drilling cycles run in the reset settings of the control (usr_smoothing): the job asks for
     ; none from here, also when its CYCLE832 still waits for G40.
     call @usr_smoothing_set((0))
@@ -2993,6 +3050,7 @@ endp
         bFeedPrevValid = false
         if bOptstpindex and !bStopSinceMotion
             ; Not right after another stop with no motion since (the job M1 of a same-tool job).
+            call @usr_smoothing_index_stop
             call @usr_optionalstop
         endif
         call @usr_4x_index_rotate

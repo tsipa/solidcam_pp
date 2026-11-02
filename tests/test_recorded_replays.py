@@ -154,7 +154,8 @@ class RecordedReplayTests(unittest.TestCase):
         """INDEPENDENT: machine 2026-11-01 (tests/test_cycle832.py): a pass with G41 selected while
         CYCLE832(0.01,1,1) had COMPSURF on stopped with alarm 10751, the same pass with COMPOF before
         its G41 block ran. Every G41/G42 of the recorded programs is selected with the compressor
-        off, nothing switches it inside the window, and COMPSURF comes only under a CYCLE832.
+        off, nothing switches it inside the window, and the compressor comes back only with a
+        CYCLE832 call (or COMPSURF under one).
         recorded_cam_001..005 select compensation 20, 3, 10, 2 and 16 times."""
         for name in ('recorded_cam_001', 'recorded_cam_002', 'recorded_cam_003', 'recorded_cam_004',
                      'recorded_cam_005'):

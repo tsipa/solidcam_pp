@@ -371,16 +371,20 @@ class CompensationAtPostHomingTests(unittest.TestCase):
         self.assertEqual(program.nc()[-1], 'POST ERROR: Cutter compensation is still on at a homing line that '
                                            'moves Z with X/Y. Home Z alone first.')
 
-    def test_deselection_after_a_drill_job_uses_the_last_hole(self):
-        """INDEPENDENT: module oracle; the G0 G40 block programs the last programmed X/Y (the last hole)."""
-        program = compensation_left_on(self, off=False)
-        program.ev('end_of_job')
+    def test_drill_job_with_compensation_still_asked_for_stops(self):
+        """INDEPENDENT: owner 2026-11-01 (tests/test_cycle832.py): CAM never switched compensation off.
+        end_of_job deselects it at the clearance height, but the drill job's rapid would select it
+        again and the cycle would drill under it: the post stops before any block of the drill job."""
+        require_nc_stream()
+        program = compensation_left_on(self, off=False, policies=post_error_policies())
+        self.assertEqual(program.ev('end_of_job'), ['G0 G40 X30 Y30'])
         program.ev('start_of_job', job_name='drill')
-        program.ev('drill', xpos=10, ypos=10, zpos=50, drill_type=DRILL_TYPE['G81'], drill_clearance_z=50,
-                   drill_upper_z=0, drill_lower_z=-15, feed=80)
-        program.ev('drill_point', xpos=100, ypos=80, zpos=50)
-        program.ev('end_drill')
-        self.assertEqual(program.ev('end_of_job'), ['G0 G40 X100 Y80'])
+        with self.assertRaises(post_abort_error()):
+            program.ev('drill', xpos=10, ypos=10, zpos=50, drill_type=DRILL_TYPE['G81'], drill_clearance_z=50,
+                       drill_upper_z=0, drill_lower_z=-15, feed=80)
+        self.assertEqual(program.nc()[-1], 'POST ERROR: Cutter compensation is still on at a drilling cycle. '
+                                           'Switch it off (G40) in CAM before the drilling job.')
+        self.assertFalse(any('G41' in line for line in program.nc()[program.nc().index('G0 G40 X30 Y30'):]))
 
     def test_compensation_on_across_a_rotating_rapid_is_deselected_and_selected_again(self):
         """INDEPENDENT: module oracle; G40 after the Z homing, CAM's G41 again on the XY return above the part."""

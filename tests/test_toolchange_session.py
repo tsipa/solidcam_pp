@@ -241,8 +241,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
                                        "        if bVertical"),
             'no M9 before M06': mutate("    if !bStopM00difftool\n        if bCooloffend and bCoolExist",
                                        "    if !bStopM00difftool\n        if false"),
-            'no M01 between tools': mutate("        if bOptstptc\n            call @usr_optionalstop\n        endif\n"
-                                           "    endif\n    if bTcseperation", "    endif\n    if bTcseperation"),
+            'no M01 between tools': mutate("    if !bStopM00difftool and bOptstptc\n        call @usr_optionalstop\n    endif\n"
+                                           "    if bTcseperation", "    if bTcseperation"),
             'no spindle start after M06': mutate(START_TOOL_AFTER_TC, START_TOOL_AFTER_TC.replace(
                 '        call @start_tool\n', '')),
             'no coolant after M06': mutate("        if bCoolExist\n            skipline = false\n"
@@ -387,8 +387,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
             'bStopM00difftool kept alive': mutate('    bStopM00difftool = false\n    iPworkoffset = iWorkoffset',
                                                   '    iPworkoffset = iWorkoffset'),
             'no M5 before the different-tool M00': mutate(
-                "    call @usr_spindle_stop\n    call @usr_prep_home_axis\n    call @usr_forcedstop\n",
-                "    call @usr_prep_home_axis\n    call @usr_forcedstop\n"),
+                "    call @usr_spindle_stop\n    call @usr_prep_home_axis\n    call @usr_smoothing_job_stop\n",
+                "    call @usr_prep_home_axis\n    call @usr_smoothing_job_stop\n"),
         }
         for label, source in sources.items():
             with self.subTest(mutant=label):
@@ -431,8 +431,8 @@ class ToolChangeSafetyTests(unittest.TestCase):
         """INDEPENDENT: no M5 before M00 or no restart after it fails the guard (pp-region-3, tc-14)."""
         sources = {
             'no M5 before the same-tool M00': mutate(
-                "    call @usr_spindle_stop\n    call @usr_prep_home_axis\n    call @usr_forcedstop\n",
-                "    call @usr_prep_home_axis\n    call @usr_forcedstop\n"),
+                "    call @usr_spindle_stop\n    call @usr_prep_home_axis\n    call @usr_smoothing_job_stop\n",
+                "    call @usr_prep_home_axis\n    call @usr_smoothing_job_stop\n"),
             'no spindle restart after M00': mutate('    call @m_feed_spin\n    call @usr_spindle_mcode_output\n'
                                                    '    call @usr_spindle_wait\n',
                                                    '    call @m_feed_spin\n    call @usr_spindle_wait\n'),
