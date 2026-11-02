@@ -19,3 +19,7 @@ mapping rather than re-enabling the generic placeholder transformation types.
 After a VERICUT upgrade, compare the vendor DEF against this copy before adopting
 new library initialization. Static file/XML checks passed. The user confirmed
 that the previously failing program runs with this fix in VERICUT.
+
+The project files (`unnamed.vcproject`, `hueta`) find the machine, control and tool
+library through `${VERICUT_WORKDIR}`: set that environment variable to the
+local VERICUT working directory before opening them.

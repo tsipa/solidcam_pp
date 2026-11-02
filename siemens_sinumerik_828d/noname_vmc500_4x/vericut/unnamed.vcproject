@@ -1204,7 +1204,7 @@
     <IP_SvFiles Count="0" IP_Project="">
     </IP_SvFiles>
     <ToolMan>
-      <Library>C:\Users\Ts\Documents\vericut\ToolsAssemblies.tls</Library>
+      <Library>${VERICUT_WORKDIR}\ToolsAssemblies.tls</Library>
       <ActiveStockMatRecords>
       </ActiveStockMatRecords>
       <InactiveStockMatRecords>
@@ -1215,7 +1215,7 @@
     <AssemblyMan Library="">
     </AssemblyMan>
     <Control>
-      <File>C:\Users\Ts\Documents\vericut\sin840d_special.ctl</File>
+      <File>${VERICUT_WORKDIR}\sin840d_special.ctl</File>
       <VNCext VNCexternal="off"/>
       <TNCkinematics Index="0"/>
       <TNCtoolnum Flag="off"/>
@@ -1223,7 +1223,7 @@
       <TNCBlk Flag="on"/>
     </Control>
     <Machine Up="Z+">
-      <File>C:\Users\Ts\Documents\vericut\qwe.mch</File>
+      <File>${VERICUT_WORKDIR}\qwe.mch</File>
       <MachineLaminateCollisionDetection Detect="off"/>
       <Collision Detect="off" Ignore="active" Color="1" Color2="2">
       </Collision>
