@@ -31,19 +31,6 @@ jobs:
       - name: PP_FINDINGS.md is current
         run: python -m pp_tests.tools.findings --check
 
-  legacy-engine:
-    name: post tests on the legacy engine (GPPL_ENGINE=legacy)
-    runs-on: ubuntu-latest
-    env:
-      GPPL_ENGINE: legacy
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Post tests (pp_tests/gppl/legacy.py, the original engine)
-        run: python -m unittest discover -s tests
-
   strict:
     name: strict known defects (expected to fail while defects exist)
     runs-on: ubuntu-latest

@@ -8,7 +8,7 @@ import re
 import unittest
 
 from pp_tests.engine import Engine
-from program_session import Program, require_nc_stream
+from program_session import Program
 from test_motion import motion_engine
 from test_offline import PP
 
@@ -173,7 +173,6 @@ class PostHomingSkiplineTests(unittest.TestCase):
     """The XY/Z split relies on `skipline = true` before the Z block: check the joined NC lines."""
 
     def rotation_after_cutting(self, source=None):
-        require_nc_stream()
         program = Program(source=source)
         program.start()
         program.ev('move_5x', xpos=10, ypos=20, zpos=50)
@@ -187,7 +186,6 @@ class PostHomingSkiplineTests(unittest.TestCase):
         self.assertEqual(self.rotation_after_cutting()[1:3], ['X50 Y60', 'Z3'])
 
     def test_skipline_false_before_z_would_join_the_lines(self):
-        require_nc_stream()
         source = PP.read_text(encoding='utf-8-sig')
         pattern = re.compile(r"(if bFirstMove or bPostHomed\n\s*if !bFirstMove\n(?:\s*;[^\n]*\n)*"
                              r"\s*call @usr_emulated_rapid_feed\n\s*endif\n\s*skipline = )true")
@@ -254,7 +252,6 @@ class PostHomingEmulatedRapidFeedTests(unittest.TestCase):
     diagonal block 'X50 Y60 Z3 F650'."""
 
     def return_after_rotation(self, source=None):
-        require_nc_stream()
         program = Program(source=source, **EMULATED_RAPIDS)
         program.start()
         program.ev('move_5x', xpos=10, ypos=20, zpos=50)
@@ -272,7 +269,6 @@ class PostHomingEmulatedRapidFeedTests(unittest.TestCase):
         self.assertEqual(self.return_after_rotation(broken), ['X50 Y60', 'Z3 F650'])
 
     def test_synchronised_rapids_get_no_feed(self):
-        require_nc_stream()
         program = Program()
         program.start()
         program.ev('move_5x', xpos=10, ypos=20, zpos=50)

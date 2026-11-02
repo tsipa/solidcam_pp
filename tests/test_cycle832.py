@@ -41,7 +41,7 @@ The tests read the blocks each event returns (no skipline joining) unless they n
 """
 import unittest
 
-from program_session import Program, post_abort_error, post_error_policies, require_nc_stream
+from program_session import Program, post_abort_error, post_error_policies
 from support import assert_detected, mutate
 from support.session import HEADER_DEFAULTS, NOT_SENT
 
@@ -150,7 +150,6 @@ class PlacementTests(unittest.TestCase):
         """INDEPENDENT: 828D Operating Manual 07/2021 programs CYCLE832 before the machining it
         sets; here after M06 and the spindle start, on its own line, and the first rapid writes G0
         again."""
-        require_nc_stream()
         p, _ = first_job(wall_offset=0.3)
         cut(p)
         nc = p.nc()
@@ -385,7 +384,6 @@ class SimultaneousJobTests(unittest.TestCase):
     def test_atol_is_its_own_nc_line_before_the_first_move(self):
         """INDEPENDENT: with the skipline joining of the NC stream ATOL[A] stays on its own line
         after the call, before the first move, which writes G0 again."""
-        require_nc_stream()
         p, _ = first_job(**SIMULTANEOUS, **stock(0, 0))
         cut(p)
         nc = p.nc()
@@ -507,7 +505,6 @@ class SimultaneousJobMutationTests(unittest.TestCase):
 
 def stop_program(source=None, **cam):
     """A program whose POST ERROR stops it (print, then abort)."""
-    require_nc_stream()
     return Program(options=NO_JOB_STOP, cam={**MILLING, **cam}, source=source, policies=post_error_policies())
 
 
@@ -720,7 +717,6 @@ class FinishPassTests(unittest.TestCase):
 
     def test_finishing_move_is_its_own_nc_line(self):
         """INDEPENDENT: with the skipline joining of the NC stream the call stays on its own line."""
-        require_nc_stream()
         p, _ = first_job(wall_offset=0.3)
         finish_pass(p)
         nc = p.nc()
@@ -763,7 +759,6 @@ class CompensationTests(unittest.TestCase):
         self.check_right_side()
 
     def check_machine_pass(self, source=None):
-        require_nc_stream()
         p, start = first_job(source, job_type='profile', wall_offset=0)
         self.assertEqual(calls(start), [FINISH])
         machine_pass(p)
@@ -930,7 +925,6 @@ class CompensationTests(unittest.TestCase):
         self.check_drilling_stops()
 
     def check_program_end_stops(self, source=None):
-        require_nc_stream()
         for side in ('comp_left', 'comp_right'):
             with self.subTest(side=side):
                 p = Program(options={'bHomeend': False}, cam={**MILLING, 'wall_offset': 0.3}, source=source,
@@ -977,7 +971,6 @@ class StopTests(unittest.TestCase):
         self.check_job_stop()
 
     def check_job_stop_under_compensation(self, source=None):
-        require_nc_stream()
         p = Program(options={'bOptstpjob': True}, cam={**MILLING, 'wall_offset': 0.3}, source=source,
                     policies=post_error_policies())
         posted(start, p)
@@ -1013,7 +1006,6 @@ class StopTests(unittest.TestCase):
         self.check_m0_stop()
 
     def check_m0_homing_under_compensation(self, source=None):
-        require_nc_stream()
         p = Program(options={**NO_JOB_STOP, 'sHomestrstpsame': '8::G75 Z1=0.'}, cam={**MILLING, 'wall_offset': 0.3},
                     source=source, policies=post_error_policies())
         posted(start, p)

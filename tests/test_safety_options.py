@@ -9,13 +9,13 @@ Without a Z homing at a tool change, compensation still on would run through M06
 Owner decision 2026-10-28 (DESIGN-003): an index pending at a tool change has no M1, homing or A block
 of its own; the tool change's positioning block turns A after the tool change's homing and M1.
 
-The tests read the blocks each event returns (no skipline joining), so they run on both engines.
+The tests read the blocks each event returns (no skipline joining).
 """
 import difflib
 import unittest
 
 from pp_tests.engine import UnsupportedGPPL
-from program_session import Program, require_nc_stream
+from program_session import Program
 from support import assert_detected, mutate
 
 HOMING = ['G75 Z1=0.', 'G75 Y1=0 X1=0']
@@ -242,7 +242,6 @@ class ToolChangeCompensationTests(unittest.TestCase):
 
     def test_tool_change_without_z_homing_stops_the_post(self):
         """INDEPENDENT: bHometc off, or a tool-change homing without Z: POST ERROR before M06."""
-        require_nc_stream()
         from program_session import post_abort_error, post_error_policies
         for options in (dict(bHometc=False), dict(sHomestrtc='8::G75 Y1=0 X1=0')):
             with self.subTest(**options):
@@ -513,12 +512,10 @@ OPTION_OFF_EDITS = {
 class RepresentativeProgramTests(unittest.TestCase):
     def test_default_output(self):
         """CHARACTERIZATION: the default output is the pre-option output plus the job M1 lines."""
-        require_nc_stream()
         self.assertEqual(representative(), DEFAULT_NC)
 
     def test_each_option_removes_only_its_own_blocks(self):
         """INDEPENDENT: switching one option off changes only the blocks of that point."""
-        require_nc_stream()
         for name, edits in OPTION_OFF_EDITS.items():
             with self.subTest(option=name):
                 actual = representative(**{name: False})

@@ -2,7 +2,7 @@
 
 Every test docstring names its oracle (INDEPENDENT or CHARACTERIZATION; the
 meta-test tests/test_known_defect_registry.py checks it). The rotary unit tests run single
-procedures on the legacy rotary_engine() preset; whole-program rotary
+procedures on the rotary_engine() preset; whole-program rotary
 behaviour, the reversion guards and the canonical known-defect tests
 (PP-002 modulo range, PP-004 iR1dir, PP-037 shortest distance, ...) live in
 tests/test_rotary.py.
@@ -22,8 +22,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PP = Path(os.environ.get('PP_TEST_SOURCE', ROOT / 'siemens_sinumerik_828d/noname_vmc500_4x/Gmill_540v_4x.gpp'))
 
 
-# Legacy rotary harness; single definition lives in tests/support/legacy.py (cached parse).
-from support.legacy import rotary_engine  # noqa: E402,F401  (re-exported)
+# Rotary preset; single definition lives in tests/support/presets.py.
+from support.presets import rotary_engine  # noqa: E402,F401  (re-exported)
 from support.engines import adopt_state, fresh_engine  # noqa: E402
 from support.markers import covers  # noqa: E402
 from support.mutation import mutate  # noqa: E402

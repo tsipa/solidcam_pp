@@ -30,9 +30,9 @@ independent contiguous-rapid correction in `usr_rapid` intact.
 
 ## Current coverage
 
-- `test_arc_link_boundary.py` keeps the XY helix case on the legacy mid-job
-  harness, compares parsed NC words and includes an in-memory reversion of the
-  `@usr_arc` endpoint tracking that must fail with an AssertionError.
+- `test_arc_link_boundary.py` keeps the XY helix case on the mid-job harness
+  (`motion_engine` preset), compares parsed NC words and includes an in-memory
+  reversion of the `@usr_arc` endpoint tracking that must fail with an AssertionError.
 - `test_indexing_link.py::CamLinkTransitionTests::test_arc_revokes_and_tracks_endpoint`
   checks the contract on a realistic rotated 5x session with an XY arc. YZ and
   ZX arcs stop the post since the machine run of 2026-10-28 (SD42940 = 0), and

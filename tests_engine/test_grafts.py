@@ -1,7 +1,7 @@
 """Behaviour grafted from the alternative engine designs and the engine review findings:
-recursion hardening, strict loading, rollback switch, no shared mutable state,
-legacy-equal defaults where the session-emulator prototype silently differed,
-lexer strictness, coverage keyed by source digest, call tracing."""
+recursion hardening, strict loading, the default engine (the retired rollback switch fails
+loudly), no shared mutable state, legacy-equal defaults where the session-emulator prototype
+silently differed, lexer strictness, coverage keyed by source digest, call tracing."""
 import dataclasses
 import os
 import re
@@ -10,7 +10,6 @@ import sys
 import unittest
 
 from pp_tests.engine import Engine, UnsupportedGPPL
-from pp_tests.gppl import legacy
 from pp_tests.gppl import nodes as N
 from pp_tests.gppl.calltrace import CallTrace
 from pp_tests.gppl.coverage import Coverage, CoverageStore
@@ -29,9 +28,6 @@ class RecursionHardeningTests(unittest.TestCase):
         engine = Engine(nested_ifs(600))
         engine.call('t')
         self.assertEqual(engine.state['x'], 1)
-        legacy_engine = legacy.Engine(nested_ifs(600))
-        legacy_engine.call('t')
-        self.assertEqual(legacy_engine.state['x'], 1)
 
     def test_full_call_depth_inside_nested_blocks(self):
         """62 nested calls, each inside 12 ifs and a while: the 64-call limit is the
@@ -87,28 +83,25 @@ class StrictLoadTests(unittest.TestCase):
 
 
 class LegacyEqualDefaultsTests(unittest.TestCase):
-    """Defaults where the session-emulator prototype silently differed from legacy."""
+    """Defaults where the session-emulator prototype silently differed from the original engine
+    (pp_tests/gppl/legacy.py, removed), whose behaviour the compat defaults keep."""
 
     def test_format_extensions_are_rejected_under_compat(self):
         for fmt in ('+8.5', '5.0(n)', '5.3()', ' 5.3', '5.3 '):
             with self.subTest(fmt=fmt):
-                for engine_class in (legacy.Engine, Engine):
-                    engine = engine_class("@t\n{x:f}\nendp")
-                    engine.set(x=3.5, f=fmt)
-                    with self.assertRaisesRegex(Exception, 'unsupported numeric format'):
-                        engine.call('t')
+                engine = Engine("@t\n{x:f}\nendp")
+                engine.set(x=3.5, f=fmt)
+                with self.assertRaisesRegex(UnsupportedGPPL, 'unsupported numeric format'):
+                    engine.call('t')
 
     def test_format_on_a_string_value_is_accepted_like_legacy(self):
-        for engine_class in (legacy.Engine, Engine):
-            engine = engine_class("@t\n{'abc':'5.3'}\nendp")
-            engine.call('t')
-            self.assertEqual(engine.output, ['abc'])
+        engine = Engine("@t\n{'abc':'5.3'}\nendp")
+        engine.call('t')
+        self.assertEqual(engine.output, ['abc'])
 
     def test_trace_and_print_and_ne_operator(self):
         for src in ("@t\ntrace \"all\":5\nendp", "@t\nPrint 'x'\nendp"):
             with self.subTest(src=src):
-                with self.assertRaisesRegex(legacy.UnsupportedGPPL, 'unsupported statement'):
-                    legacy.Engine(src).call('t')
                 with self.assertRaisesRegex(UnsupportedGPPL, 'unsupported statement'):
                     Engine(src).call('t')
         with self.assertRaises(UnsupportedGPPL):
@@ -120,10 +113,8 @@ class LegacyEqualDefaultsTests(unittest.TestCase):
                  ('@a\nlocal numeric v\ncall @b\nendp\n@b\nglobal numeric v\nendp', [])]
         for src, args in cases:
             with self.subTest(src=src):
-                old, new = legacy.Engine(src), Engine(src)
-                old.call('a', args)
+                new = Engine(src)
                 new.call('a', args)
-                self.assertEqual(new.state, old.state)
                 self.assertEqual(new.state, {})
 
     def test_if_and_while_without_space_report_clearly(self):
@@ -145,9 +136,9 @@ class LegacyEqualDefaultsTests(unittest.TestCase):
                 Engine('').expression(text)
 
     def test_tonum_returns_float_like_legacy(self):
-        for text in ('tonum(1)', "tonum('7')", 'tonum(true)'):
+        for text, value in (('tonum(1)', '1.0'), ("tonum('7')", '7.0'), ('tonum(true)', '1.0')):
             with self.subTest(text=text):
-                self.assertEqual(repr(Engine('').expression(text)), repr(legacy.Engine('').expression(text)))
+                self.assertEqual(repr(Engine('').expression(text)), value)
 
 
 class SharedStateTests(unittest.TestCase):
@@ -171,12 +162,30 @@ class SharedStateTests(unittest.TestCase):
             stmt.target = 'x'
         self.assertIsInstance(program.procedures['tmatrix'].code[0], N.Instr)
 
-    def test_rollback_switch_selects_the_legacy_engine(self):
+    def test_default_engine_and_retired_rollback_switch(self):
+        """The engine is the GPPL runtime; GPPL_ENGINE=legacy, the switch to the removed original
+        engine, stops the import instead of silently running the GPPL engine."""
         code = 'import pp_tests.engine as e; print(e.Engine.__module__)'
-        for value, module in (('legacy', 'pp_tests.gppl.legacy'), ('', 'pp_tests.gppl.runtime')):
-            env = dict(os.environ, GPPL_ENGINE=value)
-            out = subprocess.run([sys.executable, '-c', code], cwd=ROOT, env=env, capture_output=True, text=True)
-            self.assertEqual(out.stdout.strip(), module, out.stderr)
+        env = {name: value for name, value in os.environ.items() if name != 'GPPL_ENGINE'}
+        out = subprocess.run([sys.executable, '-c', code], cwd=ROOT, env=env, capture_output=True, text=True)
+        self.assertEqual(out.stdout.strip(), 'pp_tests.gppl.runtime', out.stderr)
+        out = subprocess.run([sys.executable, '-c', code], cwd=ROOT, env=dict(env, GPPL_ENGINE='legacy'),
+                             capture_output=True, text=True)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertEqual(out.stdout, '')
+        self.assertRegex(out.stderr, r'ImportError: .*original engine .*removed.*unset GPPL_ENGINE')
+
+    def test_tools_refuse_the_retired_rollback_switch(self):
+        """The tools that do not import pp_tests.engine themselves (revert matrix, coverage) stop
+        with the same ImportError, so a leftover GPPL_ENGINE=legacy cannot give a wrong matrix."""
+        env = {name: value for name, value in os.environ.items() if name != 'GPPL_ENGINE'}
+        for module in ('pp_tests.tools.revert_matrix', 'pp_tests.coverage'):
+            with self.subTest(module=module):
+                out = subprocess.run([sys.executable, '-m', module, '--help'], cwd=ROOT,
+                                     env=dict(env, GPPL_ENGINE='legacy'), capture_output=True, text=True)
+                self.assertNotEqual(out.returncode, 0)
+                self.assertEqual(out.stdout, '')
+                self.assertRegex(out.stderr, r'ImportError: .*original engine .*removed.*unset GPPL_ENGINE')
 
 
 class CoverageAndTraceTests(unittest.TestCase):

@@ -16,7 +16,7 @@ import unittest
 
 from support import index_of, last_index_of, mutate, parse_block, parse_blocks
 from support.engines import adopt_state
-from support.legacy import motion_engine
+from support.presets import motion_engine
 from support.paths import FIXTURES
 
 
@@ -72,7 +72,7 @@ class ArcLinkBoundaryTests(unittest.TestCase):
         """INDEPENDENT: f1803b4: a completed arc starts a new link context, so a
         previous retract confirmation is revoked, and the work offset of the
         arc endpoint is recorded for the offset-equality guard. Structural: the
-        confirmation and G55 are injected on the legacy harness."""
+        confirmation and G55 are injected on the mid-job harness."""
         engine = self.engine_for()
         engine.set(bCamLinkRetract=True, iWorkoffset=55)
         self.step(engine, self.fixture['arc'])

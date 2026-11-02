@@ -18,7 +18,7 @@ import unittest
 from pp_tests.engine import Engine, UnsupportedGPPL
 from test_history_regressions import history_engine
 from test_offline import PP
-from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
+from program_session import Program, post_abort_error, post_error_policies
 from support import DRILL_TYPE, covers
 from test_post_homing_reposition import Session
 
@@ -103,7 +103,6 @@ class CutterCompensationTests(unittest.TestCase):
                     event(engine, 'arc', ['xpos', 'ypos'], xpos=0, ypos=10)
 
     def test_abort_stops_the_post_after_the_prompt(self):
-        require_nc_stream()
         engine = history_engine()
         scripted = Engine(PP.read_text(encoding='utf-8-sig'), policies=post_error_policies())
         scripted.set(**engine.state)
@@ -361,7 +360,6 @@ class CompensationAtPostHomingTests(unittest.TestCase):
     def test_compensation_left_on_at_a_combined_z_and_xy_homing_stops_the_post(self):
         """INDEPENDENT: owner rule; a homing line with Z and X/Y leaves no slot for G40 between the Z and
         the XY homing (before it: low near the part, after it: the XY homing undone): stop."""
-        require_nc_stream()
         homing = '8::G75 Z1=0. Y1=0 X1=0'
         program = compensation_left_on(self, options=dict(sHomestrtc=homing, sHomestrend=homing), retract=20,
                                        policies=post_error_policies())
@@ -375,7 +373,6 @@ class CompensationAtPostHomingTests(unittest.TestCase):
         """INDEPENDENT: owner 2026-11-01 (tests/test_cycle832.py): CAM never switched compensation off.
         end_of_job deselects it at the clearance height, but the drill job's rapid would select it
         again and the cycle would drill under it: the post stops before any block of the drill job."""
-        require_nc_stream()
         program = compensation_left_on(self, off=False, policies=post_error_policies())
         self.assertEqual(program.ev('end_of_job'), ['G0 G40 X30 Y30'])
         program.ev('start_of_job', job_name='drill')
@@ -423,7 +420,6 @@ class CompensationPlaneAxisTests(unittest.TestCase):
     the post (usr_xy_plane_check)."""
 
     def null_rapid_after_compensated_cut(self, source=None):
-        require_nc_stream()
         program = Program(source=source)
         program.start()
         program.ev('move_5x', xpos=10, ypos=10, zpos=5)
@@ -439,7 +435,6 @@ class CompensationPlaneAxisTests(unittest.TestCase):
         self.assertEqual(self.null_rapid_after_compensated_cut(), ['G41 X40', 'G0 G40 X40 Y10'])
 
     def test_job_start_rapid_without_motion_is_not_joined_to_the_msg_line(self):
-        require_nc_stream()
         # bOptstpjob (default on) puts an M1 between the MSG block and the rapid; off, they meet.
         for stop, tail in ((False, ['MSG("op2")', 'G0 G40 X40 Y10']), (True, ['MSG("op2")', 'M1', 'G0 G40 X40 Y10'])):
             with self.subTest(bOptstpjob=stop):

@@ -38,7 +38,7 @@ import unittest
 from unittest import mock
 
 from pp_tests.engine import UnsupportedGPPL
-from program_session import Program, require_nc_stream
+from program_session import Program
 from support import (FIXTURES, Session, arc_center, arc_path_error, assert_detected, covers, mutate, parse_blocks,
                      replay, state_before)
 
@@ -466,7 +466,6 @@ class ArcEndWordTests(unittest.TestCase):
     AMBIGUOUS_X = -10.0005
 
     def semicircle(self, source=None, zpos=-1, xpos=-10):
-        require_nc_stream()
         with mock.patch.dict(os.environ, GPPL_POLICY='change_on_equal_assign=clear'):
             program = Program(source=source)
             program.start()
@@ -515,7 +514,6 @@ class ArcLimitTests(unittest.TestCase):
     def arc(self, source=None, start=(10, 0), center=(0, 0), size=90.0, plane='xy', applicate=14, end_delta=(0, 0)):
         """One CCW arc of size degrees from start about center after the program start (real formats);
         end_delta moves the CAM end point off the exact end."""
-        require_nc_stream()
         program = Program(source=source)
         program.start()
         abscissa, ordinate, normal, event, _ = PLANES[plane]

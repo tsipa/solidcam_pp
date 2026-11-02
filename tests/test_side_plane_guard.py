@@ -16,7 +16,7 @@ import re
 import unittest
 
 from pp_tests.engine import Engine, UnsupportedGPPL
-from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
+from program_session import Program, post_abort_error, post_error_policies
 from support import assert_detected, covers, mutate, parse_block, parse_blocks, replay
 from test_offline import PP
 
@@ -105,7 +105,6 @@ class SidePlaneArcStopTests(unittest.TestCase):
         program up to the arc is unchanged, the error text is one more NC line of its own, and no
         G2/G3/G18/G19 block is written. Regression guard of PP-021: no arc leaves G18/G19 modal for
         the next job."""
-        require_nc_stream()
         for label, (event, arc) in SIDE_ARCS.items():
             with self.subTest(label):
                 self.assert_arc_stop(event, arc)
@@ -131,7 +130,6 @@ class SidePlaneArcStopTests(unittest.TestCase):
         without the abort of the arc stop every YZ/ZX arc event goes on past the error line: arc_yz and
         arc_zx return without a stop, and arc with a YZ/ZX arc_plane runs on into the XY arc math (whose
         end mismatch stop adds a line after the error)."""
-        require_nc_stream()
         mutant = mutate(ARC_ABORT, ARC_ABORT.replace('    abort\n', ''))
         for label, (event, arc) in SIDE_ARCS.items():
             with self.subTest(label):
@@ -143,7 +141,6 @@ class SidePlaneArcStopTests(unittest.TestCase):
         """INDEPENDENT: self-check of the own-line assertion of
         test_error_text_is_the_last_nc_line_and_no_arc_block_is_written: without nb (0ed0b78 reverted for
         this stop) the error text joins the last cut block."""
-        require_nc_stream()
         mutant = mutate('{nb,"' + ARC_STOP, '{"' + ARC_STOP)
         for label, (event, arc) in SIDE_ARCS.items():
             with self.subTest(label):
@@ -187,7 +184,6 @@ class SidePlaneMachiningPlaneStopTests(unittest.TestCase):
         """INDEPENDENT: module oracle; start_of_job of a YZ or ZX job (simultaneous or not, after a tool
         change or with the same tool after an XY job) stops with the plane message on its own NC line,
         before any block of the job."""
-        require_nc_stream()
         for plane in ('yz', 'zx'):
             for x5_job in (False, True):
                 for same_tool in (False, True):
@@ -198,7 +194,6 @@ class SidePlaneMachiningPlaneStopTests(unittest.TestCase):
         """INDEPENDENT: module oracle; the @machine_plane event stops with the plane message, both where
         SolidCAM sends it (before @start_program, tests/fixtures/reference_multijob.trace.txt.xz) and
         after a cut."""
-        require_nc_stream()
         for plane in ('yz', 'zx'):
             for after_cut in (False, True):
                 with self.subTest(machine_plane=plane, after_cut=after_cut):
@@ -224,7 +219,6 @@ class SidePlaneMachiningPlaneStopTests(unittest.TestCase):
     def test_removing_the_plane_abort_is_detected(self):
         """INDEPENDENT: self-check of the two stop tests above: without the abort of usr_xy_plane_check a
         YZ or ZX plane goes on past the error line at start_of_job and at the @machine_plane event."""
-        require_nc_stream()
         mutant = mutate(PLANE_ABORT, PLANE_ABORT.replace('        abort\n', ''))
         for plane in ('yz', 'zx'):
             for x5_job in (False, True):
@@ -244,7 +238,6 @@ class SidePlaneMachiningPlaneStopTests(unittest.TestCase):
         job after a tool change also reaches @machine_plane through usr_tc_init_gmstates): without the
         plane check of start_of_job (88695c9 reverted; it took the place of the job-plane restore), a
         same-tool YZ or ZX job starts without a stop."""
-        require_nc_stream()
         mutants = {
             '88695c9 reverted': mutate('    call @usr_xy_plane_check\n    if bTmatrixIndexPending\n',
                                        '    if bTmatrixIndexPending\n'),
@@ -258,7 +251,6 @@ class SidePlaneMachiningPlaneStopTests(unittest.TestCase):
     def test_error_text_without_a_block_of_its_own_is_detected(self):
         """INDEPENDENT: self-check of the own-line assertion of the two stop tests above: without nb the
         error text joins the block before it (a homing block at start_of_job, a cut at the event)."""
-        require_nc_stream()
         mutant = mutate('{nb,"' + PLANE_STOP, '{"' + PLANE_STOP)
         assert_detected(self, lambda source: self.assert_start_of_job_stop('yz', False, False, source), mutant,
                         'plane stop without nb, start_of_job', match='Lists differ')

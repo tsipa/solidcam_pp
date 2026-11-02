@@ -1,15 +1,15 @@
-"""Legacy-compatible harness engines (rotary_engine, motion_engine, history_engine).
+"""Mid-job harness presets (rotary_engine, motion_engine, history_engine).
 
 Byte-for-byte the presets of the original tests/test_offline.py,
 tests/test_motion.py and tests/test_history_regressions.py helpers, built on
-the cached parse (fresh_engine) instead of re-reading and re-parsing the GPP.
+fresh_engine (the engine caches the parsed GPP) instead of re-reading the GPP.
 The original modules re-export these names, so `from test_offline import
 rotary_engine` keeps working.
 
 These are mid-job harnesses with hand-copied state (formats, modal values,
 every change flag False). They never run @init_post, so they cannot see
 defects in initial state or formats (e.g. zpos_f='8.5' here hides PP-006).
-New tests should prefer support.session.Session; these remain for the legacy
+New tests should prefer support.session.Session; these remain for the older
 fixtures and their area owners.
 """
 from pp_tests.engine import Engine

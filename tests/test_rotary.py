@@ -438,7 +438,7 @@ class RotaryRegressionTests(RotaryChecks, unittest.TestCase):
         (previous program, manual jog), so the first A word must be the absolute
         shortest-path A=DC(..) (ab853be, ad2537a); also for a CoordSys index at
         program start whose direction is known. Afterwards every move carries ACP/ACN.
-        Runs a Session from @init_post, because the legacy presets pin
+        Runs a Session from @init_post, because the mid-job presets pin
         bR1forceOutput=False."""
         self.check_program_start_forces_dc()
 

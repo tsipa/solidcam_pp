@@ -11,6 +11,8 @@ Run every command from the repository root.
 import sys
 from pathlib import Path
 
+from .. import engine  # noqa: F401  (refuses GPPL_ENGINE=legacy)
+
 ROOT = Path(__file__).resolve().parents[2]
 TESTS = ROOT / 'tests'
 GPP_RELATIVE = 'siemens_sinumerik_828d/noname_vmc500_4x/Gmill_540v_4x.gpp'

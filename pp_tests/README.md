@@ -34,37 +34,23 @@ $env:PP_TEST_SOURCE = 'C:\path\candidate.gpp'
 py -m unittest discover -s tests
 ```
 
-## Engines
+## Engine
 
-`pp_tests/engine.py` is a shim over the `pp_tests/gppl/` package (design and
-semantics in [DESIGN.md](DESIGN.md)). Two engines run the same post tests:
+`pp_tests/engine.py` re-exports the GPPL engine of the `pp_tests/gppl/` package
+(design and semantics in [DESIGN.md](DESIGN.md)). Unverified GPPL semantics are
+policies (`GPPL_POLICY`, see DESIGN.md); the default preset reproduces the original
+engine where it had a behaviour. The GPPL engine also models what the original
+engine rejected: `input` stops the post (`PostprocessorStopped`), `abort` raises
+`PostAbort`, and `engine.nc_lines()` / `nc_text()` apply GPPL's one-shot
+`skipline` joining to the NC stream. The original engine (`pp_tests/gppl/legacy.py`)
+and its switch `GPPL_ENGINE=legacy` were removed; with the switch still set,
+importing `pp_tests.engine` fails with an ImportError that says so.
 
-- the GPPL engine (default): `pp_tests/gppl`. Unverified GPPL semantics are
-  policies (`GPPL_POLICY`, see DESIGN.md); the default preset reproduces the
-  original engine where it had a behaviour. It also models what the original engine
-  rejected: `input` stops the post (`PostprocessorStopped`), `abort` raises
-  `PostAbort`, and `engine.nc_lines()` / `nc_text()` apply GPPL's one-shot
-  `skipline` joining to the NC stream.
-- the original engine: `GPPL_ENGINE=legacy` selects `pp_tests/gppl/legacy.py`.
-
-```sh
-GPPL_ENGINE=legacy python3 -m unittest discover -s tests
-```
-
-```powershell
-$env:GPPL_ENGINE = 'legacy'; py -m unittest discover -s tests
-```
-
-The test support code works on both engines. `support.engines.GpplCompatEngine` is
-the engine the isolated procedure tests use: on the GPPL engine it is an `Engine`
-with policies that match the documented workarounds (`print_stmt=console`,
-`trace_stmt=ignore`, `string_index=clamp`, extended formats, typed default formats,
-`skipline=join_next_nb` when a test opts in); on the legacy engine it is
-`support.legacy_compat.LegacyCompatEngine`, the original text-rewriting workaround
-class. Tests that need the NC stream or the stop/abort model
-(`tests/program_session.py` and the files that use it) skip on the legacy engine
-with "needs the default GPPL engine". `tests_engine/` tests the GPPL engine itself
-and is skipped as a whole under `GPPL_ENGINE=legacy`.
+`support.engines.GpplCompatEngine` is the engine the isolated procedure tests use:
+an `Engine` with policies that match the documented workarounds
+(`print_stmt=console`, `trace_stmt=ignore`, `string_index=clamp`, extended formats,
+typed default formats, `skipline=join_next_nb` when a test opts in).
+`tests_engine/` tests the GPPL engine itself.
 
 Whole programs outside the tests: `python -m pp_tests.gppl replay <post.gpp>
 <session.json> --vmid <post.vmid>` replays a recorded or synthetic session (fixtures
@@ -75,27 +61,23 @@ in `tests_engine/fixtures/`), and `python -m pp_tests.gppl validate <post.gpp> -
 
 ### Running and reading the result
 
-The default run has 510 tests, takes about 25 s and must end `OK`. Its 47 skips
-have two causes:
+The default run has 642 tests, takes about 75 s and must end `OK`. Its 44 skips
+have three causes:
 
-- `known defect PP-xxx reproduced: ...` (45 tests). Each open suspected defect has
-  one canonical test per facet that asserts the correct behaviour; while the defect
-  exists the test is reported as a skip. If the behaviour changes so that the test
-  passes, the default run FAILS with `PP-xxx no longer reproduces: update the registry
-  and remove the marker`, so a silent fix or a change of behaviour is never missed.
+- `known defect PP-xxx reproduced: ...` (39 tests, PP and ENGINE entries). Each open
+  suspected defect has one canonical test per facet that asserts the correct
+  behaviour; while the defect exists the test is reported as a skip. If the
+  behaviour changes so that the test passes, the default run FAILS with `PP-xxx no
+  longer reproduces: update the registry and remove the marker`, so a silent fix or
+  a change of behaviour is never missed.
+- `recorded_cam_001 (...) runs with PP_RECORDED_ALL=1` (3 tests), see below.
 - `Mach3 post not available` (2 tests): the `mach3/4x` submodule is not
   initialised. Set `MACH3_PP_SOURCE` to the 6efcad8 Mach3 post (`git show
   6efcad8:mach3/4x/Mach3_4X_Y.gpp > mach3.gpp`) to run them.
 
 `test_recorded_replays.py` replays four recorded SolidCAM programs by default (about 20 s);
-its two tests of `recorded_cam_001` (155k events, about 60 s and 2 GB) skip unless
-`PP_RECORDED_ALL=1`. The replays run on the GPPL engine whatever `GPPL_ENGINE` says, so the
-legacy run skips them.
-
-With `GPPL_ENGINE=legacy` the run takes about 1.5 minutes and has 103 skips: 52 known
-defects (seven ENGINE facets reproduce only on the legacy engine, ENGINE-021 only on
-the default engine), 46 tests that need the default engine, 3 that need `tostr` with a
-format and the 2 Mach3 tests.
+its three tests that need `recorded_cam_001` (155k events, about 60 s and 2 GB) skip unless
+`PP_RECORDED_ALL=1`.
 
 Strict mode runs every open known-defect test as a plain test, so they fail red
 while the defects exist. It is meant for working on a defect, not for the green
@@ -109,12 +91,9 @@ PP_STRICT_KNOWN_DEFECTS=1 python3 -m unittest discover -s tests
 $env:PP_STRICT_KNOWN_DEFECTS = '1'; py -m unittest discover -s tests
 ```
 
-The expected strict result is exactly 45 failures on the default engine and 52 on
-the legacy engine, all AssertionError, no errors (one more with `MACH3_PP_SOURCE`
-set: PP-058). A known-defect test whose entry does not reproduce on the running
-engine (an ENGINE gap of the other engine) runs as a plain passing test. Select
-single tests with `-k`, for example `python3 -m unittest discover -s tests -k
-test_program_start_forces_dc`.
+The expected strict result is exactly 39 failures, all AssertionError, no errors
+(one more with `MACH3_PP_SOURCE` set: PP-058). Select single tests with `-k`, for
+example `python3 -m unittest discover -s tests -k test_program_start_forces_dc`.
 
 ### Layout
 
@@ -150,9 +129,11 @@ came with the owner's fixes; they build whole programs with `tests/program_sessi
 - `modal.replay()` replays Sinumerik modal state (motion, plane, TRC, work offset,
   distance and feed mode, feed, spindle, coolant, tool, A, homed axes, MCALL) for
   oracles such as "coolant is on at the first cut".
-- `engines` selects the engine: `GpplCompatEngine` (above), `fresh_engine()` (a new
-  engine on the tested GPP; cached parse), `fork_engine()` and `nc_text()`.
-  `ENGINE_NAME` is `gppl` or `legacy`.
+- `engines` builds engines: `GpplCompatEngine` (above), `fresh_engine()` (a new
+  engine on the tested GPP; the engine caches the parse), `adopt_state()` and
+  `fork_engine()`.
+- `presets.rotary_engine()`, `motion_engine()` and `history_engine()` are the
+  mid-job presets of the older test files (no `@init_post`).
 - `mutation.mutate()` / `assert_detected(match=)` prove that a guard fails with an
   AssertionError when the GPP behaviour it protects is changed in memory.
 - `recorded.replay()` replays a recorded program (`tests/fixtures/recorded_cam_00N`) through
@@ -178,12 +159,12 @@ test area and a status:
 - `accepted`: the owner accepted the behaviour (PP-008, M7 for 30 bar); a
   CHARACTERIZATION test pins it.
 - DESIGN entries are owner decisions: pinned with `@covers` CHARACTERIZATION tests,
-  never `@known_defect`. ENGINE entries can be scoped to one engine: on the other
-  engine their test is a plain guard.
+  never `@known_defect`. ENGINE entries are gaps of the GPPL engine and of the trace
+  importer; the gaps only the removed original engine had are fixed (117e611).
 
-Current state: PP 58 entries (48 open, PP-002 partly fixed; 9 fixed; 1 accepted),
-ENGINE 21 open (7 reproduce only on the legacy engine, 1 only on the GPPL engine),
-DESIGN 7 (1 fixed by an owner decision). [`tests/PP_FINDINGS.md`](../tests/PP_FINDINGS.md)
+Current state: PP 63 entries (28 open, 4 of them partly fixed; 34 fixed; 1 accepted),
+ENGINE 21 (13 open, ENGINE-012 partly fixed; 8 fixed), DESIGN 7 (5 open; 2 fixed).
+[`tests/PP_FINDINGS.md`](../tests/PP_FINDINGS.md)
 is generated from the registry and the markers: summary, index of open entries, per
 id the details and the reproducing test, and the sections Fixed (id, fixing commit,
 guard, tests of the fix) and Accepted. Regenerate it after a registry or marker
@@ -203,9 +184,9 @@ referenced.
 
 | measure | original suite | this suite |
 | --- | --- | --- |
-| tests | 35 | 441, of which 79 are canonical known-defect tests (71 open on the default engine, 77 on the legacy engine, PP-058 needs the Mach3 post) |
-| GPP statements executed (`python -m pp_tests.coverage`, default engine) | 36.1% (534/1479) | 88.6% (1513/1708; legacy engine 88.3%) |
-| GPP branch outcomes (if/while true and false) | 32.9% (207/630) | 82.1% (591/720; same on the legacy engine) |
+| tests | 35 | 642, of which 40 are canonical known-defect tests (39 skipped as reproduced in the default run; PP-058 needs the Mach3 post) |
+| GPP statements executed (`python -m pp_tests.coverage`) | 36.1% (534/1479) | 95.2% (1518/1595) |
+| GPP branch outcomes (if/while true and false) | 32.9% (207/630) | 92.4% (628/680) |
 | mutation kill rate, 802 mutants over 17 procedures (measured on the `f1803b4` GPP, not re-run) | 45.9% (368) | 62.8% (504) |
 | GPP commits whose reversion is detected (`tests/HISTORY_COVERAGE.md`, `0ed0b78` GPP) | 10 of the 14 whose reverse patch applied (12 not assessable) | 47 of 48 (a71e102 changes no output) |
 
@@ -230,19 +211,16 @@ every guard has one.
 
 ```sh
 python3 -m pp_tests.coverage --md coverage.md --json coverage.json
-GPPL_ENGINE=legacy python3 -m pp_tests.coverage --md coverage.md
 ```
 
 It runs the post suite in-process and records which GPP statements and branch
-outcomes run. On the default engine it hooks the engine's coverage factory
-(`pp_tests/gppl/coverage.py`); with `GPPL_ENGINE=legacy` it uses `sys.settrace` on
-the frames of the legacy `Engine.call`. Both modes count over the same procedure
-view, so their numbers are comparable; neither engine is modified. Only engines
-running the tested GPP text count (procedures changed by in-memory mutants are
-ignored), and procedures whose `Print` lines `tests/program_session.py` rewrites do
-not count from those runs. The report lists per procedure the executed statements,
-the branch outcomes, the statements never executed and the conditions evaluated one
-way only. `-k PATTERN` restricts the tests, `--fail-under PCT` turns it into a gate.
+outcomes run: it hooks the engine's coverage factory (`pp_tests/gppl/coverage.py`)
+and does not modify the engine. Only engines running the tested GPP text count
+(procedures changed by in-memory mutants are ignored), and procedures whose `Print`
+lines `tests/program_session.py` rewrites do not count from those runs. The report
+lists per procedure the executed statements, the branch outcomes, the statements
+never executed and the conditions evaluated one way only. `-k PATTERN` restricts the
+tests, `--fail-under PCT` turns it into a gate.
 
 ### Mutation and revert-matrix tools
 
@@ -258,31 +236,30 @@ SURVIVED (`--sample N` for a quick run, `--compare old.json` to diff two runs).
 `revert_matrix` reverse-applies every historical GPP commit to the current GPP and
 runs the suite; when the patch no longer applies it runs the hand-crafted reversion
 tests that name the commit (details in `tests/HISTORY_COVERAGE.md`).
-Both use the engine selected by `GPPL_ENGINE` and need only the standard library;
-the revert matrix also needs `git` and the repository history.
+Both run the suite on the GPPL engine and need only the standard library; the
+revert matrix also needs `git` and the repository history.
 
 ### Continuous integration
 
 `.github/workflows/tests.yml` runs the post suite and `tests_engine` on
 ubuntu-latest and windows-latest with Python 3.10 and 3.12 and checks that
-`PP_FINDINGS.md` is current. A second job runs the post suite with
-`GPPL_ENGINE=legacy`. A strict job (`PP_STRICT_KNOWN_DEFECTS=1`) is allowed to fail:
-it shows the open defects as red tests.
+`PP_FINDINGS.md` is current. A strict job (`PP_STRICT_KNOWN_DEFECTS=1`) is allowed
+to fail: it shows the open defects as red tests.
 
 ### Honest limits
 
-- Both engines are partial GPPL interpreters. Their gaps are registered as
-  ENGINE-001..021, scoped to the engine that has them; the compatibility engine
-  works around the ones that block execution, and each workaround or policy encodes
-  an assumption (for example that `Print` writes to a message window and generation
-  continues).
+- The GPPL engine is a partial GPPL interpreter. Its gaps are registered as
+  ENGINE-001..021 (those only the removed original engine had are marked fixed);
+  the compatibility engine works around the ones that block execution, and each
+  workaround or policy encodes an assumption (for example that `Print` writes to a
+  message window and generation continues).
 - The change-flag rule for assignments of an unchanged value is unverified
   (ENGINE-001). Sessions clear all flags after initialisation by default; results
   that differ under the persisting policy are marked (PP-054).
 - Most tests read `engine.output`, the list of fragments, which never applies
-  `skipline` joining. Only `nc_lines()` / `nc_text()` on the default engine join
-  blocks (the legacy engine never does, ENGINE-002), so block boundaries after
-  `skipline = false` are certified only by the tests that read the NC stream.
+  `skipline` joining. Only `nc_lines()` / `nc_text()` join blocks (ENGINE-002), so
+  block boundaries after `skipline = false` are certified only by the tests that
+  read the NC stream.
 - Event sequences are synthetic. Only the Slide rotary angles, the shit2 CAM link and
   the recorded replays (whose NC is pinned as CHARACTERIZATION, not checked against an
   oracle) come from real SolidCAM traces; event order around compensation, `@move_4x`,
@@ -349,12 +326,11 @@ assignment-driven changes, optional modal output groups and simple numeric
 precision descriptors. `clear_change_after_gen=1` clears emitted change flags.
 Expressions use a restricted AST walker, never Python `eval`. Missing variables,
 unknown statements and unsupported expressions fail with procedure/source line.
-With the default engine `input` stops (or, with policy `input_stmt=scripted`,
-answers and continues) and `abort` raises `PostAbort`; the legacy engine fails at
-both. The default engine replays whole sessions (`start_of_file` to `end_of_file`)
-from JSON event streams; file operations, formatting modifiers and built-ins are
-covered as DESIGN.md lists. `tests/support/engines.py` adapts either engine for the
-post tests without changing `pp_tests/gppl` (see Engines).
+`input` stops (or, with policy `input_stmt=scripted`, answers and continues) and
+`abort` raises `PostAbort`. The engine replays whole sessions (`start_of_file` to
+`end_of_file`) from JSON event streams; file operations, formatting modifiers and
+built-ins are covered as DESIGN.md lists. `tests/support/engines.py` adapts the
+engine for the post tests without changing `pp_tests/gppl` (see Engine).
 
 Fixture files: `ambiguous_arcs.json` supplies hand-authored XY arcs for the
 end point and AR= output (minor/major arcs sharing endpoints, both semicircle
@@ -373,7 +349,7 @@ cross-procedure arc/link regression in
 Numeric output is normalized to the supplied precision, or three decimals by
 default (ENGINE-003); padding, trailing dots and exact GPPL whitespace are not
 emulated. In `engine.output`, `nb`/`nl` are line breaks; `engine.nc_lines()`
-(default engine) applies the `skipline` joining. Unsupported constructs in
+applies the `skipline` joining. Unsupported constructs in
 unexecuted procedures are allowed; encountering them during execution fails.
 
 ## Running a procedure directly

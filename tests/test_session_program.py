@@ -22,7 +22,7 @@ a CHARACTERIZATION of how the engine renders nb/nl (TSR-16).
 import re
 import unittest
 
-from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
+from program_session import Program, post_abort_error, post_error_policies
 from support import (Session, assert_detected, covers, g_function_whitelist, index_of, mutate,
                      parse_blocks, replay, state_before)
 from pp_tests.file_commands import assemble_files
@@ -368,8 +368,8 @@ class ProgramHeaderTests(unittest.TestCase):
         comments. HEADER_DEFAULTS: date 26-Oct-2026, time 14:41:00.
         CHARACTERIZATION: the '-' separators of the date/time line and the
         '$PATH=/_N_WKS_DIR/_N_WPD' literal the PP prints for an empty sWorkpcDir
-        (no Siemens rule defines a nameless workpiece directory). Runs with the
-        GpplCompatEngine right()/tostr() workaround (ENGINE-007, Session default).
+        (no Siemens rule defines a nameless workpiece directory). Runs on the
+        GPPL engine's built-in right()/tostr() (ENGINE-007).
         """
         self.assert_header()
 
@@ -391,7 +391,7 @@ class ProgramHeaderTests(unittest.TestCase):
     def test_12_hour_clock_boundaries(self):
         """INDEPENDENT: 12-hour clock convention (00:xx is 12 AM, 12:xx is 12 PM).
 
-        Needs the tostr() workaround of GpplCompatEngine (ENGINE-007).
+        Needs tostr(), built into the GPPL engine (ENGINE-007).
         """
         self.assert_clock()
 
@@ -673,12 +673,10 @@ class HomingStringTests(unittest.TestCase):
         print 'G0 Z0' in work coordinates (PP-041), 'G90 G54' that dropped the active offset
         (PP-042)). A homing string entry with any mode but 8 must stop the post with a POST
         ERROR before writing anything for that entry."""
-        require_nc_stream()
         self.check_fanuc_homing_modes_stop()
 
     def test_removing_the_homing_mode_stop_is_detected(self):
         """INDEPENDENT: mutation self-check of the stop above."""
-        require_nc_stream()
         stop = '    if iHomingmode ne 8\n'
         assert_detected(self, self.check_fanuc_homing_modes_stop, mutate(stop, '    if iHomingmode eq 99\n'),
                         'homing mode stop removed')

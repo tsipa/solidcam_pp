@@ -15,7 +15,7 @@ Session build order (documented change-flag policy)
    multiple fixtures are not supported).
 7. Change flags:
    flags='clear'   (default) every flag is cleared after initialisation, the
-                   convention of the legacy harness. A first job therefore only
+                   convention of the mid-job presets. A first job therefore only
                    prints what its own events change.
    flags='persist' flags raised by the initialisation assignments stay pending
                    (stock-engine rule: a value-changing assignment raises the

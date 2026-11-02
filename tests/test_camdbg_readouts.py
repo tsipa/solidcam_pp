@@ -14,7 +14,7 @@ import unittest
 from collections import Counter
 
 from pp_tests.gppl.session import Session, resolve_policies
-from program_session import Program, require_nc_stream
+from program_session import Program
 from support import assert_detected, mutate
 from support.paths import ROOT, VMID, pp_source
 from support.session import HEADER_DEFAULTS
@@ -58,9 +58,6 @@ def replay_lines(name, trace_level, source=None):
 
 
 class ReadoutTests(unittest.TestCase):
-    def setUp(self):
-        require_nc_stream()   # the legacy engine has no string functions (usr_US_date)
-
     def test_each_event_reads_out_its_inputs(self):
         """INDEPENDENT: the readouts name their SolidCAM event (the extractor attaches a readout
         only to the event whose trace record it follows) and print numbers with 9 decimals

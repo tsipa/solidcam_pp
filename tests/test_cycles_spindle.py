@@ -31,7 +31,7 @@ Oracles
 
 Harness
   Every test runs a support.session.Session, so @init_post formats apply
-  (SPIN:INTEGER_DEF_F renders like the post; the legacy history_engine has no
+  (SPIN:INTEGER_DEF_F renders like the post; the history_engine preset has no
   integer_def_f). Drilling inputs are DRILL_DEFAULTS (clearance 30, upper 12,
   lower -15, safety 2, down_step 3, delay 0.25) unless a test overrides them.
   Feed/spin pairs are chosen so that FEED/SPIN is exact in three decimals,
@@ -719,8 +719,8 @@ class SpindleTests(unittest.TestCase):
         single-block prove-out the new tool spins up to S12000.
         This path reproduces under either skipline semantics. On the default path
         (bCoolspinaftertc = false) @usr_ct_after sets skipline = false right before
-        @start_tool, evidently to join S to the M3 block. Only the stock engine,
-        which has no skipline joining (ENGINE-002), puts S in the next block there;
+        @start_tool, evidently to join S to the M3 block. Without skipline
+        joining (the Session default, ENGINE-002) S lands in the next block there;
         with the GpplCompatEngine skipline emulation it prints
         'G0 G17 G90 G54 M8 M3 S1000'. The default path therefore depends on
         UNVERIFIED skipline semantics (ENGINE-002, efc-05) and is not used here.

@@ -31,7 +31,7 @@ checked even when its test is skipped):
      a fixed entry or facet names its fixing commit, an accepted one the owner
      decision. @known_defect is used only for open entries and facets; a fixed
      or accepted entry keeps at least one @covers test (its regression guard or
-     characterization pin). Engine scopes name known engines.
+     characterization pin).
 The decorator semantics themselves are checked with synthetic test cases built
 at runtime (not with decorator syntax, so they do not count as references).
 """
@@ -39,7 +39,6 @@ import ast
 import os
 import re
 import unittest
-from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
@@ -155,11 +154,6 @@ class RegistryContentTests(unittest.TestCase):
                     problems.append(f'{label}: an accepted entry states the owner decision')
                 elif status == 'open' and resolution:
                     problems.append(f'{label}: an open entry has no resolution')
-            for facet, engines in entry.engines:
-                if not engines or set(engines) - set(defects.ENGINES):
-                    problems.append(f'{entry.id}: engines {facet!r}: {engines!r}')
-            if entry.engines and entry.kind != 'engine':
-                problems.append(f'{entry.id}: only ENGINE entries are engine-scoped')
         self.assertEqual(problems, [])
 
     def test_findings_document_is_current(self):
@@ -397,17 +391,6 @@ class DecoratorSemanticsTests(unittest.TestCase):
         for defect_id, facet in (('PP-001', None), ('PP-002', 'whole-turn'), ('PP-008', None)):
             with self.assertRaises(ValueError, msg=f'{defect_id}[{facet}]'):
                 markers_module.known_defect(defect_id, facet=facet)
-
-    def test_marker_is_transparent_on_an_engine_without_the_defect(self):
-        """INDEPENDENT: documented engine scope (support/markers.py): a defect that does
-        not reproduce on the active engine runs as a plain test there."""
-        other = 'gppl' if markers_module.ENGINE_NAME == 'legacy' else 'legacy'
-        scoped = replace(defects.REGISTRY['PP-004'], engines=(('*', (other,)),))
-        with mock.patch.dict(defects.REGISTRY, {'PP-004': scoped}), \
-                mock.patch.dict(markers_module.REGISTRY, {'PP-004': scoped}):
-            failing, passing = _synthetic_case(_fails), _synthetic_case(_passes)
-        self.assertEqual((len(failing.failures), len(failing.skipped)), (1, 0))
-        self.assertTrue(passing.wasSuccessful())
 
     def test_unknown_ids_are_rejected(self):
         """INDEPENDENT: markers cannot reference ids outside the registry."""

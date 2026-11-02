@@ -24,7 +24,7 @@ checks that must fail with AssertionError.
 """
 import unittest
 
-from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
+from program_session import Program, post_abort_error, post_error_policies
 from support import (Segment, Session, assert_detected, covers, g_function_whitelist, index_of, known_defect,
                      last_index_of, mutate, parse_blocks)
 
@@ -727,7 +727,6 @@ class ToolChangeDefectTests(unittest.TestCase):
         $SCS_MILL_TOL_FACTOR_*); values outside that range, and any value with bCycle832 off, stop
         the post with a POST ERROR. No G187 is ever written. Regression guard of PP-012 (owner 2026-10-27:
         CYCLE832 by the wall allowance, the job parameters override it)."""
-        require_nc_stream()
         for options, values, stop in (
                 ({}, dict(iG187_P=4), CYCLE832_RANGE_STOP), ({}, dict(iG187_P=-2), CYCLE832_RANGE_STOP),
                 ({}, dict(nG187_E=0.201), CYCLE832_RANGE_STOP), ({}, dict(nG187_E=0.0005), CYCLE832_RANGE_STOP),
@@ -762,8 +761,7 @@ class ToolChangeDefectTests(unittest.TestCase):
         (30+10k bar -> 70+k, history-misc-14); 30 bar posts M7, the same code as the mist
         coolant iCoolantM2ON = 7. The machine has no through-spindle coolant, so the owner
         keeps M7 for 30 bar; the alternative was M70, the free code of the 70+k family.
-        The 30 bar line is the literal `07` (ENGINE-006: rewritten by LegacyCompatEngine,
-        native in the GPPL engine)."""
+        The 30 bar line is the literal `07` (ENGINE-006, native in the GPPL engine)."""
         codes = {pressure: through_coolant_code(pressure) for pressure in (5, 10, 15, 30, 40, 50, 60, 70)}
         self.assertEqual(codes, {5: [77], 10: [76], 15: [75], 30: [7], 40: [71], 50: [72], 60: [73], 70: [74]})
         self.assertEqual(Session().state['icoolantm2on'], 7, 'mist coolant code')
@@ -775,8 +773,8 @@ class ToolChangeDefectTests(unittest.TestCase):
         A per-job parameter must not depend on job order: a pressure outside the
         table (20 bar) gets the configured default M77, also after a job that
         used 70 bar (M74). @usr_coolant overwrites the option iCoolantM5ON.
-        Leading-zero workaround (ENGINE-006) is the Session default. A missing
-        M06 or cut is a precondition failure (match=).
+        The literal 07 of @usr_coolant is a GPPL integer, native in the engine
+        (ENGINE-006). A missing M06 or cut is a precondition failure (match=).
         """
         default = Session().state['icoolantm5on']
         s = Session()

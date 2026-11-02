@@ -3,9 +3,13 @@
 Every place where real SolidCAM GPPL behaviour is not known for certain is a
 named policy here; nothing is silently chosen elsewhere in the package.
 
-* ``Policies()`` (preset ``compat``) reproduces the legacy engine
-  (pp_tests/engine.py, kept verbatim as ``gppl.legacy``). For each policy the
-  first entry of ``CHOICES`` is the legacy behaviour, and a test enforces that.
+* ``Policies()`` (preset ``compat``) reproduces the legacy engine, the original
+  pp_tests/engine.py (later ``gppl.legacy``, removed).
+  tests_engine/test_language_golden.py pins the compat outcomes on random
+  expressions and output statements, checked against the legacy engine before
+  its removal (they agree except the 15 string repetitions it evaluated). For
+  each policy the first entry of ``CHOICES`` is the legacy behaviour, and a
+  test enforces that.
   Constructs the legacy engine rejected and whose meaning is uncertain (Print,
   trace, the extended format grammar) stay rejected under compat.
 * ``Policies.session()`` adds what a whole SolidCAM session needs where the
@@ -69,7 +73,7 @@ CHOICES = {
 
 # string_index: the legacy engine used Python slicing, so left('abc', -1) gave 'ab'.
 # That is a Python artefact, not a GPPL rule; compat therefore raises (loud) and
-# 'python' keeps the old value for exact differential runs. It is listed first
+# 'python' keeps the old value where a test needs it. It is listed first
 # among the semantic choices only for documentation; LEGACY_VALUES records it.
 LEGACY_VALUES = {'string_index': 'python'}
 

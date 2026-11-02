@@ -17,9 +17,6 @@ Default mode (PP_STRICT_KNOWN_DEFECTS unset or not '1'):
 Strict mode (PP_STRICT_KNOWN_DEFECTS=1):
   * the marker is transparent: the test runs as a plain test and fails red while
     the defect exists, passes once it is fixed.
-Engine scope: when the registry says the defect (facet) does not reproduce on
-the active engine (Defect.engines, e.g. an ENGINE gap the GPPL engine fixes),
-the marker is transparent too, so the test is a plain guard on that engine.
 
 Only open entries and facets take @known_defect; a fixed or accepted one
 (Defect.status / facet_status) raises ValueError at import: its former
@@ -41,7 +38,6 @@ import re
 import unittest
 
 from .defects import REGISTRY
-from .engines import ENGINE_NAME
 
 STRICT_ENV = 'PP_STRICT_KNOWN_DEFECTS'
 
@@ -68,12 +64,11 @@ def known_defect(defect_id, *, facet=None, match=None):
         raise ValueError(f'{label} is {entry.status_for(facet)} ({entry.resolution_for(facet)}); mark its test with '
                          f'@covers({defect_id!r}) instead of @known_defect')
     pattern = re.compile(match) if match else None
-    transparent = not entry.reproduces_on(ENGINE_NAME, facet)
 
     def decorate(test):
         @functools.wraps(test)
         def wrapper(self, *args, **kwargs):
-            if transparent or strict_mode():
+            if strict_mode():
                 return test(self, *args, **kwargs)
             self.subTest = _forbidden_subtest
             try:

@@ -1,7 +1,7 @@
-"""Motion-sequence regression tests on the legacy mid-job harness (area C, legacy file).
+"""Motion-sequence regression tests on the mid-job harness (area C, legacy file).
 
-motion_engine is re-exported from support.legacy (single definition on the
-cached parse), so `from test_motion import motion_engine` keeps working. It is
+motion_engine is re-exported from support.presets (single definition), so
+`from test_motion import motion_engine` keeps working. It is
 a mid-job harness that never runs @init_post: its hand-copied state
 (iMotionmode=1, iWorkoffset=54, nPtool_* = 35, every change flag False) models
 a program in the middle of a job, and its zpos_f='8.5' preset hides PP-006
@@ -16,11 +16,11 @@ import unittest
 
 from support import covers, index_of, last_index_of, mutate, parse_block, parse_blocks
 from support.engines import adopt_state
-from support.legacy import motion_engine  # noqa: F401  (re-exported for other test modules)
+from support.presets import motion_engine  # noqa: F401  (re-exported for other test modules)
 from support.paths import FIXTURES
 
 # The shit2 trace prints Z with 4 decimals (zpos_f '5.4' after the first
-# rapid, PP-006) while the legacy harness prints 5 (zpos_f '8.5'): the largest
+# rapid, PP-006) while the motion_engine preset prints 5 (zpos_f '8.5'): the largest
 # rounding difference is 0.00005; 0.000001 more absorbs float representation.
 TRACE_Z_DELTA = 0.000051
 

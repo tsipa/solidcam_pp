@@ -10,7 +10,8 @@ Program() clears all flags after usr_init_gmstates, so these tests set them agai
 import re
 import unittest
 
-from program_session import ENGINE_HAS_NC_STREAM, Program
+from pp_tests.gppl.policies import Policies
+from program_session import Program
 from support import assert_detected, mutate
 
 CHANNELS = [f'icoolantm{k}' for k in range(1, 9)]
@@ -55,8 +56,7 @@ class CoolantCodeTests(unittest.TestCase):
         keeps flags set by @init_post-time procedures; Program() clears them, so they are set again
         and usr_init_gmstates runs once more)."""
         policies = None
-        if keep_equal_assignment_flags and ENGINE_HAS_NC_STREAM:
-            from pp_tests.gppl.policies import Policies
+        if keep_equal_assignment_flags:
             policies = Policies.from_env().with_(change_on_equal_assign='keep')
         p = Program(source=source, options=options, cam=cam, policies=policies)
         for name in CHANNELS:

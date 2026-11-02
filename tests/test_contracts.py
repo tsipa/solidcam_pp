@@ -136,7 +136,7 @@ def contract_violations(sequences, pp_owned):
                 found.add((fixture, name, ordinal, 'tmatrix_inside_job'))
             elif call in MOTION_EVENTS and not job_open:
                 found.add((fixture, name, ordinal, 'job_closed'))
-            # The legacy harness never updates prev_command itself; only `set` does.
+            # The mid-job harness never updates prev_command itself; only `set` does.
             prev_command = values.get('prev_command', prev_command)
             if call in RAPID_EVENTS and ordinal and prev_command != '@' + previous_event:
                 found.add((fixture, name, ordinal, 'prev_command'))

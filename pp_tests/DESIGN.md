@@ -1,11 +1,12 @@
 # GPPL engine: a SolidCAM session emulator on an immutable, validated IR
 
 Python 3.10+ (also runs on 3.9), standard library only, no `eval`/`exec`, no
-Python `ast`. It replaces the original `pp_tests/engine.py`, which is now a
-24-line shim over the `pp_tests/gppl/` package; `GPPL_ENGINE=legacy` selects the
-original engine (`pp_tests/gppl/legacy.py`, a verbatim copy). The numbers below
-were measured on the post before the review fixes; the harness tests live in
-`tests_engine/`.
+Python `ast`. It replaced the original `pp_tests/engine.py`, which is now a
+thin re-export of the `pp_tests/gppl/` package. The original engine stayed
+available as `pp_tests/gppl/legacy.py` (a verbatim copy, selected by
+`GPPL_ENGINE=legacy`) until it was removed (section 11, step 11); setting the
+switch now stops the import. The numbers below were measured on the post before
+the review fixes; the harness tests live in `tests_engine/`.
 `examples/` and `tools/` below refer to reports and helper scripts produced during
 the engine review; they are not part of the repository.
 
@@ -15,8 +16,8 @@ the engine review; they are not part of the repository.
 |---|---|---|
 | existing 35 tests, test code unchanged | OK, 5.8 to 6.2 s | **OK, 0.69 s** (0.94 s on a busy host) |
 | same suite under `GPPL_POLICY=session` | n/a | OK |
-| rollback switch `GPPL_ENGINE=legacy` (verbatim legacy engine behind the shim) | n/a | OK, 6.2 s |
-| shadow run: every Engine of the legacy suite mirrored by the legacy engine (`tests_engine/shadow_v1.py`) | n/a | **831 top-level calls, 6 expressions, 34 raised in both, 0 mismatches** (also against the pre-adoption `pp_tests/engine.py`, now `pp_tests/gppl/legacy.py`) |
+| rollback switch `GPPL_ENGINE=legacy` (verbatim legacy engine behind the shim; removed with it) | n/a | OK, 6.2 s |
+| shadow run: every Engine of the legacy suite mirrored by the legacy engine (`tests_engine/shadow_v1.py`, removed with it) | n/a | **831 top-level calls, 6 expressions, 34 raised in both, 0 mismatches** (also against the pre-adoption `pp_tests/engine.py`, later `pp_tests/gppl/legacy.py`, removed) |
 | historical-fix revert matrix (26 commits, 14 reverse-applicable) | baseline | **identical**: same applicable commits, same per-revert failing tests and error counts (`examples/revert_matrix.txt`) |
 | harness tests (`tests_engine`, 113 tests) | n/a | **OK in 11.3 s** (1 corpus test skipped unless `GPPL_CORPUS` is set; with it: OK) |
 | whole GPP loaded and validated at construction | no (lines are only looked at when executed) | **95 procedures, 1479 statements, 201 globals, 46 entry points; 0 errors under the session policy** (strict load passes); cold load 39 ms, cached 0.02 ms, full lint 18 ms |
@@ -57,7 +58,7 @@ session fixtures, which still produce byte-identical NC.
 | immutable typed IR with spans, class dispatch | parser-first | `nodes.py`, `expr.py` (`_COMPILERS`), `runtime.py` (`_HANDLERS`) |
 | recursion hardening (cap, deferred diagnostic, flat execution) | correctness judge | `expr.py`, `program.py`, `nodes.Instr` |
 | missing procedure and arity checks at load; strict load (`load_errors=raise`) also rejects code outside procedures and missing `endp` | incremental, correctness judge | `program.py` (`_check_calls`, `structural`) |
-| permanent randomized differential test against the legacy engine plus the shadow runner as CI checks | incremental + session-emulator | `tests_engine/test_differential.py` (1,500 expressions, 600 output statements, 300 rotary and 150 arc states), `tests_engine/shadow_v1.py` |
+| randomized differential test against the legacy engine plus the shadow runner | incremental + session-emulator | `tests_engine/test_differential.py` (1,500 expressions, 600 output statements, 300 rotary and 150 arc states) and `tests_engine/shadow_v1.py`, both removed with the legacy engine; the language cases stay as recorded outcomes in `tests_engine/test_language_golden.py` (section 11, step 11) |
 | coverage keyed by source digest, merged across processes | incremental | `coverage.py` |
 | `CallTrace` with `emitted_by('G75')` (call chain with call sites) | incremental | `calltrace.py`; CLI `replay --emitted-by TEXT` |
 | `%`, exponent literals, `trace` as explicit choices (policy `modulo`; `1e3` stays accepted as in legacy; policy `trace_stmt`) | incremental, correctness judge | `policies.py`, `expr.py` |
@@ -67,7 +68,7 @@ session fixtures, which still produce byte-identical NC.
 | replay of raw SolidCAM trace text with `--tolerance` | incremental | `session.load_events`, CLI `replay` (exit 3 on NC differences) |
 | config-dead analysis, coverage-gap split, policy-sensitive literal sites | parser-first | `analysis.py` (`config_constants`, `_reach`, `coverage_split`, `_policy_sites`) |
 | policy-sensitivity tool | incremental | `tools/policy_sensitivity.py` |
-| PR-sequenced migration with rollback (legacy engine moved behind the shim) | incremental, pragmatic judge | `pp_tests/gppl/legacy.py`, `GPPL_ENGINE`, section 11 |
+| PR-sequenced migration with rollback (legacy engine moved behind the shim) | incremental, pragmatic judge | section 11 (`pp_tests/gppl/legacy.py` and `GPPL_ENGINE`, removed in step 11) |
 | ASCII-only numbers and identifiers; `call @f` and `@name(` spacing as in legacy | correctness judge | `lexer.py`, `program.py` |
 
 **Deliberately not taken:** incremental's strict typing of logical arithmetic
@@ -91,12 +92,12 @@ builtins whose meaning (truncate or floor) is unknown.
                                                    ├─► analysis.py lint, contracts, CAM interface,
                                                    │               config-dead, coverage-gap split
                                                    └─► coverage.py, calltrace.py
- pp_tests/engine.py: shim (GPPL_ENGINE=legacy -> gppl/legacy.py, the verbatim old engine)
+ pp_tests/engine.py: re-export (GPPL_ENGINE=legacy stops the import: the old engine was removed)
 ```
 
 | module | lines | role |
 |---|---|---|
-| `engine.py` (shim) | 24 | `Engine`, `UnsupportedGPPL`, `uncomment`, `Policies`; rollback switch |
+| `engine.py` (re-export) | 26 | `Engine`, `UnsupportedGPPL`, `uncomment`, `Policies`; refuses the removed rollback switch |
 | `errors.py` | 78 | `UnsupportedGPPL` hierarchy with one GPPL call chain; `Diagnostic` |
 | `policies.py` | 199 | every uncertain semantic; presets; `GPPL_POLICY` parsing |
 | `lexer.py` | 135 | comment stripping (legacy `uncomment` rule), one ASCII tokenizer; flags doubled quotes |
@@ -112,7 +113,7 @@ builtins whose meaning (truncate or floor) is unknown.
 | `coverage.py` | 175 | digest-keyed statement/branch coverage, cross-process merge, markdown |
 | `calltrace.py` | 135 | tracer protocol, `CallTrace`, `Tee` |
 | `sysvars.py`, `vmid.py`, `__main__.py` | 144, 95, 149 | SolidCAM runtime model, VMID reader (refuses DOCTYPE/ENTITY), CLI |
-| **total new code** | **4,274** | plus `legacy.py` (342, verbatim copy), harness tests and tools (1,891) |
+| **total new code** | **4,274** | plus harness tests and tools (1,891); `legacy.py` (342, verbatim copy) was removed |
 
 ## 4. Data model
 
@@ -198,7 +199,7 @@ fixtures under `session,<policy>=<value>`.
 * `string_index` defaults to `error`, not to legacy Python slicing: the legacy
   values (`left('abc',-1)='ab'`, `substr(s,0,3)=''`, `substr('2026',1,-1)='202'`)
   are artefacts. No test, session or GPP path reaches them; `string_index=python`
-  restores them exactly for differential work.
+  restores them exactly.
 * Constructs the legacy engine crashed on with a Python artefact are fixed
   (section 8): `07`, Python keywords as identifiers, call arguments containing
   commas, `call @p()`, doubled double quotes in output, function names in modal
@@ -272,11 +273,12 @@ fixtures under `session,<policy>=<value>`.
   uses `active()`, `trace`, `not`, `'7.0(*1000P)'`) load with 0 errors under the
   session policy (`GPPL_CORPUS=<dir>` enables `CorpusTests`).
 
-## 8. Legacy defects fixed (each reproduced on the legacy engine inside its test)
+## 8. Legacy defects fixed (each was reproduced on the legacy engine in its test until the engine was removed)
 
-`tests_engine/test_v1_defects.py` runs every repro against `pp_tests.gppl.legacy`
-first, then checks the fix: leading-zero literal `07` (the GPP has
-`iCoolantM5ON = 07`); Python-only syntax evaluated (`0x10`, `1_000`, `2j`,
+`tests_engine/test_v1_defects.py` ran every repro against `pp_tests.gppl.legacy`
+first, then checked the fix; since the legacy engine was removed it checks the fix
+only, and its docstrings record the old behaviour: leading-zero literal `07` (the
+GPP has `iCoolantM5ON = 07`); Python-only syntax evaluated (`0x10`, `1_000`, `2j`,
 `1<2<3`, `'ab'*2`, `'a' 'b'`, `'%s!'%5`); Python keywords rejected as
 identifiers; negative string indexes wrapping; `tonum('nan'/'1_000'/'infinity')`;
 raw `ZeroDivisionError`/`AttributeError`/`TypeError`/`ValueError` escaping;
@@ -305,8 +307,10 @@ dropped; unexecuted unsupported code invisible; errors re-wrapped per frame;
   statements, 2,751 are identical; 166 that legacy rejected now run (the
   function-name modal fix), 81 differ only by legacy's spurious `changed['abs']`,
   and 2 by the doubled double quote.
-* `tests_engine/test_differential.py` keeps 2,550 randomized cases against the legacy
-  engine as a permanent guard.
+* `tests_engine/test_differential.py` kept 2,550 randomized cases against the legacy
+  engine until it was removed (section 11, step 11); the language cases (1,630
+  distinct of the 2,100 draws) are recorded outcomes now
+  (`tests_engine/test_language_golden.py`).
 
 ## 10. What it unlocks for testing this PP
 
@@ -380,12 +384,30 @@ lines of code plus tests); CI runs the unchanged suite on every step.
    `test_static.py`; README section on `validate`, `contracts`, `replay`.
 9. **CI hardening.** Add `python -m pp_tests.gppl validate <gpp> --vmid <vmid>
    --strict`, `python -m unittest discover -s tests_engine`, `tests_engine/shadow_v1.py`
-   and a coverage job (`GPPL_COVERAGE_OUT`); retire `tools/cov_patch.py`.
+   and a coverage job (`GPPL_COVERAGE_OUT`); retire `tools/cov_patch.py`. (Of these,
+   CI runs `tests_engine`; the shadow run was never a CI job.)
 10. **Real trace.** Extend `trace.py` capture to keep the replay enums
     (`sanitize_for_replay`), add one real session, set the `session` preset to the
     policies it supports, and replace the synthetic NC expectations it covers.
 11. **Retire `legacy.py`** and the switch after the shadow run has stayed green
     for an agreed period; keep `test_differential.py` pinned to recorded outputs.
+    **Done** (owner decision 2026-11-02): `pp_tests/gppl/legacy.py`,
+    `tests/support/legacy_compat.py` (LegacyCompatEngine), `tests_engine/shadow_v1.py`
+    and the `GPPL_ENGINE=legacy` CI job are gone; `pp_tests/engine.py` raises
+    ImportError when `GPPL_ENGINE=legacy` is still set. `test_differential.py` was
+    replaced by `tests_engine/test_language_golden.py` with
+    `tests_engine/fixtures/language_golden.json`: the outcomes of its 1,500 random
+    expressions (1,032 distinct) and 600 random output statements (598 distinct),
+    recorded from the GPPL engine and checked against `legacy.py` one last time
+    (every case agreed except the 15 string repetitions the GPPL engine rejects).
+    Its 300 rotary and 150 arc states ran `@usr_r1pos_calc`/`@usr_r1_output` and
+    `@usr_arc_math` of the live GPP, so recorded outputs would pin the post, not
+    the engine (and every arc state stopped at the end-mismatch check); they were
+    dropped: `tests/test_offline.py`, `tests/test_rotary.py`,
+    `tests/test_rotary_modulo_range.py`, `tests/test_arcs.py` and
+    `tests/test_arc_compensation_plane.py` test those procedures with independent
+    oracles. The ENGINE gaps only the legacy engine had are marked fixed by 117e611
+    in the registry.
 
 ## 12. Risks and open questions
 
@@ -410,11 +432,10 @@ lines of code plus tests); CI runs the unchanged suite on every step.
 ## 13. How to run
 
 ```bash
-python3 -m unittest discover -s tests            # post tests (GPPL_ENGINE=legacy: original engine)
+python3 -m unittest discover -s tests            # post tests
 python3 -m unittest discover -s tests_engine     # engine harness (GPPL_CORPUS=<dir of .gpp> enables the corpus test)
 GPPL_SOLIDCAM_CATALOG=<solidcam-system-variables.json> python3 -m unittest discover -s tests_engine -p test_static.py  # + sibling solidcam-system-procedures.json
 GPPL_IDE_REFERENCE=<dir with GPPL.g4, raw/, work/gppl_check.py> python3 -m unittest discover -s tests_engine -p test_static.py
-python3 tests_engine/shadow_v1.py                # mirror every post-test Engine through the legacy engine
 G=siemens_sinumerik_828d/noname_vmc500_4x/Gmill_540v_4x.gpp; V=${G%.gpp}.vmid
 python3 -m pp_tests.gppl validate $G --vmid $V --strict
 python3 -m pp_tests.gppl replay $G tests_engine/fixtures/oracle_session.json --vmid $V --annotate

@@ -1,9 +1,7 @@
 """Engine harness: GPPL semantics of the test engine and the compatibility layer.
 
-The engine is the one pp_tests/engine.py selects: the GPPL engine
-(pp_tests/gppl) by default, the original engine (pp_tests/gppl/legacy.py) with
-GPPL_ENGINE=legacy. Neither is edited by this suite. This file is the hand-off
-to the engine track:
+The engine is the GPPL engine (pp_tests/gppl, through pp_tests/engine.py); this
+suite never edits it. This file is the hand-off to the engine track:
 
 * Stock-engine gap tests (@known_defect('ENGINE-xxx')) assert the GPPL
   behaviour a faithful interpreter needs, on the unmodified
@@ -12,33 +10,27 @@ to the engine track:
   (self.fail), because the rejection IS the registered defect. Default runs
   report them as skips; PP_STRICT_KNOWN_DEFECTS=1 runs them as plain failing
   tests; a fixed gap makes the default run fail with "no longer reproduces".
-  Gaps the GPPL engine fixes (Defect.gppl_fixed) are known defects only under
-  GPPL_ENGINE=legacy; on the GPPL engine the same test is a plain guard.
+  The gaps only the original engine (pp_tests/gppl/legacy.py, removed) had are
+  fixed (117e611); their former canonical tests are regression guards (@covers).
 * EngineSemanticsPins pin the current engine rule for equal-value assignments
   (ENGINE-001, unverified against SolidCAM) so changing it is deliberate.
 * Static guards over the GPP: every POST ERROR prompt is followed by abort
-  (the engine cannot see a missing abort, ENGINE-009), and the GPP avoids the
-  constructs the engine would evaluate with Python semantics without an error.
+  (the engine cannot see a missing abort, ENGINE-009), and the GPP avoids
+  constructs whose GPPL meaning the engine only assumes, and constructs it
+  rejects only when they are executed.
 * GpplCompatEngine self-tests: each documented workaround behaves as
   described, and the default options are strictly additive (identical state,
   flags and NC text to the stock engine on flows the stock engine can run).
-  The output-layer additivity guards and the line-by-line mirror of the legacy
-  Engine._render always run against the legacy classes (LegacyCompatEngine
-  and pp_tests.gppl.legacy.Engine), whichever engine is active.
 """
-import difflib
 import functools
-import inspect
 import re
-import textwrap
 import unittest
 
 from pp_tests.engine import Engine, UnsupportedGPPL
-from pp_tests.gppl import legacy as legacy_engine
 
-from support import (DRILL_DEFAULTS, DRILL_TYPE, LEGACY, WORKAROUNDS, GpplCompatEngine, LegacyCompatEngine, Session,
-                     adopt_state, assert_detected, covers, fresh_engine, known_defect, motion_engine, mutate,
-                     nc_text, parse_blocks, pp_source, rotary_engine)
+from support import (DRILL_DEFAULTS, DRILL_TYPE, WORKAROUNDS, GpplCompatEngine, Session, adopt_state, assert_detected,
+                     covers, fresh_engine, known_defect, motion_engine, mutate, parse_blocks, pp_source,
+                     rotary_engine)
 from support.engines import declared_globals
 from support.session import event
 
@@ -64,13 +56,14 @@ def run_stock(testcase, function, *args, gap=None):
 # Stock-engine gaps (ENGINE-xxx). Each test asserts the GPPL behaviour.
 # --------------------------------------------------------------------------
 class ScopeAndDeclarationGaps(unittest.TestCase):
-    @known_defect('ENGINE-012', facet='redeclare')
+    @covers('ENGINE-012')
     def test_local_redeclared_in_loop_restores_global(self):
         """INDEPENDENT: a local declaration shadows the global for the procedure
         call only; leaving the procedure restores the global value (t=42).
         UNVERIFIED: GPPL procedure scoping of locals is assumed (registry
-        ENGINE-012 is uncertain). The engine re-saves the local's own value when
-        `local numeric t` runs again in the loop, so t comes back as 5."""
+        ENGINE-012 is uncertain). The original engine re-saved the local's own
+        value when `local numeric t` ran again in the loop, so t came back as 5;
+        the GPPL engine keeps locals in call frames (facet redeclare fixed)."""
         engine = Engine('@test\nlocal integer i\ni = 0\nwhile i < 2\nlocal numeric t\nt = 5\n'
                         'i = i + 1\nendw\nendp')
         engine.set(t=42)
@@ -82,19 +75,21 @@ class ScopeAndDeclarationGaps(unittest.TestCase):
         """INDEPENDENT: with procedure-scoped locals a callee cannot see its
         caller's local k, so its assignment k = 99 writes the global.
         UNVERIFIED: GPPL procedure scoping is assumed (ENGINE-012 uncertain).
-        The engine's flat state dict gives dynamic scope: the callee writes the
-        caller's local and the write is discarded on return (k stays 0)."""
+        The engine finds names through the caller frames (policy
+        local_scoping=dynamic, the default): the callee writes the caller's
+        local and the write is discarded on return (k stays 0)."""
         engine = Engine('@test\nlocal numeric k\nk = 1\ncall @setk\nendp\n@setk\nk = 99\nendp')
         engine.set(k=0)
         run_stock(self, engine.call, 'test')
         self.assertEqual(engine.state['k'], 99)
 
-    @known_defect('ENGINE-014')
+    @covers('ENGINE-014')
     def test_declaration_with_initializer_is_not_silently_accepted(self):
         """INDEPENDENT: declared names must be identifiers (GPPL declaration
         syntax). `local numeric q = 5` must either be rejected (UnsupportedGPPL
-        is the correct outcome here) or initialise q; the engine declares the
-        names 'q', '=' and '5' and leaves q = 0."""
+        is the correct outcome here) or initialise q; the original engine
+        declared the names 'q', '=' and '5' and left q = 0 (fixed: the GPPL
+        engine rejects the declaration)."""
         engine = Engine('@test\nlocal numeric q = 5\nr = q\nendp')
         try:
             engine.call('test')
@@ -128,12 +123,13 @@ class ScopeAndDeclarationGaps(unittest.TestCase):
 
 
 class ExpressionGaps(unittest.TestCase):
-    @known_defect('ENGINE-011')
+    @covers('ENGINE-011')
     def test_python_only_syntax_is_rejected(self):
         """INDEPENDENT: pp_tests/README.md promises that unsupported expressions
         fail. GPPL has no hex literals, no string repetition, no chained
-        comparisons and no negative-count left(); the engine maps them onto
-        Python and silently returns 16, 'abab', True and 'ab'."""
+        comparisons and no negative-count left(); the original engine mapped them
+        onto Python and silently returned 16, 'abab', True and 'ab' (fixed: the
+        GPPL engine has its own expression parser)."""
         engine = Engine('')
         engine.set(a=3, b=2, c=1, s='ab')
         accepted = []
@@ -145,26 +141,27 @@ class ExpressionGaps(unittest.TestCase):
             accepted.append((expression, value))
         self.assertEqual(accepted, [], 'Python-only expressions evaluated without UnsupportedGPPL')
 
-    @known_defect('ENGINE-006')
+    @covers('ENGINE-006')
     def test_leading_zero_integer_literal(self):
         """INDEPENDENT: `07` is an integer literal in GPPL; the GPP ships it at
         @usr_coolant (iCoolantM5ON = 07, through-tool coolant 30 bar). Python's
-        parser rejects leading zeros, so the engine stops on that path. (Whether
-        7 is the right M-code is PP-008, not this test.)"""
+        parser rejects leading zeros, so the original engine stopped on that
+        path (fixed: the GPPL engine reads 7). (Whether 7 is the right M-code is
+        PP-008, not this test.)"""
         engine = Engine('@t\nvalue = 07\nendp')
-        run_stock(self, engine.call, 't', gap='leading zeros')
+        run_stock(self, engine.call, 't')
         self.assertEqual(engine.state['value'], 7)
 
-    @known_defect('ENGINE-007')
+    @covers('ENGINE-007')
     def test_right_and_tostr_builtins(self):
         """INDEPENDENT: GPPL string built-ins used by shipped template code
         (@usr_sof_progname, @usr_US_date, @usr_US_time, @Multiple_Fixtures):
         right(s, n) is the last n characters ('' for n = 0) and tostr(v:'fmt')
         formats a number with the descriptor's decimals (7 with '5.0(p)' is
-        '7'). The engine has neither built-in."""
+        '7'). The original engine had neither built-in (fixed: both are GPPL
+        engine built-ins)."""
         engine = Engine('')
-        # right() is an unknown call node; tostr(v:'fmt') is a Python syntax error.
-        results = {expression: run_stock(self, engine.expression, expression, gap=r"id='right'|invalid syntax")
+        results = {expression: run_stock(self, engine.expression, expression)
                    for expression in ("right('abcdef', 2)", "right('abc-', 0)", "tostr(7:'5.0(p)')")}
         self.assertEqual(results, {"right('abcdef', 2)": 'ef', "right('abc-', 0)": '',
                                    "tostr(7:'5.0(p)')": '7'})
@@ -181,8 +178,7 @@ class ExpressionGaps(unittest.TestCase):
         for text in ('55', 'G5'):
             engine = Engine('@t\nvalue = tonum(text)\nendp')
             engine.set(text=text)
-            run_stock(self, engine.call, 't',
-                      gap=r'could not convert string to float|tonum\(\) of non-numeric string')
+            run_stock(self, engine.call, 't', gap=r'tonum\(\) of non-numeric string')
             results[text] = engine.state['value']
         self.assertEqual(results, {'55': 55, 'G5': 0})
 
@@ -199,29 +195,29 @@ class OutputGaps(unittest.TestCase):
         run_stock(self, engine.call, 'test')
         self.assertEqual(engine.output, ['V1.23456'])
 
-    @known_defect('ENGINE-002')
+    @covers('ENGINE-002')
     def test_skipline_false_joins_the_next_block(self):
         """INDEPENDENT: `skipline = false` makes the next nb continue the current
         block. The GPP joins `{nl,'N'iTcnumber' '}` with `{nb,'G17 G64 G90'}`
         this way (@usr_ct_before_firsttool) and the author's Mach3 template
         uses `{nb,'G'gcode,' '}` then `skipline = FALSE` in
         @relative_mode/@absolute_mode. The NC program is read from the
-        engine's own NC view (support.engines.nc_text): the GPPL engine's NC
-        stream joins (fixed there); the legacy engine treats skipline as a
-        plain variable and always starts a new block."""
+        engine's own NC view (engine.nc_text()): the GPPL engine's NC
+        stream joins (fixed there); the original engine treated skipline as a
+        plain variable and always started a new block."""
         engine = Engine("@test\n{nb,'G91 '}\nskipline = false\n{nb,'X1'}\nendp")
         run_stock(self, engine.call, 'test')
-        blocks = [block.strip() for block in nc_text(engine).splitlines() if block.strip()]
+        blocks = [block.strip() for block in engine.nc_text().splitlines() if block.strip()]
         self.assertEqual(blocks, ['G91 X1'])
 
-    @known_defect('ENGINE-015')
+    @covers('ENGINE-015')
     def test_double_quoted_literal_escape_matches_expression_parser(self):
-        """INDEPENDENT: internal consistency of the engine's two literal parsers.
-        _render tokenises a double-quoted literal with doubled quotes inside
-        without the escape ('say hi') while expression() applies it
-        ('say "hi"'). Whichever literal
-        model the engine track adopts (the dossier evidence favours no escape),
-        output and expressions must agree."""
+        """INDEPENDENT: internal consistency of the engine's literal parsing. The
+        original engine's _render tokenised a double-quoted literal with doubled
+        quotes inside without the escape ('say hi') while expression() applied it
+        ('say "hi"'); the GPPL engine has one literal model (fixed). Whichever
+        literal model the engine track adopts (the dossier evidence favours no
+        escape), output and expressions must agree."""
         engine = Engine('@test\n{"say ""hi"""}\nendp')
         run_stock(self, engine.call, 'test')
         self.assertEqual(engine.output, [engine.expression('"say ""hi"""')])
@@ -302,7 +298,8 @@ class StatementGaps(unittest.TestCase):
         """INDEPENDENT: pp_tests/README.md: unknown statements fail with the
         source line. A statement outside @proc..endp is never executed by
         SolidCAM's call model, so the harness must report it instead of
-        silently dropping it (the parser ignores such lines)."""
+        dropping it (the loader ignores such lines with only a W-OUTSIDE
+        warning)."""
         for source in ('stray = 1\n@t\nendp', "@t\nendp\n{'X1'}\n"):
             try:
                 Engine(source)
@@ -438,13 +435,13 @@ class PostAbortGuardTests(unittest.TestCase):
         a stopped post; the stock engine stops at the `print` before it
         (ENGINE-008), so the deleted abort is invisible to the stock engine.
         Structural probe: iR1dirMode=0 (the state an unknown CAM direction
-        leads to) is preset directly on the legacy rotary harness."""
+        leads to) is preset directly with the mid-job rotary preset."""
         engine = rotary_engine(without_abort_lines(pp_source()), iR1dirMode=0, nR1pos=90)
         run_stock(self, engine.call, 'usr_r1_output', gap='unsupported statement: print')
 
 
 # --------------------------------------------------------------------------
-# The GPP must avoid constructs the engine evaluates with Python semantics.
+# The GPP must avoid constructs with assumed semantics or a rejection only when executed.
 # --------------------------------------------------------------------------
 _STRING = re.compile(r"'(?:[^']|'')*'|\"(?:[^\"]|\"\")*\"")
 _COMPARE = r'(?:\b(?:eq|ne|gt|lt|ge|le)\b|==|!=|<=|>=|(?<![<>!=])[<>](?![=]))'
@@ -474,8 +471,14 @@ def _expression_part(low):
 
 
 def silent_divergences(source):
-    """[(rule, where)] for constructs the engine evaluates without UnsupportedGPPL
-    but with Python semantics or dynamic scope (engine-impl-critic-08/09/11)."""
+    """[(rule, where)] for constructs the GPP must avoid. Some run without an
+    error but with semantics that are not verified against GPPL: Python-like
+    and/or precedence and '!' binding (expr.py), nested modal groups, a local
+    declared inside while, a doubled quote in a double-quoted output literal,
+    and a caller's local visible to the callee (dynamic scope, policy
+    local_scoping=dynamic, ENGINE-012). The GPPL engine rejects chained
+    comparisons, declaration initializers and non-decimal literals, but only
+    when the line is executed (engine-impl-critic-08/09/11)."""
     engine = fresh_engine(source)
     found = []
     locals_by_proc, calls, names = {}, {}, {}
@@ -544,8 +547,8 @@ def silent_divergences(source):
     return found
 
 
-# The 07 literal is a LOUD engine gap (ENGINE-006: UnsupportedGPPL on the stock
-# engine, handled by GpplCompatEngine), not a silent divergence.
+# The 07 literal is no silent divergence: the GPPL engine reads it as the integer 7,
+# the GPPL meaning (ENGINE-006; the original engine rejected it loudly).
 KNOWN_LOUD = {('non-decimal or leading-zero literal', 'iCoolantM5ON = 07')}
 
 
@@ -553,13 +556,17 @@ class EngineAssumptionGuardTests(unittest.TestCase):
     def assert_clean(self, source):
         problems = [(kind, where) for kind, where in silent_divergences(source)
                     if not any(kind == known and where.endswith(text) for known, text in KNOWN_LOUD)]
-        self.assertEqual(problems, [], 'GPP uses constructs the engine evaluates with non-GPPL semantics')
+        self.assertEqual(problems, [], 'GPP uses constructs the engine only assumes or rejects only when executed')
 
     def test_current_gpp_avoids_silently_divergent_constructs(self):
-        """INDEPENDENT: engine source analysis (ENGINE-011/012/014/015): these
-        constructs run under Python semantics or dynamic scope without any
-        UnsupportedGPPL, so a GPP edit introducing one could change real
-        behaviour while every behaviour test stays green. None occurs today."""
+        """INDEPENDENT: engine source analysis. The dynamic-scope facet of
+        ENGINE-012 is still open, and the operator precedence and literal rules
+        are assumed. ENGINE-011, ENGINE-014, ENGINE-015 and ENGINE-012[redeclare]
+        were fixed by 117e611; the GPPL engine rejects those constructs only on
+        the executed path. A GPP edit that introduces one of these constructs in
+        a path no test runs, or one whose semantics the engine only assumes,
+        could change real behaviour while every behaviour test stays green.
+        None occurs today."""
         self.assert_clean(pp_source())
 
     def test_guard_detects_each_construct(self):
@@ -598,18 +605,17 @@ class GpplCompatEngineTests(unittest.TestCase):
 
     @covers('ENGINE-006', 'ENGINE-007')
     def test_setup_engine_builtins(self):
-        """INDEPENDENT: GPPL semantics of the literal and built-ins the stock
-        legacy engine rejects: 07 is 7; right(s, n) is the last n characters, ''
+        """INDEPENDENT: GPPL semantics of the literal and built-ins the original
+        engine rejected: 07 is 7; right(s, n) is the last n characters, ''
         for n <= 0 (Python's s[-0:] would return everything and make
         @usr_sof_progname loop); tostr(v[:'fmt']) uses the descriptor's
         decimals, the default numeric format without one, and returns strings
         unchanged; the descriptor may be held in a variable (tostr(v:xpos_f),
-        @usr_workpiece_data). The default numeric format of tostr(v) is numeric_def_f on
-        LegacyCompatEngine and needs default_formats=True (typed_default_formats,
-        ENGINE-003) on the GPPL engine. right(s, n) for n > len(s) is
+        @usr_workpiece_data). The default numeric format of tostr(v) is
+        numeric_def_f only with default_formats=True (typed_default_formats,
+        ENGINE-003). right(s, n) for n > len(s) is
         test_right_count_beyond_the_string_returns_the_whole_string (ENGINE-021)."""
-        options = {} if LEGACY else {'default_formats': True}
-        engine = GpplCompatEngine('', **options)
+        engine = GpplCompatEngine('', default_formats=True)
         engine.set(numeric_def_f='8.5', xpos_f='8.5', stock=3)
         cases = {"',' + tostr((stock - 1.5):xpos_f) + ','": ',1.5,', '07': 7, '-05 + 1': -4, "right('abcdef', 2)": 'ef', "right('abc-', 0)": '',
                  "right('abc', -1)": '', "right('abc', 3)": 'abc', "tostr(7:'5.0(p)')": '7',
@@ -620,10 +626,10 @@ class GpplCompatEngineTests(unittest.TestCase):
     @covers('ENGINE-021')
     def test_right_count_beyond_the_string_returns_the_whole_string(self):
         """INDEPENDENT: GPPL right(s, n) returns the last n characters of s, so a
-        count larger than the string is the whole string (LegacyCompatEngine
-        clamps). The GPPL engine's right() sliced s[len(s) - n:], a negative Python
-        index for n > len(s) ('bc' for right('abc', 5)); fixed, this guards it. No
-        GPP call reaches it (@usr_sof_progname passes at most strlen - 1)."""
+        count larger than the string is the whole string. The GPPL engine's
+        right() sliced s[len(s) - n:], a negative Python index for n > len(s)
+        ('bc' for right('abc', 5)); fixed, this guards it. No GPP call reaches it
+        (@usr_sof_progname passes at most strlen - 1)."""
         engine = GpplCompatEngine('')
         self.assertEqual(engine.expression("right('abc', 5)"), 'abc')
 
@@ -631,17 +637,11 @@ class GpplCompatEngineTests(unittest.TestCase):
     def test_print_and_trace_statements_continue(self):
         """INDEPENDENT: GPPL `Print` shows a message and continues (UNVERIFIED
         assumption, ENGINE-008); `trace` is a debug directive without NC
-        effect in the interpreter (ENGINE-018). LegacyCompatEngine keeps a
-        message with commas as an assignment (gppl_print_log) because the legacy
-        call parser splits on every comma; the GPPL engine records every Print
-        (policy print_stmt=console)."""
+        effect in the interpreter (ENGINE-018). Every Print is recorded, also a
+        message with commas (policy print_stmt=console)."""
         engine = GpplCompatEngine('@t\nPrint \'first\'\ntrace "all":5\nPrint \'a, b\'\ny = 1\nendp')
         engine.call('t')
-        if LEGACY:
-            self.assertEqual((engine.messages, engine.state['y'], engine.state['gppl_print_log']),
-                             (['first'], 1, 'a, b'))
-        else:
-            self.assertEqual((engine.messages, engine.state['y']), (['first', 'a, b'], 1))
+        self.assertEqual((engine.messages, engine.state['y']), (['first', 'a, b'], 1))
         self.assertEqual(fresh_engine('@t\nPrint \'x\'\nendp', GpplCompatEngine).messages, [])
 
     @covers('ENGINE-018')
@@ -664,18 +664,17 @@ class GpplCompatEngineTests(unittest.TestCase):
     def test_opt_in_emulations(self):
         """INDEPENDENT: the opt-in switches emulate the GPPL semantics asserted
         by the ENGINE-002/003/005 gap tests: skipline=False joins exactly one
-        following block (read from the engine's NC view, nc_text()),
+        following block (read from the engine's NC view, engine.nc_text()),
         numeric_def_f/integer_def_f format unformatted numbers, declared globals
-        get a false change flag (legacy: when a top-level call returns; GPPL
-        engine: when the declaration runs). With the switches off the legacy
-        behaviour is kept."""
+        get a false change flag when the declaration runs. With the switches off
+        the stock behaviour is kept."""
         source = "@test\n{nb,'G91 '}\nskipline = false\n{nb,'X1'}\n{nb,'Y2'}\nendp"
         joined = GpplCompatEngine(source, skipline=True)
         joined.call('test')
         default = GpplCompatEngine(source)
         default.call('test')
-        self.assertEqual([b.strip() for b in nc_text(joined).splitlines() if b.strip()], ['G91 X1', 'Y2'])
-        self.assertEqual([b.strip() for b in nc_text(default).splitlines() if b.strip()], ['G91', 'X1', 'Y2'])
+        self.assertEqual([b.strip() for b in joined.nc_text().splitlines() if b.strip()], ['G91 X1', 'Y2'])
+        self.assertEqual([b.strip() for b in default.nc_text().splitlines() if b.strip()], ['G91', 'X1', 'Y2'])
 
         formats = "@test\nglobal integer n\nlocal numeric v\nv = 1.23456\nn = 1250\n{'V'v,' S'n}\nendp"
         for options, expected in (({'default_formats': True}, 'V1.23456 S1250'), ({}, 'V1.235 S1250')):
@@ -698,7 +697,7 @@ class GpplCompatEngineTests(unittest.TestCase):
     def test_compat_runs_us_date_and_time_conversion(self):
         """INDEPENDENT: US date order (Mon-DD-YYYY) and 12-hour clock rules
         (00:30 is 12:30AM, 12:00 is 12:00PM); @usr_US_date/@usr_US_time need
-        right() and tostr(v:'fmt'), which only the workaround provides.
+        right() and tostr(v:'fmt'), which the original engine lacked (ENGINE-007).
         CHARACTERIZATION of the layout only: no leading zero on the hour and the
         AM/PM suffix without a blank are the GPP's own format choice."""
         engine = Session().engine
@@ -776,11 +775,6 @@ def _program_flow(engine_class, flags):
     return session
 
 
-def _normalized_source(function):
-    lines = textwrap.dedent(inspect.getsource(function)).splitlines()
-    return [line.rstrip() for line in lines if line.strip() and not line.strip().startswith('#')]
-
-
 class CompatAdditivityTests(unittest.TestCase):
     """Default GpplCompatEngine options must not change any result the stock
     engine already produces (tests/support/engines.py workaround policy)."""
@@ -812,8 +806,8 @@ class CompatAdditivityTests(unittest.TestCase):
             self.assertEqual(compat.engine.changed, stock.engine.changed, f'flags={flags}: change flags differ')
             self.assertGreater(len(parse_blocks(stock.text())), 80)
 
-    def test_default_options_reproduce_legacy_harness_flows(self):
-        """INDEPENDENT: additivity contract on the legacy mid-job presets: the
+    def test_default_options_reproduce_mid_job_preset_flows(self):
+        """INDEPENDENT: additivity contract on the mid-job presets: the
         rotary procedures over positive/negative/whole-turn angles and the
         motion procedures (rapid, feed, 4x feed) give identical results when the
         same preset is adopted by GpplCompatEngine."""
@@ -841,81 +835,10 @@ class CompatAdditivityTests(unittest.TestCase):
             self.run_compat(event, compat, procedure, changed, **values)
             self.assert_same_engine_result(stock, compat, procedure)
 
-    def test_render_matches_stock_on_supported_output(self):
-        """INDEPENDENT: additivity contract at the output layer: every output
-        body the legacy _render accepts renders to the same fragment and the
-        same variable set in LegacyCompatEngine (numbers with and without formats,
-        ties, negative zero, logicals, both quote kinds, modal groups,
-        parenthesised expressions, nb/nl). Runs on the legacy classes under
-        either engine (the GPPL engine has no _render(body))."""
-        bodies = ["'V'v", "'V'v:'5.3'", "'V'v:fmt", "nb,'G'g:'2.0(p)',' '", "['X'x' '],['Y'y]",
-                  "(v*2),' ',(g+1):'5.0(p)'", '"dq",\'sq\'', "'it''s',nl", 'flag', "'S'v:'5.0'"]
-        values = [0, 3, -3, 1.23456, 2.5, 3.5, 0.125, -0.0004, 1250.5, 10.0, True, 'txt']
-        compared = rejected = 0
-        for body in bodies:
-            for value in values:
-                for fmt in (None, '8.5', '4.4(P)', '5.0(p)', '+8.5'):
-                    state = dict(v=value, g=17, x=1.5, y=-2, flag=False, fmt=fmt or '5.3')
-                    if fmt:
-                        state['v_f'] = fmt
-                    stock, compat = legacy_engine.Engine(''), LegacyCompatEngine('')
-                    for engine in (stock, compat):
-                        engine.set(**state)
-                        engine.changed.update(x=True, y=False)
-                    try:
-                        expected = stock._render(body)
-                    except (legacy_engine.UnsupportedGPPL, TypeError):
-                        rejected += 1
-                        continue
-                    compared += 1
-                    self.assertEqual(self.run_compat(compat._render, body), expected,
-                                     f'body={body!r} v={value!r} v_f={fmt!r}')
-        self.assertGreater(compared, 400)
-        self.assertGreater(rejected, 0)
-
-    def test_render_mirror_differs_only_in_the_documented_hooks(self):
-        """INDEPENDENT: tests/support/engines.py states LegacyCompatEngine._render
-        mirrors pp_tests.gppl.legacy.Engine._render line by line except for the
-        _newline() and format_number() hooks. Any other difference (for example
-        an edit of the legacy Engine._render) fails here and the mirror must
-        be updated; format_number must keep the stock descriptor grammar and
-        number formatting."""
-        stock = _normalized_source(legacy_engine.Engine._render)
-        compat = _normalized_source(LegacyCompatEngine._render)
-        removed, added = [], []
-        for line in difflib.ndiff(stock, compat):
-            if line.startswith('- '):
-                removed.append(line[2:].strip())
-            elif line.startswith('+ '):
-                added.append(line[2:].strip())
-        self.assertEqual(removed, [
-            "result += '\\n'",
-            "descriptor = descriptor or self.state.get(token.lower() + '_f')",
-            'precision = 3',
-            'if descriptor:',
-            "fmt = re.fullmatch(r'\\d+\\.(\\d+)(?:\\([pP]\\))?', descriptor)",
-            'if not fmt:',
-            "raise UnsupportedGPPL(f'unsupported numeric format: {descriptor}')",
-            'precision = int(fmt[1])',
-            "value = format(value, f'.{precision}f')",
-            'if precision:',
-            "value = value.rstrip('0').rstrip('.')",
-            "if value == '-0':",
-            "value = '0'"])
-        self.assertEqual(added, [
-            'result += self._newline()',
-            "descriptor = (descriptor or self.state.get(token.lower() + '_f')",
-            'or self._default_descriptor(token, value))',
-            'value = self.format_number(value, descriptor)'])
-        formatter = inspect.getsource(LegacyCompatEngine.format_number)
-        for fragment in (r"re.fullmatch(r'\d+\.(\d+)(?:\([pP]\))?', descriptor)", "format(value, f'.{precision}f')",
-                         "rstrip('0').rstrip('.')", "== '-0'"):
-            self.assertIn(fragment, formatter)
-
     def test_declared_globals_helper_matches_the_parser(self):
-        """INDEPENDENT: GPPL declaration syntax; declared_globals() (used by the
-        declared_global_flags and default_formats options) must find every name
-        a `global <type>` statement of the GPP declares, with its type."""
+        """INDEPENDENT: GPPL declaration syntax; declared_globals() (test_contracts
+        reads the PP-owned variables with it) must find every name a
+        `global <type>` statement of the GPP declares, with its type."""
         declared = declared_globals(pp_source())
         self.assertEqual((declared['imotionmode'], declared['btlchg'], declared['cwo'], declared['nlastpathz']),
                          ('integer', 'logical', 'string', 'numeric'))

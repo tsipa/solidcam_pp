@@ -205,8 +205,9 @@ class GppStructureTests(unittest.TestCase):
     @covers('ENGINE-019')
     def test_every_statement_is_inside_a_procedure(self):
         """INDEPENDENT: GPPL program structure: statements belong to @proc..endp.
-        The interpreter silently ignores text outside procedures (ENGINE-019),
-        so only this static check sees a stray statement."""
+        The interpreter ignores text outside procedures with only a W-OUTSIDE
+        load warning (ENGINE-019), so only this static check fails on a stray
+        statement."""
         stray = [(n, code) for n, code, proc in self.lines if proc is None and not code.startswith('@')]
         self.assertEqual(stray, [])
 

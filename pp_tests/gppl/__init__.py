@@ -3,13 +3,14 @@
 Layers: lexer -> expr/program (immutable IR in nodes.py + load-time diagnostics)
 -> runtime (Engine) -> output (NC stream) -> session (event replay, trace log,
 expectations), with policies, formats, sysvars, vmid, coverage, calltrace and
-analysis alongside. ``legacy.py`` is the previous engine, verbatim, kept as the
-differential oracle and rollback target.
+analysis alongside. The previous engine (``legacy.py``) was the differential
+oracle until it was removed; tests_engine/test_language_golden.py keeps the
+compat outcomes, recorded from the GPPL engine and equal to the original
+engine's except the 15 string repetitions it evaluated.
 """
 import importlib
 
-# Lazy exports: importing pp_tests.gppl.legacy (the GPPL_ENGINE=legacy rollback) must not load, and so
-# must not depend on, the new engine's modules.
+# Lazy exports: importing one submodule (e.g. pp_tests.gppl.formats) does not load the runtime.
 _EXPORTS = {
     'Engine': 'runtime', 'Policies': 'policies', 'UnsupportedGPPL': 'errors', 'GPPLSyntaxError': 'errors',
     'GPPLRuntimeError': 'errors', 'MissingInput': 'errors', 'PostAbort': 'errors',

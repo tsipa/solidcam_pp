@@ -33,7 +33,7 @@ import math
 import unittest
 
 from pp_tests.engine import UnsupportedGPPL
-from program_session import Program, require_nc_stream
+from program_session import Program
 from support import (Session, assert_detected, covers, known_defect, mutate, parse_blocks, replay,
                      state_before)
 
@@ -359,7 +359,6 @@ class RapidWithoutMotionTests(unittest.TestCase):
 
     @staticmethod
     def program(source=None, emulated=False, **options):
-        require_nc_stream()
         if emulated:
             options['bSyncdrapid'] = False
         program = Program(source=source, options=options or None)

@@ -17,8 +17,8 @@ Across the recordings, compensation_at_the_control_runs_without_the_compressor (
 checks every G41/G42 of their NC against the compressor rule of tests/test_cycle832.py.
 
 recorded_cam_001 (155k events: about 60 s and 2 GB) runs only with PP_RECORDED_ALL=1; the other
-four take about 20 s. The replays run on the GPPL engine (pp_tests/gppl/session.py), so
-GPPL_ENGINE=legacy skips them. reference_multijob is not replayed: recorded_cam_001 is the same
+four take about 20 s. The replays run on the GPPL engine's session emulator
+(pp_tests/gppl/session.py). reference_multijob is not replayed: recorded_cam_001 is the same
 program recorded again with arc_size at 9 decimals (tests/fixtures/README.md).
 """
 import os
@@ -27,15 +27,12 @@ import unittest
 
 from support import REGISTRY, covers
 from support import recorded
-from support.engines import ENGINE_NAME
 
 ALL_ENV = 'PP_RECORDED_ALL'
 SLOW = {'recorded_cam_001': '155k events, about 60 s and 2 GB'}
 
 
 def replay_of(name):
-    if ENGINE_NAME != 'gppl':
-        raise unittest.SkipTest('the recorded replays run on the GPPL engine (pp_tests/gppl/session.py) only')
     if name in SLOW and os.environ.get(ALL_ENV) != '1':
         raise unittest.SkipTest(f'{name} ({SLOW[name]}) runs with {ALL_ENV}=1')
     return recorded.replay(name)

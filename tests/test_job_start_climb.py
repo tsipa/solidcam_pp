@@ -8,7 +8,7 @@ hitting clamps or the part; standard order is climb, traverse, descend. When the
 import re
 import unittest
 
-from program_session import Program, require_nc_stream
+from program_session import Program
 from support import DRILL_TYPE
 from test_offline import PP
 from test_post_homing_reposition import EMULATED_RAPIDS, Session, without_emulated_feed_calls
@@ -167,7 +167,6 @@ class JobStartClimbTests(unittest.TestCase):
                          ['X100 Y100', 'Z70'])
 
     def test_climb_and_traverse_are_separate_nc_lines(self):
-        require_nc_stream()
         program = Program()
         program.start()
         program.ev('move_5x', xpos=10, ypos=10, zpos=5)
@@ -192,7 +191,6 @@ class ClimbEmulatedRapidFeedTests(unittest.TestCase):
     nRapidfeed (F650); F is modal, so the XY block after it inherits the feed."""
 
     def climb(self, source=None):
-        require_nc_stream()
         program = Program(source=source, **EMULATED_RAPIDS)
         program.start()
         program.ev('move_5x', xpos=10, ypos=10, zpos=5)

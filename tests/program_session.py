@@ -5,25 +5,15 @@ bpos, cpos, feed, spin) is flagged changed when the delivered value differs from
 SolidCAM delivered (the post's own assignments do not count); `force` overrides single flags.
 Declared globals start at GPPL defaults (0, '', false) with the change flag false.
 
-Engine conveniences, the same for every PP version: `Print` is a recorded no-op and zero-padded
-integer literals (`07`) are read as numbers.
+Engine convenience, the same for every PP version: `Print` is a recorded no-op (program_source
+rewrites it to an assignment of gppl_print_log). Zero-padded integer literals (`07`) need no
+rewrite, because the GPPL engine reads them as numbers itself.
 """
 import re
-import unittest
 
-from pp_tests.engine import Engine, UnsupportedGPPL
-from support.legacy_compat import with_stop_context
+from pp_tests.engine import Engine
 from support.session import ALLOWANCE_KEYS, D_TAPPING, DRILL_TYPE, NOT_SENT, with_allowance
 from test_offline import PP
-
-# The default engine (pp_tests.gppl) joins NC lines on a one-shot skipline and runs `input` and
-# `abort` as separate statements; GPPL_ENGINE=legacy does neither, so tests of those skip there.
-ENGINE_HAS_NC_STREAM = hasattr(Engine, 'nc_lines')
-
-
-def require_nc_stream():
-    if not ENGINE_HAS_NC_STREAM:
-        raise unittest.SkipTest('needs the default GPPL engine (skipline joining, input/abort)')
 
 
 def post_error_policies():
@@ -87,31 +77,12 @@ def declared_globals(text):
     return result
 
 
-class ProgramEngine(Engine):
-    def call(self, procedure, arguments=()):
-        try:
-            return super().call(procedure, arguments)
-        except UnsupportedGPPL as exc:
-            # The legacy engine's abort stop carries no text (GPPL_ENGINE=legacy); the GPPL engine
-            # already names the last NC line, so with_stop_context leaves its PostAbort unchanged.
-            stop = with_stop_context(exc, [], self.output)
-            if stop is exc:
-                raise
-            raise stop from exc
-
-    def expression(self, value):
-        chunks = re.split(r'''('(?:[^']|'')*'|"(?:[^"]|"")*")''', value)
-        for index in range(0, len(chunks), 2):
-            chunks[index] = re.sub(r'(?<![\w.])0+(?=\d)', '', chunks[index])
-        return super().expression(''.join(chunks))
-
-
 class Program:
     """One NC program. `options` override user options after init_post, `cam` the CAM defaults."""
 
     def __init__(self, options=None, cam=None, source=None, policies=None):
         text = program_source(source)
-        engine = ProgramEngine(text) if policies is None else ProgramEngine(text, policies=policies)
+        engine = Engine(text) if policies is None else Engine(text, policies=policies)
         for name, value in declared_globals(text).items():
             engine.state[name] = value
         engine.state.update(CONSTANTS)

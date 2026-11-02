@@ -14,7 +14,7 @@ have no procedure, and posting went on), so without a procedure the motion would
 import re
 import unittest
 
-from program_session import Program, post_abort_error, require_nc_stream, post_error_policies
+from program_session import Program, post_abort_error, post_error_policies
 from support import Session, covers
 from support.session import HEADER_DEFAULTS
 from test_offline import PP
@@ -42,7 +42,6 @@ def start_of_file(program):
 
 class UnsupportedOptionTests(unittest.TestCase):
     def program(self, source=None, options=None, **cam):
-        require_nc_stream()
         return Program(options=options, cam=cam, source=source, policies=post_error_policies())
 
     @covers('PP-033', 'PP-034', 'PP-035')
@@ -128,7 +127,6 @@ class UnsupportedOptionTests(unittest.TestCase):
 class UnsupportedEventTests(unittest.TestCase):
     @covers('PP-044', 'PP-045', 'PP-057')
     def test_subprogram_loop_and_reference_point_events_stop_the_post(self):
-        require_nc_stream()
         for event in ('call_proc', 'proc', 'end_proc', 'loop', 'end_loop', 'change_ref_point'):
             with self.subTest(event=event):
                 program = Program(policies=post_error_policies())
@@ -141,7 +139,6 @@ class UnsupportedEventTests(unittest.TestCase):
     def test_motion_events_the_post_cannot_output_stop_it(self):
         # support.session.Session runs the GPP text unchanged (Program rewrites Print), so the suite's
         # coverage record (tests_engine CoverageTests) counts these procedures.
-        require_nc_stream()
         for event in MOTION_EVENTS:
             with self.subTest(event=event):
                 session = Session(start=True, engine_options=dict(policies=post_error_policies()))

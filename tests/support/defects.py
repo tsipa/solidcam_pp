@@ -3,21 +3,19 @@ questions: the single source of truth for @known_defect / @covers markers.
 
 Ids: PP-xxx suspected postprocessor defects (this suite never edits the GPP; a
 canonical test documents each one), ENGINE-xxx gaps or fidelity issues of the
-test engines (the GPPL engine pp_tests/gppl and the original engine
-pp_tests/gppl/legacy.py, selected by GPPL_ENGINE=legacy; neither is edited by
-this suite; workarounds live in tests/support/engines.py), DESIGN-xxx policy
-questions the owner must decide (never @known_defect; one CHARACTERIZATION pin
-with @covers documents the current behaviour).
+test engine (the GPPL engine pp_tests/gppl, not edited by this suite;
+workarounds live in tests/support/engines.py) and of the trace importer
+pp_tests/trace.py, DESIGN-xxx policy questions the owner must decide (never
+@known_defect; one CHARACTERIZATION pin with @covers documents the current
+behaviour).
 
 Status: an entry (or one facet, facet_status) is
   open      the canonical test carries @known_defect and fails while it exists;
-  fixed     an owner-approved GPP commit fixed it (resolution names the commit);
+  fixed     an owner-approved GPP commit (or, for an ENGINE entry, an engine
+            commit) fixed it (resolution names the commit);
             the former canonical test is a regression guard marked @covers;
   accepted  the owner decided the behaviour is intended (resolution says why);
             a @covers CHARACTERIZATION test pins it.
-Engine scope: `engines` lists facets that reproduce only on some engines
-('gppl' = pp_tests/gppl, 'legacy' = GPPL_ENGINE=legacy). On any other engine
-the marker is transparent and the canonical test is a plain guard.
 
 Fields
   severity      after verifier corrections: high | medium-high | medium |
@@ -38,8 +36,6 @@ Fields
                 follow-ups); accepted: the owner decision
   facet_status  optional ((facet, status, resolution), ...) for facets whose
                 status differs from the entry's (a partly fixed defect)
-  engines       optional ((facet, (engine, ...)), ...): the engines a facet
-                reproduces on; facet None is the facetless entry, '*' every facet
   gppl          ENGINE entries: how the GPPL engine handles the gap (fixed, or
                 the policy that implements the GPPL behaviour when it is not
                 the default)
@@ -61,7 +57,6 @@ KINDS = {'PP': 'pp', 'ENGINE': 'engine', 'DESIGN': 'design'}
 SEVERITIES = ('high', 'medium-high', 'medium', 'low-medium', 'low', 'very-low', 'informational')
 CONFIDENCES = ('confirmed', 'uncertain', 'likely-engine-artifact')
 STATUSES = ('open', 'fixed', 'accepted')
-ENGINES = ('gppl', 'legacy')
 
 
 @dataclass(frozen=True)
@@ -80,7 +75,6 @@ class Defect:
     status: str = 'open'
     resolution: str = ''
     facet_status: tuple = ()
-    engines: tuple = ()
     gppl: str = ''
     fix_tests: tuple = ()
 
@@ -100,12 +94,6 @@ class Defect:
             if name == facet:
                 return resolution
         return self.resolution
-
-    def reproduces_on(self, engine, facet=None):
-        """False when the facet is known not to reproduce on this engine ('gppl'/'legacy')."""
-        scope = dict(self.engines)
-        engines = scope.get(facet, scope.get('*'))
-        return engines is None or engine in engines
 
     @property
     def fixed_facets(self):
@@ -153,9 +141,12 @@ def _d(id, title, severity, reachability, confidence, settle_evidence, source_fi
                   settle_evidence, tuple(source_findings), owner_area, facet_confidence=tuple(facet_confidence))
 
 
-# Owner-approved GPP fixes (git log f1803b4..): id -> (status, resolution). A facet
+# Owner-approved GPP and engine fixes (git log f1803b4..): id -> (status, resolution). A facet
 # entry 'PP-002[rounding]' sets one facet only. The former canonical test of a
 # fixed entry is its regression guard and carries @covers(id).
+# Gaps only the original engine had (pp_tests/gppl/legacy.py, removed): the GPPL engine
+# fixed them when it took over the offline tests.
+_GPPL_ADOPTION = '117e611 Adopt the GPPL engine package for the offline tests.'
 RESOLUTIONS = {
     'PP-001': ('fixed', '345cb49 Reprogram X, Y and Z after post-inserted homing (follow-ups 3577b70, ebf9c57). '
                         'Also covers the tool-change case whose first point keeps the previous X/Y.'),
@@ -234,6 +225,13 @@ RESOLUTIONS = {
     'ENGINE-004': ('fixed', "6d4ea82 The CYCLE84 line writes ',0,' instead of the doubled-quote literal, so every "
                             'reading of GPPL quoting gives the same quote-free argument list.'),
     'ENGINE-021': ('fixed', '709e40f Clamp right() to the whole string when the count exceeds its length.'),
+    'ENGINE-002': ('fixed', _GPPL_ADOPTION),
+    'ENGINE-006': ('fixed', _GPPL_ADOPTION),
+    'ENGINE-007': ('fixed', _GPPL_ADOPTION),
+    'ENGINE-011': ('fixed', _GPPL_ADOPTION),
+    'ENGINE-012[redeclare]': ('fixed', _GPPL_ADOPTION),
+    'ENGINE-014': ('fixed', _GPPL_ADOPTION),
+    'ENGINE-015': ('fixed', _GPPL_ADOPTION),
     'DESIGN-003': ('fixed', 'f6e4e4d Index at a tool change: the tool-change block turns A, no separate M1 and homing '
                             '(owner decision 2026-10-28; the index M1 only without bOptstptc, none before the first '
                             'tool).'),
@@ -290,39 +288,38 @@ FIX_TESTS = {
     'PP-063': ('tests/test_recorded_replays.py', 'tests/test_cycle832.py'),
 }
 
-# Engine scope and GPPL engine handling of the ENGINE entries.
-ENGINE_SCOPE = {
-    'ENGINE-002': ((('*', ('legacy',)),), 'Fixed in the NC stream: engine.nc_lines()/nc_text() join one block per '
-                   'skipline=false assignment (policy skipline=join_next_nb). engine.output, the fragment list '
-                   'most tests read, never joins.'),
-    'ENGINE-006': ((('*', ('legacy',)),), 'Fixed: 07 is the integer 7.'),
-    'ENGINE-007': ((('*', ('legacy',)),), "Fixed: right() and tostr(v:'fmt') are built in; right() of a count above "
-                   'the string length is ENGINE-021.'),
-    'ENGINE-011': ((('*', ('legacy',)),), 'Fixed: its own expression parser rejects the Python-only syntax.'),
-    'ENGINE-012': ((('redeclare', ('legacy',)),), 'Facet redeclare fixed (locals live in call frames); dynamic '
-                   'scope is the default (policy local_scoping=lexical is the alternative).'),
-    'ENGINE-014': ((('*', ('legacy',)),), 'Fixed: declarations are parsed and validated at load.'),
-    'ENGINE-015': ((('*', ('legacy',)),), 'Fixed: output and expressions share one literal model.'),
-    'ENGINE-021': ((('*', ('gppl',)),), 'GPPL engine only (pp_tests/gppl/builtins.py f_right); the legacy engine has '
-                   'no right() (ENGINE-007) and LegacyCompatEngine clamps.'),
-}
+# GPPL engine handling of the ENGINE entries.
 GPPL_NOTES = {
-    'ENGINE-001': 'Same default rule (policy change_on_equal_assign=keep; alternatives clear, clear_user, set).',
+    'ENGINE-001': 'Default rule (policy change_on_equal_assign=keep; alternatives clear, clear_user, set).',
+    'ENGINE-002': 'Fixed in the NC stream: engine.nc_lines()/nc_text() join one block per skipline=false assignment '
+                  '(policy skipline=join_next_nb). engine.output, the fragment list most tests read, never joins.',
     'ENGINE-003': 'Policy typed_default_formats=on implements it (default off).',
-    'ENGINE-004': 'Same default (policy quote_escape=double; alternative none).',
+    'ENGINE-004': 'Default quote_escape=double (alternative none).',
     'ENGINE-005': 'Policy declared_flag=false implements it (default none).',
+    'ENGINE-006': 'Fixed: 07 is the integer 7.',
+    'ENGINE-007': "Fixed: right() and tostr(v:'fmt') are built in; right() of a count above the string length is "
+                  'ENGINE-021.',
     'ENGINE-008': 'Policy print_stmt=console implements it (default error).',
     'ENGINE-009': 'input and abort are separate statements: policy input_stmt=scripted answers the prompt and abort '
                   'raises PostAbort; the default input_stmt=abort still stops at input. The POST ERROR stops print '
                   'instead, and tests/program_session.post_error_policies (print_stmt=console) runs them up to their '
                   'abort.',
     'ENGINE-010': 'Policy tonum=atof implements it (default strict).',
+    'ENGINE-011': 'Fixed: its own expression parser rejects the Python-only syntax.',
+    'ENGINE-012': 'Facet redeclare fixed (locals live in call frames); dynamic scope is the default (policy '
+                  'local_scoping=lexical is the alternative).',
     'ENGINE-013': 'Policy integer_assign=truncate or round_half_away implements it (default keep).',
-    'ENGINE-016': 'Not engine code: pp_tests/trace.py is shared by both engines.',
-    'ENGINE-017': 'Not engine code: pp_tests/trace.py is shared by both engines.',
-    'ENGINE-018': 'Policies format_grammar=extended and trace_stmt=ignore implement it (defaults legacy and error).',
+    'ENGINE-014': 'Fixed: declarations are parsed and validated at load. Assignments to undeclared names stay '
+                  'allowed (policy undeclared_assign=allow; alternative error).',
+    'ENGINE-015': "Fixed: output and expressions share one literal model. Ties, logicals and '(p)' are policies "
+                  '(rounding, logical_output, flag_p) whose defaults keep the old rendering.',
+    'ENGINE-016': 'Not engine code: pp_tests/trace.py.',
+    'ENGINE-017': 'Not engine code: pp_tests/trace.py.',
+    'ENGINE-018': 'Policies format_grammar=extended and trace_stmt=ignore implement it (defaults format_grammar=legacy '
+                  'and trace_stmt=error).',
     'ENGINE-019': 'Policy load_errors=raise implements it (default lazy).',
-    'ENGINE-020': 'Same default behaviour.',
+    'ENGINE-020': 'Default behaviour; no policy changes it.',
+    'ENGINE-021': 'Fixed: right() returns the whole string for a count beyond its length.',
 }
 
 
@@ -379,8 +376,8 @@ _ENTRIES = [
     _d('PP-006', "zpos_f becomes '5.4' after the first rapid / tool-change rapid: Z has 4 decimals, X/Y 5", 'low',
        "Default config: every program after the first rapid (@usr_rapid L1256/L1269); later tool changes do not "
        "restore '8.5' (@usr_ct_before_notfirsttool L724 re-applies '5.4' only when bVertical/bFirstVert is set, "
-       "and bVertical needs nR2pos != 0, which is always 0 on this 4x-A machine). The legacy motion_engine sets "
-       "zpos_f=8.5 and hides it.",
+       "and bVertical needs nR2pos != 0, which is always 0 on this 4x-A machine). The mid-job motion_engine "
+       "preset sets zpos_f=8.5 and hides it.",
        'confirmed',
        'Settled as real output by tests/fixtures/shit2_contiguous_link.json (4-decimal Z); owner decides whether '
        '0.0001 mm is acceptable against VMID MovementPrecision=5.',
@@ -392,8 +389,8 @@ _ENTRIES = [
        'axial X.',
        ['pp-region-4-cycles-rotary-01', 'pp-weird-hunter-07'], 'B'),
     _d('PP-008', 'Through-tool coolant 30 bar selects M07, the mist code (table 77/76/75/07/71..74)', 'low',
-       'Non-default CAM coolant: through_ival_coolant=1 with through_coolant_val=30; executable only with the '
-       'leading-zero workaround (ENGINE-006).',
+       'Non-default CAM coolant: through_ival_coolant=1 with through_coolant_val=30 (the literal 07, '
+       'ENGINE-006).',
        'uncertain',
        "The machine builder's M-code list for through-spindle coolant pressures (is M70 the 30 bar code?).",
        ['history-misc-14', 'tc-08', 'pp-weird-hunter-09', 'efc-14'], 'A'),
@@ -788,8 +785,8 @@ _ENTRIES = [
        'likely-engine-artifact',
        'One SolidCAM G84 run (posted CYCLE84 line) or a GPPL manual statement on literal quoting.',
        ['engine-impl-critic-06', 'history-misc-06', 'pp-region-4-cycles-rotary-24', 'pp-weird-hunter-10'], 'E'),
-    _d('ENGINE-005', 'Declared globals get no change flag (locals get False); change(<global>) raises KeyError',
-       'medium',
+    _d('ENGINE-005', 'Declared globals get no change flag (locals get False); change(<global>) stops with '
+       'MissingInput (change(g) was not supplied)', 'medium',
        'Sessions from @init_post die at @usr_hsm_mode without blanket flag filling.',
        'confirmed',
        'GPPL manual statement on the initial change flag of declared variables.',
@@ -830,8 +827,8 @@ _ENTRIES = [
        'confirmed',
        'GPPL manual expression grammar.',
        ['engine-impl-critic-08', 'efc-15'], 'F'),
-    _d('ENGINE-012', 'Re-executing a local declaration loses the outer value; flat dict gives dynamic scope',
-       'low',
+    _d('ENGINE-012', 'Re-executing a local declaration lost the outer value (original engine); a callee sees '
+       "its caller's locals (dynamic scope)", 'low',
        'Latent; GPPL local scoping itself is unproven.',
        'uncertain',
        'GPPL manual statement on local variable scope.',
@@ -871,8 +868,10 @@ _ENTRIES = [
        'confirmed',
        'None needed for support; GPPL manual for the exact meaning of the (n) and (*k) modifiers.',
        ['history-rotary-15', 'history-indexing-link-12', 'engine-impl-critic-12'], 'F'),
-    _d('ENGINE-019', 'Text outside procedures is silently ignored by the parser', 'low',
-       'Latent: a stray statement between procedures would not be executed or reported.',
+    _d('ENGINE-019', 'Text outside procedures is ignored at load (only a W-OUTSIDE warning; the engine does not '
+       'reject it)', 'low',
+       'Latent: a stray statement between procedures would not be executed; only the W-OUTSIDE load warning '
+       '(python -m pp_tests.gppl validate) reports it.',
        'confirmed',
        'GPPL manual: is code outside procedures an error at load?',
        ['TSR-17'], 'F'),
@@ -886,7 +885,7 @@ _ENTRIES = [
        'Latent: no GPP call passes a count above the string length (@usr_sof_progname passes at most strlen - 1, '
        '@usr_US_date right(date, 4)).',
        'confirmed',
-       'None needed (right() returns the last n characters; LegacyCompatEngine already clamps).',
+       'None needed (right() returns the last n characters, so a longer count gives the whole string).',
        ['integration-review'], 'F'),
     # -------------------------------------------------------------- DESIGN
     _d('DESIGN-001', 'CAM-link trust: a rapid that descends inside a confirmed link keeps the authorization, and '
@@ -938,8 +937,8 @@ _ENTRIES = [
 
 # Where each entry lives. GPP line numbers refer to Gmill_540v_4x.gpp at f1803b4
 # (the GPP is never edited by this suite; the review fixes moved later lines);
-# engine entries name pp_tests/*.py (pp_tests/gppl/legacy.py is the original
-# engine, formerly pp_tests/engine.py).
+# engine entries name the GPPL engine code that holds the behaviour or fixed it
+# (pp_tests/gppl/*.py) or pp_tests/trace.py.
 LOCATIONS = {
     'PP-001': 'GPP @usr_rapid L1278-1288 (homing + rotation) and L1322-1334 (modal X/Y); @usr_4x_index L2415-2422; '
               '@usr_prep_home_axis/@usr_home_axis L2091-2190 set no change(xpos/ypos)',
@@ -1028,7 +1027,7 @@ LOCATIONS = {
     'PP-053': "GPP @usr_4x_index_rotate (sHomestr = sHomestrrot; '' = no homing in @usr_prep_home_axis); sHomestrrot "
               'assigned only in @usr_rapid and @usr_head_home_select (first rapid / tool change)',
     'PP-054': 'GPP @usr_init_gmstates L341-350 (coolant channels OFF, iG187_P_gpp = 2); @usr_coolant_output '
-              'L1038-1075; @usr_HSM_mode L1077-1099; pp_tests/gppl/legacy.py assignment flag rule',
+              'L1038-1075; @usr_HSM_mode L1077-1099; pp_tests/gppl/runtime.py Engine.assign flag rule',
     'PP-055': 'GPP @drill G83 branch L1846-1907 (FDPR relative to RFP, RFP shifted by SDIS when drill_upper_z <= 0)',
     'PP-056': 'GPP @usr_StopM00_difftool L1754 (flag set), @end_of_job L1193 (cleared), '
               '@usr_ct_before_notfirsttool L691 (read)',
@@ -1044,30 +1043,47 @@ LOCATIONS = {
               'block carried the CAM compensation change',
     'PP-063': 'GPP @usr_smoothing L1251-1256 (nAllow = wall_offset, or floor_offset on profile_3D, when bCycle832, '
               'iG187_P 0, not X5_job and not a drill job), called by @start_of_job L1412',
-    'ENGINE-001': 'pp_tests/gppl/legacy.py Engine.call assignment branch (a flag is raised only when the value changes '
-                  'and never cleared)',
-    'ENGINE-002': "pp_tests/gppl/legacy.py Engine._render (nb/nl always start a new block; 'skipline' is a plain variable)",
-    'ENGINE-003': "pp_tests/gppl/legacy.py Engine._render numeric descriptor fallback (precision 3 when no <name>_f)",
-    'ENGINE-004': "pp_tests/gppl/legacy.py uncomment()/_render literal regex '(?:[^']|'')*'; GPP @drill L1883/L1886",
-    'ENGINE-005': 'pp_tests/gppl/legacy.py Engine.call declaration branch (global: state only, no change flag)',
-    'ENGINE-006': 'pp_tests/gppl/legacy.py Engine.expression (ast.parse rejects 07); GPP @usr_coolant L990',
-    'ENGINE-007': 'pp_tests/gppl/legacy.py Engine._node function table (no right/tostr); GPP L251/L300/L325/L2221',
-    'ENGINE-008': 'pp_tests/gppl/legacy.py Engine.call (Print is an unsupported statement); GPP @usr_4x_index L2426/L2456',
-    'ENGINE-009': "pp_tests/gppl/legacy.py Engine.call ('abort' and 'input' raise UnsupportedGPPL); GPP @usr_arc_check "
+    'ENGINE-001': 'pp_tests/gppl/runtime.py Engine.assign (a flag is raised only when the value changes and never '
+                  'cleared: policy change_on_equal_assign, default keep)',
+    'ENGINE-002': 'pp_tests/gppl/output.py OutputStream.write (the nb after a skipline=false assignment continues the '
+                  'NC line: policy skipline=join_next_nb); runtime.py Engine.assign/set count skipline assignments',
+    'ENGINE-003': 'pp_tests/gppl/runtime.py Engine.render_value (numeric_def_f/integer_def_f only under policy '
+                  'typed_default_formats=on, default off); formats.py render_number (default_precision 3 without a '
+                  'format)',
+    'ENGINE-004': "pp_tests/gppl/lexer.py read_string and strip_comment (doubled quote: policy quote_escape); GPP "
+                  '@drill L1883/L1886',
+    'ENGINE-005': 'pp_tests/gppl/runtime.py Engine._exec_declare (a global gets a change flag only under policy '
+                  "declared_flag=false, default none) and Engine.get_flag ('change(g) was not supplied')",
+    'ENGINE-006': 'pp_tests/gppl/lexer.py tokenize (07 is the integer 7); GPP @usr_coolant L990',
+    'ENGINE-007': 'pp_tests/gppl/builtins.py f_right and f_tostr; GPP L251/L300/L325/L2221',
+    'ENGINE-008': 'pp_tests/gppl/runtime.py Engine._exec_print (policy print_stmt, default error); GPP @usr_4x_index '
+                  'L2426/L2456',
+    'ENGINE-009': 'pp_tests/gppl/runtime.py Engine._exec_input (policy input_stmt, default abort: '
+                  'PostprocessorStopped) and Engine._exec_abort (PostAbort, an UnsupportedGPPL); GPP @usr_arc_check '
                   'L1460-1462, @usr_r1_output L2399-2401',
-    'ENGINE-010': 'pp_tests/gppl/legacy.py Engine._node tonum (float() of the text); GPP @home_number L620-624, '
-                  '@home_data L2620',
-    'ENGINE-011': 'pp_tests/gppl/legacy.py Engine.expression/_node (Python AST subset)',
-    'ENGINE-012': 'pp_tests/gppl/legacy.py Engine.call local declaration branch (locals_saved overwritten; one flat dict)',
-    'ENGINE-013': 'pp_tests/gppl/legacy.py Engine.call declarations (types parsed but discarded)',
-    'ENGINE-014': 'pp_tests/gppl/legacy.py Engine.call declaration regex and assignment branch',
-    'ENGINE-015': 'pp_tests/gppl/legacy.py Engine._render (token regex, numeric rounding, bool rendering)',
+    'ENGINE-010': 'pp_tests/gppl/builtins.py f_tonum (policy tonum, default strict: non-numeric text raises); GPP '
+                  '@home_number L620-624, @home_data L2620',
+    'ENGINE-011': "pp_tests/gppl/lexer.py tokenize (no hex, '1_000' or '2j' literals), expr.py Parser.parse_binary "
+                  '(no chained comparisons) and compile_expr arithmetic (no string repetition); builtins.py '
+                  'f_left/f_substr (policy string_index)',
+    'ENGINE-012': "pp_tests/gppl/runtime.py Engine.lookup/_owner (a callee sees its callers' locals under policy "
+                  'local_scoping=dynamic, the default); locals live in call frames (Engine._exec_declare)',
+    'ENGINE-013': 'pp_tests/gppl/runtime.py Engine._coerce (policy integer_assign, default keep: integers hold '
+                  'fractions)',
+    'ENGINE-014': 'pp_tests/gppl/program.py parse_simple declaration branch (a name that is not an identifier is a '
+                  'syntax error: unsupported declaration syntax; check_variable_name also rejects reserved function '
+                  'names); runtime.py Engine.assign (policy undeclared_assign, default allow)',
+    'ENGINE-015': 'pp_tests/gppl/lexer.py read_string (one literal model for output and expressions); formats.py '
+                  'render_number (policies rounding, flag_p); runtime.py Engine.render_value (policy logical_output)',
     'ENGINE-016': 'pp_tests/trace.py parse_trace (fixed-width ..> continuation and nested-call handling)',
     'ENGINE-017': 'pp_tests/trace.py sanitize (identifier allowlist)',
-    'ENGINE-018': 'pp_tests/gppl/legacy.py Engine.call statement dispatch (trace) and Engine._render descriptor regex',
-    'ENGINE-019': 'pp_tests/gppl/legacy.py Engine.__init__ (lines outside @...endp are dropped)',
-    'ENGINE-020': "pp_tests/gppl/legacy.py Engine._render ('(expr)' tokens clear the flags of their identifiers)",
-    'ENGINE-021': 'pp_tests/gppl/builtins.py f_right (text[len(text) - count:] without an upper clamp)',
+    'ENGINE-018': 'pp_tests/gppl/runtime.py Engine._exec_trace (policy trace_stmt) and formats.py parse_format '
+                  '(policy format_grammar: _parse_legacy or _parse_extended)',
+    'ENGINE-019': 'pp_tests/gppl/program.py Program._load (W-OUTSIDE: a statement outside any procedure is ignored; '
+                  'a load error only under policy load_errors=raise)',
+    'ENGINE-020': "pp_tests/gppl/runtime.py Engine._exec_output (clear_change_after_gen clears every name of the "
+                  "statement) and nodes.py value_names (identifiers inside '(expr)' output tokens count)",
+    'ENGINE-021': 'pp_tests/gppl/builtins.py f_right (text[max(len(text) - count, 0):])',
     'DESIGN-001': "GPP @usr_rapid L1222-1230 and L1362-1366 (link kept without a Z check); @usr_line L1387-1394 "
                   "('zpos gt nLastPathZ')",
     'DESIGN-002': "GPP @usr_rapid L1278-1288 (homing + rotation) and L1322-1333 (Z on the XY line unless bFirstMove)",
@@ -1105,20 +1121,17 @@ def _resolved(entry):
                    in RESOLUTIONS.items() if key.startswith(entry.id + '['))
     if facets:
         changes['facet_status'] = facets
-    if entry.id in ENGINE_SCOPE:
-        changes['engines'], changes['gppl'] = ENGINE_SCOPE[entry.id]
-    elif entry.id in GPPL_NOTES:
+    if entry.id in GPPL_NOTES:
         changes['gppl'] = GPPL_NOTES[entry.id]
     if entry.id in FIX_TESTS:
         changes['fix_tests'] = FIX_TESTS[entry.id]
     return replace(entry, **changes) if changes else entry
 
 
-_unknown = sorted(({key.split('[')[0] for key in RESOLUTIONS} | set(ENGINE_SCOPE) | set(GPPL_NOTES)
-                   | set(FIX_TESTS))
+_unknown = sorted(({key.split('[')[0] for key in RESOLUTIONS} | set(GPPL_NOTES) | set(FIX_TESTS))
                   - {entry.id for entry in _ENTRIES})
 if _unknown:
-    raise ValueError(f'RESOLUTIONS/ENGINE_SCOPE/GPPL_NOTES name unknown ids: {_unknown}')
+    raise ValueError(f'RESOLUTIONS/GPPL_NOTES/FIX_TESTS name unknown ids: {_unknown}')
 _ENTRIES = [_resolved(entry) for entry in _ENTRIES]
 
 REGISTRY = {entry.id: entry for entry in _ENTRIES}

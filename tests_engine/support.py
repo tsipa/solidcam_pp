@@ -3,12 +3,8 @@
 import os
 import re
 import unittest
-
-if os.environ.get('GPPL_ENGINE', '').strip().lower() == 'legacy':
-    raise unittest.SkipTest('tests_engine tests the default GPPL engine; unset GPPL_ENGINE=legacy')
 from pathlib import Path
 
-from pp_tests.gppl import legacy  # noqa: F401  (verbatim legacy engine: differential oracle)
 from pp_tests.gppl.policies import Policies
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -75,11 +71,3 @@ def first_statement_line(proc):
 def require_vmid(case):
     if not VMID.exists():
         raise unittest.SkipTest(f'VMID not found at {VMID}')
-
-
-def legacy_outcome(fn):
-    """Run ``fn`` against the legacy engine; return ('ok', value) or ('error', exc)."""
-    try:
-        return 'ok', fn()
-    except Exception as exc:                       # noqa: BLE001 - evidence only
-        return 'error', exc

@@ -39,8 +39,7 @@ py -m unittest discover -s tests_engine -v
 ```
 
 (`python -m unittest ...` works on either system when `python` is a Python 3.10+
-interpreter.) The post tests run on the GPPL engine in `pp_tests/gppl`;
-`GPPL_ENGINE=legacy` runs them on the original engine. Suspected postprocessor
-defects are reported as skipped "known defect ... reproduced" tests and listed, with
-the defects already fixed, in [tests/PP_FINDINGS.md](tests/PP_FINDINGS.md); set
-`PP_STRICT_KNOWN_DEFECTS=1` to run the open ones as failures.
+interpreter.) The post tests run on the GPPL engine in `pp_tests/gppl`. Suspected
+postprocessor defects are reported as skipped "known defect ... reproduced" tests and
+listed, with the defects already fixed, in [tests/PP_FINDINGS.md](tests/PP_FINDINGS.md);
+set `PP_STRICT_KNOWN_DEFECTS=1` to run the open ones as failures.

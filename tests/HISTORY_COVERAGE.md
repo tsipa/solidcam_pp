@@ -13,7 +13,7 @@ Run everything offline from the repository root (`python3` on Linux/macOS):
 python -m unittest discover -s tests
 ```
 
-Run only the legacy historical fixture suite:
+Run only the historical fixture suite:
 
 ```
 python -m unittest discover -s tests -p test_history_regressions.py -v
@@ -39,7 +39,7 @@ docstring of a test that reverts nothing is not evidence). A FAIL is an
 AssertionError; ERRORs (engine gaps, or the `StaleAnchor` of an in-memory mutation
 whose anchor the reversion removed) never count as detection.
 
-Measured on the GPP of `0ed0b78` (default engine, 48 commits): **47 of 48 commits
+Measured on the GPP of `0ed0b78` (GPPL engine, 48 commits): **47 of 48 commits
 are detected**: 18 by the complete reverse patch, 21 by hand-crafted reversions, 8
 by a partial reverse patch. Not detected: `a71e102`, which by design does not change
 the output (below). With the original 35-test suite (`revert_matrix.txt` of the
@@ -71,7 +71,7 @@ the stops was deleted, and the tests that only reverted it (the dc916d7 ZX K wor
 | `bea8c62` | Fix Sinumerik drill cycle parameters | bug fix | 1 of 4 hunks no longer applies (1710187 changed CYCLE83) | fixture regression patches for CYCLE81/82/83 (3 anchor occurrences) and CYCLE86, `RigidTappingTests.test_bea8c62_cycle84_reversion_is_detected`, the cycle geometry guard | detected (hand-crafted) |
 | `719e946` | Avoid double-counting fourth-axis index angle | bug fix | applied; 4 FAIL | fixture `fourth_axis_transform_angle_is_not_counted_twice`, `FourthAxisIndexTests.test_fourth_axis_emits_single_index_word` | detected (reverse patch) |
 | `ad2537a` | Force initial A-axis DC output | bug fix | applied; 7 FAIL | `test_rotary.py::RotaryRegressionTests.test_program_start_forces_dc`, `test_session_program.py` init_post and two-job tests, `test_offline.py` first rotation | detected (reverse patch) |
-| `c8b79bd` | Disable postprocessor trace | configuration | applied; 1 FAIL (static), 45 ERROR | `test_gpp_static.py::StaticSourceTests` (no active trace; `test_c8b79bd_reversion_is_detected`); the errors are tests that build an engine without the trace workaround: both engines reject `trace` by default (ENGINE-018; GPPL engine policy `trace_stmt=error`) | detected (hand-crafted; static guard) |
+| `c8b79bd` | Disable postprocessor trace | configuration | applied; 1 FAIL (static), 45 ERROR | `test_gpp_static.py::StaticSourceTests` (no active trace; `test_c8b79bd_reversion_is_detected`); the errors are tests that build an engine without the trace workaround: the engine rejects `trace` by default (ENGINE-018; policy `trace_stmt=error`) | detected (hand-crafted; static guard) |
 | `ab853be` | Initialize A-axis with DC output | bug fix | 1 of 5 hunks no longer applies (ad2537a rewrote it) | `test_rotary.py` REVERSIONS (`ab853be` init DC), the initial-DC mutants of the init_post and two-job session tests; the parent GPP fails with AssertionError (area A check) | detected (hand-crafted) |
 | `bff5ed0` | Force explicit A-axis direction output | bug fix | 9 of 17 hunks no longer apply | `test_rotary.py` REVERSIONS (six bff5ed0 entries: plain A, dropped A, swapped index words, index uses dir5a, wrappers keep bR1useDir5a, unknown dir5a defaults to ACP), the half-turn and index-direction guards | detected (hand-crafted) |
 | `8966d35` | Guard ambiguous A-axis modulo moves | bug fix | no longer applies (bff5ed0 deliberately replaced the GPP guard) | `test_rotary.py` half-turn guard and its `8966d35` entry (labelled a mutation: `8966d35^` posted a plain A180, not DC); the .ctl half by `test_machine_definition.py` (below) | detected (hand-crafted) |
@@ -184,13 +184,13 @@ An earlier version of this file said the original suites covered `c03e1b4`
 `3696aa2` and `d5952a2`. Measured with the revert matrix and hand-crafted
 reversions, that was not true:
 
-- `c03e1b4` was not covered. The legacy `motion_engine()` presets `iMotionmode=1`
+- `c03e1b4` was not covered. The mid-job `motion_engine()` preset sets `iMotionmode=1`
   and never runs `@usr_init_gmstates`, and
   `test_index_clearance_modes_and_work_offsets` forces `change(iMotionmode)`, so
   reverting `iMotionmode = 9999` to `0` left every test green (the real first index
   became `G17 G54 G90 A=DC(90)` without G0).
-- The initial DC output (`ab853be`, `ad2537a`) was only partly covered. The legacy
-  `rotary_engine()` presets `bR1forceOutput=False` and never runs `@init_post`, so
+- The initial DC output (`ab853be`, `ad2537a`) was only partly covered. The mid-job
+  `rotary_engine()` preset sets `bR1forceOutput=False` and never runs `@init_post`, so
   the start-of-program force was invisible; only the per-call DC selection was
   exercised (the original `ad2537a` reverse patch produced 9 failures through that
   path). `RotaryRegressionTests.test_program_start_forces_dc` and the init_post

@@ -19,10 +19,11 @@ default run fails with "no longer reproduces" until the entry is marked fixed (s
 commit) and the marker becomes `@covers`: the test is then a regression guard (section Fixed).
 Entries the owner accepted as intended are listed under Accepted and pinned by a
 CHARACTERIZATION test. DESIGN entries are owner decisions: they are pinned with `@covers`
-CHARACTERIZATION tests, never with `@known_defect`. ENGINE entries refer to the test engines:
-the GPPL engine (`pp_tests/gppl`, default) and the original engine (`GPPL_ENGINE=legacy`);
-an entry scoped to one engine is a plain guard on the other. Severity and confidence are after
-the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.gpp` at f1803b4.
+CHARACTERIZATION tests, never with `@known_defect`. ENGINE entries refer to the test engine,
+the GPPL engine (`pp_tests/gppl`), and to the trace importer (`pp_tests/trace.py`); gaps only
+the original engine (removed) had are fixed by 117e611, which made the GPPL engine the default.
+Severity and confidence are after the adversarial verifier corrections. GPP line numbers refer
+to `Gmill_540v_4x.gpp` at f1803b4.
 
 ## Summary
 
@@ -41,12 +42,10 @@ the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.g
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
 | pp | 28 | 34 | 1 | 4 |
-| engine | 19 | 2 | 0 | 0 |
+| engine | 13 | 8 | 0 | 1 |
 | design | 5 | 2 | 0 | 0 |
 
-Engine scope: ENGINE-002, ENGINE-006, ENGINE-007, ENGINE-011, ENGINE-012, ENGINE-014, ENGINE-015 reproduce (in whole or in one facet) only on the legacy engine; ENGINE-021 only on the GPPL engine.
-
-Canonical `@known_defect` tests: 47. `@covers` references: 106.
+Canonical `@known_defect` tests: 40. `@covers` references: 113.
 
 ## Index of open entries
 
@@ -81,23 +80,17 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 | [PP-056](#pp-056) | low | confirmed | A | bStopM00difftool is set and cleared in the same @end_of_job: the skip path is dead and is what keeps the G75 retract before M06 | pinned only (@covers) |
 | [PP-058](#pp-058) | low | uncertain | F | Mach3 4x post (6efcad8): the feed re-statement remedy is missing on @line_5x and @arc | `test_line_5x_and_arc_feed_changes_are_restated_too` |
 | [ENGINE-001](#engine-001) | medium | uncertain | F | Change-flag rule for equal-value assignment is unverified (engine: only a value change raises a flag, nothing clears it) | pinned only (@covers) |
-| [ENGINE-002](#engine-002) | low-medium | confirmed | F | skipline block joining is not emulated (nb/nl always start a new block) | `test_skipline_false_joins_the_next_block` |
 | [ENGINE-003](#engine-003) | low-medium | confirmed | F | numeric_def_f / integer_def_f are ignored: unformatted numbers use 3 decimals instead of '8.5' | `test_numeric_def_f_formats_unformatted_numeric_variables` |
-| [ENGINE-005](#engine-005) | medium | confirmed | F | Declared globals get no change flag (locals get False); change(<global>) raises KeyError | `test_declared_global_has_change_flag` |
-| [ENGINE-006](#engine-006) | low | confirmed | F | Leading-zero integer literal 07 raises (Python parser) | `test_leading_zero_integer_literal` |
-| [ENGINE-007](#engine-007) | low | confirmed | F | right() and tostr(value:'fmt') built-ins are missing | `test_right_and_tostr_builtins` |
+| [ENGINE-005](#engine-005) | medium | confirmed | F | Declared globals get no change flag (locals get False); change(<global>) stops with MissingInput (change(g) was not supplied) | `test_declared_global_has_change_flag` |
 | [ENGINE-008](#engine-008) | low | uncertain | F | Print statement is unsupported (assumed: message window, generation continues) | `test_print_statement_does_not_stop_the_post` |
 | [ENGINE-009](#engine-009) | medium | confirmed | F | input is treated as a terminal stop and abort raises the same exception as engine gaps; deleting abort leaves the suite green | `test_removed_abort_changes_observable_result` [abort-observable], `test_engine_input_prompt_is_not_terminal` [input-terminal] |
 | [ENGINE-010](#engine-010) | low | confirmed | F | tonum() of a non-numeric string raises (tonum('G5')) | `test_tonum_of_non_numeric_text_returns_zero` |
-| [ENGINE-011](#engine-011) | low | confirmed | F | Python-superset expression semantics are accepted silently (chained comparisons, hex, string*int, negative left/substr, precedence) | `test_python_only_syntax_is_rejected` |
-| [ENGINE-012](#engine-012) | low | uncertain | F | Re-executing a local declaration loses the outer value; flat dict gives dynamic scope | `test_callee_assignment_to_caller_local_name_reaches_global` [dynamic-scope], `test_local_redeclared_in_loop_restores_global` [redeclare] |
+| [ENGINE-012](#engine-012) | low | uncertain | F | Re-executing a local declaration lost the outer value (original engine); a callee sees its caller's locals (dynamic scope) | `test_callee_assignment_to_caller_local_name_reaches_global` [dynamic-scope] |
 | [ENGINE-013](#engine-013) | low | uncertain | F | Integer-typed variables hold fractions (no truncation/rounding on assignment) | `test_integer_variable_does_not_hold_fraction` |
-| [ENGINE-014](#engine-014) | low | confirmed | F | Declaration parser accepts junk names; assignments to undeclared names are accepted | `test_declaration_with_initializer_is_not_silently_accepted` |
-| [ENGINE-015](#engine-015) | low | confirmed | F | Rendering details: "" escape differs between _render and expression(), half-even ties, bool printed as True, '(p)' ignored | `test_double_quoted_literal_escape_matches_expression_parser` |
 | [ENGINE-016](#engine-016) | low | confirmed | F | trace.py: nested-call ..> lines become NC output; fixed-width indentation is assumed | `test_nested_call_parameters_are_not_nc_output` |
 | [ENGINE-017](#engine-017) | low | confirmed | F | Trace sanitizer redacts the enum inputs (feed_type, prev_command, ...) that drive the CAM-link homing bypass | `test_safety_relevant_enums_survive_sanitizing` |
 | [ENGINE-018](#engine-018) | low | confirmed | F | Historical-revision constructs are unsupported: active trace statements and numeric formats '<(>5.3<)>', '(*k)', '+8.5', '(n)' | `test_historical_formats_and_trace_statements_are_accepted` |
-| [ENGINE-019](#engine-019) | low | confirmed | F | Text outside procedures is silently ignored by the parser | `test_code_outside_procedures_is_reported` |
+| [ENGINE-019](#engine-019) | low | confirmed | F | Text outside procedures is ignored at load (only a W-OUTSIDE warning; the engine does not reject it) | `test_code_outside_procedures_is_reported` |
 | [ENGINE-020](#engine-020) | low | uncertain | F | Identifiers inside '(expr)' output tokens get their change flags cleared | `test_expression_output_token_keeps_operand_change_flags` |
 | [DESIGN-001](#design-001) | low | uncertain | C | CAM-link trust: a rapid that descends inside a confirmed link keeps the authorization, and any positive Z step (0.001 mm) authorizes an unhomed rotation | pinned only (@covers) |
 | [DESIGN-004](#design-004) | low | confirmed | C | In confirmed CAM links the rotary block always precedes the XYZ block, even when Z rises in the same event | pinned only (@covers) |
@@ -148,7 +141,7 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 
 - Severity: low
 - Confidence: confirmed
-- Reachability: Default config: every program after the first rapid (@usr_rapid L1256/L1269); later tool changes do not restore '8.5' (@usr_ct_before_notfirsttool L724 re-applies '5.4' only when bVertical/bFirstVert is set, and bVertical needs nR2pos != 0, which is always 0 on this 4x-A machine). The legacy motion_engine sets zpos_f=8.5 and hides it.
+- Reachability: Default config: every program after the first rapid (@usr_rapid L1256/L1269); later tool changes do not restore '8.5' (@usr_ct_before_notfirsttool L724 re-applies '5.4' only when bVertical/bFirstVert is set, and bVertical needs nR2pos != 0, which is always 0 on this 4x-A machine). The mid-job motion_engine preset sets zpos_f=8.5 and hides it.
 - Location: GPP @init_post L59 (zpos_f '8.5'); @usr_rapid L1256/L1269 and @usr_ct_before_notfirsttool L724 (zpos_f '5.4')
 - Evidence that would settle it: Settled as real output by tests/fixtures/shit2_contiguous_link.json (4-decimal Z); owner decides whether 0.0001 mm is acceptable against VMID MovementPrecision=5.
 - Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
@@ -482,7 +475,7 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Severity: low
 - Confidence: likely-engine-artifact
 - Reachability: Default config but ONLY under the flags='persist' session policy (stock-engine change-flag rule for initial assignments, ENGINE-001); the clear policy prints neither.
-- Location: GPP @usr_init_gmstates L341-350 (coolant channels OFF, iG187_P_gpp = 2); @usr_coolant_output L1038-1075; @usr_HSM_mode L1077-1099; pp_tests/gppl/legacy.py assignment flag rule
+- Location: GPP @usr_init_gmstates L341-350 (coolant channels OFF, iG187_P_gpp = 2); @usr_coolant_output L1038-1075; @usr_HSM_mode L1077-1099; pp_tests/gppl/runtime.py Engine.assign flag rule
 - Evidence that would settle it: grep any MPF generated by HEAD for 'G187' and for M8 followed by M9 before the first cut; or a SolidCAM trace "all":5 of a first job showing change(iCoolantM2) and change(iG187_P_gpp).
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)
 - Source findings: TSR-12, TSR-13, efc-02, efc-03, tc-06, pp-weird-hunter-06, history-misc-15, engine-impl-critic-07, history-indexing-link-14
@@ -532,34 +525,16 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Severity: medium
 - Confidence: uncertain
 - Reachability: Every session test: decides whether init assignments leave flags pending (PP-054) and what a first job prints.
-- Location: pp_tests/gppl/legacy.py Engine.call assignment branch (a flag is raised only when the value changes and never cleared)
+- Location: pp_tests/gppl/runtime.py Engine.assign (a flag is raised only when the value changes and never cleared: policy change_on_equal_assign, default keep)
 - Evidence that would settle it: 10-line probe GPP in SolidCAM (global integer i; init i=9; start_of_job i=9; if change(i) {nb,'CHANGED'}) or a trace "all":5 of a first job.
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: efc-01, pp3-engine-change-flags, TSR-17
-- GPPL engine: Same default rule (policy change_on_equal_assign=keep; alternatives clear, clear_user, set).
+- GPPL engine: Default rule (policy change_on_equal_assign=keep; alternatives clear, clear_user, set).
 - Reproduced by: none (an unverified engine rule; pinned by the CHARACTERIZATION tests below)
 - Pinned or exercised by (`@covers`):
   - `tests/test_cycles_spindle.py::MutationKillTests::test_guards_detect_mutations`
   - `tests/test_engine_harness.py::EngineSemanticsPins::test_declared_variable_equal_assignment_keeps_flag`
   - `tests/test_engine_harness.py::EngineSemanticsPins::test_system_variable_equal_assignment_keeps_flag`
-
-### ENGINE-002
-
-**skipline block joining is not emulated (nb/nl always start a new block)**
-
-- Severity: low-medium
-- Confidence: confirmed
-- Reachability: GPP sets skipline 21 times (usr_rapid, usr_ct_after, coolant, drill); a mutation that joins the rotary and XYZ rapid survives.
-- Location: pp_tests/gppl/legacy.py Engine._render (nb/nl always start a new block; 'skipline' is a plain variable)
-- Evidence that would settle it: One real trace showing a skipline=false join and whether nl also consumes it (auto-reset semantics).
-- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
-- Source findings: engine-impl-critic-03, efc-05
-- Engine scope: every facet reproduces only on legacy (gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)
-- GPPL engine: Fixed in the NC stream: engine.nc_lines()/nc_text() join one block per skipline=false assignment (policy skipline=join_next_nb). engine.output, the fragment list most tests read, never joins.
-- Reproduced by:
-  - `tests/test_engine_harness.py::OutputGaps::test_skipline_false_joins_the_next_block`
-- Pinned or exercised by (`@covers`):
-  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_opt_in_emulations`
 
 ### ENGINE-003
 
@@ -568,7 +543,7 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Severity: low-medium
 - Confidence: confirmed
 - Reachability: CYCLE parameters and any number without a <name>_f format (arcs write no centre word since AR=).
-- Location: pp_tests/gppl/legacy.py Engine._render numeric descriptor fallback (precision 3 when no <name>_f)
+- Location: pp_tests/gppl/runtime.py Engine.render_value (numeric_def_f/integer_def_f only under policy typed_default_formats=on, default off); formats.py render_number (default_precision 3 without a format)
 - Evidence that would settle it: A posted MPF with an unformatted arc centre (number of decimals).
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: engine-impl-critic-05, efc-04, engine-impl-critic-12
@@ -580,12 +555,12 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 
 ### ENGINE-005
 
-**Declared globals get no change flag (locals get False); change(<global>) raises KeyError**
+**Declared globals get no change flag (locals get False); change(<global>) stops with MissingInput (change(g) was not supplied)**
 
 - Severity: medium
 - Confidence: confirmed
 - Reachability: Sessions from @init_post die at @usr_hsm_mode without blanket flag filling.
-- Location: pp_tests/gppl/legacy.py Engine.call declaration branch (global: state only, no change flag)
+- Location: pp_tests/gppl/runtime.py Engine._exec_declare (a global gets a change flag only under policy declared_flag=false, default none) and Engine.get_flag ('change(g) was not supplied')
 - Evidence that would settle it: GPPL manual statement on the initial change flag of declared variables.
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: engine-impl-critic-04
@@ -595,46 +570,6 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Pinned or exercised by (`@covers`):
   - `tests/test_engine_harness.py::GpplCompatEngineTests::test_opt_in_emulations`
 
-### ENGINE-006
-
-**Leading-zero integer literal 07 raises (Python parser)**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: GPP line 990 (@usr_coolant, through coolant 30 bar).
-- Location: pp_tests/gppl/legacy.py Engine.expression (ast.parse rejects 07); GPP @usr_coolant L990
-- Evidence that would settle it: None needed (GPP ships the literal).
-- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
-- Source findings: efc-06, engine-impl-critic-14, tc-16
-- Engine scope: every facet reproduces only on legacy (gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)
-- GPPL engine: Fixed: 07 is the integer 7.
-- Reproduced by:
-  - `tests/test_engine_harness.py::ExpressionGaps::test_leading_zero_integer_literal`
-- Pinned or exercised by (`@covers`):
-  - `tests/test_engine_harness.py::CompatAdditivityTests::test_default_options_reproduce_stock_sessions`
-  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_compat_evaluates_the_through_coolant_literal`
-  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_setup_engine_builtins`
-
-### ENGINE-007
-
-**right() and tostr(value:'fmt') built-ins are missing**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: @usr_sof_progname, @usr_US_date/@usr_US_time (start_of_file header) and @Multiple_Fixtures.
-- Location: pp_tests/gppl/legacy.py Engine._node function table (no right/tostr); GPP L251/L300/L325/L2221
-- Evidence that would settle it: None needed (shipped template code); clamp right() to the string length.
-- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
-- Source findings: R1-10, efc-06, engine-impl-critic-14, pp-region-4-cycles-rotary-25
-- Engine scope: every facet reproduces only on legacy (gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)
-- GPPL engine: Fixed: right() and tostr(v:'fmt') are built in; right() of a count above the string length is ENGINE-021.
-- Reproduced by:
-  - `tests/test_engine_harness.py::ExpressionGaps::test_right_and_tostr_builtins`
-- Pinned or exercised by (`@covers`):
-  - `tests/test_engine_harness.py::CompatAdditivityTests::test_default_options_reproduce_stock_sessions`
-  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_compat_runs_us_date_and_time_conversion`
-  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_setup_engine_builtins`
-
 ### ENGINE-008
 
 **Print statement is unsupported (assumed: message window, generation continues)**
@@ -642,7 +577,7 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Severity: low
 - Confidence: uncertain
 - Reachability: @usr_4x_index index clearance warnings (L2426/L2456) and, since they replaced input, the message of every POST ERROR stop (print, then abort).
-- Location: pp_tests/gppl/legacy.py Engine.call (Print is an unsupported statement); GPP @usr_4x_index L2426/L2456
+- Location: pp_tests/gppl/runtime.py Engine._exec_print (policy print_stmt, default error); GPP @usr_4x_index L2426/L2456
 - Evidence that would settle it: GPPL manual or a SolidCAM run showing where Print output goes. A SolidCAM run by the post owner (2026-10-28) showed that print followed by abort works.
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: efc-06, pp-region-4-cycles-rotary-25
@@ -661,7 +596,7 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Severity: medium
 - Confidence: confirmed
 - Reachability: The POST ERROR guards (@usr_arc_check, @usr_r1_output, and since the review fixes the ZX arc, TRC-on-arc and full-turn cutting block stops).
-- Location: pp_tests/gppl/legacy.py Engine.call ('abort' and 'input' raise UnsupportedGPPL); GPP @usr_arc_check L1460-1462, @usr_r1_output L2399-2401
+- Location: pp_tests/gppl/runtime.py Engine._exec_input (policy input_stmt, default abort: PostprocessorStopped) and Engine._exec_abort (PostAbort, an UnsupportedGPPL); GPP @usr_arc_check L1460-1462, @usr_r1_output L2399-2401
 - Evidence that would settle it: GPPL semantics: input prompts and continues, abort terminates (the dummy_var idiom the GPP used before its POST ERROR stops switched to print).
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: engine-impl-critic-01
@@ -682,7 +617,7 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Severity: low
 - Confidence: confirmed
 - Reachability: @home_number and @home_data with operator-entered CoordSys names.
-- Location: pp_tests/gppl/legacy.py Engine._node tonum (float() of the text); GPP @home_number L620-624, @home_data L2620
+- Location: pp_tests/gppl/builtins.py f_tonum (policy tonum, default strict: non-numeric text raises); GPP @home_number L620-624, @home_data L2620
 - Evidence that would settle it: GPPL manual statement on tonum() of non-numeric text.
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: engine-impl-critic-14, pp-region-4-cycles-rotary-25
@@ -690,38 +625,23 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Reproduced by:
   - `tests/test_engine_harness.py::ExpressionGaps::test_tonum_of_non_numeric_text_returns_zero`
 
-### ENGINE-011
-
-**Python-superset expression semantics are accepted silently (chained comparisons, hex, string*int, negative left/substr, precedence)**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Latent: no current GPP line depends on it.
-- Location: pp_tests/gppl/legacy.py Engine.expression/_node (Python AST subset)
-- Evidence that would settle it: GPPL manual expression grammar.
-- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
-- Source findings: engine-impl-critic-08, efc-15
-- Engine scope: every facet reproduces only on legacy (gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)
-- GPPL engine: Fixed: its own expression parser rejects the Python-only syntax.
-- Reproduced by:
-  - `tests/test_engine_harness.py::ExpressionGaps::test_python_only_syntax_is_rejected`
-
 ### ENGINE-012
 
-**Re-executing a local declaration loses the outer value; flat dict gives dynamic scope**
+**Re-executing a local declaration lost the outer value (original engine); a callee sees its caller's locals (dynamic scope)**
 
 - Severity: low
 - Confidence: uncertain
 - Reachability: Latent; GPPL local scoping itself is unproven.
-- Location: pp_tests/gppl/legacy.py Engine.call local declaration branch (locals_saved overwritten; one flat dict)
+- Location: pp_tests/gppl/runtime.py Engine.lookup/_owner (a callee sees its callers' locals under policy local_scoping=dynamic, the default); locals live in call frames (Engine._exec_declare)
 - Evidence that would settle it: GPPL manual statement on local variable scope.
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: engine-impl-critic-09
-- Engine scope: facet `redeclare` reproduces only on legacy (gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)
+- Facet `redeclare`: fixed: 117e611 Adopt the GPPL engine package for the offline tests.
 - GPPL engine: Facet redeclare fixed (locals live in call frames); dynamic scope is the default (policy local_scoping=lexical is the alternative).
 - Reproduced by:
   - `tests/test_engine_harness.py::ScopeAndDeclarationGaps::test_callee_assignment_to_caller_local_name_reaches_global` (facet `dynamic-scope`, confidence uncertain)
-  - `tests/test_engine_harness.py::ScopeAndDeclarationGaps::test_local_redeclared_in_loop_restores_global` (facet `redeclare`, confidence uncertain)
+- Pinned or exercised by (`@covers`):
+  - `tests/test_engine_harness.py::ScopeAndDeclarationGaps::test_local_redeclared_in_loop_restores_global`
 
 ### ENGINE-013
 
@@ -730,45 +650,13 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Severity: low
 - Confidence: uncertain
 - Reachability: @usr_spindle_output, @home_number, @usr_prep_home_axis integer arithmetic.
-- Location: pp_tests/gppl/legacy.py Engine.call declarations (types parsed but discarded)
+- Location: pp_tests/gppl/runtime.py Engine._coerce (policy integer_assign, default keep: integers hold fractions)
 - Evidence that would settle it: GPPL manual statement on integer assignment (truncate vs round).
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: engine-impl-critic-10
 - GPPL engine: Policy integer_assign=truncate or round_half_away implements it (default keep).
 - Reproduced by:
   - `tests/test_engine_harness.py::ScopeAndDeclarationGaps::test_integer_variable_does_not_hold_fraction`
-
-### ENGINE-014
-
-**Declaration parser accepts junk names; assignments to undeclared names are accepted**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Latent; no current GPP typo found.
-- Location: pp_tests/gppl/legacy.py Engine.call declaration regex and assignment branch
-- Evidence that would settle it: SolidCAM load of a GPP with an undeclared variable (rejected or not).
-- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
-- Source findings: engine-impl-critic-11
-- Engine scope: every facet reproduces only on legacy (gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)
-- GPPL engine: Fixed: declarations are parsed and validated at load.
-- Reproduced by:
-  - `tests/test_engine_harness.py::ScopeAndDeclarationGaps::test_declaration_with_initializer_is_not_silently_accepted`
-
-### ENGINE-015
-
-**Rendering details: "" escape differs between _render and expression(), half-even ties, bool printed as True, '(p)' ignored**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Latent; affects exact-text assertions only.
-- Location: pp_tests/gppl/legacy.py Engine._render (token regex, numeric rounding, bool rendering)
-- Evidence that would settle it: GPPL manual statement on literal escapes and numeric rounding.
-- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
-- Source findings: engine-impl-critic-12
-- Engine scope: every facet reproduces only on legacy (gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)
-- GPPL engine: Fixed: output and expressions share one literal model.
-- Reproduced by:
-  - `tests/test_engine_harness.py::OutputGaps::test_double_quoted_literal_escape_matches_expression_parser`
 
 ### ENGINE-016
 
@@ -781,7 +669,7 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Evidence that would settle it: A captured trace with nested calls and different indentation.
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: engine-impl-critic-13
-- GPPL engine: Not engine code: pp_tests/trace.py is shared by both engines.
+- GPPL engine: Not engine code: pp_tests/trace.py.
 - Reproduced by:
   - `tests/test_contracts.py::TraceContractTests::test_nested_call_parameters_are_not_nc_output`
 
@@ -796,7 +684,7 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Evidence that would settle it: None needed (allowlist in pp_tests/trace.py).
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: efc-10
-- GPPL engine: Not engine code: pp_tests/trace.py is shared by both engines.
+- GPPL engine: Not engine code: pp_tests/trace.py.
 - Reproduced by:
   - `tests/test_contracts.py::TraceContractTests::test_safety_relevant_enums_survive_sanitizing`
 
@@ -807,11 +695,11 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Severity: low
 - Confidence: confirmed
 - Reachability: Reversion tests against older GPP revisions; newshift_*_f and tostr(...:5.0(n)) in the current GPP.
-- Location: pp_tests/gppl/legacy.py Engine.call statement dispatch (trace) and Engine._render descriptor regex
+- Location: pp_tests/gppl/runtime.py Engine._exec_trace (policy trace_stmt) and formats.py parse_format (policy format_grammar: _parse_legacy or _parse_extended)
 - Evidence that would settle it: None needed for support; GPPL manual for the exact meaning of the (n) and (*k) modifiers.
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: history-rotary-15, history-indexing-link-12, engine-impl-critic-12
-- GPPL engine: Policies format_grammar=extended and trace_stmt=ignore implement it (defaults legacy and error).
+- GPPL engine: Policies format_grammar=extended and trace_stmt=ignore implement it (defaults format_grammar=legacy and trace_stmt=error).
 - Reproduced by:
   - `tests/test_engine_harness.py::OutputGaps::test_historical_formats_and_trace_statements_are_accepted`
 - Pinned or exercised by (`@covers`):
@@ -821,12 +709,12 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 
 ### ENGINE-019
 
-**Text outside procedures is silently ignored by the parser**
+**Text outside procedures is ignored at load (only a W-OUTSIDE warning; the engine does not reject it)**
 
 - Severity: low
 - Confidence: confirmed
-- Reachability: Latent: a stray statement between procedures would not be executed or reported.
-- Location: pp_tests/gppl/legacy.py Engine.__init__ (lines outside @...endp are dropped)
+- Reachability: Latent: a stray statement between procedures would not be executed; only the W-OUTSIDE load warning (python -m pp_tests.gppl validate) reports it.
+- Location: pp_tests/gppl/program.py Program._load (W-OUTSIDE: a statement outside any procedure is ignored; a load error only under policy load_errors=raise)
 - Evidence that would settle it: GPPL manual: is code outside procedures an error at load?
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: TSR-17
@@ -843,11 +731,11 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 - Severity: low
 - Confidence: uncertain
 - Reachability: Latent; no current GPP output depends on it.
-- Location: pp_tests/gppl/legacy.py Engine._render ('(expr)' tokens clear the flags of their identifiers)
+- Location: pp_tests/gppl/runtime.py Engine._exec_output (clear_change_after_gen clears every name of the statement) and nodes.py value_names (identifiers inside '(expr)' output tokens count)
 - Evidence that would settle it: GPPL manual statement on clear_change_after_gen for expression output tokens.
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: efc-15
-- GPPL engine: Same default behaviour.
+- GPPL engine: Default behaviour; no policy changes it.
 - Reproduced by:
   - `tests/test_engine_harness.py::OutputGaps::test_expression_output_token_keeps_operand_change_flags`
 
@@ -930,8 +818,8 @@ Canonical `@known_defect` tests: 47. `@covers` references: 106.
 
 ## Fixed
 
-Fixed by owner-approved GPP commits. The former canonical test of each entry (or facet) is
-now a regression guard marked `@covers`.
+Fixed by owner-approved GPP or engine commits. The former canonical test of each entry (or
+facet) is now a regression guard marked `@covers`.
 
 | id | fixing commit | guarded by (`@covers`) | tests of the fix |
 |---|---|---|---|
@@ -976,7 +864,14 @@ now a regression guard marked `@covers`.
 | [PP-061](#pp-061) | 1add48e | `test_fourth_axis_and_offset_change_resets_are_not_cutting_turns`, `test_post_reset_of_a_is_not_a_cutting_turn` | `tests/test_rotary_modulo_range.py` |
 | [PP-062](#pp-062) | 01dd68f | `test_compensation_left_on_at_a_tool_change_is_deselected_after_the_z_homing`, `test_compensation_left_on_at_an_index_is_deselected_before_the_index`, `test_compensation_left_on_at_an_index_without_homing_is_deselected_at_the_clearance_height`, `test_compensation_left_on_at_program_end_is_deselected_after_the_z_homing`, `test_compensation_left_on_at_the_job_end_is_deselected_at_the_clearance_height` | `tests/test_cutter_compensation.py` |
 | [PP-063](#pp-063) | 2e7cc30 | `test_recorded_cam_004_posts_to_end_of_file` | `tests/test_recorded_replays.py`, `tests/test_cycle832.py` |
+| [ENGINE-002](#engine-002) | 117e611 | `test_opt_in_emulations`, `test_skipline_false_joins_the_next_block` |  |
 | [ENGINE-004](#engine-004) | 6d4ea82 | `test_cycle84_arguments_are_numeric_and_ordered`, `test_cycle84_rigid_tapping_fields`, `test_string_case_and_escaped_quotes` |  |
+| [ENGINE-006](#engine-006) | 117e611 | `test_default_options_reproduce_stock_sessions`, `test_leading_zero_integer_literal`, `test_compat_evaluates_the_through_coolant_literal`, `test_setup_engine_builtins` |  |
+| [ENGINE-007](#engine-007) | 117e611 | `test_default_options_reproduce_stock_sessions`, `test_right_and_tostr_builtins`, `test_compat_runs_us_date_and_time_conversion`, `test_setup_engine_builtins` |  |
+| [ENGINE-011](#engine-011) | 117e611 | `test_python_only_syntax_is_rejected` |  |
+| [ENGINE-012 [redeclare]](#engine-012) | 117e611 | `test_local_redeclared_in_loop_restores_global` |  |
+| [ENGINE-014](#engine-014) | 117e611 | `test_declaration_with_initializer_is_not_silently_accepted` |  |
+| [ENGINE-015](#engine-015) | 117e611 | `test_double_quoted_literal_escape_matches_expression_parser` |  |
 | [ENGINE-021](#engine-021) | 709e40f | `test_right_count_beyond_the_string_returns_the_whole_string` |  |
 | [DESIGN-002](#design-002) | 3e0c345 | `test_homed_rotary_rapid_returns_xy_then_z` | `tests/test_post_homing_reposition.py` |
 | [DESIGN-003](#design-003) | f6e4e4d | `test_index_at_a_tool_change_turns_in_the_tool_change_block`, `test_program_start_index_adds_only_the_a_word` | `tests/test_indexing_link.py`, `tests/test_safety_options.py` |
@@ -1583,6 +1478,24 @@ now a regression guard marked `@covers`.
 - Guarded by (`@covers`):
   - `tests/test_recorded_replays.py::RecordedReplayTests::test_recorded_cam_004_posts_to_end_of_file`
 
+### ENGINE-002
+
+**skipline block joining is not emulated (nb/nl always start a new block)**
+
+- Severity: low-medium
+- Confidence: confirmed
+- Reachability: GPP sets skipline 21 times (usr_rapid, usr_ct_after, coolant, drill); a mutation that joins the rotary and XYZ rapid survives.
+- Location: pp_tests/gppl/output.py OutputStream.write (the nb after a skipline=false assignment continues the NC line: policy skipline=join_next_nb); runtime.py Engine.assign/set count skipline assignments
+- Evidence that would settle it: One real trace showing a skipline=false join and whether nl also consumes it (auto-reset semantics).
+- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
+- Source findings: engine-impl-critic-03, efc-05
+- Status: fixed: 117e611 Adopt the GPPL engine package for the offline tests.
+- GPPL engine: Fixed in the NC stream: engine.nc_lines()/nc_text() join one block per skipline=false assignment (policy skipline=join_next_nb). engine.output, the fragment list most tests read, never joins.
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_opt_in_emulations`
+  - `tests/test_engine_harness.py::OutputGaps::test_skipline_false_joins_the_next_block`
+
 ### ENGINE-004
 
 **The engine's doubled-quote ('') escape renders a stray apostrophe in the CYCLE84 argument list (',0,''')**
@@ -1590,17 +1503,108 @@ now a regression guard marked `@covers`.
 - Severity: low-medium
 - Confidence: likely-engine-artifact
 - Reachability: Every G84 job (@drill L1883/L1886); bea8c62 edited the line without touching the quote, so a real PP defect is unlikely.
-- Location: pp_tests/gppl/legacy.py uncomment()/_render literal regex '(?:[^']|'')*'; GPP @drill L1883/L1886
+- Location: pp_tests/gppl/lexer.py read_string and strip_comment (doubled quote: policy quote_escape); GPP @drill L1883/L1886
 - Evidence that would settle it: One SolidCAM G84 run (posted CYCLE84 line) or a GPPL manual statement on literal quoting.
 - Owner area: E (cycles and spindle: CYCLE81-86, MCALL cancel, tapping, spindle start and dwell)
 - Source findings: engine-impl-critic-06, history-misc-06, pp-region-4-cycles-rotary-24, pp-weird-hunter-10
 - Status: fixed: 6d4ea82 The CYCLE84 line writes ',0,' instead of the doubled-quote literal, so every reading of GPPL quoting gives the same quote-free argument list.
-- GPPL engine: Same default (policy quote_escape=double; alternative none).
+- GPPL engine: Default quote_escape=double (alternative none).
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_cycles_spindle.py::RigidTappingTests::test_cycle84_arguments_are_numeric_and_ordered`
   - `tests/test_cycles_spindle.py::RigidTappingTests::test_cycle84_rigid_tapping_fields`
   - `tests/test_offline.py::HarnessTests::test_string_case_and_escaped_quotes`
+
+### ENGINE-006
+
+**Leading-zero integer literal 07 raises (Python parser)**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: GPP line 990 (@usr_coolant, through coolant 30 bar).
+- Location: pp_tests/gppl/lexer.py tokenize (07 is the integer 7); GPP @usr_coolant L990
+- Evidence that would settle it: None needed (GPP ships the literal).
+- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
+- Source findings: efc-06, engine-impl-critic-14, tc-16
+- Status: fixed: 117e611 Adopt the GPPL engine package for the offline tests.
+- GPPL engine: Fixed: 07 is the integer 7.
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_engine_harness.py::CompatAdditivityTests::test_default_options_reproduce_stock_sessions`
+  - `tests/test_engine_harness.py::ExpressionGaps::test_leading_zero_integer_literal`
+  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_compat_evaluates_the_through_coolant_literal`
+  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_setup_engine_builtins`
+
+### ENGINE-007
+
+**right() and tostr(value:'fmt') built-ins are missing**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: @usr_sof_progname, @usr_US_date/@usr_US_time (start_of_file header) and @Multiple_Fixtures.
+- Location: pp_tests/gppl/builtins.py f_right and f_tostr; GPP L251/L300/L325/L2221
+- Evidence that would settle it: None needed (shipped template code); clamp right() to the string length.
+- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
+- Source findings: R1-10, efc-06, engine-impl-critic-14, pp-region-4-cycles-rotary-25
+- Status: fixed: 117e611 Adopt the GPPL engine package for the offline tests.
+- GPPL engine: Fixed: right() and tostr(v:'fmt') are built in; right() of a count above the string length is ENGINE-021.
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_engine_harness.py::CompatAdditivityTests::test_default_options_reproduce_stock_sessions`
+  - `tests/test_engine_harness.py::ExpressionGaps::test_right_and_tostr_builtins`
+  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_compat_runs_us_date_and_time_conversion`
+  - `tests/test_engine_harness.py::GpplCompatEngineTests::test_setup_engine_builtins`
+
+### ENGINE-011
+
+**Python-superset expression semantics are accepted silently (chained comparisons, hex, string*int, negative left/substr, precedence)**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Latent: no current GPP line depends on it.
+- Location: pp_tests/gppl/lexer.py tokenize (no hex, '1_000' or '2j' literals), expr.py Parser.parse_binary (no chained comparisons) and compile_expr arithmetic (no string repetition); builtins.py f_left/f_substr (policy string_index)
+- Evidence that would settle it: GPPL manual expression grammar.
+- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
+- Source findings: engine-impl-critic-08, efc-15
+- Status: fixed: 117e611 Adopt the GPPL engine package for the offline tests.
+- GPPL engine: Fixed: its own expression parser rejects the Python-only syntax.
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_engine_harness.py::ExpressionGaps::test_python_only_syntax_is_rejected`
+
+### ENGINE-014
+
+**Declaration parser accepts junk names; assignments to undeclared names are accepted**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Latent; no current GPP typo found.
+- Location: pp_tests/gppl/program.py parse_simple declaration branch (a name that is not an identifier is a syntax error: unsupported declaration syntax; check_variable_name also rejects reserved function names); runtime.py Engine.assign (policy undeclared_assign, default allow)
+- Evidence that would settle it: SolidCAM load of a GPP with an undeclared variable (rejected or not).
+- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
+- Source findings: engine-impl-critic-11
+- Status: fixed: 117e611 Adopt the GPPL engine package for the offline tests.
+- GPPL engine: Fixed: declarations are parsed and validated at load. Assignments to undeclared names stay allowed (policy undeclared_assign=allow; alternative error).
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_engine_harness.py::ScopeAndDeclarationGaps::test_declaration_with_initializer_is_not_silently_accepted`
+
+### ENGINE-015
+
+**Rendering details: "" escape differs between _render and expression(), half-even ties, bool printed as True, '(p)' ignored**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Latent; affects exact-text assertions only.
+- Location: pp_tests/gppl/lexer.py read_string (one literal model for output and expressions); formats.py render_number (policies rounding, flag_p); runtime.py Engine.render_value (policy logical_output)
+- Evidence that would settle it: GPPL manual statement on literal escapes and numeric rounding.
+- Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
+- Source findings: engine-impl-critic-12
+- Status: fixed: 117e611 Adopt the GPPL engine package for the offline tests.
+- GPPL engine: Fixed: output and expressions share one literal model. Ties, logicals and '(p)' are policies (rounding, logical_output, flag_p) whose defaults keep the old rendering.
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_engine_harness.py::OutputGaps::test_double_quoted_literal_escape_matches_expression_parser`
 
 ### ENGINE-021
 
@@ -1609,13 +1613,12 @@ now a regression guard marked `@covers`.
 - Severity: very-low
 - Confidence: confirmed
 - Reachability: Latent: no GPP call passes a count above the string length (@usr_sof_progname passes at most strlen - 1, @usr_US_date right(date, 4)).
-- Location: pp_tests/gppl/builtins.py f_right (text[len(text) - count:] without an upper clamp)
-- Evidence that would settle it: None needed (right() returns the last n characters; LegacyCompatEngine already clamps).
+- Location: pp_tests/gppl/builtins.py f_right (text[max(len(text) - count, 0):])
+- Evidence that would settle it: None needed (right() returns the last n characters, so a longer count gives the whole string).
 - Owner area: F (static checks, engine harness, trace/fixture/machine-definition contracts, Mach3)
 - Source findings: integration-review
 - Status: fixed: 709e40f Clamp right() to the whole string when the count exceeds its length.
-- Engine scope: every facet reproduces only on gppl (gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)
-- GPPL engine: GPPL engine only (pp_tests/gppl/builtins.py f_right); the legacy engine has no right() (ENGINE-007) and LegacyCompatEngine clamps.
+- GPPL engine: Fixed: right() returns the whole string for a count beyond its length.
 - Reproduced by: none (fixed; the regression guards are listed below)
 - Guarded by (`@covers`):
   - `tests/test_engine_harness.py::GpplCompatEngineTests::test_right_count_beyond_the_string_returns_the_whole_string`
@@ -1665,7 +1668,7 @@ Behaviour the owner decided to keep; a CHARACTERIZATION test pins it.
 
 - Severity: low
 - Confidence: uncertain
-- Reachability: Non-default CAM coolant: through_ival_coolant=1 with through_coolant_val=30; executable only with the leading-zero workaround (ENGINE-006).
+- Reachability: Non-default CAM coolant: through_ival_coolant=1 with through_coolant_val=30 (the literal 07, ENGINE-006).
 - Location: GPP @usr_coolant L989-991 (iCoolantM5ON = 07); option iCoolantM2ON = 7 'Mist Coolant ON' L115
 - Evidence that would settle it: The machine builder's M-code list for through-spindle coolant pressures (is M70 the 30 bar code?).
 - Owner area: A (session-program: program start/end, header, tool list and stock, tool change, coolant, stops, HSM, homing strings)

@@ -7,7 +7,6 @@ import sys
 import unittest
 
 from pp_tests.engine import Engine, UnsupportedGPPL
-from pp_tests.gppl import legacy
 from pp_tests.gppl.errors import MissingInput, PostAbort, PostprocessorStopped
 from pp_tests.gppl.policies import CHOICES, LEGACY_VALUES, PRESETS, Policies
 from support import PP, ROOT
@@ -117,13 +116,11 @@ class PolicyTests(unittest.TestCase):
                 engine('').expression(text)
         for policy in ('python', 'clamp'):
             self.assertEqual(engine('', string_index=policy).expression("substr('abc', 4, 1)"), '')
-        self.assertEqual(legacy.Engine('').expression("substr('abc', 4, 1)"), '')
 
     def test_string_and_mixed_comparison(self):
         self.assertFalse(engine('').expression("'CW' eq 'cw'"))
         self.assertTrue(engine('', string_compare='case_insensitive').expression("'CW' eq 'cw'"))
         self.assertFalse(engine('').expression("'a' eq 1"))
-        self.assertEqual(legacy.Engine('').expression("'a' eq 1"), False)
         with self.assertRaises(UnsupportedGPPL):
             engine('', mixed_compare='error').expression("'a' eq 1")
         with self.assertRaises(UnsupportedGPPL):
@@ -138,7 +135,7 @@ class PolicyTests(unittest.TestCase):
 
     def test_modulo(self):
         self.assertEqual(engine('').expression('0 - 7 % 3'), 0 - 7 % 3)
-        self.assertEqual(engine('').expression('(0 - 7) % 3'), legacy.Engine('').expression('(0 - 7) % 3'))
+        self.assertEqual(engine('').expression('(0 - 7) % 3'), 2)       # floor modulo (modulo=python)
         self.assertEqual(engine('', modulo='truncate').expression('(0 - 7) % 3'), -1)
         self.assertEqual(engine('', modulo='truncate').expression('7.5 % 2'), 1.5)
         with self.assertRaisesRegex(UnsupportedGPPL, 'division by zero'):
@@ -193,7 +190,6 @@ class PolicyTests(unittest.TestCase):
         src = "@t\nPrint 'hello ', x\ntrace \"all\":5\nendp"
         with self.assertRaisesRegex(UnsupportedGPPL, 'print_stmt=error'):
             engine(src).call('t')
-        self.assertIn('unsupported statement', str(_legacy_error(src)))   # compat == legacy
         e = engine(src, print_stmt='console', trace_stmt='ignore')
         e.set(x=5)
         e.call('t')
@@ -245,14 +241,6 @@ class PolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(UnsupportedGPPL, 'takes 1 argument'):
             engine('@t\ncall @u\nendp\n@u(numeric a)\nendp', load_errors='raise')
         engine('@t\nif false\ncall @nope\nendif\nendp').call('t')          # lazy (default): runs
-
-
-def _legacy_error(src):
-    try:
-        legacy.Engine(src).call('t')
-    except Exception as exc:                    # noqa: BLE001
-        return exc
-    return None
 
 
 if __name__ == '__main__':

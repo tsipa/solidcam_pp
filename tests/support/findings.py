@@ -110,10 +110,11 @@ def render(uses=None):
         'commit) and the marker becomes `@covers`: the test is then a regression guard (section Fixed).',
         'Entries the owner accepted as intended are listed under Accepted and pinned by a',
         'CHARACTERIZATION test. DESIGN entries are owner decisions: they are pinned with `@covers`',
-        'CHARACTERIZATION tests, never with `@known_defect`. ENGINE entries refer to the test engines:',
-        'the GPPL engine (`pp_tests/gppl`, default) and the original engine (`GPPL_ENGINE=legacy`);',
-        'an entry scoped to one engine is a plain guard on the other. Severity and confidence are after',
-        'the adversarial verifier corrections. GPP line numbers refer to `Gmill_540v_4x.gpp` at f1803b4.',
+        'CHARACTERIZATION tests, never with `@known_defect`. ENGINE entries refer to the test engine,',
+        'the GPPL engine (`pp_tests/gppl`), and to the trace importer (`pp_tests/trace.py`); gaps only',
+        'the original engine (removed) had are fixed by 117e611, which made the GPPL engine the default.',
+        'Severity and confidence are after the adversarial verifier corrections. GPP line numbers refer',
+        'to `Gmill_540v_4x.gpp` at f1803b4.',
         '',
     ]
     open_entries = [entry for entry in entries if entry.status == 'open']
@@ -141,11 +142,6 @@ def render(uses=None):
         partly = sum(1 for entry in entries if entry.kind == kind and entry.status == 'open' and entry.fixed_facets)
         out.append(f'| {kind} | ' + ' | '.join(str(counts[s]) for s in STATUSES) + f' | {partly} |')
     out.append('')
-    legacy_only = [entry.id for entry in entries if any(engines == ('legacy',) for _, engines in entry.engines)]
-    gppl_only = [entry.id for entry in entries if any(engines == ('gppl',) for _, engines in entry.engines)]
-    out.append(f'Engine scope: {", ".join(legacy_only)} reproduce (in whole or in one facet) only on the legacy '
-               f'engine; {", ".join(gppl_only) or "none"} only on the GPPL engine.')
-    out.append('')
     reproducing = sum(1 for use in uses if use.marker == 'known_defect')
     out.append(f'Canonical `@known_defect` tests: {reproducing}. `@covers` references: '
                f'{sum(1 for use in uses if use.marker == "covers")}.')
@@ -169,8 +165,8 @@ def render(uses=None):
             out.extend(_entry_section(entry, by_id.get(entry.id, [])))
     out.append('## Fixed')
     out.append('')
-    out.append('Fixed by owner-approved GPP commits. The former canonical test of each entry (or facet) is')
-    out.append('now a regression guard marked `@covers`.')
+    out.append('Fixed by owner-approved GPP or engine commits. The former canonical test of each entry (or')
+    out.append('facet) is now a regression guard marked `@covers`.')
     out.append('')
     out.append('| id | fixing commit | guarded by (`@covers`) | tests of the fix |')
     out.append('|---|---|---|---|')
@@ -222,10 +218,6 @@ def _entry_section(entry, uses):
         lines.append(f'- Status: {entry.status}: {_one_line(entry.resolution)}')
     for facet, status, resolution in entry.facet_status:
         lines.append(f'- Facet `{facet}`: {status}: {_one_line(resolution)}')
-    for facet, engines in entry.engines:
-        where = 'every facet' if facet == '*' else ('the entry' if facet is None else f'facet `{facet}`')
-        lines.append(f'- Engine scope: {where} reproduces only on {" and ".join(engines)} '
-                     '(gppl = pp_tests/gppl, legacy = GPPL_ENGINE=legacy)')
     if entry.gppl:
         lines.append(f'- GPPL engine: {_one_line(entry.gppl)}')
     if entry.fix_tests:
