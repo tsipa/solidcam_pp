@@ -54,6 +54,7 @@ def motion_engine(source=None):
                bStopM00difftool=False, bTmatrixIndexPending=False, bBoundaryStop=False, bStopSinceMotion=False,
                bTcReprogram=False, iCycle832Mode=0, nCycle832Tol=0, iCycle832Want=0, nCycle832WantTol=0,
                iCycle832Job=0, bCycle832Auto=False, bCycle832CompOff=False, bCycle832FeedApply=False,
+               bLinkStep=False, bLinkHoldNext=False, bLinkHold=False, nLinkCount=0, next_command='',
                trace_level=0,
                sHomestrrot=engine.state['shomestrroth'],
                mcode_f='2.0(p)', clear_change_after_gen=1,

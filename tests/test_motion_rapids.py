@@ -33,6 +33,7 @@ import math
 import unittest
 
 from pp_tests.engine import UnsupportedGPPL
+from pp_tests.gppl.errors import PostAbort
 from program_session import Program
 from support import (Session, assert_detected, covers, known_defect, mutate, parse_blocks, replay,
                      state_before)
@@ -559,6 +560,308 @@ class ZPrecisionTests(unittest.TestCase):
         self.assertEqual(blocks[0].axes, {'X': 1.23456, 'Y': 2.34567}, [b.raw for b in blocks])
         self.assertAlmostEqual(z_block.get('Z'), 30.45678, delta=1e-9,
                                msg=f'Z has {decimals_of(z_block, "Z")} decimals: {[b.raw for b in blocks]}')
+
+
+def link_session(source=None, options=None):
+    """Same-tool job 2 after a homed first rotation, a cut at X10 Y0 and a straight feed_link retract
+    to Z50: the 4x/5x rapids that follow ride that confirmed CAM link (d5952a2). A stands at 5."""
+    session = first_job(source, options)
+    session.cut(10, 0, 5, -1)
+    session.same_tool_job(job_name='op2')
+    session.ev('move_5x', ['apos'], apos=5, dir5a='ccw')
+    session.ev('move_5x', XYZ, xpos=10, ypos=0, zpos=5)
+    session.ev('line_5x', ['zpos', 'feed'], zpos=-1, feed_type='feed_rate')
+    session.ev('line_5x', ['zpos'], zpos=50, feed_type='feed_link')
+    return session
+
+
+def link_steps(session, steps, next_after, dir5a='ccw'):
+    """CAM link rapids (move_5x) to each (xpos, apos); each names the next one as next_command, the
+    last one next_after. Returns their NC text."""
+    text = ''
+    for index, (x, a) in enumerate(steps):
+        following = '@move_5x' if index < len(steps) - 1 else next_after
+        text += session.ev('move_5x', ['xpos', 'apos'], xpos=x, apos=a, dir5a=dir5a, next_command=following)
+    return text
+
+
+def a_words(blocks):
+    return [block.rotary('A') for block in blocks if block.rotary('A')]
+
+
+class LinkMergeTests(unittest.TestCase):
+    """CAM-link rapids that turn A along one straight line at constant Y/Z (option bLinkMerge).
+
+    Machine 2026-11-25: CAM split a 91.8 deg link at Z73 into 32 rapids (X -0.246 mm, A -2.869 deg
+    each); posted as alternating G0 A / G0 X blocks, every G0 block ends at a stop (MD20550
+    EXACT_POS_MODE 3) and A stops between them, and the machine jerked through the link. With MD20730
+    G0_LINEAR_MODE 1 one G0 X A block runs the same straight line in X and A. The run is held while
+    CAM's next_command is another 4x/5x rapid and printed with its last step, or before the first
+    event that does not continue it."""
+
+    STEPS = [(11, 8), (12, 11), (13, 14), (14, 17)]  # X +1 per 3 deg: one straight line from X10 A5
+
+    def check_merge_before_a_feed_move(self, source=None):
+        session = link_session(source)
+        mark = session.mark()
+        link_steps(session, self.STEPS, '@line_5x')
+        session.ev('line_5x', ['zpos', 'feed'], zpos=40, feed=300, feed_type='feed_rate', next_command='')
+        blocks = session.blocks(mark)
+        self.assertEqual(a_words(blocks), [('ACP', 17.0)], [b.raw for b in blocks])
+        merged = next(block for block in blocks if block.rotary('A'))
+        self.assertEqual(merged.get('X'), 14, merged.raw)
+        self.assertIn(0, merged.g, merged.raw)
+        self.assertEqual([b.raw for b in blocks if 'X' in b.axes and not b.rotary('A')], [],
+                         [b.raw for b in blocks])
+
+    def test_one_block_when_a_feed_move_follows(self):
+        """INDEPENDENT: four link rapids on one straight line in X and A (X +1 mm per 3 deg) go out as
+        one G0 X14 A=ACP(17) block, printed with the last one (its next_command is a feed move); no
+        separate A or X block remains."""
+        self.check_merge_before_a_feed_move()
+
+    def check_merge_before_a_rapid_down(self, source=None):
+        session = link_session(source)
+        mark = session.mark()
+        link_steps(session, self.STEPS, '@move_5x')
+        session.ev('move_5x', ['zpos'], zpos=10, next_command='@line_5x')
+        blocks = session.blocks(mark)
+        self.assertEqual([b.raw for b in blocks], ['G0 X14 A=ACP(17)', 'Z10'])
+
+    def test_one_block_when_a_rapid_down_follows(self):
+        """INDEPENDENT: the recorded link of the 2026-11-25 program ends with a 4x/5x rapid down in Z
+        (its next_command is a 4x/5x rapid too): the held run is printed first in that rapid, as one
+        block, before its Z block."""
+        self.check_merge_before_a_rapid_down()
+
+    def check_off_line_step_splits(self, source=None):
+        session = link_session(source)
+        mark = session.mark()
+        link_steps(session, [(11, 8), (12, 11), (13.1, 14), (14.2, 17)], '@line_5x')
+        blocks = session.blocks(mark)
+        self.assertEqual([b.raw for b in blocks], ['G0 X12 A=ACP(11)', 'G0 X14.2 A=ACP(17)'])
+
+    def test_a_step_off_the_line_starts_a_new_block(self):
+        """INDEPENDENT: one block may only take points of one straight line (else it cuts the corner
+        CAM planned): a step 0.1 mm off the line of the run ends it (one block to its last point) and
+        starts the next run."""
+        self.check_off_line_step_splits()
+
+    def check_plain_output(self, source=None, options=None, steps=None):
+        """Two link rapids (xpos, apos, zpos or None); the NC of both."""
+        session = link_session(source, options)
+        mark = session.mark()
+        for index, (x, a, z) in enumerate(steps or [(11, 8, None), (12, 11, None)]):
+            changed, values = ['xpos', 'apos'], dict(xpos=x, apos=a)
+            if z is not None:
+                changed.append('zpos')
+                values['zpos'] = z
+            session.ev('move_5x', changed, dir5a='ccw', next_command='@move_5x' if index == 0 else '@line_5x',
+                       **values)
+        return [b.raw for b in session.blocks(mark)]
+
+    RISING = [(11, 8, 60), (12, 11, 70)]
+
+    def test_no_merge_without_the_option_or_off_a_constant_height(self):
+        """INDEPENDENT: with bLinkMerge false, and for steps that also change Z (CAM's link is then not
+        a straight line in X and A alone), every step keeps its G0 A block and X block."""
+        self.assertEqual(self.check_plain_output(options=dict(bLinkMerge=False)),
+                         ['G0 A=ACP(8)', 'X11', 'G0 A=ACP(11)', 'X12'])
+        self.assertEqual(self.check_plain_output(steps=self.RISING),
+                         ['G0 A=ACP(8)', 'X11 Z60', 'G0 A=ACP(11)', 'X12 Z70'])
+
+    def check_last_step_keeps_the_run_x(self, source=None):
+        # X drifts by 0.002 mm per step within the line tolerance; CAM does not flag X on the last
+        # step (same X as the step before), but the run moved X since its start.
+        session = link_session(source)
+        mark = session.mark()
+        session.ev('move_5x', ['xpos', 'apos'], xpos=10.002, apos=8, dir5a='ccw', next_command='@move_5x')
+        session.ev('move_5x', ['xpos', 'apos'], xpos=10.004, apos=11, dir5a='ccw', next_command='@move_5x')
+        session.ev('move_5x', ['apos'], xpos=10.004, apos=14, dir5a='ccw', next_command='@line_5x')
+        self.assertEqual([b.raw for b in session.blocks(mark)], ['G0 X10.004 A=ACP(14)'])
+
+    def test_the_last_block_carries_the_x_of_the_run(self):
+        """INDEPENDENT: the held steps printed no X, so the one block must carry the run's X also when
+        CAM flags no X change on the last step (it flags only what changes at its own precision)."""
+        self.check_last_step_keeps_the_run_x()
+
+    def check_single_and_half_turns(self, source=None):
+        # One held step followed by a rapid down: its plain A and X blocks.
+        session = link_session(source)
+        mark = session.mark()
+        link_steps(session, [(11, 8)], '@move_5x')
+        session.ev('move_5x', ['zpos'], zpos=10, next_command='')
+        self.assertEqual([b.raw for b in session.blocks(mark)], ['G0 A=ACP(8)', 'X11', 'Z10'])
+        # Two steps of 179.5 deg would make 359 deg in one block: each goes on its own.
+        session = link_session(source)
+        mark = session.mark()
+        link_steps(session, [(11, 184.5), (12, 364)], '@line_5x')
+        self.assertEqual(a_words(session.blocks(mark)), [('ACP', 184.5), ('ACP', 4.0)])
+        # The other direction ends the run, also back along the same line (merged, the ACN word would
+        # turn from A5 to A6.5 the long way, 358.5 deg).
+        session = link_session(source)
+        mark = session.mark()
+        session.ev('move_5x', ['xpos', 'apos'], xpos=11, apos=8, dir5a='ccw', next_command='@move_5x')
+        session.ev('move_5x', ['xpos', 'apos'], xpos=10.5, apos=6.5, dir5a='cw', next_command='@line_5x')
+        self.assertEqual(a_words(session.blocks(mark)), [('ACP', 8.0), ('ACN', 6.5)])
+
+    def test_single_steps_long_turns_and_reversals_stay_apart(self):
+        """INDEPENDENT: a run of one step keeps the plain output; a modulo axis turns less than one
+        revolution per ACP/ACN word, so a run stops before 359 deg; a step that turns the other way
+        cannot share the word of the run."""
+        self.check_single_and_half_turns()
+
+    def check_safety_net(self, source=None):
+        session = link_session(source)
+        mark = session.mark()
+        # CAM names another 4x/5x rapid after the last step, but a feed move comes.
+        link_steps(session, self.STEPS, '@move_5x')
+        session.ev('line_5x', ['zpos', 'feed'], zpos=40, feed=300, feed_type='feed_rate', next_command='')
+        raws = [b.raw for b in session.blocks(mark)]
+        self.assertEqual(raws[0], 'G0 X14 A=ACP(17)', raws)
+        self.assertTrue(raws[1].startswith('G1') and 'Z40' in raws[1], raws)
+
+    def test_a_held_run_is_printed_before_the_next_move_in_any_case(self):
+        """INDEPENDENT: a held point must never be lost or follow a later move: when the event after
+        the last step is not the 4x/5x rapid CAM's next_command named, the next motion event prints
+        the run first (here a feed move)."""
+        self.check_safety_net()
+
+    def check_safety_net_arc(self, source=None):
+        session = link_session(source)
+        mark = session.mark()
+        link_steps(session, self.STEPS, '@move_5x')
+        emit_xy_arc(session, (14, 0, 50), (14, 5), 90)
+        raws = [b.raw for b in session.blocks(mark)]
+        self.assertEqual(raws[0], 'G0 X14 A=ACP(17)', raws)
+        self.assertTrue(raws[1].startswith(('G2', 'G3', 'G1')), raws)
+
+    def check_safety_net_job_end(self, source=None):
+        session = link_session(source)
+        mark = session.mark()
+        link_steps(session, self.STEPS, '@move_5x')
+        session.same_tool_job(job_name='op3')
+        raws = [b.raw for b in session.blocks(mark)]
+        self.assertIn('G0 X14 A=ACP(17)', raws)
+        self.assertLess(raws.index('G0 X14 A=ACP(17)'), raws.index('MSG("op3")'), raws)
+
+    def check_safety_net_relative(self, source=None):
+        session = link_session(source)
+        mark = session.mark()
+        link_steps(session, self.STEPS, '@move_5x')
+        session.ev('relative_mode')
+        session.ev('line_5x', ['zpos', 'feed'], zpos=-5, feed=300, feed_type='feed_rate', next_command='')
+        blocks = session.blocks(mark)
+        merged = next(block for block in blocks if block.rotary('A'))
+        self.assertNotIn(91, merged.g, [b.raw for b in blocks])
+        self.assertIn(91, blocks[-1].g, [b.raw for b in blocks])
+
+    def test_the_safety_net_covers_arcs_job_ends_and_g91(self):
+        """INDEPENDENT: with a next_command that named a 4x/5x rapid, the held run still goes out before
+        an arc and before the next job (not after its message and M1), and in the G90 it was held in
+        when a G91 came in between (the end point X14 is absolute)."""
+        self.check_safety_net_arc()
+        self.check_safety_net_job_end()
+        self.check_safety_net_relative()
+
+    BROKEN_FLUSH = ('    if bLinkHold\n        iMode = iMotionmode\n', '    if false\n        iMode = iMotionmode\n')
+
+    def check_lost_run_stops_the_post(self, source, close):
+        session = link_session(source)
+        link_steps(session, self.STEPS, '@move_5x')
+        with self.assertRaises(PostAbort) as caught:
+            close(session)
+        self.assertIn('held CAM-link rapid was not posted', str(caught.exception))
+
+    def test_a_run_still_held_at_an_end_stops_the_post(self):
+        """INDEPENDENT: second line of defence. If the flush ever failed, a job, program or file end
+        must stop the post (POST ERROR) instead of writing a program without the held rapid. Without
+        that check the broken flush loses the run silently at the job end."""
+        broken = mutate(*self.BROKEN_FLUSH)
+        closes = {'end_of_job': lambda s: s.ev('end_of_job'),
+                  'end_program': lambda s: s.ev('end_program'),
+                  'end_of_file': lambda s: s.ev('end_of_file')}
+        for label, close in closes.items():
+            with self.subTest(event=label):
+                self.check_lost_run_stops_the_post(broken, close)
+        no_check = mutate('    call @usr_link_flush\n    call @usr_link_none_held\n    bBoundaryStop = false\n',
+                          '    call @usr_link_flush\n    bBoundaryStop = false\n', source=broken)
+        assert_detected(self, lambda source: self.check_lost_run_stops_the_post(source, closes['end_of_job']),
+                        no_check, 'no check at the job end')
+
+    def check_y_motion_stays_apart(self, source=None):
+        session = link_session(source)
+        mark = session.mark()
+        session.ev('move_5x', ['xpos', 'ypos', 'apos'], xpos=11, ypos=1, apos=8, dir5a='ccw', next_command='@move_5x')
+        session.ev('move_5x', ['xpos', 'ypos', 'apos'], xpos=12, ypos=2, apos=11, dir5a='ccw',
+                   next_command='@line_5x')
+        self.assertEqual([b.raw for b in session.blocks(mark)], ['G0 A=ACP(8)', 'X11 Y1', 'G0 A=ACP(11)', 'X12 Y2'])
+
+    def test_no_merge_when_y_moves(self):
+        """INDEPENDENT: the one block carries X and A only: steps that move Y keep their own blocks."""
+        self.check_y_motion_stays_apart()
+
+    def test_mutations_are_detected(self):
+        """INDEPENDENT: mutation self-check of the link merge."""
+        mutants = {
+            'no line check': (('                    if abs(xpos - nLinkX0 - nLinkDX * nT / nLinkDT) <= 0.005\n',
+                               '                    if true\n'), self.check_off_line_step_splits),
+            'no turn limit': (('                if abs(nT) < 359\n', '                if true\n'),
+                              self.check_single_and_half_turns),
+            'no direction check': (('            if iR1dirMode eq iLinkDir\n', '            if true\n'),
+                                   self.check_single_and_half_turns),
+            'no flush before a feed move': (('    local logical bInverseBlock\n    call @usr_link_flush\n',
+                                             '    local logical bInverseBlock\n'), self.check_safety_net),
+            'no flush at the end of a job': (('    call @usr_link_flush\n    call @usr_link_none_held\n    bBoundaryStop = false\n',
+                                              '    bBoundaryStop = false\n'), self.check_safety_net_job_end),
+            'run printed in the current G91': (('        iAbsincmode = iLinkAbs\n', ''), self.check_safety_net_relative),
+            'Y ignored': (('if bFeedPrevValid and !change(ypos) and !change(zpos)', 'if bFeedPrevValid and !change(zpos)'),
+                          self.check_y_motion_stays_apart),
+            'held run lost at a rapid down': (('        if !bGoesOn\n            call @usr_link_flush\n',
+                                               '        if false\n            call @usr_link_flush\n'),
+                                              self.check_merge_before_a_rapid_down),
+            'merged block without X': (("[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'X',nLinkX:xpos_f,' '}\n",
+                                        "[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}\n"),
+                                       self.check_merge_before_a_rapid_down),
+            'last step without the run X': (("    if abs(xpos - nLinkX0) >= 0.000005\n        change(xpos) = true\n",
+                                             "    if false\n        change(xpos) = true\n"),
+                                            self.check_last_step_keeps_the_run_x),
+        }
+        feed_flush = '    ; A held CAM-link run goes out before a call of this feed move (usr_link_flush).\n    call @usr_link_flush\n'
+        for label, ((old, new), check) in mutants.items():
+            with self.subTest(mutant=label):
+                mutant = mutate(old, new)
+                if label == 'no flush before a feed move':
+                    mutant = mutate(feed_flush, '', source=mutant)
+                if label == 'Y ignored':
+                    mutant = mutate('abs(ypos - nFeedPrevY) < 0.000005 and abs(zpos', 'abs(zpos', source=mutant)
+                assert_detected(self, check, mutant, label)
+        with self.subTest(mutant='no flush before an arc'):
+            mutant = mutate(feed_flush, '')
+            mutant = mutate('    local numeric nArcAR nArcEndX nArcEndY nArcEndZ\n    call @usr_link_flush\n',
+                            '    local numeric nArcAR nArcEndX nArcEndY nArcEndZ\n', source=mutant)
+            assert_detected(self, self.check_safety_net_arc, mutant, 'no flush before an arc')
+
+    def test_z_change_and_option_mutants_are_detected(self):
+        """INDEPENDENT: mutation self-check of the step conditions (constant Z, the option)."""
+        def plain_z(source):
+            self.assertEqual(self.check_plain_output(source, steps=self.RISING),
+                             ['G0 A=ACP(8)', 'X11 Z60', 'G0 A=ACP(11)', 'X12 Z70'])
+
+        def plain_option(source):
+            self.assertEqual(self.check_plain_output(source, options=dict(bLinkMerge=False)),
+                             ['G0 A=ACP(8)', 'X11', 'G0 A=ACP(11)', 'X12'])
+        for label, (old, new), check in (
+                ('Z ignored', ('if bFeedPrevValid and !change(ypos) and !change(zpos) and !change(iDiametercomp)',
+                               'if bFeedPrevValid and !change(ypos) and !change(iDiametercomp)'), plain_z),
+                ('option ignored', ('    if bLinkMerge and bCamLinkRapid and', '    if bCamLinkRapid and'),
+                 plain_option)):
+            with self.subTest(mutant=label):
+                mutant = mutate(old, new)
+                if label == 'Z ignored':
+                    mutant = mutate('abs(ypos - nFeedPrevY) < 0.000005 and abs(zpos - nFeedPrevZ) < 0.000005',
+                                    'abs(ypos - nFeedPrevY) < 0.000005', source=mutant)
+                assert_detected(self, check, mutant, label)
 
 
 class RotaryFeedModeTests(unittest.TestCase):

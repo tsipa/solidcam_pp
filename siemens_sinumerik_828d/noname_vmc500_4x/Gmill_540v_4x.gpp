@@ -16,7 +16,7 @@
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
     global numeric nRapidfeed nMaxInverseFeed iR1dir iR2dir
     global string nR1pos_f nInvFeed_f
-    global logical bCycle832 bCycle832X5 bCycle832AtolA bCycle832G93CompOff bSpinWait
+    global logical bCycle832 bCycle832X5 bCycle832AtolA bCycle832G93CompOff bSpinWait bLinkMerge
     global numeric nCycle832RoughAllow nCycle832TolRough nCycle832TolSemi nCycle832TolFinish
     global string nCycle832Tol_f nCycle832TolA_f nCamDbg_f nArcAR_f
     ; Modal state of the NC program (what the control has active). iDiametercomp is the G40/G41/G42
@@ -80,6 +80,15 @@
     ; move; the next move programs X, Y and Z also when no post homing ran (bHometc, or bHomebegin and
     ; bHomerotv, switched off).
     global logical bPostHomed bPostHomedZ bCamLinkRapid bRapidRotaryChanged bTcReprogram
+    ; CAM-link rapids that turn A along one straight line (bLinkMerge; usr_link_check): bLinkStep, this
+    ; rapid is such a step; bLinkHoldNext, CAM's next event is another 4x/5x rapid, so this step is
+    ; held too; bLinkHold, steps are held for one G0 block. nLinkCount: the held steps;
+    ; nLinkX0: X before the first one; nLinkDX, nLinkDT: X and A travel of the first one (the line);
+    ; nLinkX, nLinkA, nLinkT: the last held point (X, A position, A travel from the start); iLinkDir:
+    ; its ACN (1) / ACP (2); iLinkAbs: the G90/G91 in force when it was held.
+    global logical bLinkStep bLinkHoldNext bLinkHold
+    global integer nLinkCount iLinkDir iLinkAbs
+    global numeric nLinkX0 nLinkDX nLinkDT nLinkX nLinkA nLinkT
     ; WORKPIECE header: the program body is buffered in a file until the end of the file
     ; (usr_workpiece_begin / usr_workpiece_flush), so the blank is clamped on A only when a non-zero
     ; A word was printed (usr_r1_output sets bWorkpieceUsesA; A=DC(0) of the first tool does not).
@@ -235,6 +244,7 @@ endp
     i4xIndexClearanceMode = 0                  ; Index clearance: 0 = home, 1 = tool Z level, 2 = tool start plane. At a tool
                                                ; change A turns in its positioning block after its Z homing (usr_rapid)
     i4xFeedMode           = 1                  ; Rotating G1: 1 = G93 inverse time, 0 = programmed feed (G94)
+    bLinkMerge            = TRUE               ; True = CAM-link rapids that turn A along one straight line at constant Y/Z go out as one G0 X A block; False = a G0 A and an X block per CAM point
     nMaxInverseFeed       = 59999.99           ; G93 F limit, 1/min (VMID MaxInverseFeed)
 
 endp
@@ -564,6 +574,10 @@ endp
     bCycle832G93Off  = false
     bCycle832G93Job  = false
     bCycle832FeedApply = false
+    bLinkStep       = false
+    bLinkHoldNext   = false
+    bLinkHold       = false
+    nLinkCount      = 0
 endp
 
 ;-------------------
@@ -704,6 +718,8 @@ endp
 
 @end_program
     ; End of program: coolant and spindle off, homing (bHomeend), CYCLE832 off, optional stop, M30 (or M2).
+    call @usr_link_flush
+    call @usr_link_none_held
     if bCooloffend and bCoolExist
         call @usr_coolant_all_off
     endif
@@ -739,6 +755,8 @@ endp
 
 @end_of_file
     ; The end-of-file line cPe ('' here: none).
+    call @usr_link_flush
+    call @usr_link_none_held
     if cPe ne ''
         {nl,cPe}
     endif
@@ -807,6 +825,7 @@ endp
 @change_tool
     ; SolidCAM tool change event. The change itself is made at the next @start_of_job (usr_ct), which
     ; knows the operation; here the target X/Y/C of the new tool is kept.
+    call @usr_link_flush
     call @usr_link_boundary
     nTcXnext = xnext
     nTcYnext = ynext
@@ -1326,6 +1345,8 @@ endp
     ; again (iCycle832Job); plunges and links keep the type. Reference trace 2026-10-27: SolidCAM
     ; pockets give the roughing allowance as wall_offset and finish walls and floor at its end (8 of
     ; 31 operations), which would cut the final walls in the roughing tolerance.
+    ; A held CAM-link run goes out before a call of this feed move (usr_link_flush).
+    call @usr_link_flush
     if bCycle832Auto
         if feed_type eq 'finish_feed' or feed_type eq 'finish_feed_floor'
             call @usr_smoothing_set((1))
@@ -1627,6 +1648,8 @@ endp
 
 @end_of_job
     ; End of a job: back to G94, the M00 stop (bStopM00), the job's work offset and Z levels for the next.
+    call @usr_link_flush
+    call @usr_link_none_held
     bBoundaryStop = false
     call @usr_feedmode_94
     call @usr_link_boundary
@@ -1677,6 +1700,9 @@ endp
         bR1StepReset = false
     endif
     call @usr_r1pos_calc
+    ; A CAM-link step of one straight line (bLinkStep), and a held run this rapid does not continue
+    ; printed first, before anything else of it (usr_link_check).
+    call @usr_link_check
     ; A turn in the positioning block of a tool change with the index start_of_job left pending
     ; (bTmatrixIndexPending) is that index. Its M1 (bOptstpindex) comes first, unless the tool change
     ; stopped already (bOptstptc); none before the first tool. CYCLE832 is off there: the tool change
@@ -1742,13 +1768,23 @@ endp
     if bTlchg
         call @usr_rapid_tc_block
     else
-        if change(nR1pos)
-            ; A turns in its own block before X/Y/Z move, also when Z rises in the same event (known
-            ; issue DESIGN-004). Known defect PP-023: as a feed-emulated rapid (G1) it has no F.
-            {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
-            call @usr_r1_output
+        if bLinkStep and bLinkHoldNext
+            ; Another step of the CAM link comes next: hold this one (usr_link_hold).
+            call @usr_link_hold
+        else
+            if bLinkStep and bLinkHold
+                ; The last step of a held run: one G0 X A block to this point (usr_link_last).
+                call @usr_link_last
+            else
+                if change(nR1pos)
+                    ; A turns in its own block before X/Y/Z move, also when Z rises in the same event (known
+                    ; issue DESIGN-004). Known defect PP-023: as a feed-emulated rapid (G1) it has no F.
+                    {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+                    call @usr_r1_output
+                endif
+                call @usr_rapid_xyz
+            endif
         endif
-        call @usr_rapid_xyz
     endif
     call @usr_rapid_done
 endp
@@ -1944,6 +1980,140 @@ endp
     bStopSinceMotion = false
 endp
 
+@usr_link_check
+    ; CAM-link rapids that turn A along one straight line (bLinkMerge). CAM splits a long link into
+    ; 4x/5x rapids of about 3 deg each (VMID Sim5xOptions); posted one by one as a G0 A block and a G0
+    ; X block each, every block ends at a stop (MD20550 EXACT_POS_MODE 3) and A stops between them
+    ; (machine 2026-11-25: 32 such pairs of one link ran jerkily). With MD20730 G0_LINEAR_MODE 1 one
+    ; G0 X A block runs the same straight line in X and A. A step (bLinkStep): a rapid of a CAM link
+    ; (usr_rapid_cam_link: no homing for its turn) that turns A with ACN/ACP, as a true G0, at the Y
+    ; and Z of the last move. Steps are held while CAM's next event is another 4x/5x rapid
+    ; (bLinkHoldNext, usr_link_hold) and go out as one block with the last one (usr_link_last). A held
+    ; run that this rapid does not continue (no step, the other direction, off the run's line by more
+    ; than 0.005 mm in X, or 359 deg of turn or more in all) is printed first (usr_link_flush).
+    local logical bGoesOn
+    local numeric nT
+    bLinkStep = false
+    bLinkHoldNext = false
+    if bLinkMerge and bCamLinkRapid and !bTlchg and !bFirstRapid and !bPostHomed and !bTcReprogram and !bFirstMove
+        if change(nR1pos) and !bR1wrongWay and iMotionmode eq 0
+            if iR1dirMode eq 1 or iR1dirMode eq 2
+                if bFeedPrevValid and !change(ypos) and !change(zpos) and !change(iDiametercomp)
+                    if abs(ypos - nFeedPrevY) < 0.000005 and abs(zpos - nFeedPrevZ) < 0.000005
+                        bLinkStep = true
+                    endif
+                endif
+            endif
+        endif
+    endif
+    if bLinkHold
+        bGoesOn = false
+        if bLinkStep
+            if iR1dirMode eq iLinkDir
+                nT = nLinkT + nR1travel
+                if abs(nT) < 359
+                    if abs(xpos - nLinkX0 - nLinkDX * nT / nLinkDT) <= 0.005
+                        bGoesOn = true
+                    endif
+                endif
+            endif
+        endif
+        if !bGoesOn
+            call @usr_link_flush
+        endif
+    endif
+    if bLinkStep
+        if next_command eq '@move_5x' or next_command eq '@move_4x'
+            bLinkHoldNext = true
+        endif
+    endif
+endp
+
+@usr_link_hold
+    ; Hold this CAM-link step (usr_link_check): nothing printed; the state of a printed rapid
+    ; (usr_rapid_xyz). The first held step fixes the run's start and line.
+    if !bLinkHold
+        bLinkHold = true
+        nLinkCount = 0
+        nLinkX0 = nFeedPrevX
+        nLinkDX = xpos - nFeedPrevX
+        nLinkDT = nR1travel
+        nLinkT = 0
+        iLinkDir = iR1dirMode
+        iLinkAbs = iAbsincmode
+    endif
+    nLinkCount = nLinkCount + 1
+    nLinkT = nLinkT + nR1travel
+    nLinkX = xpos
+    nLinkA = nR1pos
+    ; A held non-zero A position counts for the WORKPIECE clamping reference like a printed one
+    ; (usr_r1_output); nR1pos lies in 0 <= A < 360.
+    if nLinkA >= 0.0005
+        bWorkpieceUsesA = TRUE
+    endif
+    bClimbZValid = true
+    call @usr_feed_start_here
+endp
+
+@usr_link_last
+    ; The last step of a held run (usr_link_check): one G0 block to this point with X and A. A turns
+    ; less than one revolution in the given direction, the sum of the steps.
+    if abs(xpos - nLinkX0) >= 0.000005
+        change(xpos) = true
+    endif
+    {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],['X'xpos ' ']}
+    call @usr_r1_output
+    bLinkHold = false
+    nLinkCount = 0
+    bClimbZValid = true
+    call @usr_feed_start_here
+endp
+
+@usr_link_flush
+    ; Print the held run (bLinkHold) to its last point before anything of the current event: one G0
+    ; X A block, or for a run of one step its G0 A block and X block as usr_rapid prints them. Called
+    ; by usr_link_check, and as a safety net first in the events that may follow a rapid (usr_line,
+    ; usr_smoothing_feed, usr_arc, @drill, @fourth_axis, @m_feed_spin, @end_of_job, @change_tool,
+    ; @end_program, @end_of_file) in case CAM's next_command named a 4x/5x rapid that did not come.
+    ; The run is printed as G0 in the G90/G91 it was held in; the current ones come back after it.
+    local integer iMode iAbs
+    if bLinkHold
+        iMode = iMotionmode
+        iAbs = iAbsincmode
+        iMotionmode = 0
+        iAbsincmode = iLinkAbs
+        if nLinkCount eq 1
+            {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
+        else
+            {nb,'G'iMotionmode:mcode_f ' ',['G'iMplane' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' '],'X',nLinkX:xpos_f,' '}
+        endif
+        if iLinkDir eq 1
+            {cR1,'=ACN(',nLinkA:nR1pos_f,') '}
+        else
+            {cR1,'=ACP(',nLinkA:nR1pos_f,') '}
+        endif
+        if nLinkCount eq 1
+            if abs(nLinkX - nLinkX0) >= 0.000005
+                {nb,'X',nLinkX:xpos_f,' '}
+            endif
+        endif
+        iMotionmode = iMode
+        iAbsincmode = iAbs
+        bLinkHold = false
+        nLinkCount = 0
+    endif
+endp
+
+@usr_link_none_held
+    ; Second line of defence at a job, program and file end, right after usr_link_flush: no CAM-link
+    ; rapid may still be held. Stop instead of writing a program without that move.
+    if bLinkHold
+        print 'POST ERROR: A held CAM-link rapid was not posted. Set bLinkMerge to FALSE and report it.'
+        {nb,"POST ERROR: A held CAM-link rapid was not posted. Set bLinkMerge to FALSE and report it."}
+        abort
+    endif
+endp
+
 @usr_emulated_rapid_feed
     ; F<nRapidfeed> for feed-emulated rapids (G1 on '3-d model' jobs when bSyncdrapid is false). F is
     ; optional: printed once after a feed move set change(nRapidfeed). A rapid that the post splits
@@ -1978,6 +2148,7 @@ endp
     ; Feed move (G1). A block that turns A is posted in G93 (inverse time, usr_inverse_feed) when its
     ; start point is known (bFeedPrevValid; not right after a homing, a tool change or an index).
     local logical bInverseBlock
+    call @usr_link_flush
     if bR1useDir5a
         ; A 4x/5x event brings CAM's A: the CAM-side references follow it again (usr_r1pos_calc).
         bR1StepReset = false
@@ -2366,6 +2537,7 @@ endp
     ; 0.000005 mm along the chord changes the radius of a 359.99 deg arc of radius 10 by 0.03 mm),
     ; and AR= has no full circle (9.6.4), so such an arc is written in two halves.
     local numeric nArcAR nArcEndX nArcEndY nArcEndZ
+    call @usr_link_flush
     if change(iDiametercomp)
         if iDiametercomp eq iCompActive
             ; Switched back before any move: the control state does not change.
@@ -2533,6 +2705,7 @@ endp
     ; the index steps (index mode 1 steps the work offset by position-1). The index ends a CAM link.
     bIndexClearancePending = true
     bCamLinkRetract = false
+    call @usr_link_flush
     if angle eq 0
         position = 1
     else
@@ -2565,6 +2738,7 @@ endp
     ; job: job_upper_plane + safety, below Z0 too): RFP = drill_upper_z - safety (the hole top),
     ; SDIS = safety.
     local numeric rtp rfp sdis dp
+    call @usr_link_flush
     rtp = drill_clearance_z
     rfp = (drill_upper_z - safety)
     sdis = safety
@@ -2675,6 +2849,8 @@ endp
     ; tolerance MD35150). Not for a tapping job (CYCLE84 runs the spindle, start_tool) and not for the
     ; S that SolidCAM flags again at a job start with the same value.
     call @usr_spindle_dir
+    ; A held CAM-link run goes out before the spindle words (usr_link_flush).
+    call @usr_link_flush
     if change(spin)
         if bSpinWait and last_spin ne 0 and spin ne last_spin and d_drill_type ne D_Tapping and iCompActive ne 41 and iCompActive ne 42
             skipline = true

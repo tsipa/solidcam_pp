@@ -290,12 +290,12 @@
   },
   "recorded_cam_006": {
    "events": 647,
-   "nc_lines": 694,
-   "sha256": "20cad16188b9084a0ca8605dfc5ba9bb9252bbf6bf4ef48adac7054078978808",
+   "nc_lines": 631,
+   "sha256": "c8bc8f60f0f9e39fb7ac122dca3a9d2a3f86837ec2f9a74f27d6d9662f0ad90c",
    "chunks": [
-    "20cad16188b9"
+    "c8bc8f60f0f9"
    ],
-   "gpp_blob": "b69e13a811f78063958700c229a134fd9dd96aa7",
+   "gpp_blob": "92f3aaf471f8242829eecbde838c621a0b1721a1",
    "vmid_blob": "f6c88b748fe4b7f4f94c0f73591668164517f34c"
   }
  }
