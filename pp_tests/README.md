@@ -61,10 +61,10 @@ in `tests_engine/fixtures/`), and `python -m pp_tests.gppl validate <post.gpp> -
 
 ### Running and reading the result
 
-The default run has 652 tests, takes about 75 s and must end `OK`. Its 44 skips
+The default run has 652 tests, takes about 75 s and must end `OK`. Its 42 skips
 have three causes:
 
-- `known defect PP-xxx reproduced: ...` (39 tests, PP and ENGINE entries). Each open
+- `known defect PP-xxx reproduced: ...` (37 tests, PP and ENGINE entries). Each open
   suspected defect has one canonical test per facet that asserts the correct
   behaviour; while the defect exists the test is reported as a skip. If the
   behaviour changes so that the test passes, the default run FAILS with `PP-xxx no
@@ -184,7 +184,7 @@ referenced.
 
 | measure | original suite | this suite |
 | --- | --- | --- |
-| tests | 35 | 652, of which 40 are canonical known-defect tests (39 skipped as reproduced in the default run; PP-058 needs the Mach3 post) |
+| tests | 35 | 652, of which 38 are canonical known-defect tests (37 skipped as reproduced in the default run; PP-058 needs the Mach3 post) |
 | GPP statements executed (`python -m pp_tests.coverage`) | 36.1% (534/1479) | 95.2% (1518/1595) |
 | GPP branch outcomes (if/while true and false) | 32.9% (207/630) | 92.4% (628/680) |
 | mutation kill rate, 802 mutants over 17 procedures (measured on the `f1803b4` GPP, not re-run) | 45.9% (368) | 62.8% (504) |

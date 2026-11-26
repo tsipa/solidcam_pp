@@ -91,8 +91,8 @@ class MachineDefinitionPins(unittest.TestCase):
         correction): dc916d7 raised the XYZ output to 5 decimals together with
         VMID MovementPrecision 4 -> 5. The equality of the two is an inference
         (before dc916d7 the pair was 3 decimals vs 4), pinned for the formats
-        @init_post sets (the later zpos_f switch to '5.4' at the first rapid is
-        PP-006, not checked here)."""
+        @init_post sets (the zpos_f switch to '5.4' at the first rapid was
+        PP-006, fixed; tests/test_motion_rapids.py ZPrecisionTests guards it)."""
         match = re.search(r'MovementPrecision="(\d+)"', vmid_text())
         self.assertIsNotNone(match)
         state = init_state()

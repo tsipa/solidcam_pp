@@ -525,14 +525,14 @@ class ZPrecisionTests(unittest.TestCase):
     """Coordinate output precision after dc916d7 (xpos_f/ypos_f/zpos_f '8.5', VMID
     MovementPrecision=5)."""
 
-    @known_defect('PP-006', facet='first-rapid', match='Z has')
+    @covers('PP-006')
     def test_z_keeps_coordinate_precision_after_first_rapid(self):
         """INDEPENDENT: commit dc916d7 raised the coordinate formats to 8.5 together with VMID
         MovementPrecision 4 -> 5 so that arc end points are written consistently; Z must be
         rounded to 5 decimals like X. The program's first rapid (tool-change positioning,
-        bFirstVert branch of @usr_rapid) sets zpos_f='5.4', so the cutting moves of job 1
-        print Z with 4 decimals (also visible in the real shit2 trace: Z15.8333 next to
-        X192.14583)."""
+        bFirstVert branch of @usr_rapid) set zpos_f='5.4' before PP-006 was fixed, so the
+        cutting moves of job 1 printed Z with 4 decimals (the real shit2 trace: Z15.8333 next
+        to X192.14583)."""
         session = first_job()
         session.ev('move_5x', XYZ, xpos=1, ypos=2, zpos=30)
         mark = session.mark()
@@ -543,12 +543,12 @@ class ZPrecisionTests(unittest.TestCase):
         self.assertAlmostEqual(block.get('Z'), 1.23457, delta=1e-9,
                                msg=f'Z has {decimals_of(block, "Z")} decimals, X {decimals_of(block, "X")}: {block.raw!r}')
 
-    @known_defect('PP-006', facet='tool-change', match='Z has')
+    @covers('PP-006')
     def test_z_keeps_coordinate_precision_after_tool_change(self):
         """INDEPENDENT: same dc916d7 / VMID MovementPrecision=5 oracle after a NON-FIRST tool
-        change: the tool change does not restore the coordinate format (and
-        @usr_ct_before_notfirsttool re-applies zpos_f='5.4' whenever bVertical/bFirstVert
-        is set), so the first move of tool 2 prints Z with 4 decimals."""
+        change: before PP-006 was fixed the tool change did not restore the coordinate format
+        (and @usr_ct_before_notfirsttool re-applied zpos_f='5.4' whenever bVertical/bFirstVert
+        was set), so the first move of tool 2 printed Z with 4 decimals."""
         session = first_job()
         session.cut(10, 20, 50, -1)
         session.next_tool(2, 3)

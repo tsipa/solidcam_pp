@@ -48,9 +48,9 @@ PLANES = {
     'xy': ('X', 'Y', 'Z', 'arc', 17),
     'zx': ('Z', 'X', 'Y', 'arc_zx', 18),
 }
-# Coarsest coordinate format in effect after the first tool change is zpos_f '5.4'
-# (PP-006): rounding moves a written coordinate by at most 5e-5 mm.
-COORDINATE_TOLERANCE = 5.1e-5
+# X, Y and Z are all written with '8.5' (PP-006 fixed: Z no longer drops to '5.4' after the first
+# tool change): rounding moves a written coordinate by at most 5e-6 mm.
+COORDINATE_TOLERANCE = 5.1e-6
 # The arc the control runs through rounded end points: an end moves by up to 0.71e-5 mm in XY
 # ('8.5'); the AR= bulge error is below 1e-6 here.
 PATH_TOLERANCE = 1.0e-4

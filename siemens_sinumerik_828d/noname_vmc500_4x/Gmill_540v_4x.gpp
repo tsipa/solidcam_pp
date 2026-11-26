@@ -102,8 +102,8 @@
     mcode_f         = '2.0(p)'
     xpos_f          = '8.5'
     ypos_f          = '8.5'
-    ; zpos_f becomes '5.4' at the first head homing (usr_head_home_select), which runs at the first
-    ; rapid, before any Z word: '8.5' is never printed (PP-006).
+    ; Z keeps the precision of X and Y (VMID MovementPrecision=5; the 828D takes 0.00001 mm,
+    ; MD10200 INT_INCR_PER_MM 100000). The head homing no longer switches it to '5.4' (PP-006).
     zpos_f          = '8.5'
     nR1pos_f        = '7.3'
     apos_f          = '5.3'
@@ -1801,11 +1801,10 @@ endp
 
 @usr_head_home_select
     ; Select the homing for a head orientation change: sHomestr = sHomestrrotv (also the rotation
-    ; homing sHomestrrot from now on); the caller runs usr_prep_home_axis. Z switches to its
-    ; 4-decimal format (PP-006).
+    ; homing sHomestrrot from now on); the caller runs usr_prep_home_axis. Z keeps its format: the
+    ; template's switch to 4 decimals (zpos_f '5.4') is gone (PP-006).
     sHomestrrot = sHomestrrotv
     sHomestr = sHomestrrot
-    zpos_f = '5.4'
     bFirstVert = false
 endp
 

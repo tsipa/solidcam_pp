@@ -8,7 +8,7 @@ rotary_engine` keeps working.
 
 These are mid-job harnesses with hand-copied state (formats, modal values,
 every change flag False). They never run @init_post, so they cannot see
-defects in initial state or formats (e.g. zpos_f='8.5' here hides PP-006).
+defects in initial state or formats (zpos_f='8.5' here hid PP-006 before it was fixed).
 New tests should prefer support.session.Session; these remain for the older
 fixtures and their area owners.
 """

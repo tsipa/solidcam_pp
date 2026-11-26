@@ -469,7 +469,7 @@ class InitPostSessionTests(unittest.TestCase):
         rotary = [block.rotary('A') for block in start + rapid if block.rotary('A') is not None]
         self.assertTrue(rotary, f'no A word before the first cutting move:\n{shown}')
         self.assertEqual(rotary[0][0], 'DC', f'first A word of the program must be DC (ad2537a):\n{shown}')
-        for axis, tolerance in (('X', XY_TOL), ('Y', XY_TOL), ('Z', CONTROL_TOL)):
+        for axis, tolerance in (('X', XY_TOL), ('Y', XY_TOL), ('Z', XY_TOL)):
             values = [block.axes[axis] for block in rapid if axis in block.axes]
             self.assertEqual(len(values), 1, f'{axis} words in the first rapid:\n{shown}')
             self.assertAlmostEqual(values[0], FIRST_RAPID[axis.lower() + 'pos'], delta=tolerance,
@@ -487,10 +487,9 @@ class InitPostSessionTests(unittest.TestCase):
     def test_session_from_init_post(self):
         """INDEPENDENT: output resolution and the initial A=DC from the GPP's own @init_post.
 
-        X/Y keep VMID MovementPrecision=5 (half an increment tolerance); Z and A
-        keep the 828D input resolution of 0.001 mm / 0.001 deg (VMID
-        RotaryAxisPrecision) - Z's 4-decimal format is PP-006 (area D) and is not
-        pinned here. Commit ab853be (bR1forceOutput initialised in @init_post):
+        X/Y/Z keep VMID MovementPrecision=5 (half an increment tolerance; Z since
+        PP-006 was fixed); A keeps 0.001 deg (VMID RotaryAxisPrecision).
+        Commit ab853be (bR1forceOutput initialised in @init_post):
         the first A word of a program is DC because the actual A position is
         unknown (the ad2537a branch order needs a non-zero first angle and is
         guarded by the indexed two-job test). Geometry: A = -apos * iR1dir
@@ -502,7 +501,10 @@ class InitPostSessionTests(unittest.TestCase):
         """INDEPENDENT: coarse formats, no initial DC force and no flag clearing fail the guard."""
         sources = {
             'xpos_f coarse': mutate("xpos_f          = '8.5'", "xpos_f          = '8.2'"),
-            'zpos_f coarse (usr_head_home)': mutate("zpos_f = '5.4'", "zpos_f = '5.2'"),
+            'zpos_f coarse': mutate("zpos_f          = '8.5'", "zpos_f          = '8.4'"),
+            'zpos_f coarse after the head homing': mutate("    sHomestr = sHomestrrot\n    bFirstVert = false\n",
+                                                          "    sHomestr = sHomestrrot\n    zpos_f = '5.4'\n"
+                                                          "    bFirstVert = false\n"),
             'nR1pos_f integer': mutate("nR1pos_f        = '7.3'", "nR1pos_f        = '7.0'"),
             'no initial DC': mutate('    bR1forceOutput = true\n', '    bR1forceOutput = false\n'),
             'flags never cleared': mutate('clear_change_after_gen = 1', 'clear_change_after_gen = 0'),

@@ -4,9 +4,9 @@ motion_engine is re-exported from support.presets (single definition), so
 `from test_motion import motion_engine` keeps working. It is
 a mid-job harness that never runs @init_post: its hand-copied state
 (iMotionmode=1, iWorkoffset=54, nPtool_* = 35, every change flag False) models
-a program in the middle of a job, and its zpos_f='8.5' preset hides PP-006
-(real output prints Z with 4 decimals after the first rapid; area D). New tests
-use support.session.Session (tests/test_indexing_link.py).
+a program in the middle of a job; its zpos_f='8.5' is the format the post keeps
+for Z since PP-006 was fixed (before, real output printed Z with 4 decimals after
+the first rapid). New tests use support.session.Session (tests/test_indexing_link.py).
 
 All NC checks compare parsed words (support.nc), never substrings: 'X15' does
 not match 'X150' and 'M1' does not match 'M10'.
@@ -19,8 +19,8 @@ from support.engines import adopt_state
 from support.presets import motion_engine  # noqa: F401  (re-exported for other test modules)
 from support.paths import FIXTURES
 
-# The shit2 trace prints Z with 4 decimals (zpos_f '5.4' after the first
-# rapid, PP-006) while the motion_engine preset prints 5 (zpos_f '8.5'): the largest
+# The shit2 trace was recorded with Z at 4 decimals (zpos_f '5.4' after the first
+# rapid, PP-006, since fixed) while the post now prints 5 (zpos_f '8.5'): the largest
 # rounding difference is 0.00005; 0.000001 more absorbs float representation.
 TRACE_Z_DELTA = 0.000051
 

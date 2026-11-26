@@ -85,13 +85,14 @@ class HomingOptionTests(unittest.TestCase):
 
     def test_first_rapid_homing(self):
         """INDEPENDENT: bHomerotv = sHomestrrotv at the first rapid of the program. Off, the head
-        homing selection still runs: Z switches to its 4-decimal format (PP-006)."""
+        homing selection still runs; with it or without, Z keeps the 5-decimal format of X and Y
+        (PP-006, fixed)."""
         for value, expected in ((True, HOMING), (False, [])):
             with self.subTest(bHomerotv=value):
                 p = program(bHomerotv=value)
                 blocks = p.start(tool=1, next_tool=2)
                 self.assertEqual(homings(blocks[blocks.index('MSG("op1")'):]), expected)
-                self.assertEqual(p.engine.state['zpos_f'], '5.4')
+                self.assertEqual(p.engine.state['zpos_f'], '8.5')
 
     def a_turn(self, **options):
         p = program(**options)

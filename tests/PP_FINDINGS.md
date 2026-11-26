@@ -45,7 +45,7 @@ to `Gmill_540v_4x.gpp` at f1803b4.
 | engine | 13 | 8 | 0 | 1 |
 | design | 5 | 2 | 0 | 0 |
 
-Canonical `@known_defect` tests: 40. `@covers` references: 113.
+Canonical `@known_defect` tests: 38. `@covers` references: 115.
 
 ## Index of open entries
 
@@ -53,7 +53,7 @@ Canonical `@known_defect` tests: 40. `@covers` references: 113.
 |---|---|---|---|---|---|
 | [PP-002](#pp-002) | low-medium | confirmed | B | Directed A positions outside the modulo range 0 <= A < 360 (A=ACP(360), ACN(-360), ACP(400)) | pinned only (@covers) |
 | [PP-004](#pp-004) | low | confirmed | B | ACP/ACN direction selection ignores iR1dir; with iR1dir=+1 short moves become near full turns | `test_direction_matches_machine_motion_reversed_sign` |
-| [PP-006](#pp-006) | low | confirmed | D | zpos_f becomes '5.4' after the first rapid / tool-change rapid: Z has 4 decimals, X/Y 5 | `test_z_keeps_coordinate_precision_after_first_rapid` [first-rapid], `test_z_keeps_coordinate_precision_after_tool_change` [tool-change] |
+| [PP-006](#pp-006) | low | confirmed | D | zpos_f becomes '5.4' after the first rapid / tool-change rapid: Z has 4 decimals, X/Y 5 | pinned only (@covers) |
 | [PP-009](#pp-009) | low-medium | confirmed | A | @usr_coolant overwrites the option iCoolantM5ON, so an unlisted pressure inherits the previous job's code instead of the default 77 | `test_through_coolant_code_does_not_leak_between_jobs` |
 | [PP-010](#pp-010) | low | confirmed | A | bCoolofftc/bSpinofftc ('between tool changes') are dead; tool-change M9/M5 follow the end-of-program flags bCooloffend/bSpinoffend | `test_tool_change_options_control_spindle_and_coolant_off` |
 | [PP-011](#pp-011) | low | confirmed | E | Spindle M3/M4 is emitted one block before its S word | `test_spindle_speed_programmed_with_or_before_start` |
@@ -146,9 +146,10 @@ Canonical `@known_defect` tests: 40. `@covers` references: 113.
 - Evidence that would settle it: Settled as real output by tests/fixtures/shit2_contiguous_link.json (4-decimal Z); owner decides whether 0.0001 mm is acceptable against VMID MovementPrecision=5.
 - Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
 - Source findings: history-rotary-09, pp3-zpos-precision, pp-weird-hunter-13
-- Reproduced by:
-  - `tests/test_motion_rapids.py::ZPrecisionTests::test_z_keeps_coordinate_precision_after_first_rapid` (facet `first-rapid`, confidence confirmed)
-  - `tests/test_motion_rapids.py::ZPrecisionTests::test_z_keeps_coordinate_precision_after_tool_change` (facet `tool-change`, confidence confirmed)
+- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
+- Pinned or exercised by (`@covers`):
+  - `tests/test_motion_rapids.py::ZPrecisionTests::test_z_keeps_coordinate_precision_after_first_rapid`
+  - `tests/test_motion_rapids.py::ZPrecisionTests::test_z_keeps_coordinate_precision_after_tool_change`
 
 ### PP-009
 
