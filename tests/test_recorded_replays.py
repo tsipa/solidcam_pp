@@ -1,4 +1,4 @@
-"""Whole recorded SolidCAM programs through the post: tests/fixtures/recorded_cam_001..005.
+"""Whole recorded SolidCAM programs through the post: tests/fixtures/recorded_cam_001..006.
 
 Each recording is SolidCAM's own input for a real program (native trace, tests/fixtures/README.md).
 support/recorded.py decompresses it in memory and replays every event through the tested GPP with
@@ -14,10 +14,11 @@ the session API, stopping at the first error. Per recording:
   python -m pp_tests.tools.recorded_pins --write [NAME ...] when the change is intended.
 
 Across the recordings, compensation_at_the_control_runs_without_the_compressor (INDEPENDENT)
-checks every G41/G42 of their NC against the compressor rule of tests/test_cycle832.py.
+checks every G41/G42 of their NC against the compressor rule of tests/test_cycle832.py, and
+g93_blocks_run_without_the_compressor (INDEPENDENT) every G93 block against the 4x rule there.
 
 recorded_cam_001 (155k events: about 60 s and 2 GB) runs only with PP_RECORDED_ALL=1; the other
-four take about 20 s. The replays run on the GPPL engine's session emulator
+five take about 20 s. The replays run on the GPPL engine's session emulator
 (pp_tests/gppl/session.py). reference_multijob is not replayed: recorded_cam_001 is the same
 program recorded again with arc_size at 9 decimals (tests/fixtures/README.md).
 """
@@ -68,6 +69,28 @@ def compensation_with_compressor(nc):
                     problems.append(f'line {number}: {line} selected with the compressor on')
             on = words[-1] != '0'
     return selections, problems
+
+
+def g93_with_compressor(nc):
+    """(G93 motion blocks, problems) of an NC program: a block that moves an axis in G93 while the
+    compressor is on (a CYCLE832 other than CYCLE832(0,0,1), or COMPSURF, since the last COMPOF).
+    Blocks without motion (a CYCLE832 call, ATOL[A], COMPOF) do not count, also while G93 is modal."""
+    compressor, g93, blocks, problems = False, False, 0, []
+    for number, line in enumerate(nc.splitlines(), 1):
+        if line.startswith('CYCLE832('):
+            compressor = not line.startswith('CYCLE832(0,0,1)')
+        elif line.startswith('COMPSURF'):
+            compressor = True
+        elif line.startswith('COMPOF'):
+            compressor = False
+        words = re.findall(r'\bG9([34])\b', line)
+        if words:
+            g93 = words[-1] == '3'
+        if g93 and re.search(r'(?:^|\s)(?:[XYZ]-?[\d.]|A=)', line):
+            blocks += 1
+            if compressor:
+                problems.append(f'line {number}: {line} in G93 with the compressor on')
+    return blocks, problems
 
 
 class RecordedReplayTests(unittest.TestCase):
@@ -127,6 +150,11 @@ class RecordedReplayTests(unittest.TestCase):
         """INDEPENDENT: SolidCAM's input of a real program must post to @end_of_file without a POST ERROR."""
         self.assert_posts_to_end_of_file('recorded_cam_005')
 
+    def test_recorded_cam_006_posts_to_end_of_file(self):
+        """INDEPENDENT: SolidCAM's input of a real program (one simultaneous 4x chamfering job, rotations
+        in G93) must post to @end_of_file without a POST ERROR."""
+        self.assert_posts_to_end_of_file('recorded_cam_006')
+
     def test_recorded_cam_001_nc_matches_pin(self):
         """CHARACTERIZATION: the NC of recorded_cam_001 is the pinned one."""
         self.assert_nc_matches_pin('recorded_cam_001')
@@ -147,13 +175,32 @@ class RecordedReplayTests(unittest.TestCase):
         """CHARACTERIZATION: the NC of recorded_cam_005 is the pinned one."""
         self.assert_nc_matches_pin('recorded_cam_005')
 
+    def test_recorded_cam_006_nc_matches_pin(self):
+        """CHARACTERIZATION: the NC of recorded_cam_006 is the pinned one."""
+        self.assert_nc_matches_pin('recorded_cam_006')
+
+    def test_g93_blocks_run_without_the_compressor(self):
+        """INDEPENDENT: machine 2026-11-25 (tests/test_cycle832.py SimultaneousCompressorTests): under
+        CYCLE832 the compressor ran short G93 rotation blocks 5x to 10x slower than 1/F, and with
+        COMPOF after the call at 1/F. The NC of recorded_cam_006 (a real 4x program posted from it ran
+        on the machine) and of the other recordings has no G93 block while the compressor is on."""
+        names = ['recorded_cam_002', 'recorded_cam_003', 'recorded_cam_004', 'recorded_cam_005', 'recorded_cam_006']
+        if os.environ.get(ALL_ENV) == '1':
+            names.insert(0, 'recorded_cam_001')
+        for name in names:
+            with self.subTest(name):
+                blocks, problems = g93_with_compressor(replay_of(name).nc)
+                self.assertEqual(problems, [], name)
+                if name in ('recorded_cam_002', 'recorded_cam_006'):
+                    self.assertGreater(blocks, 0, name)
+
     def test_compensation_at_the_control_runs_without_the_compressor(self):
         """INDEPENDENT: machine 2026-11-01 (tests/test_cycle832.py): a pass with G41 selected while
         CYCLE832(0.01,1,1) had COMPSURF on stopped with alarm 10751, the same pass with COMPOF before
         its G41 block ran. Every G41/G42 of the recorded programs is selected with the compressor
         off, nothing switches it inside the window, and the compressor comes back only with a
         CYCLE832 call (or COMPSURF under one).
-        recorded_cam_001..005 select compensation 20, 3, 10, 2 and 16 times."""
+        recorded_cam_001..005 select compensation 20, 3, 10, 2 and 16 times (recorded_cam_006 never)."""
         for name in ('recorded_cam_001', 'recorded_cam_002', 'recorded_cam_003', 'recorded_cam_004',
                      'recorded_cam_005'):
             with self.subTest(name):

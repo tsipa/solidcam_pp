@@ -61,7 +61,7 @@ in `tests_engine/fixtures/`), and `python -m pp_tests.gppl validate <post.gpp> -
 
 ### Running and reading the result
 
-The default run has 642 tests, takes about 75 s and must end `OK`. Its 44 skips
+The default run has 652 tests, takes about 75 s and must end `OK`. Its 44 skips
 have three causes:
 
 - `known defect PP-xxx reproduced: ...` (39 tests, PP and ENGINE entries). Each open
@@ -75,7 +75,7 @@ have three causes:
   initialised. Set `MACH3_PP_SOURCE` to the 6efcad8 Mach3 post (`git show
   6efcad8:mach3/4x/Mach3_4X_Y.gpp > mach3.gpp`) to run them.
 
-`test_recorded_replays.py` replays four recorded SolidCAM programs by default (about 20 s);
+`test_recorded_replays.py` replays five recorded SolidCAM programs by default (about 20 s);
 its three tests that need `recorded_cam_001` (155k events, about 60 s and 2 GB) skip unless
 `PP_RECORDED_ALL=1`.
 
@@ -184,7 +184,7 @@ referenced.
 
 | measure | original suite | this suite |
 | --- | --- | --- |
-| tests | 35 | 642, of which 40 are canonical known-defect tests (39 skipped as reproduced in the default run; PP-058 needs the Mach3 post) |
+| tests | 35 | 652, of which 40 are canonical known-defect tests (39 skipped as reproduced in the default run; PP-058 needs the Mach3 post) |
 | GPP statements executed (`python -m pp_tests.coverage`) | 36.1% (534/1479) | 95.2% (1518/1595) |
 | GPP branch outcomes (if/while true and false) | 32.9% (207/630) | 92.4% (628/680) |
 | mutation kill rate, 802 mutants over 17 procedures (measured on the `f1803b4` GPP, not re-run) | 45.9% (368) | 62.8% (504) |

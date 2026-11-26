@@ -16,7 +16,7 @@
     global integer iCoolantM1OFF iCoolantM2OFF iCoolantM3OFF iCoolantM4OFF iCoolantM5OFF iCoolantM6OFF iCoolantM7OFF iCoolantM8OFF
     global numeric nRapidfeed nMaxInverseFeed iR1dir iR2dir
     global string nR1pos_f nInvFeed_f
-    global logical bCycle832 bCycle832X5 bCycle832AtolA bSpinWait
+    global logical bCycle832 bCycle832X5 bCycle832AtolA bCycle832G93CompOff bSpinWait
     global numeric nCycle832RoughAllow nCycle832TolRough nCycle832TolSemi nCycle832TolFinish
     global string nCycle832Tol_f nCycle832TolA_f nCamDbg_f nArcAR_f
     ; Modal state of the NC program (what the control has active). iDiametercomp is the G40/G41/G42
@@ -36,10 +36,13 @@
     ; (usr_allowance_reset). nCycle832TolA is the contour tolerance whose ATOL[A] is programmed
     ; since the last CYCLE832 call (-1 = none). bCycle832CompOff: COMPOF written for cutter
     ; compensation while a CYCLE832 is active; the next call, after G40, selects the compressor again.
+    ; bCycle832G93Off: COMPOF written for G93 blocks (bCycle832G93CompOff) since the last CYCLE832
+    ; call; a call selects the compressor again.
+    ; bCycle832G93Job: the current job has written a G93 block (usr_g93_compof).
     ; bCycle832FeedApply: usr_smoothing_apply runs for a feed move (usr_smoothing_feed).
     global integer iCycle832Want iCycle832Job
     global numeric nCycle832WantTol nNoAllowance nCycle832TolA
-    global logical bCycle832Auto bCycle832CompOff bCycle832FeedApply
+    global logical bCycle832Auto bCycle832CompOff bCycle832G93Off bCycle832G93Job bCycle832FeedApply
     ; Tool change and job start
     global logical bTlchg bSafetyprep bStopM00difftool bskipline bFirstMove bFirstRapid
     ; bBoundaryStop: an M0/M1 was printed since the last end_of_job (usr_optionalstop, usr_forcedstop);
@@ -189,10 +192,12 @@ endp
     ;the tolerance (mm). On a simultaneous 4x/5x job ATOL[A] follows each CYCLE832: without TRAORI
     ;the control holds A to MD33100 (0.1 deg here, 0.087 mm at R50), not to the contour tolerance.
     ;ATOL[A] is the contour tolerance at the stock's largest radius about A (Y0 Z0); the A share
-    ;adds to the X/Y/Z one.
+    ;adds to the X/Y/Z one. No G93 block (i4xFeedMode 1) runs with the compressor on: the compressor of
+    ;the call misjudges the G93 feed of short A blocks (machine 2026-11-25).
     bCycle832             = TRUE               ; True = CYCLE832 per operation; False = none (iG187_P and nG187_E must be 0)
     bCycle832X5           = TRUE               ; True = iG187_P 0 on a simultaneous 4x/5x job goes by its allowance (Stock_to_leave, Drive_surface_Offset); False = no CYCLE832 there
     bCycle832AtolA        = TRUE               ; True = ATOL[A] after CYCLE832 on a simultaneous 4x/5x job; False = none (A keeps MD33100)
+    bCycle832G93CompOff   = TRUE               ; True = COMPOF for G93: after CYCLE832 (and ATOL[A]) on a simultaneous 4x/5x job, before the first G93 block of any other job; False = the compressor stays on
     nCycle832RoughAllow   = 0.1                ; Wall allowance (mm) from which iG187_P 0 is roughing (0 = finishing, between = semi)
     nCycle832TolRough     = 0.1                ; Contour tolerance (mm) of roughing
     nCycle832TolSemi      = 0.05               ; Contour tolerance (mm) of semi-finishing
@@ -556,6 +561,8 @@ endp
     bCycle832Auto   = false
     nCycle832TolA   = -1
     bCycle832CompOff = false
+    bCycle832G93Off  = false
+    bCycle832G93Job  = false
     bCycle832FeedApply = false
 endp
 
@@ -1308,6 +1315,8 @@ endp
     endif
     iCycle832Job = iMode
     call @usr_smoothing_set(iMode)
+    ; A new job: none of its blocks is in G93 yet (usr_g93_compof).
+    bCycle832G93Job = false
     call @usr_smoothing_apply
 endp
 
@@ -1372,11 +1381,38 @@ endp
     ; recorded 4x part: Y and Z -19.5 to 19.5, R 27.58). The cycle may set the rotary axes itself
     ; (unverified), so it is written again after every call. A stock of no Y/Z extent takes 30 mm
     ; (owner 2026-10-29).
+    ; No G93 block runs with the compressor on (bCycle832G93CompOff): on a simultaneous 4x/5x job in
+    ; G93 (i4xFeedMode 1) COMPOF follows the call and its ATOL[A]; any other job whose feed moves
+    ; turn A gets it before its first G93 block (usr_g93_compof) and from then on is treated the same
+    ; way (bCycle832G93Job): COMPOF after every later call of the job, so its compressor stays off
+    ; also for the moves between and after its rotations. G645, SOFT, the DYN* mode and ATOL stay.
+    ; Machine 2026-11-25: 20 G93 blocks of A +1.545 deg at F198.551 (6 s at 1/F) took 60 s after
+    ; CYCLE832(0.01,1,1), 30 s with ATOL[A] as well, 3 s or less with COMPSURF alone (G64, DYNNORM),
+    ; and 6 s with COMPOF after the call, or with G94 F in deg/min; a single 30 deg G93 block took
+    ; 6 s with or without the call. A 4x chamfering program with COMPOF after the call ran its
+    ; rotations at 1/F and passed the G94 move after its last rotation, where it had stopped with
+    ; 'Wait: Axis enable missing'. The next job that is neither gets the call again at its start,
+    ; which selects the compressor again; within a job it stays off.
     local numeric nY nZ nR
-    local logical bCompBack
+    local logical bCompBack bG93Off
     bCompBack = false
     if bCycle832CompOff and bCycle832FeedApply and iDiametercomp ne 41 and iDiametercomp ne 42
         bCompBack = true
+    endif
+    ; Only with a call active or asked for: bCycle832G93Off is set only after a call.
+    bG93Off = false
+    if iCycle832Mode ne 0 or iCycle832Want ne 0
+        if bCycle832G93CompOff
+            if X5_job and i4xFeedMode eq 1
+                bG93Off = true
+            endif
+            if bCycle832G93Job
+                bG93Off = true
+            endif
+        endif
+        if bCycle832G93Off and !bG93Off
+            bCompBack = true
+        endif
     endif
     if iCycle832Want ne iCycle832Mode or nCycle832WantTol ne nCycle832Tol or bCompBack
         if iCompActive ne 41 and iCompActive ne 42
@@ -1389,6 +1425,7 @@ endp
             iCycle832Mode = iCycle832Want
             nCycle832Tol = nCycle832WantTol
             ; The call selects the compressor of its type again (none with type 0).
+            bCycle832G93Off = false
             bCycle832CompOff = false
             nCycle832TolA = -1
             ; The next move programs G0/G1 again after the cycle call.
@@ -1417,6 +1454,14 @@ endp
             nCycle832TolA = nCycle832Tol
         endif
     endif
+    if bG93Off
+        if iCycle832Mode ne 0 and !bCycle832G93Off and iCompActive ne 41 and iCompActive ne 42
+            skipline = true
+            {nb,'COMPOF'}
+            iMotionmode = 9999
+            bCycle832G93Off = true
+        endif
+    endif
     if iCompActive ne 41 and iCompActive ne 42
         if iDiametercomp eq 41 or iDiametercomp eq 42
             if iCycle832Mode ne 0 and !bCycle832CompOff
@@ -1424,6 +1469,23 @@ endp
                 {nb,'COMPOF'}
                 bCycle832CompOff = true
             endif
+        endif
+    endif
+endp
+
+@usr_g93_compof
+    ; Before a G93 block (usr_line): COMPOF on a line of its own while the compressor of a CYCLE832
+    ; call is on (bCycle832G93CompOff; machine 2026-11-25, usr_smoothing_apply). A simultaneous 4x/5x
+    ; job has it from the call already; this covers any other job whose feed moves turn A, which from
+    ; here on gets COMPOF after every call like a simultaneous one (bCycle832G93Job) until the next
+    ; job starts. Not while the COMPOF of cutter compensation holds (bCycle832CompOff; G93 is not
+    ; allowed with G41/G42).
+    bCycle832G93Job = true
+    if iCycle832Mode ne 0
+        if bCycle832G93CompOff and !bCycle832G93Off and !bCycle832CompOff
+            skipline = true
+            {nb,'COMPOF'}
+            bCycle832G93Off = true
         endif
     endif
 endp
@@ -1447,6 +1509,7 @@ endp
     iCycle832Mode = 0
     nCycle832Tol = 0
     bCycle832CompOff = false
+    bCycle832G93Off = false
     iMotionmode = 9999
 endp
 
@@ -1967,6 +2030,9 @@ endp
         ; M06 left the tool, then the feed in Z.
         call @usr_line_homed_return
         bTcReprogram = false
+    endif
+    if bInverseBlock
+        call @usr_g93_compof
     endif
     {nb,['G'iMotionmode:mcode_f ' '],['G'iFeedMode' '],['G'iMplane' '],['G'iDiametercomp' '],[cWo,iWorkoffset' '],['G'iAbsincmode ' ']}
     {['X'xpos ' '],['Y'ypos ' '],['Z'zpos ' ']}

@@ -26,7 +26,7 @@ from pathlib import Path
 
 from .paths import FIXTURES, PP, ROOT, VMID
 
-RECORDINGS = tuple(f'recorded_cam_{number:03d}' for number in range(1, 6))
+RECORDINGS = tuple(f'recorded_cam_{number:03d}' for number in range(1, 7))
 PINS = FIXTURES / 'recorded_cam_nc_pins.json'
 CHUNK = 1000
 # The replays an open registry entry stops: name -> (id, event, pattern of the error). The

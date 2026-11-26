@@ -134,8 +134,11 @@ after changing the extractor.
 
 ## Additional recorded CAM fixtures
 
-`recorded_cam_001.trace.txt.xz` through `recorded_cam_005.trace.txt.xz` are
-five separate recordings exported with the current CAMDBG-aware extractor.
+`recorded_cam_001.trace.txt.xz` through `recorded_cam_006.trace.txt.xz` are
+six separate recordings exported with the current CAMDBG-aware extractor.
+`recorded_cam_006` is a single simultaneous 4x chamfering job (rotations in G93)
+whose posted program ran on the machine on 2026-11-25 (COMPOF after CYCLE832,
+`tests/test_cycle832.py` SimultaneousCompressorTests).
 Each has a matching `.manifest.json` with source/content hashes, event counts,
 neutral identity counts and diagnostic recovery statistics. Source paths and
 original identity mappings are intentionally excluded. Operation aliases are
@@ -166,3 +169,4 @@ The XZ decoder can need roughly 65 MiB for its compression dictionary.
 | `recorded_cam_003` | 5,997 | 8,685 | 278,884 |
 | `recorded_cam_004` | 41,574 | 22,995 | 1,152,796 |
 | `recorded_cam_005` | 25,533 | 19,151 | 871,432 |
+| `recorded_cam_006` | 646 | 51 | 27,980 |

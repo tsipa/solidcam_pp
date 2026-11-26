@@ -1,6 +1,6 @@
 """Regenerate or check the NC pins of the recorded SolidCAM replays (tests/fixtures/recorded_cam_nc_pins.json).
 
-usage (from the repository root; NAME is recorded_cam_001 .. recorded_cam_005, default all five;
+usage (from the repository root; NAME is recorded_cam_001 .. recorded_cam_006, default all six;
 recorded_cam_001 takes about 60 s and 2 GB):
     python -m pp_tests.tools.recorded_pins --write [NAME ...]   replay and rewrite their pins
     python -m pp_tests.tools.recorded_pins --check [NAME ...]   exit 1 and show the first differing lines

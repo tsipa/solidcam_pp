@@ -39,6 +39,7 @@ with compensation on, stop the post; CYCLE832 goes off before every M0/M1 (StopT
 
 The tests read the blocks each event returns (no skipline joining) unless they need the NC lines.
 """
+import re
 import unittest
 
 from program_session import Program, post_abort_error, post_error_policies
@@ -383,13 +384,15 @@ class SimultaneousJobTests(unittest.TestCase):
 
     def test_atol_is_its_own_nc_line_before_the_first_move(self):
         """INDEPENDENT: with the skipline joining of the NC stream ATOL[A] stays on its own line
-        after the call, before the first move, which writes G0 again."""
+        after the call, then COMPOF of a job in G93 (SimultaneousCompressorTests), before the
+        first move, which writes G0 again."""
         p, _ = first_job(**SIMULTANEOUS, **stock(0, 0))
         cut(p)
         nc = p.nc()
         call = nc.index(FINISH)
         self.assertEqual(nc[call + 1], ATOL_FINISH, nc)
-        self.assertTrue(nc[call + 2].startswith('G0'), nc)
+        self.assertEqual(nc[call + 2], COMPOF, nc)
+        self.assertTrue(nc[call + 3].startswith('G0'), nc)
 
     def check_simultaneous_moves(self, source=None):
         p, start = first_job(source, **SIMULTANEOUS, **stock(0.3))
@@ -497,6 +500,236 @@ class SimultaneousJobMutationTests(unittest.TestCase):
                                        '            ; The next move'), tests.check_atol_state),
             'reset keeps the stock allowance': (('    Stock_to_leave = nNoAllowance\n    Drive_surface_Offset = nNoAllowance\n',
                                                  ''), tests.check_reset),
+        }
+        for label, ((old, new), check) in mutants.items():
+            with self.subTest(mutant=label):
+                assert_detected(self, check, mutate(old, new), label)
+
+
+def x5_smoothing(blocks):
+    return [block for block in blocks if block.startswith(('CYCLE832', 'ATOL', COMPOF))]
+
+
+class SimultaneousCompressorTests(unittest.TestCase):
+    """Machine 2026-11-25 (828D, MDA, 100% override): 20 G93 blocks of A +1.545 deg at F198.551,
+    6 s at 1/F, took 6 s without CYCLE832, 60 s after CYCLE832(0.01,1,1), 30 s with ATOL[A]=0.01329
+    as well, 3 s or less with COMPSURF alone (G64, DYNNORM), and 6 s after CYCLE832, ATOL[A] and
+    COMPOF, or with the same blocks in G94 with F in deg/min; one 30 deg G93 block took 6 s with or
+    without the call. A 4x chamfering program ran its rotations at 1/F with COMPOF after the call
+    (option bCycle832G93CompOff)."""
+
+    def check_compof_follows_the_call(self, source=None):
+        for options, cam, expected in ((None, stock(0, 0), [FINISH, ATOL_FINISH, COMPOF]),
+                                       (None, stock(0.3), [ROUGH, ATOL_ROUGH, COMPOF]),
+                                       (None, dict(iG187_P=2), [SEMI, ATOL_SEMI, COMPOF]),
+                                       (dict(bCycle832AtolA=False), stock(0), [FINISH, COMPOF]),
+                                       (dict(bCycle832G93CompOff=False), stock(0), [FINISH, ATOL_FINISH]),
+                                       (dict(i4xFeedMode=0), stock(0), [FINISH, ATOL_FINISH]),
+                                       (None, stock(NOT_SENT), []),
+                                       (None, dict(x5_job=False, job_type='profile', wall_offset=0), [FINISH])):
+            with self.subTest(options=options, **cam):
+                self.assertEqual(x5_smoothing(first_job(source, options, **{**SIMULTANEOUS, **cam})[1]), expected)
+
+    def test_compof_follows_the_call_on_a_simultaneous_job_in_g93(self):
+        """INDEPENDENT: on a simultaneous 4x/5x job posted in G93 (i4xFeedMode 1) COMPOF follows the
+        CYCLE832 call and its ATOL[A]; none with the option off, in G94 (the compressor keeps a G94
+        feed), without a call or on a job without simultaneous moves."""
+        self.check_compof_follows_the_call()
+
+    def check_compof_state(self, source=None):
+        p, start = first_job(source, job_type='profile', wall_offset=0)
+        self.assertEqual(x5_smoothing(start), [FINISH])
+        cut(p)
+        # A 4x job keeps the call: ATOL[A] and COMPOF.
+        self.assertEqual(x5_smoothing(same_tool_job(p, 'op2', **SIMULTANEOUS, **stock(0, 0))), [ATOL_FINISH, COMPOF])
+        cut(p)
+        # Another one with the same call: COMPOF holds.
+        self.assertEqual(x5_smoothing(same_tool_job(p, 'op3', **SIMULTANEOUS, **stock(0, 0))), [])
+        cut(p)
+        # A job without simultaneous moves and the same call: the call again, for the compressor.
+        self.assertEqual(x5_smoothing(same_tool_job(p, 'op4', job_type='profile', x5_job=False, wall_offset=0)),
+                         [FINISH])
+        cut(p)
+        self.assertEqual(x5_smoothing(same_tool_job(p, 'op5', **SIMULTANEOUS, **stock(0, 0))), [ATOL_FINISH, COMPOF])
+        # A roughing 4x job: each call of its finishing passes and of the cut after them.
+        cut(p)
+        self.assertEqual(x5_smoothing(same_tool_job(p, 'op6', **SIMULTANEOUS, **stock(0.3))),
+                         [ROUGH, ATOL_ROUGH, COMPOF])
+        p.ev('move_5x', xpos=10, ypos=10, zpos=50)
+        moves = p.ev('line_5x', zpos=-2, feed=4000, feed_type='z_feed')
+        moves += p.ev('line_5x', xpos=30, feed=600, feed_type='feed_rate')
+        self.assertEqual(x5_smoothing(moves), [])
+        self.assertEqual(x5_smoothing(p.ev('line_5x', xpos=40, feed_type='finish_feed')), [FINISH, ATOL_FINISH, COMPOF])
+        self.assertEqual(x5_smoothing(p.ev('line_5x', xpos=50, feed_type='feed_rate')), [ROUGH, ATOL_ROUGH, COMPOF])
+        # The tool change deselects; the 4x job selects all three again.
+        _, blocks = second_tool(p, **SIMULTANEOUS, **stock(0.3))
+        self.assertEqual(x5_smoothing(blocks), [DESELECT, ROUGH, ATOL_ROUGH, COMPOF])
+
+    def test_compof_is_written_after_every_call_and_lifted_for_other_jobs(self):
+        """INDEPENDENT: every CYCLE832 call of such a job selects the compressor again, so COMPOF
+        follows each one; while it holds it is not repeated; a later job without simultaneous moves
+        gets the call again even when its type and tolerance are the same."""
+        self.check_compof_state()
+
+    def check_deselection_clears_compof(self, source=None):
+        p, start = first_job(source, **SIMULTANEOUS, **stock(0, 0))
+        self.assertEqual(x5_smoothing(start), [FINISH, ATOL_FINISH, COMPOF])
+        cut(p)
+        boundary, blocks = second_tool(p, job_type='profile', x5_job=False, iG187_P=-1)
+        self.assertEqual(x5_smoothing(boundary + blocks), [DESELECT])
+
+    def check_compof_before_the_first_g93_block(self, source=None):
+        def rotary_cut(p, a0=0):
+            # CAM keeps its A reference across jobs without x5_job: the angles go on from a0, and the
+            # cut starts with a 4x rapid there.
+            blocks = p.ev('move_4x', xpos=10, ypos=0, zpos=50, apos=a0, dir5a='ccw', prev_command='@line')
+            blocks += p.ev('line', zpos=25, feed=200, feed_type='z_feed')
+            blocks += p.ev('line_4x', xpos=12, apos=a0 + 30, feed=200, dir5a='ccw', feed_type='feed_rate')
+            blocks += p.ev('line_4x', xpos=14, apos=a0 + 60, feed=200, dir5a='ccw', feed_type='feed_rate')
+            blocks += p.ev('line', xpos=20, feed=200, feed_type='feed_rate')
+            blocks += p.ev('line_4x', xpos=22, apos=a0 + 90, feed=200, dir5a='ccw', feed_type='feed_rate')
+            return blocks + p.ev('rapid_move', zpos=50)
+
+        rotary_job = dict(job_type='profile', x5_job=False, wall_offset=0)
+        p, start = first_job(source, **rotary_job)
+        self.assertEqual(x5_smoothing(start), [FINISH])
+        blocks = rotary_cut(p)
+        # One COMPOF, on its own block right before the first G93 block; none comes back in the job.
+        self.assertEqual(x5_smoothing(blocks), [COMPOF], blocks)
+        g93 = [i for i, block in enumerate(blocks) if 'G93' in block]
+        self.assertTrue(g93, blocks)
+        self.assertEqual(blocks.index(COMPOF), g93[0] - 1, blocks)
+        # The next job selects the compressor again at its start; its first G93 block writes COMPOF.
+        self.assertEqual(x5_smoothing(same_tool_job(p, 'op2', **rotary_job)), [FINISH])
+        self.assertEqual(x5_smoothing(rotary_cut(p, 90)), [COMPOF])
+        # None with the option off, without G93 (i4xFeedMode 0) or without a CYCLE832 call.
+        for options, cam in ((dict(bCycle832G93CompOff=False), rotary_job), (dict(i4xFeedMode=0), rotary_job),
+                             (None, dict(rotary_job, iG187_P=-1))):
+            with self.subTest(options=options, **cam):
+                p, _ = first_job(source, options, **cam)
+                self.assertEqual([block for block in rotary_cut(p) if block == COMPOF], [])
+
+    def test_compof_comes_before_the_first_g93_block_of_any_job(self):
+        """INDEPENDENT: not only a simultaneous 4x/5x job: any job whose feed moves turn A (here
+        line_4x in a job without x5_job) runs its G93 blocks with the compressor off. COMPOF comes
+        once, before the first G93 block; within the job the compressor does not come back (a call
+        in between would switch it on before the next G93 block); the next job gets the call again
+        at its start. None with the option off, in G94 or without a CYCLE832 call."""
+        self.check_compof_before_the_first_g93_block()
+
+    def check_g93_job_keeps_compof_after_calls(self, source=None):
+        # A job without x5_job by allowance (roughing), with rotating feed moves and a finishing pass.
+        p, start = first_job(source, job_type='profile', x5_job=False, wall_offset=0.3)
+        self.assertEqual(x5_smoothing(start), [ROUGH])
+        p.ev('move_4x', xpos=10, ypos=0, zpos=50, apos=0, dir5a='ccw', prev_command='@line')
+        blocks = p.ev('line', zpos=25, feed=200, feed_type='z_feed')
+        blocks += p.ev('line_4x', xpos=12, apos=30, feed=200, dir5a='ccw', feed_type='feed_rate')
+        self.assertEqual(x5_smoothing(blocks), [COMPOF])
+        # Each later call of the job is followed by COMPOF at once, also before a G94 move.
+        finish = p.ev('line', xpos=20, feed=200, feed_type='finish_feed')
+        self.assertEqual(x5_smoothing(finish), [FINISH, COMPOF], finish)
+        self.assertIn('G94', finish[-1])
+        rough = p.ev('line_4x', xpos=22, apos=60, feed=200, dir5a='ccw', feed_type='feed_rate')
+        self.assertEqual(x5_smoothing(rough), [ROUGH, COMPOF], rough)
+        # The next job without rotating moves gets the call again at its start: the compressor.
+        p.ev('rapid_move', zpos=50)
+        self.assertEqual(x5_smoothing(same_tool_job(p, 'op2', job_type='profile', x5_job=False, wall_offset=0.3)),
+                         [ROUGH])
+
+    def test_a_job_with_g93_blocks_keeps_the_compressor_off(self):
+        """INDEPENDENT: once a job has written a G93 block it is treated like a simultaneous one: every
+        later CYCLE832 call of the job (here the switches of a job by allowance to finishing and back)
+        is followed by COMPOF, so the compressor stays off also for its G94 moves between and after
+        the rotations (the machine stopped once in such a move under the compressor). The next job
+        without rotating moves gets the call again."""
+        self.check_g93_job_keeps_compof_after_calls()
+
+    def check_no_compof_under_compensation(self, source=None):
+        def under_compensation(nc):
+            on, found = False, []
+            for line in nc:
+                if on and line.startswith(('CYCLE832', 'ATOL', COMPOF, 'COMPSURF')):
+                    found.append(line)
+                words = re.findall(r'\bG4([012])\b', line)
+                if words:
+                    on = words[-1] != '0'
+            return found
+
+        # Compensation the last job left on, then a simultaneous job in G93 with the same call.
+        p, _ = first_job(source, job_type='profile', wall_offset=0)
+        p.ev('rapid_move', xpos=10, ypos=10, zpos=50)
+        p.ev('line', zpos=-2, feed=4000, feed_type='z_feed')
+        p.ev('compensation', side='comp_left')
+        p.ev('line', xpos=40, feed=300, feed_type='finish_feed')
+        same_tool_job(p, 'op2', **SIMULTANEOUS, **stock(0, 0))
+        p.ev('compensation', side='comp_off')
+        p.ev('line_5x', xpos=50, feed_type='finish_feed')
+        p.ev('line_5x', xpos=52, apos=10, feed=300, dir5a='ccw', feed_type='finish_feed')
+        nc = p.nc()
+        self.assertEqual(under_compensation(nc), [], nc)
+        self.assertIn(COMPOF, nc)
+        # A job without x5_job that turns A while compensation is on at the control.
+        p, _ = first_job(source, job_type='profile', x5_job=False, wall_offset=0)
+        p.ev('move_4x', xpos=10, ypos=0, zpos=50, apos=0, dir5a='ccw', prev_command='@line')
+        p.ev('line', zpos=25, feed=200, feed_type='z_feed')
+        p.ev('compensation', side='comp_left')
+        p.ev('line', xpos=11, feed=200, feed_type='finish_feed')
+        p.ev('line_4x', xpos=12, apos=30, feed=200, dir5a='ccw', feed_type='finish_feed')
+        nc = p.nc()
+        self.assertEqual(under_compensation(nc), [], nc)
+
+    def test_compof_is_never_written_under_compensation(self):
+        """INDEPENDENT: like CYCLE832 and ATOL[A], the COMPOF lines for G93 are blocks without motion,
+        which may not come while G41/G42 is on at the control (MD20250, alarm 10762): with
+        compensation left on by the last job, and with a G93 block under compensation."""
+        self.check_no_compof_under_compensation()
+
+    def test_deselection_ends_compof(self):
+        """INDEPENDENT: CYCLE832(0,0,1) at a tool change returns to the reset settings (COMPOF);
+        a next job without CYCLE832 gets no second deselection for the compressor."""
+        self.check_deselection_clears_compof()
+
+
+class SimultaneousCompressorMutationTests(unittest.TestCase):
+    def test_mutations_are_detected(self):
+        """INDEPENDENT: mutation self-check of COMPOF on simultaneous jobs in G93."""
+        tests = SimultaneousCompressorTests()
+        mutants = {
+            'no COMPOF': (("            {nb,'COMPOF'}\n            iMotionmode = 9999\n            bCycle832G93Off = true\n",
+                           "            iMotionmode = 9999\n            bCycle832G93Off = true\n"),
+                          tests.check_compof_follows_the_call),
+            'COMPOF in G94 too': (('            if X5_job and i4xFeedMode eq 1\n',
+                                   '            if X5_job\n'), tests.check_compof_follows_the_call),
+            'option ignored': (('        if bCycle832G93CompOff\n            if X5_job',
+                                '        if true\n            if X5_job'), tests.check_compof_follows_the_call),
+            'COMPOF repeated': (('        if iCycle832Mode ne 0 and !bCycle832G93Off and',
+                                 '        if iCycle832Mode ne 0 and'), tests.check_compof_state),
+            'compressor not restored': (('        if bCycle832G93Off and !bG93Off\n            bCompBack = true\n',
+                                         '        if false\n            bCompBack = true\n'), tests.check_compof_state),
+            'no COMPOF before G93': (('    if bInverseBlock\n        call @usr_g93_compof\n    endif\n', ''),
+                                     tests.check_compof_before_the_first_g93_block),
+            'G93 COMPOF ignores the option': (('        if bCycle832G93CompOff and !bCycle832G93Off and !bCycle832CompOff\n',
+                                               '        if !bCycle832G93Off and !bCycle832CompOff\n'),
+                                              tests.check_compof_before_the_first_g93_block),
+            'G93 COMPOF repeated': (('        if bCycle832G93CompOff and !bCycle832G93Off and !bCycle832CompOff\n',
+                                     '        if bCycle832G93CompOff and !bCycle832CompOff\n'),
+                                    tests.check_compof_before_the_first_g93_block),
+            'G93 COMPOF without a call': (('    if iCycle832Mode ne 0\n        if bCycle832G93CompOff and !bCycle832G93Off',
+                                           '    if true\n        if bCycle832G93CompOff and !bCycle832G93Off'),
+                                          tests.check_compof_before_the_first_g93_block),
+            'G93 job not treated like a simultaneous one': (('            if bCycle832G93Job\n                bG93Off = true\n',
+                                                             '            if false\n                bG93Off = true\n'),
+                                                            tests.check_g93_job_keeps_compof_after_calls),
+            'G93 job kept into the next job': (('    bCycle832G93Job = false\n    call @usr_smoothing_apply\n',
+                                                '    call @usr_smoothing_apply\n'), tests.check_g93_job_keeps_compof_after_calls),
+            'COMPOF under compensation after a call': (('        if iCycle832Mode ne 0 and !bCycle832G93Off and iCompActive ne 41 and iCompActive ne 42\n',
+                                                        '        if iCycle832Mode ne 0 and !bCycle832G93Off\n'),
+                                                       tests.check_no_compof_under_compensation),
+            'COMPOF under compensation before G93': (('        if bCycle832G93CompOff and !bCycle832G93Off and !bCycle832CompOff\n',
+                                                      '        if bCycle832G93CompOff and !bCycle832G93Off\n'),
+                                                     tests.check_no_compof_under_compensation),
+            'call keeps COMPOF': (('            bCycle832G93Off = false\n            bCycle832CompOff = false\n',
+                                   '            bCycle832CompOff = false\n'), tests.check_compof_state),
         }
         for label, ((old, new), check) in mutants.items():
             with self.subTest(mutant=label):
