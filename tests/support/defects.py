@@ -246,6 +246,9 @@ RESOLUTIONS = {
                         'safety), so FDPR counts from the hole top on both sides of Z0.'),
     'PP-063': ('fixed', '2e7cc30 CYCLE832: face and thread milling by feed type; no allowance stops the post '
                         '(@usr_allowance_reset marks a job that sent no allowance).'),
+    'PP-006': ('fixed', "4b667df Keep Z at the precision of X and Y: the head homing selection no longer switches "
+                        "zpos_f to '5.4'; Z keeps '8.5' (VMID MovementPrecision=5, 828D input 0.00001 mm). The "
+                        "recorded NC changed only in Z words, each old Z being the new one rounded to 4 decimals."),
 }
 
 # Test files that came with the fixing commits (git show <commit> --stat).
@@ -286,6 +289,8 @@ FIX_TESTS = {
     'PP-005': ('tests/test_indexing_link.py',),
     'PP-055': ('tests/test_cycles_spindle.py',),
     'PP-063': ('tests/test_recorded_replays.py', 'tests/test_cycle832.py'),
+    'PP-006': ('tests/test_motion_rapids.py', 'tests/test_session_program.py', 'tests/test_safety_options.py',
+               'tests/test_arc_compensation_plane.py'),
 }
 
 # GPPL engine handling of the ENGINE entries.

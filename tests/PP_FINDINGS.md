@@ -41,7 +41,7 @@ to `Gmill_540v_4x.gpp` at f1803b4.
 
 | kind | open | fixed | accepted | partly fixed |
 |---|---|---|---|---|
-| pp | 28 | 34 | 1 | 4 |
+| pp | 27 | 35 | 1 | 4 |
 | engine | 13 | 8 | 0 | 1 |
 | design | 5 | 2 | 0 | 0 |
 
@@ -53,7 +53,6 @@ Canonical `@known_defect` tests: 38. `@covers` references: 115.
 |---|---|---|---|---|---|
 | [PP-002](#pp-002) | low-medium | confirmed | B | Directed A positions outside the modulo range 0 <= A < 360 (A=ACP(360), ACN(-360), ACP(400)) | pinned only (@covers) |
 | [PP-004](#pp-004) | low | confirmed | B | ACP/ACN direction selection ignores iR1dir; with iR1dir=+1 short moves become near full turns | `test_direction_matches_machine_motion_reversed_sign` |
-| [PP-006](#pp-006) | low | confirmed | D | zpos_f becomes '5.4' after the first rapid / tool-change rapid: Z has 4 decimals, X/Y 5 | pinned only (@covers) |
 | [PP-009](#pp-009) | low-medium | confirmed | A | @usr_coolant overwrites the option iCoolantM5ON, so an unlisted pressure inherits the previous job's code instead of the default 77 | `test_through_coolant_code_does_not_leak_between_jobs` |
 | [PP-010](#pp-010) | low | confirmed | A | bCoolofftc/bSpinofftc ('between tool changes') are dead; tool-change M9/M5 follow the end-of-program flags bCooloffend/bSpinoffend | `test_tool_change_options_control_spindle_and_coolant_off` |
 | [PP-011](#pp-011) | low | confirmed | E | Spindle M3/M4 is emitted one block before its S word | `test_spindle_speed_programmed_with_or_before_start` |
@@ -134,22 +133,6 @@ Canonical `@known_defect` tests: 38. `@covers` references: 115.
 - Source findings: history-rotary-10, pp-region-4-cycles-rotary-04
 - Reproduced by:
   - `tests/test_rotary.py::RotaryDirectionTests::test_direction_matches_machine_motion_reversed_sign`
-
-### PP-006
-
-**zpos_f becomes '5.4' after the first rapid / tool-change rapid: Z has 4 decimals, X/Y 5**
-
-- Severity: low
-- Confidence: confirmed
-- Reachability: Default config: every program after the first rapid (@usr_rapid L1256/L1269); later tool changes do not restore '8.5' (@usr_ct_before_notfirsttool L724 re-applies '5.4' only when bVertical/bFirstVert is set, and bVertical needs nR2pos != 0, which is always 0 on this 4x-A machine). The mid-job motion_engine preset sets zpos_f=8.5 and hides it.
-- Location: GPP @init_post L59 (zpos_f '8.5'); @usr_rapid L1256/L1269 and @usr_ct_before_notfirsttool L724 (zpos_f '5.4')
-- Evidence that would settle it: Settled as real output by tests/fixtures/shit2_contiguous_link.json (4-decimal Z); owner decides whether 0.0001 mm is acceptable against VMID MovementPrecision=5.
-- Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
-- Source findings: history-rotary-09, pp3-zpos-precision, pp-weird-hunter-13
-- Reproduced by: none (current output is safe or the path is disabled; pinned by the test below)
-- Pinned or exercised by (`@covers`):
-  - `tests/test_motion_rapids.py::ZPrecisionTests::test_z_keeps_coordinate_precision_after_first_rapid`
-  - `tests/test_motion_rapids.py::ZPrecisionTests::test_z_keeps_coordinate_precision_after_tool_change`
 
 ### PP-009
 
@@ -830,6 +813,7 @@ facet) is now a regression guard marked `@covers`.
 | [PP-002 [negative-mode]](#pp-002) | 71bac54 | `test_directed_a_positions_stay_in_modulo_range`, `test_emitted_a_positions_are_valid_modulo_positions`, `test_negative_position_control_posts_valid_modulo_positions` | `tests/test_rotary_modulo_range.py` |
 | [PP-003](#pp-003) | 5408e5c | `test_zx_arc_stops_the_post`, `test_arc_zx_event_stops_the_post` | `tests/test_side_plane_guard.py` |
 | [PP-005](#pp-005) | d3e51a6 | `test_tmatrix_index_ignores_previous_job_apos`, `test_same_tool_index_after_a_simultaneous_job_goes_straight_to_the_index_angle` | `tests/test_indexing_link.py` |
+| [PP-006](#pp-006) | 4b667df | `test_z_keeps_coordinate_precision_after_first_rapid`, `test_z_keeps_coordinate_precision_after_tool_change` | `tests/test_motion_rapids.py`, `tests/test_session_program.py`, `tests/test_safety_options.py`, `tests/test_arc_compensation_plane.py` |
 | [PP-007](#pp-007) | ca63502 | `test_move_4x_preserves_axial_x` | `tests/test_move_4x_axial_x.py` |
 | [PP-012](#pp-012) | d9b120b | `test_hsm_job_parameters_select_cycle832_or_stop` | `tests/test_toolchange_session.py`, `tests/test_cycle832.py` |
 | [PP-013](#pp-013) | 49f8b80 | `test_same_tool_job_climbs_before_xy_traverse` | `tests/test_job_start_climb.py` |
@@ -930,6 +914,24 @@ facet) is now a regression guard marked `@covers`.
 - Guarded by (`@covers`):
   - `tests/test_indexing_link.py::FourthAxisIndexTests::test_tmatrix_index_ignores_previous_job_apos`
   - `tests/test_indexing_link.py::SimultaneousJobCarryOverTests::test_same_tool_index_after_a_simultaneous_job_goes_straight_to_the_index_angle`
+
+### PP-006
+
+**zpos_f becomes '5.4' after the first rapid / tool-change rapid: Z has 4 decimals, X/Y 5**
+
+- Severity: low
+- Confidence: confirmed
+- Reachability: Default config: every program after the first rapid (@usr_rapid L1256/L1269); later tool changes do not restore '8.5' (@usr_ct_before_notfirsttool L724 re-applies '5.4' only when bVertical/bFirstVert is set, and bVertical needs nR2pos != 0, which is always 0 on this 4x-A machine). The mid-job motion_engine preset sets zpos_f=8.5 and hides it.
+- Location: GPP @init_post L59 (zpos_f '8.5'); @usr_rapid L1256/L1269 and @usr_ct_before_notfirsttool L724 (zpos_f '5.4')
+- Evidence that would settle it: Settled as real output by tests/fixtures/shit2_contiguous_link.json (4-decimal Z); owner decides whether 0.0001 mm is acceptable against VMID MovementPrecision=5.
+- Owner area: D (motion: rapids and approach order, homing restore, feed emulation, arcs, compensation, plane, Z precision, rotary feed mode)
+- Source findings: history-rotary-09, pp3-zpos-precision, pp-weird-hunter-13
+- Status: fixed: 4b667df Keep Z at the precision of X and Y: the head homing selection no longer switches zpos_f to '5.4'; Z keeps '8.5' (VMID MovementPrecision=5, 828D input 0.00001 mm). The recorded NC changed only in Z words, each old Z being the new one rounded to 4 decimals.
+- Tests of the fix: tests/test_motion_rapids.py, tests/test_session_program.py, tests/test_safety_options.py, tests/test_arc_compensation_plane.py
+- Reproduced by: none (fixed; the regression guards are listed below)
+- Guarded by (`@covers`):
+  - `tests/test_motion_rapids.py::ZPrecisionTests::test_z_keeps_coordinate_precision_after_first_rapid`
+  - `tests/test_motion_rapids.py::ZPrecisionTests::test_z_keeps_coordinate_precision_after_tool_change`
 
 ### PP-007
 
